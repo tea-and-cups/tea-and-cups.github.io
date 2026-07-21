@@ -9,7 +9,7 @@ const {
   updatedDate,   // 記事のみ
 } = Astro.props;
 
-const siteName = '紅茶とティーカップのメディア'; // サイト名確定後に差し替え
+const siteName = '琥珀時間'; // D-0008
 const canonical = new URL(Astro.url.pathname, Astro.site);
 const ogImageUrl = ogImage ? new URL(ogImage, Astro.site) : null;
 ---
@@ -87,4 +87,5 @@ const ogImageUrl = ogImage ? new URL(ogImage, Astro.site) : null;
   .post-list li { padding: 1.25rem 0; border-bottom: 1px solid var(--line); }
   .post-list a { font-family: "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif; font-size: 1.1rem; text-decoration: none; }
   .post-list p { color: var(--ink-soft); font-size: 0.9rem; margin-top: 0.35rem; }
+  .site-tagline { color: var(--ink-soft); font-size: 0.9rem; margin-bottom: 1.5rem; }
 </style>
