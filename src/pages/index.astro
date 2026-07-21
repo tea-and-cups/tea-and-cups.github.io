@@ -1,0 +1,24 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+const posts = (await getCollection('posts', (p) => p.data.status === 'published'))
+  .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
+
+const siteName = '紅茶とティーカップのメディア'; // サイト名確定後に差し替え
+---
+<BaseLayout
+  title={siteName}
+  description="紅茶とティーカップの世界を、静かに丁寧にご紹介するメディアです。"
+>
+  <h1>記事一覧</h1>
+  {posts.length === 0 && <p>記事は準備中です。どうぞ楽しみにお待ちください。</p>}
+  <ul class="post-list">
+    {posts.map((post) => (
+      <li>
+        <a href={`/posts/${post.data.slug}/`}>{post.data.title}</a>
+        <p>{post.data.description}</p>
+      </li>
+    ))}
+  </ul>
+</BaseLayout>

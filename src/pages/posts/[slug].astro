@@ -1,0 +1,35 @@
+---
+import { getCollection, render } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+
+// URL規約: /posts/{slug}/ 。slugはfrontmatterで手動固定（公開後変更禁止）
+export async function getStaticPaths() {
+  const posts = await getCollection('posts', (p) => p.data.status === 'published');
+  return posts.map((post) => ({
+    params: { slug: post.data.slug },
+    props: { post },
+  }));
+}
+
+const { post } = Astro.props;
+const { Content } = await render(post);
+const fmt = (d) =>
+  `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
+---
+<BaseLayout
+  title={post.data.title}
+  description={post.data.description}
+  ogImage={post.data.hero}
+  ogType="article"
+  publishedDate={post.data.date}
+  updatedDate={post.data.updated}
+>
+  <article>
+    <h1>{post.data.title}</h1>
+    <p class="post-meta">
+      公開: {fmt(post.data.date)}
+      {post.data.updated.valueOf() !== post.data.date.valueOf() && ` ／ 更新: ${fmt(post.data.updated)}`}
+    </p>
+    <Content />
+  </article>
+</BaseLayout>

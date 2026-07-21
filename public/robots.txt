@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://tea-and-cups.github.io/sitemap-index.xml

@@ -1,0 +1,14 @@
+{
+  "name": "tea-site",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview"
+  },
+  "dependencies": {
+    "astro": "^5.1.0",
+    "@astrojs/sitemap": "^3.2.0"
+  }
+}
