@@ -5,7 +5,7 @@ date: 2026-07-24
 updated: 2026-07-24
 description: 水出しアイスティーを続けるコツはポット選びにもあります。耐熱ガラス製の茶こし内蔵・インフューザー式・広口タイプを比較し、容量やお手入れのしやすさで選ぶポイントをご紹介します。
 tags: [紅茶, アイスティー, 水出し, 道具]
-hero: /images/mizudashi-pitcher-hikaku/hero.jpg
+hero: /images/mizudashi-pitcher-hikaku/hero.png
 status: published
 ---
 

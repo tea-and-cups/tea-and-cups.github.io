@@ -5,7 +5,7 @@ date: 2026-07-24
 updated: 2026-07-24
 description: アイスティーをより美しく楽しむガラスの器を比較。タンブラー・脚付きグラス・二重構造グラスの特徴と、涼しさを引き立てる選び方をご紹介します。
 tags: [紅茶, ティーカップ, アイスティー, ガラス]
-hero: /images/glass-cup-hikaku/hero.jpg
+hero: /images/glass-cup-hikaku/hero.png
 status: published
 ---
 

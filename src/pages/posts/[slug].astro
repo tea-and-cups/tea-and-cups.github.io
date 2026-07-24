@@ -30,6 +30,7 @@ const fmt = (d) =>
       公開: {fmt(post.data.date)}
       {post.data.updated.valueOf() !== post.data.date.valueOf() && ` ／ 更新: ${fmt(post.data.updated)}`}
     </p>
+    <img src={post.data.hero} alt={post.data.title} class="hero-image" width="1200" height="630" />
     <Content />
   </article>
 </BaseLayout>
