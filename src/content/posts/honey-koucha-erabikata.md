@@ -2,7 +2,7 @@
 title: はちみつ紅茶とは？タイプ別の選び方とおいしい飲み方
 slug: honey-koucha-erabikata
 date: 2026-07-24
-updated: 2026-07-24
+updated: 2026-07-25
 description: 紅茶売り場でよく見かける「はちみつ紅茶」。ストレート・生姜入り・カフェインレスなどタイプ別の特徴と選び方、おいしく飲むコツをご紹介します。
 tags: [紅茶, はちみつ紅茶, 商品レビュー]
 hero: /images/honey-koucha-erabikata/hero.png
@@ -43,7 +43,7 @@ status: published
 
 はちみつと生姜、シナモンなどのスパイスを組み合わせたタイプは、体を内側からじんわり温めたいときにぴったりです。会社帰りのひと休みや、寒い日のリラックスタイムに向いています。
 
-[生姜入りはちみつ紅茶はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fchaganju%2F12845_copy%2F)
+[生姜入りはちみつ紅茶はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fchaganju%2F12845%2F)
 
 ### 3. カフェインレスタイプ — 時間を気にせず楽しみたい方に
 
