@@ -40,25 +40,25 @@ status: published
 
 南インド産のニルギリは、渋みが少なく透明感のある味わいで、水出しにするとその長所がいっそう際立ちます。レモンやミントを添えるアレンジとも相性がよく、最初の一袋として安心しておすすめできる茶葉です。
 
-[ニルギリのリーフ茶葉はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsawaicoffee-tea%2F320363%2F)
+[ニルギリのリーフ茶葉はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fkaribetta%2F)
 
 ### 2. キャンディ — 渋みが苦手な方への答え
 
 スリランカ中部のキャンディは、セイロンティーの中でもとりわけ穏やかな性格の茶葉です。水出しにすると角のない、すっと喉を通る味わいになります。甘いお菓子との相性も良好です。
 
-【リンク：キャンディ（セイロン）の茶葉（楽天／Amazon）】
+[キャンディ（セイロン）の茶葉はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Ftaiwantea-kyujun%2F000005028%2F)
 
 ### 3. ダージリン — 香りのごちそうを冷たいまま
 
 「紅茶のシャンパン」とも呼ばれるダージリンは、水出しにすると若々しい香りがすっと立ち上がります。春摘み（ファーストフラッシュ）の軽やかなものなら、緑茶のような爽やかさも感じられます。特別な日の食卓や、来客のおもてなしにも映える一杯です。
 
-【リンク：ダージリンの茶葉（楽天／Amazon）】
+[ダージリンの茶葉はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fsingbulli-firstflush2%2F)
 
 ### 4. アールグレイ — 氷に負けない香りの輪郭
 
 ベルガモットで香りづけされたアールグレイは、氷で薄まっても風味の輪郭がぼやけにくいのが強みです。水出しにすると柑橘の香りが穏やかに広がり、甘くないのにどこか華やか。炭酸水で割るアレンジもよく合います。
 
-【リンク：アールグレイの茶葉（楽天／Amazon）】
+[アールグレイの茶葉はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fearlgrey-bleu%2F)
 
 ## 基本の水出しレシピ
 
