@@ -2,7 +2,7 @@
 title: 水出し紅茶用ポット・ピッチャー比較｜耐熱ガラス製のおすすめの選び方
 slug: mizudashi-pitcher-hikaku
 date: 2026-07-24
-updated: 2026-07-24
+updated: 2026-07-25
 description: 水出しアイスティーを続けるコツはポット選びにもあります。耐熱ガラス製の茶こし内蔵・インフューザー式・広口タイプを比較し、容量やお手入れのしやすさで選ぶポイントをご紹介します。
 tags: [紅茶, アイスティー, 水出し, 道具]
 hero: /images/mizudashi-pitcher-hikaku/hero.png
@@ -49,7 +49,7 @@ status: published
 
 口が広いタイプは、輪切りのレモンやミントの葉、たっぷりの氷も入れやすく、フルーツティーなどのアレンジがしやすいのが特長です。スポンジが底まで届くので洗いやすく、清潔を保ちやすい点も見逃せません。冷蔵庫のドアポケットに収まるかどうかは、購入前にサイズを確認しておくと安心です。
 
-[広口タイプの耐熱ガラスピッチャーはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fniffyshop%2Fy813629-1%2F)
+[耐熱ガラスピッチャーはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Flonglife-global%2Ftp2022032501%2F)
 
 ## お手入れと保管のコツ
 

@@ -2,7 +2,7 @@
 title: アイスティーが映えるガラスのティーカップ・グラス特集｜涼しさを引き立てる選び方
 slug: glass-cup-hikaku
 date: 2026-07-24
-updated: 2026-07-24
+updated: 2026-07-25
 description: アイスティーをより美しく楽しむガラスの器を比較。タンブラー・脚付きグラス・二重構造グラスの特徴と、涼しさを引き立てる選び方をご紹介します。
 tags: [紅茶, ティーカップ, アイスティー, ガラス]
 hero: /images/glass-cup-hikaku/hero.png
@@ -37,13 +37,13 @@ status: published
 
 シンプルな筒型で、氷をたっぷり入れられるのが魅力です。食洗機対応のものも多く、気兼ねなく毎日使えます。来客時にもそのまま出せる、汎用性の高い一本です。
 
-[耐熱タンブラーグラスはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Flivingut%2F4963264472852set%2F)
+[タンブラーグラスはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fdaily-3%2Fita8402%2F)
 
 ### 2. 脚付きグラス（ステムグラス） — おもてなしの一杯に
 
 脚（ステム）がある分、手の熱がグラス内の飲み物に伝わりにくく、冷たさが長持ちしやすい形です。見た目も華やかで、フルーツティーやアイスティーソーダを注ぐと一気に特別な一杯に見えます。友人を招く日や、週末のご褒美タイムにおすすめです。
 
-[脚付きアイスティーグラスはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Ft-east%2Fazx-379-30%2F)
+[脚付きアイスティーグラスはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsemagasin%2Fax-hs3067%2F)
 
 ### 3. 二重構造グラス（ダブルウォール） — 結露が気になる方に
 

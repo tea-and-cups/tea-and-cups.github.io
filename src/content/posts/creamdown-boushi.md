@@ -2,7 +2,7 @@
 title: アイスティーが白く濁る「クリームダウン」を防ぐ、澄んだ一杯のいれ方
 slug: creamdown-boushi
 date: 2026-07-24
-updated: 2026-07-24
+updated: 2026-07-25
 description: 熱い紅茶を急に冷やすと白く濁る「クリームダウン」。原因と、澄んだアイスティーをいれる3つのコツ、濁ってしまった場合の対処法をご紹介します。
 tags: [紅茶, アイスティー, いれ方]
 hero: /images/creamdown-boushi/hero.png
@@ -41,7 +41,7 @@ status: published
 
 耐熱ガラスのグラスやポットは、紅茶の色そのものを楽しめる点で、アイスティーとの相性が良い器です。曇りやすいプラスチック製に比べて茶渋や匂いも移りにくく、澄んだ一杯をより美しく見せてくれます。器選びについては、[水出し紅茶用ポット・ピッチャー比較](/posts/mizudashi-pitcher-hikaku/)でも詳しくご紹介しています。
 
-[製氷皿・氷トレイはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fandne%2Fnec-392%2F)
+[製氷皿・氷トレイはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fshimoyama-onlineshop%2F2210sd370%2F)
 
 ## よくある質問
 
