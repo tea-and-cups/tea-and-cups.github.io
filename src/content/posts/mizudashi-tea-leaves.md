@@ -7,6 +7,7 @@ description: 水出しアイスティーは渋みが出にくく、香りが素�
 tags: [紅茶, アイスティー, 水出し]
 hero: /images/mizudashi-tea-leaves/hero.webp
 status: published
+category: tea-leaves
 ---
 
 ※当サイトはアフィリエイト広告（もしもアフィリエイト経由の楽天市場・Amazon）を利用しています。

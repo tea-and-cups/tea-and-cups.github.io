@@ -7,6 +7,7 @@ description: アイスティーをより美しく楽しむガラスの器を比�
 tags: [紅茶, ティーカップ, アイスティー, ガラス]
 hero: /images/glass-cup-hikaku/hero.webp
 status: published
+category: teaware
 ---
 
 ※当サイトはアフィリエイト広告（もしもアフィリエイト経由の楽天市場・Amazon）を利用しています。

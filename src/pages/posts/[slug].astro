@@ -1,6 +1,7 @@
 ---
 import { getCollection, render } from 'astro:content';
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getCategory } from '../../data/categories';
 
 // URL規約: /posts/{slug}/ 。slugはfrontmatterで手動固定（公開後変更禁止）
 export async function getStaticPaths() {
@@ -26,14 +27,18 @@ for (const p of posts) {
   for (const t of p.data.tags) tagFreq.set(t, (tagFreq.get(t) ?? 0) + 1);
 }
 const myTags = new Set(post.data.tags);
+// 同カテゴリには一定の加点をする（タグが重ならなくてもテーマの近い記事を拾うため）。
+// 珍しいタグ1つ分（最大1.0）より軽くし、タグの一致を優先する設計。
+const CATEGORY_BONUS = 0.5;
 const related = posts
   .filter((p) => p.data.slug !== post.data.slug)
   .map((p) => ({
     post: p,
-    score: p.data.tags.reduce(
-      (s, t) => s + (myTags.has(t) ? 1 / (tagFreq.get(t) ?? 1) : 0),
-      0
-    ),
+    score:
+      p.data.tags.reduce(
+        (s, t) => s + (myTags.has(t) ? 1 / (tagFreq.get(t) ?? 1) : 0),
+        0
+      ) + (p.data.category === post.data.category ? CATEGORY_BONUS : 0),
   }))
   .sort(
     (a, b) =>
@@ -43,9 +48,10 @@ const related = posts
   .map((r) => r.post);
 
 // --- 構造化データ -----------------------------------------------------------
-// Phase 2でカテゴリを導入したら、パンくずの「ホーム」と記事名の間にカテゴリ階層を挟む。
+const category = getCategory(post.data.category);
 const breadcrumbs = [
   { label: 'ホーム', href: '/' },
+  { label: category.name, href: `/category/${category.slug}/` },
   { label: post.data.title },
 ];
 const siteUrl = Astro.site?.href;
@@ -71,6 +77,7 @@ const jsonLd = [
     datePublished: post.data.date.toISOString(),
     dateModified: post.data.updated.toISOString(),
     inLanguage: 'ja',
+    articleSection: category.name,
     keywords: post.data.tags.join(', '),
     mainEntityOfPage: { '@type': 'WebPage', '@id': pageUrl },
     author: { '@type': 'Organization', name: '琥珀時間', url: siteUrl },
@@ -89,6 +96,7 @@ const jsonLd = [
   jsonLd={jsonLd}
 >
   <article>
+    <a class="post-category" href={`/category/${category.slug}/`}>{category.name}</a>
     <h1>{post.data.title}</h1>
     <p class="post-meta">
       公開: {fmt(post.data.date)}
@@ -117,7 +125,10 @@ const jsonLd = [
           </li>
         ))}
       </ul>
-      <p class="back-to-list"><a href="/">記事一覧をすべて見る →</a></p>
+      <p class="back-to-list">
+        <a href={`/category/${category.slug}/`}>「{category.name}」の記事をもっと見る →</a><br />
+        <a href="/">記事一覧をすべて見る →</a>
+      </p>
     </aside>
   )}
 </BaseLayout>

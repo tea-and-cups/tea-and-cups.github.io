@@ -1,7 +1,8 @@
 import { defineCollection, z } from 'astro:content';
 import { glob } from 'astro/loaders';
+import { CATEGORY_SLUGS } from './data/categories';
 
-// 可搬性規約: frontmatterは汎用8項目のみ（decisions.md D-0005）。
+// 可搬性規約: frontmatterは汎用9項目のみ（decisions.md D-0005 / D-0020でcategory追加）。
 // Astro固有キーを増やさないこと。
 const posts = defineCollection({
   loader: glob({ pattern: '**/[^_]*.md', base: './src/content/posts' }),
@@ -14,6 +15,8 @@ const posts = defineCollection({
     tags: z.array(z.string()),
     hero: z.string(),
     status: z.enum(['draft', 'published']),
+    // 1記事1カテゴリ。値は src/data/categories.ts の定義に限る
+    category: z.enum(CATEGORY_SLUGS),
   }),
 });
 

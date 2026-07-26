@@ -7,6 +7,7 @@ description: 熱い紅茶を急に冷やすと白く濁る「クリームダウ�
 tags: [紅茶, アイスティー, いれ方]
 hero: /images/creamdown-boushi/hero.webp
 status: published
+category: how-to
 ---
 
 ※当サイトはアフィリエイト広告（もしもアフィリエイト経由の楽天市場・Amazon）を利用しています。

@@ -7,6 +7,7 @@ description: 紅茶売り場でよく見かける「はちみつ紅茶」。ス�
 tags: [紅茶, はちみつ紅茶, 商品レビュー]
 hero: /images/honey-koucha-erabikata/hero.webp
 status: published
+category: tea-leaves
 ---
 
 ※当サイトはアフィリエイト広告（もしもアフィリエイト経由の楽天市場・Amazon）を利用しています。

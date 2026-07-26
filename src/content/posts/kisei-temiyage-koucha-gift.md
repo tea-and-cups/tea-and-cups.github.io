@@ -7,6 +7,7 @@ description: お盆の帰省シーズンに向く紅茶ギフトの選び方を�
 tags: [紅茶, ギフト, 手土産]
 hero: /images/kisei-temiyage-koucha-gift/hero.webp
 status: published
+category: gift
 ---
 
 ※当サイトはアフィリエイト広告（もしもアフィリエイト経由の楽天市場・Amazon）を利用しています。

@@ -1,0 +1,47 @@
+---
+// テーマ（カテゴリ）一覧ページ。ヘッダーナビ「テーマ」の着地点。
+import { getCollection } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { CATEGORIES } from '../../data/categories';
+
+const posts = await getCollection('posts', (p) => p.data.status === 'published');
+
+const themes = CATEGORIES.map((c) => ({
+  ...c,
+  count: posts.filter((p) => p.data.category === c.slug).length,
+})).filter((c) => c.count > 0);
+
+const breadcrumbs = [{ label: 'ホーム', href: '/' }, { label: 'テーマ' }];
+
+const jsonLd = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: breadcrumbs.map((c, i) => ({
+      '@type': 'ListItem',
+      position: i + 1,
+      name: c.label,
+      item: c.href
+        ? new URL(c.href, Astro.site).href
+        : new URL(Astro.url.pathname, Astro.site).href,
+    })),
+  },
+];
+---
+<BaseLayout
+  title="テーマから探す"
+  description="「琥珀時間」の記事をテーマ別にまとめました。淹れ方・楽しみ方、茶葉を選ぶ、器・道具、ギフト・手土産の4つからお選びいただけます。"
+  breadcrumbs={breadcrumbs}
+  jsonLd={jsonLd}
+>
+  <h1>テーマから探す</h1>
+  <p class="site-tagline">気になるテーマからお読みください。</p>
+  <ul class="category-list">
+    {themes.map((c) => (
+      <li>
+        <a href={`/category/${c.slug}/`}>{c.name}<span class="count">（{c.count}記事）</span></a>
+        <p>{c.description}</p>
+      </li>
+    ))}
+  </ul>
+</BaseLayout>

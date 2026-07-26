@@ -7,6 +7,7 @@ description: 水出しアイスティーを続けるコツはポット選びに�
 tags: [紅茶, アイスティー, 水出し, 道具]
 hero: /images/mizudashi-pitcher-hikaku/hero.webp
 status: published
+category: teaware
 ---
 
 ※当サイトはアフィリエイト広告（もしもアフィリエイト経由の楽天市場・Amazon）を利用しています。
