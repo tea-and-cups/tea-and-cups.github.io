@@ -5,7 +5,7 @@ date: 2026-07-26
 updated: 2026-07-26
 description: お盆の帰省シーズンに向く紅茶ギフトの選び方をご紹介。日持ち・個包装・常温保存OKという3つの基準で、実家や親戚宅への手土産に安心して選べる商品を比較します。
 tags: [紅茶, ギフト, 手土産]
-hero: /images/kisei-temiyage-koucha-gift/hero.png
+hero: /images/kisei-temiyage-koucha-gift/hero.webp
 status: published
 ---
 

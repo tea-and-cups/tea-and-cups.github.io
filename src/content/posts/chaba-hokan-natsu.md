@@ -5,7 +5,7 @@ date: 2026-07-25
 updated: 2026-07-25
 description: 高温多湿な夏は紅茶の茶葉が劣化しやすい季節。風味を守る保存の基本と、湿気・匂い移りを防ぐおすすめの保存容器（キャニスター）をご紹介します。
 tags: [紅茶, 保存方法]
-hero: /images/chaba-hokan-natsu/hero.png
+hero: /images/chaba-hokan-natsu/hero.webp
 status: published
 ---
 

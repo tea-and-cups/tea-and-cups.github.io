@@ -1,5 +1,7 @@
 ---
-// サイト共通レイアウト。SEOメタ・OGPはここで一元管理する。
+// サイト共通レイアウト。SEOメタ・OGP・ナビゲーション・構造化データはここで一元管理する。
+import { getCollection } from 'astro:content';
+
 const {
   title,
   description,
@@ -7,11 +9,27 @@ const {
   ogType = 'website',
   publishedDate, // 記事のみ
   updatedDate,   // 記事のみ
+  breadcrumbs = null, // [{ label, href }] 最後の要素は現在地（hrefなしでも可）
+  jsonLd = null,      // ページ固有の構造化データ（配列）
 } = Astro.props;
 
 const siteName = '琥珀時間'; // D-0008
 const canonical = new URL(Astro.url.pathname, Astro.site);
 const ogImageUrl = ogImage ? new URL(ogImage, Astro.site) : null;
+
+// フッターの回遊導線用（全ページ共通・新着6件）
+const footerPosts = (await getCollection('posts', (p) => p.data.status === 'published'))
+  .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf())
+  .slice(0, 6);
+
+const siteJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: siteName,
+  alternateName: '紅茶とティーカップの静かな時間',
+  url: Astro.site?.href,
+};
+const structuredData = [siteJsonLd, ...(jsonLd ?? [])];
 ---
 <html lang="ja">
 <head>
@@ -32,6 +50,7 @@ const ogImageUrl = ogImage ? new URL(ogImage, Astro.site) : null;
   <meta name="twitter:card" content={ogImageUrl ? 'summary_large_image' : 'summary'} />
   {publishedDate && <meta property="article:published_time" content={publishedDate.toISOString()} />}
   {updatedDate && <meta property="article:modified_time" content={updatedDate.toISOString()} />}
+  <script type="application/ld+json" set:html={JSON.stringify(structuredData)} />
   <!-- Google tag (gtag.js) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-T1TCDKDQ9S"></script>
   <script>
@@ -44,12 +63,39 @@ const ogImageUrl = ogImage ? new URL(ogImage, Astro.site) : null;
 <body>
   <header class="site-header">
     <a href="/" class="site-title">{siteName}</a>
+    <nav class="site-nav" aria-label="メインメニュー">
+      <a href="/">ホーム</a>
+      <a href="/about/">このサイトについて</a>
+    </nav>
   </header>
   <main>
+    {breadcrumbs && (
+      <nav class="breadcrumb" aria-label="パンくずリスト">
+        <ol>
+          {breadcrumbs.map((c, i) => (
+            <li>
+              {c.href && i < breadcrumbs.length - 1
+                ? <a href={c.href}>{c.label}</a>
+                : <span aria-current="page">{c.label}</span>}
+            </li>
+          ))}
+        </ol>
+      </nav>
+    )}
     <slot />
   </main>
   <footer class="site-footer">
-    <p><a href="/about/">運営者情報</a> ／ <a href="/privacy-policy/">プライバシーポリシー</a></p>
+    <nav class="footer-posts" aria-label="最近の記事">
+      <h2>最近の記事</h2>
+      <ul>
+        {footerPosts.map((post) => (
+          <li><a href={`/posts/${post.data.slug}/`}>{post.data.title}</a></li>
+        ))}
+      </ul>
+    </nav>
+    <p class="footer-links">
+      <a href="/">ホーム</a> ／ <a href="/about/">運営者情報</a> ／ <a href="/privacy-policy/">プライバシーポリシー</a>
+    </p>
     <p>© {new Date().getFullYear()} {siteName}</p>
   </footer>
 </body>
@@ -80,10 +126,39 @@ const ogImageUrl = ogImage ? new URL(ogImage, Astro.site) : null;
     line-height: 1.5;
   }
   a { color: var(--accent); }
-  .site-header { padding: 2rem 0 1.5rem; border-bottom: 1px solid var(--line); }
+  .site-header {
+    padding: 1.75rem 0 1.25rem;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.5rem 1.25rem;
+  }
   .site-title { font-size: 1.15rem; color: var(--ink); text-decoration: none; }
+  .site-nav { display: flex; gap: 1.25rem; font-size: 0.9rem; }
+  .site-nav a { color: var(--ink-soft); text-decoration: none; padding: 0.25rem 0; }
+  .site-nav a:hover { color: var(--accent); }
   main { padding: 2.5rem 0 4rem; }
-  .site-footer { padding: 2rem 0 3rem; border-top: 1px solid var(--line); color: var(--ink-soft); font-size: 0.85rem; }
+
+  /* パンくずリスト */
+  .breadcrumb { font-size: 0.8rem; color: var(--ink-soft); margin-bottom: 1.5rem; }
+  .breadcrumb ol { list-style: none; margin: 0; display: flex; flex-wrap: wrap; gap: 0.3rem; }
+  .breadcrumb li + li::before { content: "›"; margin-right: 0.3rem; color: var(--line); }
+  .breadcrumb a { color: var(--ink-soft); }
+  .breadcrumb span { color: var(--ink-soft); }
+
+  .site-footer { padding: 2.5rem 0 3rem; border-top: 1px solid var(--line); color: var(--ink-soft); font-size: 0.85rem; }
+  .footer-posts h2 {
+    font-size: 0.9rem; color: var(--ink); margin-bottom: 0.75rem;
+    font-weight: 600; border: none; padding: 0;
+  }
+  .footer-posts ul { list-style: none; margin: 0 0 2rem; }
+  .footer-posts li { padding: 0.4rem 0; }
+  .footer-posts a { color: var(--ink-soft); text-decoration: none; }
+  .footer-posts a:hover { color: var(--accent); text-decoration: underline; }
+  .footer-links { margin-bottom: 0.5rem; }
+
   article h1 { font-size: 1.6rem; margin-bottom: 0.75rem; }
   article h2 { font-size: 1.25rem; margin: 2.5rem 0 0.75rem; padding-bottom: 0.3rem; border-bottom: 1px solid var(--line); }
   article h3 { font-size: 1.05rem; margin: 1.75rem 0 0.5rem; }
@@ -94,10 +169,34 @@ const ogImageUrl = ogImage ? new URL(ogImage, Astro.site) : null;
   article th, article td { border: 1px solid var(--line); padding: 0.5rem 0.75rem; text-align: left; }
   article th { background: #f3eee6; }
   .post-meta { color: var(--ink-soft); font-size: 0.85rem; margin-bottom: 2rem; }
-  .hero-image { width: 100%; height: auto; border-radius: 4px; margin-bottom: 2rem; }
+  .hero-image { width: 100%; height: auto; aspect-ratio: 1200 / 630; border-radius: 4px; margin-bottom: 2rem; }
   .post-list { list-style: none; margin: 0; }
   .post-list li { padding: 1.25rem 0; border-bottom: 1px solid var(--line); }
   .post-list a { font-family: "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif; font-size: 1.1rem; text-decoration: none; }
   .post-list p { color: var(--ink-soft); font-size: 0.9rem; margin-top: 0.35rem; }
   .site-tagline { color: var(--ink-soft); font-size: 0.9rem; margin-bottom: 1.5rem; }
+
+  /* 記事末の関連記事（回遊導線） */
+  .related {
+    margin-top: 3.5rem;
+    padding-top: 1.75rem;
+    border-top: 1px solid var(--line);
+  }
+  .related > h2 {
+    font-size: 1.1rem;
+    margin: 0 0 1rem;
+    border: none;
+    padding: 0;
+  }
+  .related ul { list-style: none; margin: 0; }
+  .related li { padding: 0.9rem 0; border-bottom: 1px solid var(--line); }
+  .related li:last-child { border-bottom: none; }
+  .related a {
+    font-family: "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif;
+    font-size: 1.02rem;
+    text-decoration: none;
+    display: block;
+  }
+  .related p { color: var(--ink-soft); font-size: 0.85rem; margin: 0.3rem 0 0; }
+  .related .back-to-list { margin-top: 1.5rem; font-size: 0.9rem; }
 </style>

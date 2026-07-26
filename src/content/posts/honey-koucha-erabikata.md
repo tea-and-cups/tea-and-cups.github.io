@@ -5,7 +5,7 @@ date: 2026-07-24
 updated: 2026-07-25
 description: 紅茶売り場でよく見かける「はちみつ紅茶」。ストレート・生姜入り・カフェインレスなどタイプ別の特徴と選び方、おいしく飲むコツをご紹介します。
 tags: [紅茶, はちみつ紅茶, 商品レビュー]
-hero: /images/honey-koucha-erabikata/hero.png
+hero: /images/honey-koucha-erabikata/hero.webp
 status: published
 ---
 

@@ -5,7 +5,7 @@ date: 2026-07-24
 updated: 2026-07-25
 description: 熱い紅茶を急に冷やすと白く濁る「クリームダウン」。原因と、澄んだアイスティーをいれる3つのコツ、濁ってしまった場合の対処法をご紹介します。
 tags: [紅茶, アイスティー, いれ方]
-hero: /images/creamdown-boushi/hero.png
+hero: /images/creamdown-boushi/hero.webp
 status: published
 ---
 

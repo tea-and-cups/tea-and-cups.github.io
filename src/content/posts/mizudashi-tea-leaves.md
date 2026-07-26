@@ -5,7 +5,7 @@ date: 2026-07-21
 updated: 2026-07-21
 description: 水出しアイスティーは渋みが出にくく、香りが素直に出るのが魅力。ニルギリ・キャンディ・ダージリン・アールグレイの4タイプを比較し、渋くならない茶葉の選び方と基本レシピをご紹介します。
 tags: [紅茶, アイスティー, 水出し]
-hero: /images/mizudashi-tea-leaves/hero.png
+hero: /images/mizudashi-tea-leaves/hero.webp
 status: published
 ---
 
