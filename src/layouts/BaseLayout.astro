@@ -31,6 +31,14 @@ const ogImageUrl = ogImage ? new URL(ogImage, Astro.site) : null;
   <meta name="twitter:card" content={ogImageUrl ? 'summary_large_image' : 'summary'} />
   {publishedDate && <meta property="article:published_time" content={publishedDate.toISOString()} />}
   {updatedDate && <meta property="article:modified_time" content={updatedDate.toISOString()} />}
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-T1TCDKDQ9S"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-T1TCDKDQ9S');
+  </script>
 </head>
 <body>
   <header class="site-header">
