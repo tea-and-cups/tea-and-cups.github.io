@@ -1,6 +1,7 @@
 ---
 import { getCollection, render } from 'astro:content';
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import PostCard from '../../components/PostCard.astro';
 import { getCategory } from '../../data/categories';
 
 // URL規約: /posts/{slug}/ 。slugはfrontmatterで手動固定（公開後変更禁止）
@@ -117,13 +118,8 @@ const jsonLd = [
   {related.length > 0 && (
     <aside class="related">
       <h2>あわせて読みたい</h2>
-      <ul>
-        {related.map((p) => (
-          <li>
-            <a href={`/posts/${p.data.slug}/`}>{p.data.title}</a>
-            <p>{p.data.description}</p>
-          </li>
-        ))}
+      <ul class="post-list">
+        {related.map((p) => <PostCard post={p} />)}
       </ul>
       <p class="back-to-list">
         <a href={`/category/${category.slug}/`}>「{category.name}」の記事をもっと見る →</a><br />

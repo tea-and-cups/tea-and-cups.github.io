@@ -195,11 +195,42 @@ const structuredData = [siteJsonLd, ...(jsonLd ?? [])];
   article th { background: #f3eee6; }
   .post-meta { color: var(--ink-soft); font-size: 0.85rem; margin-bottom: 2rem; }
   .hero-image { width: 100%; height: auto; aspect-ratio: 1200 / 630; border-radius: 4px; margin-bottom: 2rem; }
-  .post-list { list-style: none; margin: 0; }
-  .post-list li { padding: 1.25rem 0; border-bottom: 1px solid var(--line); }
-  .post-list a { font-family: "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif; font-size: 1.1rem; text-decoration: none; }
-  .post-list p { color: var(--ink-soft); font-size: 0.9rem; margin-top: 0.35rem; }
   .site-tagline { color: var(--ink-soft); font-size: 0.9rem; margin-bottom: 1.5rem; }
+
+  /* 記事カード（トップ・カテゴリ一覧・関連記事で共通・PostCard.astro） */
+  .post-list { list-style: none; margin: 0; }
+  .post-card { border-bottom: 1px solid var(--line); }
+  .post-card:last-child { border-bottom: none; }
+  .post-card-link {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+    padding: 1.15rem 0;
+    text-decoration: none;
+    color: inherit;
+  }
+  .post-card-thumb {
+    flex: 0 0 7.5rem;
+    width: 7.5rem;
+    height: auto;
+    aspect-ratio: 480 / 252;   /* hero(1400x735)と同比率。読み込み前も枠を確保しCLSを防ぐ */
+    object-fit: cover;
+    border-radius: 3px;
+    background: #f3eee6;
+  }
+  .post-card-body { display: flex; flex-direction: column; gap: 0.3rem; min-width: 0; }
+  .post-card-title {
+    font-family: "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif;
+    font-size: 1.02rem;
+    line-height: 1.6;
+    color: var(--accent);
+  }
+  .post-card-desc { color: var(--ink-soft); font-size: 0.85rem; line-height: 1.7; }
+  .post-card-link:hover .post-card-title { text-decoration: underline; }
+  @media (max-width: 30rem) {
+    .post-card-thumb { flex: 0 0 5.75rem; width: 5.75rem; }
+    .post-card-link { gap: 0.8rem; }
+  }
 
   /* テーマ（カテゴリ）一覧 */
   .category-list { list-style: none; margin: 0; }
@@ -238,15 +269,5 @@ const structuredData = [siteJsonLd, ...(jsonLd ?? [])];
     border: none;
     padding: 0;
   }
-  .related ul { list-style: none; margin: 0; }
-  .related li { padding: 0.9rem 0; border-bottom: 1px solid var(--line); }
-  .related li:last-child { border-bottom: none; }
-  .related a {
-    font-family: "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif;
-    font-size: 1.02rem;
-    text-decoration: none;
-    display: block;
-  }
-  .related p { color: var(--ink-soft); font-size: 0.85rem; margin: 0.3rem 0 0; }
   .related .back-to-list { margin-top: 1.5rem; font-size: 0.9rem; }
 </style>

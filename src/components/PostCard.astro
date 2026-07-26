@@ -1,0 +1,25 @@
+---
+// 記事カード（トップ・カテゴリ一覧・記事末の関連記事で共通利用）。
+// サムネイルのパスはslugから導出する（/images/{slug}/thumb.webp）。
+// frontmatterにキーを足さないための規約（CLAUDE.md 9-2規約1の9項目を維持）。
+// thumb.webp は site/scripts/hero-to-webp.py が hero.webp と必ずセットで書き出す。
+const { post, eager = false } = Astro.props;
+const { slug, title, description } = post.data;
+---
+<li class="post-card">
+  <a class="post-card-link" href={`/posts/${slug}/`}>
+    <img
+      class="post-card-thumb"
+      src={`/images/${slug}/thumb.webp`}
+      alt=""
+      width="480"
+      height="252"
+      loading={eager ? 'eager' : 'lazy'}
+      decoding="async"
+    />
+    <span class="post-card-body">
+      <span class="post-card-title">{title}</span>
+      <span class="post-card-desc">{description}</span>
+    </span>
+  </a>
+</li>

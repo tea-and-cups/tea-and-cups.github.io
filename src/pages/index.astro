@@ -1,6 +1,7 @@
 ---
 import { getCollection } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
+import PostCard from '../components/PostCard.astro';
 
 const posts = (await getCollection('posts', (p) => p.data.status === 'published'))
   .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
@@ -15,11 +16,6 @@ const siteName = '琥珀時間'; // D-0008
   <h1>記事一覧</h1>
   {posts.length === 0 && <p>記事は準備中です。どうぞ楽しみにお待ちください。</p>}
   <ul class="post-list">
-    {posts.map((post) => (
-      <li>
-        <a href={`/posts/${post.data.slug}/`}>{post.data.title}</a>
-        <p>{post.data.description}</p>
-      </li>
-    ))}
+    {posts.map((post, i) => <PostCard post={post} eager={i === 0} />)}
   </ul>
 </BaseLayout>
