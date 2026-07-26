@@ -225,11 +225,21 @@ const structuredData = [siteJsonLd, ...(jsonLd ?? [])];
     line-height: 1.6;
     color: var(--accent);
   }
-  .post-card-desc { color: var(--ink-soft); font-size: 0.85rem; line-height: 1.7; }
+  /* description全文（100〜120字）を出すと1枚250px近くなり一覧が流し読みできない。3行で打ち切る */
+  .post-card-desc {
+    color: var(--ink-soft);
+    font-size: 0.85rem;
+    line-height: 1.7;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    overflow: hidden;
+  }
   .post-card-link:hover .post-card-title { text-decoration: underline; }
   @media (max-width: 30rem) {
-    .post-card-thumb { flex: 0 0 5.75rem; width: 5.75rem; }
-    .post-card-link { gap: 0.8rem; }
+    .post-card-thumb { flex: 0 0 6.5rem; width: 6.5rem; }
+    .post-card-link { gap: 0.85rem; }
   }
 
   /* テーマ（カテゴリ）一覧 */
