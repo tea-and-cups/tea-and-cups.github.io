@@ -1,0 +1,88 @@
+"""hero画像を 1400x735 のWebPに変換して記事用パスに配置する。
+
+背景（D-0020 / reports/2026-07-26-ui-ux-review.md）:
+  ChatGPTが出力する画像は1.8〜2.5MBのPNGで、そのまま置くとモバイルのLCPを大きく損なう。
+  また [slug].astro が width="1200" height="630" を固定出力するため、
+  比率がずれるとCLS（表示中のレイアウトずれ）が発生する。
+  よってhero画像は「1400x735（1200x630と同比率）のWebP」に統一する。
+
+使い方:
+  python site/scripts/hero-to-webp.py <入力画像> <slug>
+      1枚を変換して site/public/images/<slug>/hero.webp に配置する。
+      入力画像は output/hero-images/ にも原本として残しておくこと。
+
+  python site/scripts/hero-to-webp.py --all
+      output/hero-images/*.png をすべて再変換する（ファイル名の「（」より前をslugとみなす）。
+      画質設定を見直したときの一括やり直し用。
+
+python本体のパス（この環境）:
+  C:\\Users\\shash\\AppData\\Local\\Programs\\Python\\Python312\\python.exe
+"""
+
+import os
+import re
+import sys
+
+from PIL import Image, ImageOps
+
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+SRC_DIR = os.path.join(ROOT, "output", "hero-images")
+OUT_DIR = os.path.join(ROOT, "site", "public", "images")
+
+TARGET = (1400, 735)  # OGP推奨1200x630と同比率。変更する場合は[slug].astroのwidth/heightも合わせる
+QUALITY = 82
+
+
+def convert(src_path, slug):
+    dst_dir = os.path.join(OUT_DIR, slug)
+    os.makedirs(dst_dir, exist_ok=True)
+    dst = os.path.join(dst_dir, "hero.webp")
+
+    before = os.path.getsize(src_path)
+    im = Image.open(src_path).convert("RGB")
+    ow, oh = im.size
+    # 中央基準でクロップしつつ縮小（元画像は周囲に余白があるため中央固定で問題ない）
+    im = ImageOps.fit(im, TARGET, method=Image.LANCZOS, centering=(0.5, 0.5))
+    im.save(dst, "WEBP", quality=QUALITY, method=6)
+    after = os.path.getsize(dst)
+
+    print(
+        f"{slug:32} {ow}x{oh} {before/1048576:5.2f}MB "
+        f"-> {TARGET[0]}x{TARGET[1]} {after/1024:6.1f}KB  {100*(1-after/before):5.1f}%減"
+    )
+    print(f"  配置先: {dst}")
+    print(f"  frontmatter: hero: /images/{slug}/hero.webp")
+    return after
+
+
+def main():
+    args = sys.argv[1:]
+
+    if args[:1] == ["--all"]:
+        total = 0
+        for fn in sorted(os.listdir(SRC_DIR)):
+            if not fn.endswith(".png"):
+                continue
+            slug = re.split(r"[（(]", fn)[0].strip()
+            if not os.path.isdir(os.path.join(OUT_DIR, slug)):
+                continue  # 記事heroでないPNGは飛ばす
+            total += convert(os.path.join(SRC_DIR, fn), slug)
+        print(f"\n合計 {total/1024:.1f}KB")
+        return
+
+    if len(args) != 2:
+        print(__doc__)
+        sys.exit(1)
+
+    src, slug = args
+    if not os.path.isfile(src):
+        print(f"入力画像が見つかりません: {src}")
+        sys.exit(1)
+    if not re.fullmatch(r"[a-z0-9-]+", slug):
+        print(f"slugは英小文字・数字・ハイフンのみ: {slug}")
+        sys.exit(1)
+    convert(src, slug)
+
+
+if __name__ == "__main__":
+    main()
