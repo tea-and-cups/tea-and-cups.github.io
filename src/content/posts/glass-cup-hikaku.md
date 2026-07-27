@@ -2,7 +2,7 @@
 title: アイスティーが映えるガラスのティーカップ・グラス特集｜涼しさを引き立てる選び方
 slug: glass-cup-hikaku
 date: 2026-07-24
-updated: 2026-07-25
+updated: 2026-07-27
 description: アイスティーをより美しく楽しむガラスの器を比較。タンブラー・脚付きグラス・二重構造グラスの特徴と、涼しさを引き立てる選び方をご紹介します。
 tags: [紅茶, ティーカップ, アイスティー, ガラス]
 hero: /images/glass-cup-hikaku/hero.webp
@@ -38,7 +38,7 @@ category: teaware
 
 シンプルな筒型で、氷をたっぷり入れられるのが魅力です。食洗機対応のものも多く、気兼ねなく毎日使えます。来客時にもそのまま出せる、汎用性の高い一本です。
 
-[タンブラーグラスはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fdaily-3%2Fita8402%2F)
+[タンブラーグラスはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fonestep%2Fjj2688%2F)
 
 ### 2. 脚付きグラス（ステムグラス） — おもてなしの一杯に
 
