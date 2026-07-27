@@ -1,0 +1,24 @@
+# 改行コードの固定（D-0023）
+# シェルスクリプトにCRLFが混入するとGit Bashで実行できなくなるため必ずLFで保存する。
+*.sh text eol=lf
+
+# Windows専用スクリプトはCRLFのままでよい
+*.ps1 text eol=crlf
+
+# テキストとして扱うもの（作業ツリーはOS既定、リポジトリ内はLFで正規化）
+*.md text
+*.astro text
+*.ts text
+*.js text
+*.json text
+*.css text
+*.py text eol=lf
+
+# バイナリ（改行変換をかけない）
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.ico binary
+*.woff binary
+*.woff2 binary
