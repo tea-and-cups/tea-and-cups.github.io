@@ -42,7 +42,7 @@ category: how-to
 
 耐熱ガラスのグラスやポットは、紅茶の色そのものを楽しめる点で、アイスティーとの相性が良い器です。曇りやすいプラスチック製に比べて茶渋や匂いも移りにくく、澄んだ一杯をより美しく見せてくれます。器選びについては、[水出し紅茶用ポット・ピッチャー比較](/posts/mizudashi-pitcher-hikaku/)でも詳しくご紹介しています。
 
-[製氷皿・氷トレイはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fshimoyama-onlineshop%2F2210sd370%2F)
+[製氷皿・氷トレイはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fshimoyama-onlineshop%2F2210sd370%2F) ／ [Amazonで見る](https://www.amazon.co.jp/dp/B09433GFSY?tag=kohakujikan20-22)
 
 ## よくある質問
 

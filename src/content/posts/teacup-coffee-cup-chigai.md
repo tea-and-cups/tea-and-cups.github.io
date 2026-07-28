@@ -61,7 +61,7 @@ KEYUCA（ケユカ）「maco」の耐熱ガラスカップです。丸みのあ�
 
 KINTO（キントー）「KRONOS（クロノス）」の二重構造ガラスグラスです。結露しにくく、熱い紅茶・コーヒーからアイスティーまで幅広く使えます。見た目にも涼しげで、季節を問わず食卓で活躍する一客です。
 
-[ダブルウォールグラスはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Flivingut%2F4963264483759%2F)
+[ダブルウォールグラスはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Flivingut%2F4963264483759%2F) ／ [Amazonで見る](https://www.amazon.co.jp/dp/B00I8IKISA?tag=kohakujikan20-22)
 
 ## お手入れのコツ
 

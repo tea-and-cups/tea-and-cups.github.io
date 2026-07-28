@@ -38,7 +38,7 @@ category: teaware
 
 シンプルな筒型で、氷をたっぷり入れられるのが魅力です。食洗機対応のものも多く、気兼ねなく毎日使えます。来客時にもそのまま出せる、汎用性の高い一本です。
 
-[タンブラーグラスはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fonestep%2Fjj2688%2F)
+[タンブラーグラスはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fonestep%2Fjj2688%2F) ／ [Amazonで見る](https://www.amazon.co.jp/dp/B005RX4SW6?tag=kohakujikan20-22)
 
 ### 2. 脚付きグラス（ステムグラス） — おもてなしの一杯に
 
@@ -50,7 +50,7 @@ category: teaware
 
 ガラスが二重になっている構造で、外側に水滴がつきにくく、テーブルやコースターを濡らす心配が少ないのが特長です。保冷効果も期待でき、氷が長持ちしやすいという声もあります。デスクで作業をしながら飲みたい方にも向いています。
 
-[二重構造の耐熱グラスはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fdmastore%2Fkintokn007%2F)
+[二重構造の耐熱グラスはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fdmastore%2Fkintokn007%2F) ／ [Amazonで見る](https://www.amazon.co.jp/dp/B00I8IKISA?tag=kohakujikan20-22)
 
 ## お手入れと保管のコツ
 
