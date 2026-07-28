@@ -41,7 +41,7 @@ category: tea-leaves
 
 南インド産のニルギリは、渋みが少なく透明感のある味わいで、水出しにするとその長所がいっそう際立ちます。レモンやミントを添えるアレンジとも相性がよく、最初の一袋として安心しておすすめできる茶葉です。
 
-[ニルギリのリーフ茶葉はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fkaribetta%2F)
+[ニルギリのリーフ茶葉はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fkaribetta%2F) ／ [Amazonで見る](https://www.amazon.co.jp/dp/B07NJ8M4GH?tag=kohakujikan20-22)
 
 ### 2. キャンディ — 渋みが苦手な方への答え
 
