@@ -44,7 +44,7 @@ category: teaware
 
 脚（ステム）がある分、手の熱がグラス内の飲み物に伝わりにくく、冷たさが長持ちしやすい形です。見た目も華やかで、フルーツティーやアイスティーソーダを注ぐと一気に特別な一杯に見えます。友人を招く日や、週末のご褒美タイムにおすすめです。
 
-[脚付きアイスティーグラスはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsemagasin%2Fax-hs3067%2F)
+[脚付きアイスティーグラスはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsemagasin%2Fax-hs3067%2F) ／ [Amazonで見る](https://www.amazon.co.jp/dp/B0CNG5WQL5?tag=kohakujikan20-22)
 
 ### 3. 二重構造グラス（ダブルウォール） — 結露が気になる方に
 

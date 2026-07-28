@@ -40,8 +40,8 @@ category: how-to
 
 遮光性を優先したい方、残量が見える透明タイプが好みの方など、好みに合わせて選んでみてください。
 
-- [ケユカ 紅茶缶 100g（日本製・中蓋付きスチール缶）はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fkeyuca%2F3500762%2F) — コンパクトで遮光性が高く、少量パックの茶葉をこまめに使い切りたい方向け
-- [ガラスキャニスター 密閉800ml（木蓋・パッキン付き）はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fmiyoshi-ya%2Fgs-25%2F) — 残量が見える透明タイプ。光の当たらない棚での保管と組み合わせるのがおすすめ
+- [ケユカ 紅茶缶 100g（日本製・中蓋付きスチール缶）はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fkeyuca%2F3500762%2F) ／ [Amazonで見る](https://www.amazon.co.jp/dp/B0811MJ3VT?tag=kohakujikan20-22) — コンパクトで遮光性が高く、少量パックの茶葉をこまめに使い切りたい方向け
+- [ガラスキャニスター 密閉800ml（木蓋・パッキン付き）はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fmiyoshi-ya%2Fgs-25%2F) ／ [Amazonで見る](https://www.amazon.co.jp/dp/B0GPT1HMV4?tag=kohakujikan20-22) — 残量が見える透明タイプ。光の当たらない棚での保管と組み合わせるのがおすすめ
 
 ## 開封後はできるだけ早めに使い切る
 

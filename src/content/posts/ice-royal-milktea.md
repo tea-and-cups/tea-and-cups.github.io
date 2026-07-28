@@ -69,25 +69,25 @@ category: how-to
 
 夏摘み（セカンドフラッシュ）のアッサムCTCは、コクと甘い香りがはっきりと出るタイプです。粒状なので少量でも濃く抽出でき、氷で薄まる前提のアイスミルクティーとは相性がよい茶葉です。100g前後の袋なら、ひと夏かけて楽しめます。
 
-[アッサムCTC（ハティマラ茶園）はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fhatimara2006%2F)
+[アッサムCTC（ハティマラ茶園）はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fhatimara2006%2F) ／ [Amazonで見る](https://www.amazon.co.jp/dp/B09WH7KSF1?tag=kohakujikan20-22)
 
 ### 2. ティーバッグのCTC — 平日の一杯に
 
 計量も茶殻の始末もいらないのがティーバッグの強みです。1袋2.5gのCTCティーバッグなら、上のレシピ（茶葉8〜10g相当）にはグラス2杯分で3〜4袋が目安。小鍋にそのまま入れて煮出せます。仕事の合間に1杯だけ作りたい日に便利です。
 
-[濃厚ミルクティー用アッサムCTCのティーバッグはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fteabag30-assamctc%2F)
+[濃厚ミルクティー用アッサムCTCのティーバッグはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fteabag30-assamctc%2F) ／ [Amazonで見る](https://www.amazon.co.jp/dp/B003YFAYB8?tag=kohakujikan20-22)
 
 ### 3. ミルクティー用ブレンド — ストレートとの兼用に
 
 CTCにオーソドックス製法の茶葉を合わせたブレンドタイプは、ミルクティーのコクを保ちながら、ストレートで飲んでも香りが楽しめます。ミルクティー専用の茶葉を1袋使い切れるか不安な方には、こうした兼用タイプが向いています。
 
-[アッサム ハウスブレンド（ミルクティー向け）はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fassamhouseblend%2F)
+[アッサム ハウスブレンド（ミルクティー向け）はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fassamhouseblend%2F) ／ [Amazonで見る](https://www.amazon.co.jp/dp/B09DPS5DL8?tag=kohakujikan20-22)
 
 ### 4. マサラチャイ — アイスチャイという選択
 
 生姜・カルダモン・シナモンなどのスパイスをあらかじめ配合した茶葉を使えば、上のレシピのまま冷たいマサラチャイになります。スパイスの香りの輪郭は冷やしても保たれやすく、甘みを控えめにしてもぼんやりしないのが利点です。同じ茶葉でホットにもできるので、季節をまたいで使えます。
 
-[マサラチャイの茶葉はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fmasalachai%2F)
+[マサラチャイの茶葉はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fmasalachai%2F) ／ [Amazonで見る](https://www.amazon.co.jp/dp/B0H6ZV6T2B?tag=kohakujikan20-22)
 
 ## 仕上がりを左右する3つの選択
 

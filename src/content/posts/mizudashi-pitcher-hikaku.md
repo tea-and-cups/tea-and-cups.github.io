@@ -38,7 +38,7 @@ category: teaware
 
 注ぎ口や本体に茶こしが組み込まれたタイプは、抽出が終わったらそのままグラスに注ぐだけ。茶葉を取り出す手間がなく、平日の朝でも無理なく続けられます。夜に仕込んで翌朝そのまま食卓へ、という水出し習慣に最も向いている形です。
 
-[茶こし内蔵タイプの耐熱ガラスピッチャーはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fujitawara-seichajyo%2F95826%2F)
+[茶こし内蔵タイプの耐熱ガラスピッチャーはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fujitawara-seichajyo%2F95826%2F) ／ [Amazonで見る](https://www.amazon.co.jp/dp/B07T47W9B8?tag=kohakujikan20-22)
 
 ### 2. インフューザー式ポット — 濃さを自分好みに調整したい方へ
 
@@ -50,7 +50,7 @@ category: teaware
 
 口が広いタイプは、輪切りのレモンやミントの葉、たっぷりの氷も入れやすく、フルーツティーなどのアレンジがしやすいのが特長です。スポンジが底まで届くので洗いやすく、清潔を保ちやすい点も見逃せません。冷蔵庫のドアポケットに収まるかどうかは、購入前にサイズを確認しておくと安心です。
 
-[耐熱ガラスピッチャーはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Flonglife-global%2Ftp2022032501%2F)
+[耐熱ガラスピッチャーはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Flonglife-global%2Ftp2022032501%2F) ／ [Amazonで見る](https://www.amazon.co.jp/dp/B0GHRJ2STM?tag=kohakujikan20-22)
 
 ## お手入れと保管のコツ
 
