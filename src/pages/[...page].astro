@@ -1,0 +1,45 @@
+---
+// トップの記事一覧。1ページ12件で、13件目以降は /2/ /3/ … に分割する。
+// （旧 index.astro を paginate 化したもの。1ページ目のURLは従来どおり / のまま）
+import { getCollection } from 'astro:content';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PostCard from '../components/PostCard.astro';
+import Pagination from '../components/Pagination.astro';
+import { POSTS_PER_PAGE } from '../data/pagination';
+
+export async function getStaticPaths({ paginate }) {
+  const posts = (await getCollection('posts', (p) => p.data.status === 'published'))
+    .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
+  return paginate(posts, { pageSize: POSTS_PER_PAGE });
+}
+
+const { page } = Astro.props;
+const siteName = '琥珀時間'; // D-0008
+const isFirst = page.currentPage === 1;
+const baseDescription =
+  '紅茶とティーカップの静かな時間。茶葉の選び方からカップの楽しみまで、丁寧にご紹介するメディア「琥珀時間」です。';
+
+// 2ページ目以降はタイトル・descriptionを変えて重複を避ける（canonicalはBaseLayoutが自ページを指す）
+const title = isFirst ? siteName : `記事一覧（${page.currentPage}ページ目）`;
+const description = isFirst
+  ? baseDescription
+  : `${baseDescription}（記事一覧 ${page.currentPage}ページ目）`;
+---
+<BaseLayout
+  title={title}
+  description={description}
+  showRecentPosts={false}
+>
+  <p class="site-tagline">紅茶とティーカップの静かな時間</p>
+  <h1>記事一覧{!isFirst && `（${page.currentPage}ページ目）`}</h1>
+  {isFirst && (
+    <p class="site-intro">
+      「琥珀時間」は、紅茶とティーカップのある時間を少しだけ丁寧にするための小さなメディアです。茶葉の選び方から淹れ方、器や道具、贈りものまで、暮らしの中で試せることをひとつずつご紹介しています。
+    </p>
+  )}
+  {page.data.length === 0 && <p>記事は準備中です。どうぞ楽しみにお待ちください。</p>}
+  <ul class="post-list">
+    {page.data.map((post, i) => <PostCard post={post} eager={isFirst && i === 0} />)}
+  </ul>
+  <Pagination page={page} />
+</BaseLayout>

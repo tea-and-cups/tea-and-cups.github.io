@@ -1,0 +1,18 @@
+---
+// ページ送り（トップ・カテゴリ別一覧で共通）。
+// Astro の paginate() が渡す page オブジェクトをそのまま受け取る。
+// 1ページしかない場合は何も出さない。
+const { page } = Astro.props;
+const show = page.lastPage > 1;
+---
+{show && (
+  <nav class="pagination" aria-label="ページ送り">
+    {page.url.prev
+      ? <a class="pagination-link" href={page.url.prev} rel="prev">← 前へ</a>
+      : <span class="pagination-link is-disabled">← 前へ</span>}
+    <span class="pagination-current">{page.currentPage} / {page.lastPage}</span>
+    {page.url.next
+      ? <a class="pagination-link" href={page.url.next} rel="next">次へ →</a>
+      : <span class="pagination-link is-disabled">次へ →</span>}
+  </nav>
+)}

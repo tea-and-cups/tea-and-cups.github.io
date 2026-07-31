@@ -2,16 +2,20 @@
 // テーマ（カテゴリ）一覧ページ。ヘッダーナビ「テーマ」の着地点。
 import { getCollection } from 'astro:content';
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import CategoryCard from '../../components/CategoryCard.astro';
 import { CATEGORIES } from '../../data/categories';
 
 const posts = await getCollection('posts', (p) => p.data.status === 'published');
 
 const themes = CATEGORIES.map((c) => ({
-  ...c,
+  category: c,
   count: posts.filter((p) => p.data.category === c.slug).length,
-})).filter((c) => c.count > 0);
+})).filter((t) => t.count > 0);
 
 const breadcrumbs = [{ label: 'ホーム', href: '/' }, { label: 'テーマ' }];
+
+// 表示名は categories.ts を正本にする（改名時にここを直し忘れないため）
+const themeNames = themes.map((t) => t.category.name).join('、');
 
 const jsonLd = [
   {
@@ -30,18 +34,15 @@ const jsonLd = [
 ---
 <BaseLayout
   title="テーマから探す"
-  description="「琥珀時間」の記事をテーマ別にまとめました。淹れ方・楽しみ方、茶葉を選ぶ、器・道具、ギフト・手土産の4つからお選びいただけます。"
+  description={`「琥珀時間」の記事をテーマ別にまとめました。${themeNames}の${themes.length}つからお選びいただけます。`}
   breadcrumbs={breadcrumbs}
   jsonLd={jsonLd}
 >
   <h1>テーマから探す</h1>
   <p class="site-tagline">気になるテーマからお読みください。</p>
-  <ul class="category-list">
-    {themes.map((c) => (
-      <li>
-        <a href={`/category/${c.slug}/`}>{c.name}<span class="count">（{c.count}記事）</span></a>
-        <p>{c.description}</p>
-      </li>
+  <ul class="category-cards">
+    {themes.map((t, i) => (
+      <CategoryCard category={t.category} count={t.count} eager={i === 0} />
     ))}
   </ul>
 </BaseLayout>

@@ -5,6 +5,10 @@
 
 export const CATEGORY_SLUGS = ['how-to', 'tea-leaves', 'teaware', 'gift'] as const;
 
+// テーマ一覧のカードに「（◯記事）」を出すかどうか。
+// 記事数が少ないうちは見え方が寂しいため false。将来 true に戻せば復活する。
+export const SHOW_CATEGORY_COUNT = false;
+
 export const CATEGORIES = [
   {
     slug: 'how-to',
@@ -20,7 +24,7 @@ export const CATEGORIES = [
   },
   {
     slug: 'teaware',
-    name: '器・道具',
+    name: '茶器・道具',
     description:
       'ティーカップ・グラス・ポットなど、紅茶の時間を支える器と道具の選び方をまとめました。',
   },
@@ -42,4 +46,11 @@ export function categoryName(slug) {
 
 export function categoryPath(slug) {
   return `/category/${slug}/`;
+}
+
+// テーマ一覧のカード画像。パスはslugから導出する（対応表は持たない）。
+// 生成は python site/scripts/hero-to-webp.py --category <入力画像> <slug>（1200x675・16:9）。
+// 画像が未配置でもカード側でフォールバックするため、カテゴリ追加時は画像を置くだけでよい。
+export function categoryImagePath(slug) {
+  return `/images/categories/${slug}.webp`;
 }

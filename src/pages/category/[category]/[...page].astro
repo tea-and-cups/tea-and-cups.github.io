@@ -1,0 +1,73 @@
+---
+// カテゴリ別記事一覧。URL規約: /category/{slug}/ 、2ページ目以降は /category/{slug}/2/
+import { getCollection } from 'astro:content';
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import PostCard from '../../../components/PostCard.astro';
+import Pagination from '../../../components/Pagination.astro';
+import { CATEGORIES } from '../../../data/categories';
+import { POSTS_PER_PAGE } from '../../../data/pagination';
+
+export async function getStaticPaths({ paginate }) {
+  const posts = await getCollection('posts', (p) => p.data.status === 'published');
+  // 記事が1本もないカテゴリはページを作らない（空ページをインデックスさせない）
+  return CATEGORIES.flatMap((category) => {
+    const list = posts
+      .filter((p) => p.data.category === category.slug)
+      .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
+    if (list.length === 0) return [];
+    return paginate(list, {
+      params: { category: category.slug },
+      props: { category },
+      pageSize: POSTS_PER_PAGE,
+    });
+  });
+}
+
+const { category, page } = Astro.props;
+const isFirst = page.currentPage === 1;
+const pageSuffix = isFirst ? '' : `（${page.currentPage}ページ目）`;
+
+const breadcrumbs = [
+  { label: 'ホーム', href: '/' },
+  { label: 'テーマ', href: '/category/' },
+  { label: `${category.name}${pageSuffix}` },
+];
+const pageUrl = new URL(Astro.url.pathname, Astro.site).href;
+
+const jsonLd = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: breadcrumbs.map((c, i) => ({
+      '@type': 'ListItem',
+      position: i + 1,
+      name: c.label,
+      item: c.href ? new URL(c.href, Astro.site).href : pageUrl,
+    })),
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'CollectionPage',
+    name: `${category.name}${pageSuffix}`,
+    description: category.description,
+    url: pageUrl,
+    inLanguage: 'ja',
+  },
+];
+---
+<BaseLayout
+  title={`${category.name}${pageSuffix}`}
+  description={isFirst
+    ? category.description
+    : `${category.description}（${page.currentPage}ページ目）`}
+  breadcrumbs={breadcrumbs}
+  jsonLd={jsonLd}
+>
+  <h1>{category.name}{pageSuffix}</h1>
+  <p class="site-tagline">{category.description}</p>
+  <ul class="post-list">
+    {page.data.map((post, i) => <PostCard post={post} eager={isFirst && i === 0} />)}
+  </ul>
+  <Pagination page={page} />
+  <p class="back-to-list"><a href="/category/">ほかのテーマを見る →</a></p>
+</BaseLayout>

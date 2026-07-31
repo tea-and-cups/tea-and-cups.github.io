@@ -19,6 +19,11 @@
       output/hero-images/*.png をすべて再変換する（ファイル名の「（」より前をslugとみなす）。
       画質設定を見直したときの一括やり直し用。
 
+  python site/scripts/hero-to-webp.py --category <入力画像> <カテゴリslug>
+      テーマ一覧（/category/）のカード画像を作る。
+      site/public/images/categories/<カテゴリslug>.webp に 1200x675（16:9・中央基準）で配置する。
+      入力画像は output/category-images/ に原本として残しておくこと。
+
 python本体のパス（この環境）:
   C:\\Users\\shash\\AppData\\Local\\Programs\\Python\\Python312\\python.exe
 """
@@ -39,6 +44,10 @@ QUALITY = 82
 # 表示上の最大幅は約200px想定で、Retina(2x)でも足りるサイズにしている。
 THUMB = (480, 252)
 THUMB_QUALITY = 80
+# テーマ一覧のカード画像。CategoryCard.astro の width/height（1200x675・16:9）と揃えること。
+CATEGORY_DIR = os.path.join(OUT_DIR, "categories")
+CATEGORY_TARGET = (1200, 675)
+CATEGORY_QUALITY = 82
 
 
 def convert(src_path, slug):
@@ -72,8 +81,44 @@ def convert(src_path, slug):
     return after + after_thumb
 
 
+def convert_category(src_path, slug):
+    """テーマ一覧のカード画像（1200x675・16:9）を書き出す。hero/thumbとは別系統。"""
+    os.makedirs(CATEGORY_DIR, exist_ok=True)
+    dst = os.path.join(CATEGORY_DIR, f"{slug}.webp")
+
+    before = os.path.getsize(src_path)
+    src_im = Image.open(src_path).convert("RGB")
+    ow, oh = src_im.size
+    im = ImageOps.fit(src_im, CATEGORY_TARGET, method=Image.LANCZOS, centering=(0.5, 0.5))
+    im.save(dst, "WEBP", quality=CATEGORY_QUALITY, method=6)
+    after = os.path.getsize(dst)
+
+    print(
+        f"{slug:32} {ow}x{oh} {before/1048576:5.2f}MB "
+        f"-> category {CATEGORY_TARGET[0]}x{CATEGORY_TARGET[1]} {after/1024:6.1f}KB  "
+        f"{100*(1-after/before):5.1f}%減"
+    )
+    print(f"  配置先: {dst}")
+    print(f"  参照パス: /images/categories/{slug}.webp")
+    return after
+
+
 def main():
     args = sys.argv[1:]
+
+    if args[:1] == ["--category"]:
+        if len(args) != 3:
+            print(__doc__)
+            sys.exit(1)
+        src, slug = args[1], args[2]
+        if not os.path.isfile(src):
+            print(f"入力画像が見つかりません: {src}")
+            sys.exit(1)
+        if not re.fullmatch(r"[a-z0-9-]+", slug):
+            print(f"カテゴリslugは英小文字・数字・ハイフンのみ: {slug}")
+            sys.exit(1)
+        convert_category(src, slug)
+        return
 
     if args[:1] == ["--all"]:
         total = 0

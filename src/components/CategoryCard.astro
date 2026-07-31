@@ -1,0 +1,30 @@
+---
+// テーマ（カテゴリ）カード。/category/ の一覧で使う。
+// 画像パスはslugから導出する（categories.ts の categoryImagePath）。
+// カテゴリを増やすときは categories.ts に1件足し、同名のWebPを置くだけでよい。
+import { SHOW_CATEGORY_COUNT, categoryImagePath, categoryPath } from '../data/categories';
+
+const { category, count = 0, eager = false } = Astro.props;
+const src = categoryImagePath(category.slug);
+---
+<li class="category-card">
+  <a class="category-card-link" href={categoryPath(category.slug)}>
+    <span class="category-card-figure">
+      <img
+        class="category-card-image"
+        src={src}
+        alt=""
+        width="1200"
+        height="675"
+        loading={eager ? undefined : 'lazy'}
+        decoding="async"
+      />
+    </span>
+    <span class="category-card-body">
+      <span class="category-card-title">
+        {category.name}{SHOW_CATEGORY_COUNT && <span class="category-card-count">（{count}記事）</span>}
+      </span>
+      <span class="category-card-desc">{category.description}</span>
+    </span>
+  </a>
+</li>

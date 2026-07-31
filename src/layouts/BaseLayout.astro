@@ -12,6 +12,7 @@ const {
   updatedDate,   // 記事のみ
   breadcrumbs = null, // [{ label, href }] 最後の要素は現在地（hrefなしでも可）
   jsonLd = null,      // ページ固有の構造化データ（配列）
+  showRecentPosts = true, // 記事一覧そのものであるページ（トップ・ページ送り）では二重になるため出さない
 } = Astro.props;
 
 const siteName = '琥珀時間'; // D-0008
@@ -92,14 +93,16 @@ const structuredData = [siteJsonLd, ...(jsonLd ?? [])];
     <slot />
   </main>
   <footer class="site-footer">
-    <nav class="footer-posts" aria-label="最近の記事">
-      <h2>最近の記事</h2>
-      <ul>
-        {footerPosts.map((post) => (
-          <li><a href={`/posts/${post.data.slug}/`}>{post.data.title}</a></li>
-        ))}
-      </ul>
-    </nav>
+    {showRecentPosts && (
+      <nav class="footer-posts" aria-label="最近の記事">
+        <h2>最近の記事</h2>
+        <ul>
+          {footerPosts.map((post) => (
+            <li><a href={`/posts/${post.data.slug}/`}>{post.data.title}</a></li>
+          ))}
+        </ul>
+      </nav>
+    )}
     <nav class="footer-categories" aria-label="テーマ">
       <h2>テーマから探す</h2>
       <ul>
@@ -242,17 +245,103 @@ const structuredData = [siteJsonLd, ...(jsonLd ?? [])];
     .post-card-link { gap: 0.85rem; }
   }
 
-  /* テーマ（カテゴリ）一覧 */
-  .category-list { list-style: none; margin: 0; }
-  .category-list li { padding: 1.25rem 0; border-bottom: 1px solid var(--line); }
-  .category-list a {
+  /* テーマ（カテゴリ）一覧のカード（CategoryCard.astro）。モバイル1カラム→広い画面で2カラム */
+  .category-cards {
+    list-style: none;
+    margin: 0;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+  .category-card { min-width: 0; }
+  .category-card-link {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    overflow: hidden;
+    background: #fff;
+    transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+  }
+  .category-card-link:hover,
+  .category-card-link:focus-visible {
+    box-shadow: 0 4px 14px rgba(58, 53, 50, 0.09);
+    transform: translateY(-2px);
+    border-color: #d8cec0;
+  }
+  .category-card-link:active { transform: translateY(0); }
+  .category-card-figure {
+    display: block;
+    aspect-ratio: 16 / 9;
+    /* 画像が未配置でも枠が崩れないよう、落ち着いた無地で埋めておく */
+    background: #efe8dd;
+  }
+  .category-card-image {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .category-card-body { display: block; padding: 1rem 1.15rem 1.25rem; }
+  .category-card-title {
+    display: block;
     font-family: "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif;
     font-size: 1.1rem;
-    text-decoration: none;
+    color: var(--accent);
+    margin-bottom: 0.35rem;
   }
-  .category-list .count { font-family: inherit; font-size: 0.85rem; color: var(--ink-soft); }
-  .category-list p { color: var(--ink-soft); font-size: 0.9rem; margin-top: 0.35rem; }
+  .category-card-count { font-family: inherit; font-size: 0.85rem; color: var(--ink-soft); }
+  .category-card-desc {
+    display: block;
+    color: var(--ink-soft);
+    font-size: 0.9rem;
+    line-height: 1.8;
+  }
+  .category-card-link:hover .category-card-title { text-decoration: underline; }
+  @media (min-width: 34rem) {
+    .category-cards { grid-template-columns: 1fr 1fr; gap: 1.25rem 1.15rem; }
+  }
   .back-to-list { margin-top: 1.75rem; font-size: 0.9rem; }
+
+  /* トップの導入文 */
+  .site-intro { color: var(--ink-soft); font-size: 0.92rem; margin: 0.75rem 0 1.75rem; }
+
+  /* ページ送り（Pagination.astro） */
+  .pagination {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-top: 2rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--line);
+    font-size: 0.9rem;
+  }
+  .pagination-link { text-decoration: none; padding: 0.5rem 0.25rem; }
+  .pagination-link:hover { text-decoration: underline; }
+  .pagination-link.is-disabled { color: var(--line); }
+  .pagination-current { color: var(--ink-soft); font-size: 0.85rem; }
+
+  /* 記事の目次（rehype-toc.mjs が本文の先頭に差し込む） */
+  .toc {
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    background: #f7f2ea;
+    padding: 0.4rem 1rem;
+    margin: 1.75rem 0;
+    font-size: 0.92rem;
+  }
+  .toc > summary {
+    cursor: pointer;
+    padding: 0.55rem 0;
+    color: var(--ink);
+    font-family: "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif;
+  }
+  article .toc ul { list-style: none; margin: 0.25rem 0 0.75rem; }
+  .toc li { padding: 0.3rem 0; line-height: 1.7; }
+  .toc a { text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
 
   /* 記事メタのカテゴリバッジ */
   .post-category {
