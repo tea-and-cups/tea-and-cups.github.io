@@ -8,16 +8,29 @@ set -eu
 
 SITE_DIR="/c/Claude/Tea_TeaCut/site"
 
+# ユーザープロファイル配下の絶対パスは直書きしない（siteリポジトリは公開されているため）。
+# 環境変数から組み立てる。LOCALAPPDATA等はバックスラッシュ区切りで来るのでスラッシュへ直す。
+local_app_dirs() {
+  [ -n "${LOCALAPPDATA:-}" ] && echo "${LOCALAPPDATA//\\//}"
+  [ -n "${HOME:-}" ] && echo "$HOME/AppData/Local"
+  [ -n "${USERPROFILE:-}" ] && echo "${USERPROFILE//\\//}/AppData/Local"
+  return 0
+}
+
 find_node() {
   if command -v node >/dev/null 2>&1; then
     command -v node
     return
   fi
-  for c in /c/Users/shash/AppData/Local/OpenAI/Codex/runtimes/cua_node/*/bin/node.exe; do
-    if [ -x "$c" ]; then
-      echo "$c"
-      return
-    fi
+  local base c
+  # 同梱ランタイム（他アプリ付属）。恒久的な足場ではないため、Node.js導入までの暫定措置。
+  for base in $(local_app_dirs); do
+    for c in "$base"/OpenAI/Codex/runtimes/cua_node/*/bin/node.exe; do
+      if [ -x "$c" ]; then
+        echo "$c"
+        return
+      fi
+    done
   done
   return 1
 }

@@ -24,8 +24,8 @@
       site/public/images/categories/<カテゴリslug>.webp に 1200x675（16:9・中央基準）で配置する。
       入力画像は output/category-images/ に原本として残しておくこと。
 
-python本体のパス（この環境）:
-  C:\\Users\\shash\\AppData\\Local\\Programs\\Python\\Python312\\python.exe
+python本体はPATH上の `python`（Windows版Python 3.12系）を想定している。
+CLAUDE.md 11節のとおり、呼び出しは常にプロジェクトルートからの相対パスで行う。
 """
 
 import os
