@@ -38,19 +38,19 @@ category: gift
 
 缶は湿気やにおい移りからも中身を守ってくれるため、長い移動時間でも安心です。見た目の華やかさと持ち運びのしやすさを兼ね備え、のし対応をしているものも多いため、久しぶりの帰省や改めてご挨拶をしたい親戚宅への手土産にも向いています。
 
-[缶入りティーバッグ20枚のギフトはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fkarelcapek%2F01609376%2F) ／ [Amazonで見る](https://www.amazon.co.jp/dp/B0CJ4ZV3J9?tag=kohakujikan20-22)
+[缶入りティーバッグ20枚のギフトはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fkarelcapek%2F01609376%2F)
 
 ### 2. 選べるティーバッグセット — 気軽に配れる
 
 ポスト投函に対応した商品も多く、実家に加えて近所の親戚宅にも立ち寄る予定がある方は、荷物としてかさばらない点も助かります。手頃な価格でありながら、紅茶専門店ならではの豊富な種類から選べるのも魅力です。
 
-[選べる紅茶ティーバッグセットはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fkarelcapek%2F01600776r%2F) ／ [Amazonで見る](https://www.amazon.co.jp/dp/B0BW4LW8D5?tag=kohakujikan20-22)
+[選べる紅茶ティーバッグセットはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fkarelcapek%2F01600776r%2F)
 
 ### 3. はちみつ紅茶 — 自然な甘さで幅広い世代に
 
 個包装のティーバッグなら、暑い時期はアイスに、涼しくなればホットにと季節を問わず使ってもらえます。はちみつの自然な甘さが加わった紅茶は、お子さまからご年配の方まで幅広く楽しんでもらいやすいタイプです。タイプ別の選び方は[はちみつ紅茶とは？タイプ別の選び方とおいしい飲み方](/posts/honey-koucha-erabikata/)でも詳しくご紹介しています。
 
-[はちみつ紅茶のギフトセットはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Ftorisetsu%2Fte-hachi02%2F) ／ [Amazonで見る](https://www.amazon.co.jp/dp/B08Z3KVJ6M?tag=kohakujikan20-22)
+[はちみつ紅茶のギフトセットはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Ftorisetsu%2Fte-hachi02%2F)
 
 ## 渡すときのひと工夫
 

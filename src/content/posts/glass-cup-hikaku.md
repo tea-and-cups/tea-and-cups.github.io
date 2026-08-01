@@ -38,19 +38,19 @@ category: teaware
 
 食洗機対応のものも多く、気兼ねなく毎日使えます。シンプルな筒型で氷もたっぷり入れられ、来客時にもそのまま出せる汎用性の高い一本です。
 
-[タンブラーグラスはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fonestep%2Fjj2688%2F) ／ [Amazonで見る](https://www.amazon.co.jp/dp/B005RX4SW6?tag=kohakujikan20-22)
+[タンブラーグラスはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fonestep%2Fjj2688%2F)
 
 ### 2. 脚付きグラス（ステムグラス） — おもてなしの一杯に
 
 フルーツティーやアイスティーソーダを注ぐと一気に特別な一杯に見え、友人を招く日や週末のご褒美タイムにおすすめです。脚（ステム）がある分、手の熱がグラス内の飲み物に伝わりにくく、冷たさが長持ちしやすい形です。
 
-[脚付きアイスティーグラスはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsemagasin%2Fax-hs3067%2F) ／ [Amazonで見る](https://www.amazon.co.jp/dp/B0CNG5WQL5?tag=kohakujikan20-22)
+[脚付きアイスティーグラスはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsemagasin%2Fax-hs3067%2F)
 
 ### 3. 二重構造グラス（ダブルウォール） — 結露が気になる方に
 
 デスクで作業をしながら飲みたい方にも向いています。ガラスが二重になっている構造で外側に水滴がつきにくく、テーブルやコースターを濡らす心配が少ないのが特長です。保冷効果も期待でき、氷が長持ちしやすいという声もあります。
 
-[二重構造の耐熱グラスはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fdmastore%2Fkintokn007%2F) ／ [Amazonで見る](https://www.amazon.co.jp/dp/B00I8IKISA?tag=kohakujikan20-22)
+[二重構造の耐熱グラスはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fdmastore%2Fkintokn007%2F)
 
 ## お手入れと保管のコツ
 
