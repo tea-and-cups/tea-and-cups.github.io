@@ -2,7 +2,7 @@
 title: 溶けにくい氷で作る、薄まらないアイスティーの淹れ方｜ロックアイス活用術
 slug: tokekunikui-kori-icetea
 date: 2026-07-27
-updated: 2026-07-27
+updated: 2026-08-01
 description: 氷が溶けて味が薄まるのがアイスティーの悩みどころ。大きめの氷と2倍濃度の急冷抽出を組み合わせれば、最後の一口まで薄まらない一杯に。溶けにくい氷の選び方と作り方のコツをご紹介します。
 tags: [紅茶, アイスティー, 氷, 夏]
 hero: /images/tokekunikui-kori-icetea/hero.webp
@@ -49,7 +49,7 @@ category: how-to
 
 大きな氷をたっぷり使うなら、器の口の広さも重要です。口が狭いグラスやポットでは、大きな氷を入れづらく、洗うときにも手が届きにくくなります。作り置きしてストックするなら、広口タイプの耐熱ガラスピッチャーが扱いやすくおすすめです。
 
-[広口タイプの耐熱ガラスピッチャーはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Flonglife-global%2Ftp2022032501%2F) ／ [Amazonで見る](https://www.amazon.co.jp/dp/B0GHRJ2STM?tag=kohakujikan20-22)
+[広口タイプの耐熱ガラスピッチャーはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Flonglife-global%2Ftp2022032501%2F)
 
 ## この淹れ方に向いている茶葉
 
