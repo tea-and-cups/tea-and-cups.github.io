@@ -41,7 +41,7 @@ category: tea-leaves
 
 レモンやミントを添えるアレンジとも相性がよく、最初の一袋として安心しておすすめできる茶葉です。南インド産のニルギリは渋みが少なく透明感のある味わいで、水出しにするとその長所がいっそう際立ちます。
 
-[ニルギリのリーフ茶葉はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fkaribetta%2F) ／ [Amazonで見る](https://www.amazon.co.jp/dp/B07NJ8M4GH?tag=kohakujikan20-22)
+[ニルギリのリーフ茶葉はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fkaribetta%2F)
 
 ### 2. キャンディ — 渋みが苦手な方への答え
 
@@ -53,13 +53,13 @@ category: tea-leaves
 
 特別な日の食卓や、来客のおもてなしにも映える一杯です。「紅茶のシャンパン」とも呼ばれるダージリンは、水出しにすると若々しい香りがすっと立ち上がり、じっくり味わいたくなる香り高さがあります。春摘み（ファーストフラッシュ）の軽やかなものなら、緑茶のような爽やかさも感じられます。
 
-[ダージリンの茶葉はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fsingbulli-firstflush2%2F) ／ [Amazonで見る](https://www.amazon.co.jp/dp/B06Y68FG9J?tag=kohakujikan20-22)
+[ダージリンの茶葉はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fsingbulli-firstflush2%2F)
 
 ### 4. アールグレイ — 氷に負けない香りの輪郭
 
 炭酸水で割るアレンジもよく合います。ベルガモットで香りづけされたアールグレイは、氷で薄まっても風味の輪郭がぼやけにくいのが強みで、水出しにすると柑橘の香りが穏やかに広がり、甘くないのにどこか華やかな一杯になります。
 
-[アールグレイの茶葉はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fearlgrey-bleu%2F) ／ [Amazonで見る](https://www.amazon.co.jp/dp/B09NVB2Y6W?tag=kohakujikan20-22)
+[アールグレイの茶葉はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fearlgrey-bleu%2F)
 
 ## 基本の水出しレシピ
 
