@@ -196,6 +196,33 @@ const structuredData = [siteJsonLd, ...(jsonLd ?? [])];
   article table { border-collapse: collapse; margin: 1.25rem 0; width: 100%; font-size: 0.92rem; }
   article th, article td { border: 1px solid var(--line); padding: 0.5rem 0.75rem; text-align: left; }
   article th { background: #f3eee6; }
+  /* スマホ幅では表を1行=1カードの縦積みに組み替える（列数が狭すぎて崩れるのを防ぐ）。
+     data-label は rehype-table-labels.mjs がビルド時に各tdへ付与する（記事Markdownは無改変）。 */
+  @media (max-width: 30rem) {
+    article table { border: none; }
+    article thead { display: none; }
+    article tbody, article tr, article td { display: block; }
+    article tr {
+      margin-bottom: 1rem;
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      padding: 0.25rem 1rem;
+    }
+    article tr:last-child { margin-bottom: 0; }
+    article td {
+      border: none;
+      border-bottom: 1px solid var(--line);
+      padding: 0.6rem 0;
+    }
+    article td:last-child { border-bottom: none; }
+    article td::before {
+      content: attr(data-label);
+      display: block;
+      color: var(--ink-soft);
+      font-size: 0.78rem;
+      margin-bottom: 0.2rem;
+    }
+  }
   .post-meta { color: var(--ink-soft); font-size: 0.85rem; margin-bottom: 2rem; }
   .hero-image { width: 100%; height: auto; aspect-ratio: 1200 / 630; border-radius: 4px; margin-bottom: 2rem; }
   .site-tagline { color: var(--ink-soft); font-size: 0.9rem; margin-bottom: 1.5rem; }
