@@ -21,6 +21,11 @@
   5. スコア帯に応じて紹介文のトーンを指定する。基準を緩めた事実を隠さないため
      （CLAUDE.md 判断原則1・読者への誠実さ）
 
+  出力の「表示用」R（実評価）・件数は、記事本文のスコアバッジ「★R（v件）」に
+  そのまま使ってよい数値（試行運用・新規記事限定・D-0047）。「順位用」の
+  加重評価WRは順位づけのための内部指標であり、実際の評価と食い違うことが
+  あるため記事には書かない。
+
 使い方:
   data/scoring-input.tsv に候補を書いてから、引数なしで実行する。
 
@@ -173,7 +178,8 @@ def main():
         print(f"{i:>3}   {r['final']:>5.1f}   {r['tone']:<4}   {p['name']}")
         b = r["breakdown"]
         detail = "  ".join(f"{k}={b[k]:.1f}" for k in ("rating", "volume", "price", "brand") if k in b)
-        print(f"      └ 加重評価WR={r['wr']:.2f}  {detail}")
+        print(f"      └ 表示用（記事・スコアバッジに書いてよい数値）R={p['rating']:.2f}（{int(p['reviews'])}件）")
+        print(f"      └ 順位用（内部のみ・記事に書かない）加重評価WR={r['wr']:.2f}  {detail}")
     if rejected:
         print()
         print("【不採用（絶対フロア割れ）】")

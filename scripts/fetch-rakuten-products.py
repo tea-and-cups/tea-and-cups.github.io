@@ -13,6 +13,11 @@
   参考情報であり、CLAUDE.md 2-2の実在・在庫確認（実売ページ確認）を
   省略してよいわけではない。
 
+  商品画像URL（mediumImageUrls）も別セクションで出力する（試行運用・
+  新規記事限定・D-0047）。既存のscoring-input.tsv用の出力形式は変更
+  していない。取得したURLは site/scripts/product-image-to-webp.py に
+  そのまま渡せる。
+
 使い方:
   python site/scripts/fetch-rakuten-products.py <検索キーワード> [取得件数(既定5・最大30)]
 
@@ -95,6 +100,23 @@ def to_tsv_row(item):
     return name, rating, reviews, price, shop, url
 
 
+def image_url(item):
+    """product-image-to-webp.pyへ渡す画像URL（mediumImageUrls優先）を1件返す。
+
+    APIが返すmediumImageUrlsはデフォルトで `?_ex=128x128` というクエリ付きで、
+    実体は128x128の極小画像（5KB前後）。これをそのまま600x600へ拡大すると
+    ぼやける（実測確認済み・reports/2026-08-02.md）。クエリを外して原寸画像の
+    URLを返し、拡大縮小はproduct-image-to-webp.py側のPillow処理に任せる。
+    """
+    d = item["Item"]
+    medium = d.get("mediumImageUrls") or []
+    small = d.get("smallImageUrls") or []
+    urls = medium or small
+    if not urls:
+        return ""
+    return urls[0].get("imageUrl", "").split("?")[0]
+
+
 def main():
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
@@ -122,6 +144,11 @@ def main():
     for item in items:
         d = item["Item"]
         print(f"- {d['itemName']}｜{d.get('shopName','')}｜{d.get('itemUrl','')}")
+    print()
+    print("--- 商品画像URL（試行運用・新規記事限定・D-0047。product-image-to-webp.pyへそのまま渡す） ---")
+    for item in items:
+        d = item["Item"]
+        print(f"- {d['itemName']}｜{image_url(item)}")
 
 
 if __name__ == "__main__":
