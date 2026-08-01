@@ -119,8 +119,10 @@ def check_affiliate_links_plain(body):
     total = len(re.findall(r"af\.moshimo\.com", body))
     if total == 0:
         return True, "該当リンクなし"
+    # リンクテキストが画像Markdown `![alt](img)` の場合（CLAUDE.md 5節の商品画像埋め込み形式
+    # `[![商品名](画像)](URL)`）にも対応する。画像部分の `]` で閉じ括弧と誤認しないようにする。
     in_link = 0
-    for m in re.finditer(r"\[[^\]]+\]\([^)]*af\.moshimo\.com[^)]*\)", body):
+    for m in re.finditer(r"\[(?:!\[[^\]]*\]\([^)]*\)|[^\[\]])+\]\([^)]*af\.moshimo\.com[^)]*\)", body):
         in_link += len(re.findall(r"af\.moshimo\.com", m.group(0)))
     ok = in_link == total
     detail = "" if ok else f"Markdownリンク構文外の出現あり（全{total}件中{total - in_link}件）"
