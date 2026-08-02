@@ -18,11 +18,14 @@ CLAUDE.md 3節1「rules/配下のファイルの新設・削除はオーナー�
   エラーにせず現状を記録して終了コード0で終わる。状態を必要としない検出（3・4）は初回でも行う。
 
 警告の持ち越し:
-  rules/の新設・削除を検出し、かつ decisions.md の本日付エントリ本文に該当ファイル名の
-  言及が無い場合は、rules/の状態を保存せず持ち越す。次のセッションでも同じ警告が出続け、
-  該当ファイル名を含む形で記録した日に自動で解消される。単に「本日付のエントリが存在する
-  か」だけで判定すると、rules/変更と無関係な決定が同日に記録されただけで誤って
-  「記録済み」とみなしてしまうため（2026-08-02の動作検証で発覚・D-0053）。
+  rules/の新設・削除を検出し、かつ decisions.md の本日付エントリ（全件）の本文に
+  該当ファイル名の言及が無い場合は、rules/の状態を保存せず持ち越す。次のセッションでも
+  同じ警告が出続け、該当ファイル名を含む形で記録した日に自動で解消される。単に
+  「本日付のエントリが存在するか」だけで判定すると、rules/変更と無関係な決定が同日に
+  記録されただけで誤って「記録済み」とみなしてしまうため（2026-08-02の動作検証で発覚・
+  D-0053）。また、本日付エントリのうち先頭（entries[0]）1件だけを見ると、記録直後に
+  一度も実行しないうちに無関係な決定が同日に先へ積まれた場合に誤って「未記録」と
+  判定されるため、本日付エントリ全件を対象にする（2026-08-02の追加検証で発覚・D-0054）。
 
 行数・文字数の数え方は site/scripts/count-doc-chars.py と同一（テキストモードで読み、
 "\n" を数える）。ハッシュも改行変換後のテキストに対して取るため、CRLF/LFの差では変化しない。
@@ -177,8 +180,8 @@ def check_recent_decisions(entries):
     return messages
 
 
-def check_rules_diff(rules_now, prev_rules, max_d, prev_max_d, latest_date, today, latest_entry_text):
-    """rules/の差分から (警告, 通知, 増減あり, 本日付エントリに言及あり) を返す。"""
+def check_rules_diff(rules_now, prev_rules, max_d, prev_max_d, latest_date, today, today_entries_text):
+    """rules/の差分から (警告, 通知, 増減あり, 本日付エントリ(全件)に言及あり) を返す。"""
     warnings = []
     notices = []
 
@@ -186,8 +189,11 @@ def check_rules_diff(rules_now, prev_rules, max_d, prev_max_d, latest_date, toda
     removed = sorted(set(prev_rules) - set(rules_now))
     changed = sorted(n for n in set(rules_now) & set(prev_rules) if rules_now[n] != prev_rules[n])
 
+    # 本日付エントリが複数あっても、entries[0]（先頭=最新）1件だけでなく全件を
+    # 対象に言及有無を判定する（today_entries_textは呼び出し側で本日付エントリ
+    # 全件を連結済み）。
     mentioned_today = latest_date == today and any(
-        name in latest_entry_text for name in added + removed
+        name in today_entries_text for name in added + removed
     )
 
     if added or removed:
@@ -261,12 +267,18 @@ def main():
 
     prev_rules = state.get("rules", {})
     prev_max_d = int(state.get("decisions", {}).get("max-d", "0") or 0)
-    latest_entry_text = (
-        entries[0]["heading"] + "\n" + "\n".join(entries[0]["body"]) if entries else ""
+    # 本日付エントリを「先頭(entries[0])の1件」だけでなく全件対象に連結する。
+    # 記録直後にまだ一度も本スクリプトを実行しないうちに、無関係な決定が同日に
+    # 先へ積まれると、entries[0]だけを見た場合は誤って「未記録」と判定される
+    # ため（2026-08-02の追加検証で発覚・D-0054）。
+    today_entries_text = "\n".join(
+        entry["heading"] + "\n" + "\n".join(entry["body"])
+        for entry in entries
+        if heading_date(entry["heading"]) == today
     )
 
     rules_warnings, rules_notices, has_add_remove, mentioned_today = check_rules_diff(
-        rules_now, prev_rules, max_d, prev_max_d, latest_date, today, latest_entry_text
+        rules_now, prev_rules, max_d, prev_max_d, latest_date, today, today_entries_text
     )
     warnings = rules_warnings + warnings
     notices += rules_notices
