@@ -1,10 +1,10 @@
 #!/bin/bash
-# CLAUDE.md 11節の補助スクリプト一覧表・site/scripts/ の実ファイル・Git追跡状況の3つを突き合わせる。
-# 表にあるのに実在しない行・実在するのに表に無いスクリプト・実在するのにGit未追跡のスクリプトを検出する（CLAUDE.md 11-3の比較処理）。
+# rules/command-execution.md の補助スクリプト一覧表・site/scripts/ の実ファイル・Git追跡状況の3つを突き合わせる。
+# 表にあるのに実在しない行・実在するのに表に無いスクリプト・実在するのにGit未追跡のスクリプトを検出する（同ファイル3の比較処理）。
 # 使い方: check-script-table.sh
 set -uo pipefail
 
-CLAUDE_MD="C:/Claude/Tea_TeaCut/CLAUDE.md"
+CLAUDE_MD="C:/Claude/Tea_TeaCut/rules/command-execution.md"
 SITE_DIR="C:/Claude/Tea_TeaCut/site"
 SCRIPTS_DIR="$SITE_DIR/scripts"
 

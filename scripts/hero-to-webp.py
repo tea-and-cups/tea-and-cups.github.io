@@ -25,7 +25,7 @@
       入力画像は output/category-images/ に原本として残しておくこと。
 
 python本体はPATH上の `python`（Windows版Python 3.12系）を想定している。
-CLAUDE.md 11節のとおり、呼び出しは常にプロジェクトルートからの相対パスで行う。
+rules/command-execution.md のとおり、呼び出しは常にプロジェクトルートからの相対パスで行う。
 """
 
 import os

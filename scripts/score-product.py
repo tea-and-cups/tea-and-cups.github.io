@@ -32,7 +32,7 @@
       python site/scripts/score-product.py
 
   引数に動的な値（商品名・評価値）を載せるとそのたびに一発限りの権限エントリが
-  増えるため、入力はファイル経由に固定している（CLAUDE.md 11節3）。
+  増えるため、入力はファイル経由に固定している（rules/command-execution.md 3）。
 
 入力ファイルの書式（タブ区切り・`#` で始まる行はコメント）:
   商品名<TAB>評価<TAB>レビュー件数<TAB>販売元<TAB>ブランド<TAB>価格
