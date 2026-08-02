@@ -18,9 +18,11 @@ CLAUDE.md 3節1「rules/配下のファイルの新設・削除はオーナー�
   エラーにせず現状を記録して終了コード0で終わる。状態を必要としない検出（3・4）は初回でも行う。
 
 警告の持ち越し:
-  rules/の新設・削除を検出し、かつ decisions.md に本日付のエントリが無い場合は、
-  rules/の状態を保存せず持ち越す。次のセッションでも同じ警告が出続け、decisions.mdへ
-  記録した日に自動で解消される。1回出して消える設計だと、対応しないまま流れてしまうため。
+  rules/の新設・削除を検出し、かつ decisions.md の本日付エントリ本文に該当ファイル名の
+  言及が無い場合は、rules/の状態を保存せず持ち越す。次のセッションでも同じ警告が出続け、
+  該当ファイル名を含む形で記録した日に自動で解消される。単に「本日付のエントリが存在する
+  か」だけで判定すると、rules/変更と無関係な決定が同日に記録されただけで誤って
+  「記録済み」とみなしてしまうため（2026-08-02の動作検証で発覚・D-0053）。
 
 行数・文字数の数え方は site/scripts/count-doc-chars.py と同一（テキストモードで読み、
 "\n" を数える）。ハッシュも改行変換後のテキストに対して取るため、CRLF/LFの差では変化しない。
@@ -175,14 +177,18 @@ def check_recent_decisions(entries):
     return messages
 
 
-def check_rules_diff(rules_now, prev_rules, max_d, prev_max_d, latest_date, today):
-    """rules/の差分から (警告, 通知) を返す。"""
+def check_rules_diff(rules_now, prev_rules, max_d, prev_max_d, latest_date, today, latest_entry_text):
+    """rules/の差分から (警告, 通知, 増減あり, 本日付エントリに言及あり) を返す。"""
     warnings = []
     notices = []
 
     added = sorted(set(rules_now) - set(prev_rules))
     removed = sorted(set(prev_rules) - set(rules_now))
     changed = sorted(n for n in set(rules_now) & set(prev_rules) if rules_now[n] != prev_rules[n])
+
+    mentioned_today = latest_date == today and any(
+        name in latest_entry_text for name in added + removed
+    )
 
     if added or removed:
         parts = []
@@ -195,8 +201,13 @@ def check_rules_diff(rules_now, prev_rules, max_d, prev_max_d, latest_date, toda
             "CLAUDE.md 3節1によりオーナー承認とdecisions.mdへの記録が必要です。"
             % " / ".join(parts)
         )
-        if latest_date == today:
-            message += " decisions.mdに本日付の記録あり（D-%04d）。この増減の記録か確認してください。" % max_d
+        if mentioned_today:
+            message += " decisions.mdの本日付エントリ（D-%04d）に該当ファイル名の言及あり。記録済みとみなします。" % max_d
+        elif latest_date == today:
+            message += (
+                " decisions.mdに本日付の記録あり（D-%04d）ですが、該当ファイル名への言及が"
+                "本文に見当たりません。この増減の記録か確認してください。" % max_d
+            )
         else:
             message += " decisions.mdの最新エントリは%s（D-%04d）で、本日付の記録がありません。" % (
                 latest_date or "日付なし",
@@ -212,7 +223,7 @@ def check_rules_diff(rules_now, prev_rules, max_d, prev_max_d, latest_date, toda
             % ", ".join(changed)
         )
 
-    return warnings, notices, bool(added or removed)
+    return warnings, notices, bool(added or removed), mentioned_today
 
 
 def main():
@@ -250,14 +261,17 @@ def main():
 
     prev_rules = state.get("rules", {})
     prev_max_d = int(state.get("decisions", {}).get("max-d", "0") or 0)
+    latest_entry_text = (
+        entries[0]["heading"] + "\n" + "\n".join(entries[0]["body"]) if entries else ""
+    )
 
-    rules_warnings, rules_notices, has_add_remove = check_rules_diff(
-        rules_now, prev_rules, max_d, prev_max_d, latest_date, today
+    rules_warnings, rules_notices, has_add_remove, mentioned_today = check_rules_diff(
+        rules_now, prev_rules, max_d, prev_max_d, latest_date, today, latest_entry_text
     )
     warnings = rules_warnings + warnings
     notices += rules_notices
 
-    hold_rules = has_add_remove and latest_date != today
+    hold_rules = has_add_remove and not mentioned_today
     if hold_rules:
         notices.append("（rules/の状態は保存せず持ち越します。decisions.mdへ記録した日に解消されます）")
     save_state(prev_rules if hold_rules else rules_now, max_d, claude_chars)
