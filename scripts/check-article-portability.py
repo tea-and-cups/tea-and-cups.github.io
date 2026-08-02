@@ -129,6 +129,27 @@ def check_affiliate_links_plain(body):
     return ok, detail
 
 
+def check_article(path, allowed_slugs):
+    """1記事分の4項目チェックを実行し、[(項目名, ok, detail), ...] を返す。
+
+    check-all-articles-portability.py から共通利用するために、
+    main() の判定ロジック本体をここへ切り出したもの（判定ロジックの二重管理を避けるため）。
+    """
+    text = io_read(path)
+    fm_text, body = split_frontmatter(text)
+    if fm_text is None:
+        return [("frontmatter", False, "frontmatterが見つかりません（--- で始まっていません）")]
+
+    keys, values = parse_frontmatter_keys(fm_text)
+
+    results = []
+    results.append(("frontmatter必須9項目", *check_frontmatter_keys(keys)))
+    results.append(("category(4択)", *check_category(values, allowed_slugs)))
+    results.append(("本文の純Markdown性", *check_html_free(body)))
+    results.append(("商品リンクのURL直書き", *check_affiliate_links_plain(body)))
+    return results
+
+
 def main():
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
@@ -143,20 +164,8 @@ def main():
         print(f"見つかりません: output/articles/{slug}.md / site/src/content/posts/{slug}.md")
         sys.exit(1)
 
-    text = io_read(path)
-    fm_text, body = split_frontmatter(text)
-    if fm_text is None:
-        print("frontmatterが見つかりません（--- で始まっていません）")
-        sys.exit(1)
-
-    keys, values = parse_frontmatter_keys(fm_text)
     allowed_slugs = load_category_slugs()
-
-    results = []
-    results.append(("frontmatter必須9項目", *check_frontmatter_keys(keys)))
-    results.append(("category(4択)", *check_category(values, allowed_slugs)))
-    results.append(("本文の純Markdown性", *check_html_free(body)))
-    results.append(("商品リンクのURL直書き", *check_affiliate_links_plain(body)))
+    results = check_article(path, allowed_slugs)
 
     ng_count = 0
     for name, ok, detail in results:
