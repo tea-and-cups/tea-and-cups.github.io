@@ -46,6 +46,8 @@ category: gift
 
 ポスト投函に対応した商品も多く、実家に加えて近所の親戚宅にも立ち寄る予定がある方は、荷物としてかさばらない点も助かります。手頃な価格でありながら、紅茶専門店ならではの豊富な種類から選べるのも魅力です。
 
+[![20種類から選べるデイリーシリーズ20p箱入り（カレルチャペック紅茶店）](/images/kisei-temiyage-koucha-gift/products/2.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fkarelcapek%2F01100920r%2F)
+
 ★4.91（374件） [20種類から選べるデイリーシリーズはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fkarelcapek%2F01100920r%2F)
 
 ### 3. はちみつ紅茶 — 自然な甘さで幅広い世代に
