@@ -40,8 +40,16 @@ import datetime
 import hashlib
 import io
 import os
-import re
 import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from decisions_lib import (
+    read_text,
+    count_chars_lines,
+    heading_date,
+    parse_decisions,
+    body_char_count,
+)
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 RULES_DIR = os.path.join(ROOT, "rules")
@@ -50,6 +58,9 @@ DECISIONS_MD = os.path.join(ROOT, "docs", "decisions.md")
 STATE_TSV = os.path.join(ROOT, "data", "doc-state.tsv")
 
 CLAUDE_MD_CHAR_LIMIT = 10000
+# decisions.md本体の容量閾値。超過した場合はarchive-decisions.pyでの退避対象になる
+# （検出のみ・自動実行はしない。実行可否の判断はCLAUDE.md 10節参照）
+DECISIONS_MD_CHAR_LIMIT = 15000
 # 「3行程度」の目安は文字数で判定する。物理行数だと、短文を折り返した決定が警告になる一方で
 # 1行にまとめた長い決定がすり抜けるという逆転が起きるため（実測でD-0051とD-0050が逆転した）。
 DECISION_BODY_CHAR_LIMIT = 400
@@ -62,22 +73,6 @@ STATE_HEADER = [
     "# site/scripts/check-doc-governance.py が読み書きする。",
     "# 形式: <種別> <キー> <値> のタブ区切り3列",
 ]
-
-HEADING_RE = re.compile(r"^## D-(\d{4}):")
-DATE_RE = re.compile(r"\d{4}-\d{2}-\d{2}")
-# 「追記」「詳細は reports/ 参照」等の注記行は3行ルールのカウント対象外にする
-NOTE_BULLET_RE = re.compile(r"^[-*]\s*(追記|補足|注記|備考|詳細)")
-
-
-def read_text(path):
-    with io.open(path, encoding="utf-8") as f:
-        return f.read()
-
-
-def count_chars_lines(text):
-    """count-doc-chars.py と同一の数え方。"""
-    lines = text.count("\n") + (0 if text.endswith("\n") else 1)
-    return len(text), lines
 
 
 def sha256_of(text):
@@ -120,50 +115,6 @@ def save_state(rules, max_d, claude_chars):
     lines.append("claude-md\tchars\t%d" % claude_chars)
     with io.open(STATE_TSV, "w", encoding="utf-8", newline="\n") as f:
         f.write("\n".join(lines) + "\n")
-
-
-def parse_decisions(text):
-    """decisions.md を [{num, heading, body}] に分解する（ファイル順＝新しい順）。"""
-    entries = []
-    current = None
-    for raw in text.split("\n"):
-        matched = HEADING_RE.match(raw)
-        if matched:
-            current = {"num": int(matched.group(1)), "heading": raw.rstrip(), "body": []}
-            entries.append(current)
-            continue
-        if current is not None:
-            if raw.startswith("## "):
-                current = None  # D-XXXX以外の見出しが来たらそのエントリは終わり
-                continue
-            current["body"].append(raw)
-    return entries
-
-
-def heading_date(heading):
-    """見出し行から最初に現れる YYYY-MM-DD を返す。無ければ None。
-
-    D-0032「（…・2026-08-01）」やD-0009「（2026-07-21・2026-07-23更新）」のように
-    日付が複数あったり末尾以外にある見出しも拾える。D-0001はプレースホルダーのため None。
-    """
-    matched = DATE_RE.search(heading)
-    return matched.group(0) if matched else None
-
-
-def body_char_count(body):
-    """「決定」「理由」「決定者」本体の文字数を返す（注記行とその継続行は除外）。"""
-    chars = 0
-    in_note = False
-    for raw in body:
-        stripped = raw.strip()
-        if not stripped or stripped == "---":
-            continue
-        if raw.startswith("- ") or raw.startswith("* "):
-            in_note = NOTE_BULLET_RE.match(stripped) is not None
-        if in_note:
-            continue
-        chars += len(stripped)
-    return chars
 
 
 def check_recent_decisions(entries):
@@ -240,7 +191,9 @@ def main():
 
     rules_now = collect_rules()
     claude_chars, _ = count_chars_lines(read_text(CLAUDE_MD))
-    entries = parse_decisions(read_text(DECISIONS_MD))
+    decisions_text = read_text(DECISIONS_MD)
+    decisions_chars, _ = count_chars_lines(decisions_text)
+    entries = parse_decisions(decisions_text)
     max_d = max(e["num"] for e in entries) if entries else 0
     latest_date = heading_date(entries[0]["heading"]) if entries else None
 
@@ -251,6 +204,13 @@ def main():
         warnings.append(
             "【警告】CLAUDE.md が%d字で閾値%d字を超えています。"
             "フェーズ限定の規約は rules/ へ分割してください。" % (claude_chars, CLAUDE_MD_CHAR_LIMIT)
+        )
+
+    if decisions_chars > DECISIONS_MD_CHAR_LIMIT:
+        warnings.append(
+            "【警告】decisions.md が%d字で閾値%d字を超えています。"
+            "archive-decisions.py で古い決定を docs/decisions-archive.md へ退避してください。"
+            % (decisions_chars, DECISIONS_MD_CHAR_LIMIT)
         )
 
     state = load_state()
