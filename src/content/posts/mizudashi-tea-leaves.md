@@ -2,7 +2,7 @@
 title: 水出し紅茶におすすめの茶葉4選｜渋くならないアイスティーの選び方
 slug: mizudashi-tea-leaves
 date: 2026-07-21
-updated: 2026-08-01
+updated: 2026-08-02
 description: 水出しアイスティーは渋みが出にくく、香りが素直に出るのが魅力。ニルギリ・キャンディ・ダージリン・アールグレイの4タイプを比較し、渋くならない茶葉の選び方と基本レシピをご紹介します。
 tags: [紅茶, アイスティー, 水出し]
 hero: /images/mizudashi-tea-leaves/hero.webp
@@ -49,7 +49,7 @@ category: tea-leaves
 
 甘いお菓子との相性も良好です。スリランカ中部のキャンディは、セイロンティーの中でもとりわけ穏やかな性格の茶葉で、水出しにすると角のない、すっと喉を通る味わいになるため渋みが苦手な方でも飲みやすいのが魅力です。
 
-[キャンディ（セイロン）の茶葉はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Ftaiwantea-kyujun%2F000005028%2F)
+[キャンディ（セイロン）の茶葉はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fteaisobuchi%2F10000013%2F)
 
 ### 3. ダージリン — 香りのごちそうを冷たいまま
 
