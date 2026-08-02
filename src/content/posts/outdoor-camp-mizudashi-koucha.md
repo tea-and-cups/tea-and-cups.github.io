@@ -46,13 +46,17 @@ category: how-to
 
 すでに広口タイプの水筒を持っている場合、専用の茶こしカプセルを1つ追加するだけで水出し茶ボトルとして使えます。茶葉を直接カプセルに入れて水を注ぎ、そのまま数時間置いておけば、抽出が終わった頃合いでカプセルごと引き上げられる仕組みです。新しいボトルを買い足す必要がなく、普段使いの水筒と兼用できるのが利点です。
 
-[お茶旅 茶こしカプセルはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fkimuraen%2Fochatabi%2F)
+[![お茶旅 茶こしカプセル（木村園）](/images/outdoor-camp-mizudashi-koucha/products/1.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fkimuraen%2Fochatabi%2F)
+
+★4.73（101件） [お茶旅 茶こしカプセルはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fkimuraen%2Fochatabi%2F)
 
 ### 2. 前夜仕込みした紅茶をたっぷり運ぶ保冷ボトル
 
 家族や友人と分けて飲む前提であれば、大容量の保冷専用ボトルに前夜仕込みの紅茶をそのまま入れて持っていくほうが手早く済みます。保冷専用タイプは真空断熱の保温タイプよりも軽量に作られていることが多く、荷物を増やしたくないキャンプ・BBQ向きです。
 
-[TAKEYA サーモフラスクはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Ftakeya-tea%2F15092000%2F)
+[![TAKEYA サーモフラスクA/ライト 1L](/images/outdoor-camp-mizudashi-koucha/products/2.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Ftakeya-tea%2F15092000%2F)
+
+★4.71（740件） [TAKEYA サーモフラスクはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Ftakeya-tea%2F15092000%2F)
 
 どちらも一長一短があるので、「現地でも茶葉から淹れたい派」か「作ったものをたっぷり運びたい派」かで選ぶとよいでしょう。
 

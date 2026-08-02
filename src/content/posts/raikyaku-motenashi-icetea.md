@@ -32,7 +32,9 @@ category: how-to
 
 木製やメラミン製の落ち着いた色合いのトレイは、和洋どちらのテーブルにもなじみやすく、来客用に一枚あると重宝します。和菓子を添えるなら同じトレイに小皿ごと乗せてしまうと、グラスと器がばらばらにならず、テーブルに置いたときの収まりが良くなります。
 
-[食洗機対応・滑り止め加工のトレイはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fauc-risecreation%2Fr0588%2F)
+[![半月盆 食洗機対応 お盆 トレー（atRise）](/images/raikyaku-motenashi-icetea/products/1.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fauc-risecreation%2Fr0588%2F)
+
+★4.34（670件） [食洗機対応・滑り止め加工のトレイはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fauc-risecreation%2Fr0588%2F)
 
 ## 2. グラスで涼感を演出する
 
