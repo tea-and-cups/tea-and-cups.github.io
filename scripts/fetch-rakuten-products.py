@@ -33,6 +33,7 @@
 import json
 import os
 import sys
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -42,6 +43,9 @@ CREDENTIALS_PATH = os.path.join(ROOT, "data", ".rakuten-credentials")
 
 ENDPOINT = "https://openapi.rakuten.co.jp/ichibams/api/IchibaItem/Search/20260701"
 APP_REFERER = "https://tea-and-cups.github.io/"  # 楽天アプリ登録画面の「アプリケーションURL」と一致させる
+
+MAX_RETRIES = 4
+BACKOFF_BASE_SECONDS = 2
 
 
 def load_credentials():
@@ -76,12 +80,21 @@ def fetch(keyword, hits):
     }
     url = f"{ENDPOINT}?{urllib.parse.urlencode(params)}"
     req = urllib.request.Request(url, headers={"Referer": APP_REFERER, "Origin": APP_REFERER.rstrip("/")})
-    try:
-        with urllib.request.urlopen(req) as res:
-            body = json.loads(res.read().decode("utf-8"))
-    except urllib.error.HTTPError as e:
-        detail = e.read().decode("utf-8", errors="replace")
-        sys.exit(f"HTTPエラー {e.code}: {detail}")
+
+    body = None
+    for attempt in range(MAX_RETRIES + 1):
+        try:
+            with urllib.request.urlopen(req) as res:
+                body = json.loads(res.read().decode("utf-8"))
+            break
+        except urllib.error.HTTPError as e:
+            if e.code == 429 and attempt < MAX_RETRIES:
+                wait = BACKOFF_BASE_SECONDS * (2 ** attempt)
+                print(f"429（レート制限）応答。{wait}秒待って再試行します（{attempt + 1}/{MAX_RETRIES}）", file=sys.stderr)
+                time.sleep(wait)
+                continue
+            detail = e.read().decode("utf-8", errors="replace")
+            sys.exit(f"HTTPエラー {e.code}: {detail}")
 
     if "error" in body:
         sys.exit(f"APIエラー: {body.get('error')} - {body.get('error_description', '')}")

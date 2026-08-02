@@ -53,7 +53,9 @@ category: tea-leaves
 
 カフェインを避けたいけれど紅茶の香りは楽しみたい、という方にはデカフェ紅茶がおすすめです。中でも英国紅茶ブランドAHMAD TEAの人気アールグレイをベースにしたデカフェタイプは、商品ページの説明によると二酸化炭素を使う「超臨界二酸化炭素抽出法」で薬剤を使わずにカフェインを取り除いており、個包装のため香りが飛びにくく持ち運びにも便利です。レビュー評価も高く、初めてデカフェ紅茶を試す方の選択肢として挙げやすい商品です。
 
-[アーマッドティー デカフェ アールグレイ 個包装100袋はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsoukaidrink%2F54881014953%2F)
+[![アーマッドティー デカフェ アールグレイ 個包装100袋](/images/atsui-hi-suibunhokyu-koucha/products/1.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsoukaidrink%2F54881014953%2F)
+
+★4.69（116件） [アーマッドティー デカフェ アールグレイ 個包装100袋はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsoukaidrink%2F54881014953%2F)
 
 ## まとめ
 
