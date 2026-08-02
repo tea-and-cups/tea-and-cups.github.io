@@ -15,8 +15,17 @@
 #       待機せず、主要URL（トップ・カテゴリ・全記事・sitemap＋引数の追加パス）が
 #       200を返すか一括で確認する。1件でも200以外なら終了コード2。
 #
+#   wait-for-deploy.sh --file <ローカルファイルパス> <公開URLパス>
+#       画像等、既存パスへの上書き更新（差し替え）を確認する専用モード。
+#       公開URL側のファイルが、指定したローカルファイルとバイト数一致するまで待機する。
+#       例: wait-for-deploy.sh --file site/public/images/foo/hero.webp /images/foo/hero.webp
+#       （<slug>やhttp code 200のチェックでは、上書き前の古いファイルでも200を返すため
+#         差し替えの完了を判定できない。中身の一致を見るのはこのモードのみ）
+#
 # 注意: 既に存在していたURLは「デプロイ前でも200」を返す。構成を変えたときは
 #       まず新しく増えたパスを --path で待ってから --routes を実行すること。
+#       同じ理由で、既存ファイルの中身だけを差し替えたとき（hero画像の再生成等）も
+#       <slug>やHTTP 200チェックでは検知できないため --file を使うこと。
 set -uo pipefail
 
 BASE="https://tea-and-cups.github.io"
@@ -40,6 +49,34 @@ wait_for() {
     WAITED=$((WAITED + INTERVAL_SEC))
   done
   echo "deployed"
+}
+
+remote_size_of() {
+  curl -s -o /dev/null -w '%{size_download}' "$BASE$1?t=$(date +%s)"
+}
+
+wait_for_file() {
+  local LOCAL_PATH="$1"
+  local PATH_="$2"
+
+  if [ ! -f "$LOCAL_PATH" ]; then
+    echo "エラー: ローカルファイルが見つかりません（$LOCAL_PATH）" >&2
+    exit 1
+  fi
+
+  local LOCAL_SIZE
+  LOCAL_SIZE=$(wc -c < "$LOCAL_PATH" | tr -d ' ')
+
+  local WAITED=0
+  while [ "$(remote_size_of "$PATH_")" != "$LOCAL_SIZE" ]; do
+    if [ "$WAITED" -ge "$MAX_WAIT_SEC" ]; then
+      echo "タイムアウト: ${MAX_WAIT_SEC}秒待っても公開URL側のバイト数がローカル（${LOCAL_SIZE}バイト）と一致しません（$BASE$PATH_）" >&2
+      exit 1
+    fi
+    sleep "$INTERVAL_SEC"
+    WAITED=$((WAITED + INTERVAL_SEC))
+  done
+  echo "deployed（${LOCAL_SIZE}バイトで一致）"
 }
 
 check_routes() {
@@ -75,7 +112,7 @@ check_routes() {
 }
 
 if [ $# -lt 1 ]; then
-  echo "usage: wait-for-deploy.sh <slug> | --path <パス> | --routes [追加パス ...]" >&2
+  echo "usage: wait-for-deploy.sh <slug> | --path <パス> | --routes [追加パス ...] | --file <ローカルパス> <公開URLパス>" >&2
   exit 1
 fi
 
@@ -90,6 +127,13 @@ case "$1" in
       exit 1
     fi
     wait_for "$2"
+    ;;
+  --file)
+    if [ $# -ne 3 ]; then
+      echo "usage: wait-for-deploy.sh --file <ローカルファイルパス> <公開URLパス>" >&2
+      exit 1
+    fi
+    wait_for_file "$2" "$3"
     ;;
   http://*|https://*)
     echo "エラー: slugを渡してください。URLではありません（例: wait-for-deploy.sh zansho-mimai-koucha-gift）" >&2
