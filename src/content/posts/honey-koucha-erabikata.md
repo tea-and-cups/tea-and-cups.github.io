@@ -38,19 +38,25 @@ category: tea-leaves
 
 ホットでもアイスでも合わせやすく、贈り物にも選びやすい定番の形です。紅茶とはちみつだけのシンプルな組み合わせで茶葉の風味をそのまま楽しめるため、まずは基本の味わいを試したい方に向いています。
 
-[ストレートタイプのはちみつ紅茶はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fpricept%2Fb8685101-001%2F)
+[![ティーアース はちみつ紅茶50g](/images/honey-koucha-erabikata/products/1.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fpricept%2Fb8685101-001%2F)
+
+★4.74（23件） [ストレートタイプのはちみつ紅茶はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fpricept%2Fb8685101-001%2F)
 
 ### 2. 生姜・スパイス入り — 温まりたい日に
 
 会社帰りのひと休みや、寒い日のリラックスタイムに向いています。はちみつと生姜、シナモンなどのスパイスを組み合わせたタイプは、体を内側からじんわり温めたいときにぴったりです。
 
-[生姜入りはちみつ紅茶はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fchaganju%2F12845%2F)
+[![はちみつ生姜紅茶2g×30包（京都・宇治ヤマサン）](/images/honey-koucha-erabikata/products/2.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fchaganju%2F12845%2F)
+
+★4.50（64件） [生姜入りはちみつ紅茶はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fchaganju%2F12845%2F)
 
 ### 3. カフェインレスタイプ — 時間を気にせず楽しみたい方に
 
 妊娠中の方や、1歳以上のお子さまと一緒に楽しみたいご家庭にも向いています（1歳未満のお子さまへの注意点は下記FAQをご覧ください）。カフェインを抑えた紅茶をベースにしたタイプなら、就寝前でも気兼ねなく楽しめます。
 
-[カフェインレスのはちみつ紅茶はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fhftea%2F1748%2F)
+[![はちみつルイボスティー（H&F BELX）](/images/honey-koucha-erabikata/products/3.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fhftea%2F1748%2F)
+
+★4.66（210件） [カフェインレスのはちみつ紅茶はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fhftea%2F1748%2F)
 
 ## おいしく飲むためのひと工夫
 

@@ -69,25 +69,33 @@ category: how-to
 
 粒状なので少量でも濃く抽出でき、氷で薄まる前提のアイスミルクティーとは相性がよい茶葉です。夏摘み（セカンドフラッシュ）のアッサムCTCは、コクと甘い香りがはっきりと出るタイプで、100g前後の袋ならひと夏かけて楽しめます。
 
-[アッサムCTC（ハティマラ茶園）はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fhatimara2006%2F)
+[![アッサムCTC セカンドフラッシュ2025年 ハティマラ茶園BPS](/images/ice-royal-milktea/products/1.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fhatimara2006%2F)
+
+★4.73（746件） [アッサムCTC（ハティマラ茶園）はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fhatimara2006%2F)
 
 ### 2. ティーバッグのCTC — 平日の一杯に
 
 1袋2.5gのCTCティーバッグなら、上のレシピ（茶葉8〜10g相当）にはグラス2杯分で3〜4袋が目安です。小鍋にそのまま入れて煮出せるので、計量も茶殻の始末もいらず、仕事の合間に1杯だけ作りたい日に便利です。
 
-[濃厚ミルクティー用アッサムCTCのティーバッグはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fteabag30-assamctc%2F)
+[![ティーバッグ15個入 アッサムCTC 濃厚ミルクティー用](/images/ice-royal-milktea/products/2.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fteabag30-assamctc%2F)
+
+★4.75（110件） [濃厚ミルクティー用アッサムCTCのティーバッグはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fteabag30-assamctc%2F)
 
 ### 3. ミルクティー用ブレンド — ストレートとの兼用に
 
 ミルクティー専用の茶葉を1袋使い切れるか不安な方には、こうした兼用タイプが向いています。CTCにオーソドックス製法の茶葉を合わせたブレンドで、ミルクティーのコクを保ちながらストレートで飲んでも香りが楽しめます。
 
-[アッサム ハウスブレンド（ミルクティー向け）はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fassamhouseblend%2F)
+[![アッサム ハウスブレンド Sweet＆Strong 100g](/images/ice-royal-milktea/products/3.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fassamhouseblend%2F)
+
+★4.65（34件） [アッサム ハウスブレンド（ミルクティー向け）はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fassamhouseblend%2F)
 
 ### 4. マサラチャイ — アイスチャイという選択
 
 同じ茶葉でホットにもできるので、季節をまたいで使えます。生姜・カルダモン・シナモンなどのスパイスをあらかじめ配合した茶葉を使えば、上のレシピのまま冷たいマサラチャイになり、スパイスの香りの輪郭は冷やしても保たれやすく、甘みを控えめにしてもぼんやりしないのが利点です。
 
-[マサラチャイの茶葉はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fmasalachai%2F)
+[![マサラチャイ Heart of India](/images/ice-royal-milktea/products/4.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fmasalachai%2F)
+
+★4.65（1346件） [マサラチャイの茶葉はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fmasalachai%2F)
 
 ## 仕上がりを左右する3つの選択
 
