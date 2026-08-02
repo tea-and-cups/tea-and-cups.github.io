@@ -36,7 +36,9 @@ category: tea-leaves
 
 烏龍茶をベースにしたマスカットフレーバーは、ホットならぶどうのジューシーな香りと烏龍茶の香ばしさがじっくり広がり、華やかな一杯になります。水出しにも対応しているタイプなら、夏場は氷を入れたグラスに注ぐだけで、同じ香り高さをアイスティーとしても楽しめます。
 
-[花マスカットウーロン ポット用ティーバッグ8個入りはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fkarelcapek%2F01101182%2F)
+[![花マスカットウーロン ポット用ティーバッグ8p（カレルチャペック紅茶店）](/images/natsu-fruit-flavor-tea-hikaku/products/1.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fkarelcapek%2F01101182%2F)
+
+★4.40（10件） [花マスカットウーロン ポット用ティーバッグ8個入りはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fkarelcapek%2F01101182%2F)
 
 レビュー数は少なめですが、平均評価は高めです。気になる方は、まずはポット1杯分から試してみてはいかがでしょうか。
 
@@ -44,7 +46,9 @@ category: tea-leaves
 
 国産茶葉を使った和紅茶に白桃をはじめとするフルーツフレーバーを重ねたタイプは、温かいまま飲むと香りがやさしく立ち上り、食後にもすっと馴染む甘さです。複数のフルーツフレーバーがセットになっている商品を選べば、その日の気分で香りを変える楽しみ方もできます。
 
-[5種のフルーツフレーバー和紅茶ティーバッグ（白桃入り）はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fchatsuminosato%2F1377%2F)
+[![5種のフルーツフレーバー和紅茶ティーバッグ20包・白桃入り（茶つみの里）](/images/natsu-fruit-flavor-tea-hikaku/products/2.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fchatsuminosato%2F1377%2F)
+
+★4.40（47件） [5種のフルーツフレーバー和紅茶ティーバッグ（白桃入り）はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fchatsuminosato%2F1377%2F)
 
 星評価・レビュー件数の実績も十分で、はじめてフルーツフレーバーティーを試す方にも選びやすい一品です。
 
@@ -52,7 +56,9 @@ category: tea-leaves
 
 すっきりとした後味なので、暑い日のアイスティーにも、食後の一杯にも合わせやすいのが魅力です。ベルガモットの華やかな香りにオレンジの爽やかさを重ねたタイプは、アールグレイが好きな方には特になじみやすい味わいです。
 
-[アバンス テトラバッグ アールグレイオレンジはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsoukaidrink%2F579471%2F)
+[![アバンス テトラバッグ アールグレイオレンジ36袋×6（国太楼）](/images/natsu-fruit-flavor-tea-hikaku/products/3.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsoukaidrink%2F579471%2F)
+
+★4.63（8件） [アバンス テトラバッグ アールグレイオレンジはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsoukaidrink%2F579471%2F)
 
 評価・レビュー件数がともに多く、アールグレイに親しんでいる方なら違和感なく続けやすい一杯です。
 

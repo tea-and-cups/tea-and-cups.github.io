@@ -33,7 +33,9 @@ category: teaware
 
 耐熱ガラス製なので抽出の様子を見ながら淹れられるのも魅力です。蓋と茶こしが一体になっているため茶葉を入れて注ぐだけで済み、パーツが少ないぶん洗い物も楽です。
 
-[KINTO UNITEA ワンタッチティーポット 460mlはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fhitoiro%2F264908%2F)
+[![KINTO UNITEA ワンタッチティーポット460ml](/images/koucha-teapot-erabikata-hikaku/products/1.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fhitoiro%2F264908%2F)
+
+★4.67（770件） [KINTO UNITEA ワンタッチティーポット 460mlはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fhitoiro%2F264908%2F)
 
 パーツの少なさゆえの手入れの楽さが評価されており、はじめての1台としても選びやすい商品です。
 
@@ -41,7 +43,9 @@ category: teaware
 
 ガラスや陶器のように中身が見えない分、抽出時間はタイマー等で管理すると安心です。商品ページには保温効力69度以上（1時間経過時点・メーカー公表値）という具体的な数値が明記されており、時間をかけて飲む方や、一度にたくさん淹れて少しずつ楽しみたい方に向いています。
 
-[サーモス ティーポット 真空断熱 450ml TTE-450はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Flivingut%2F416316%2F)
+[![サーモス ティーポット 真空断熱450ml TTE-450](/images/koucha-teapot-erabikata-hikaku/products/2.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Flivingut%2F416316%2F)
+
+★4.56（9件） [サーモス ティーポット 真空断熱 450ml TTE-450はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Flivingut%2F416316%2F)
 
 レビュー件数はまだ多くありませんが、平均評価は高めです。
 
@@ -49,7 +53,9 @@ category: teaware
 
 カラー展開が豊富なので、食卓の雰囲気に合わせて選べるのも楽しみのひとつです（ただし人気色は売り切れになっていることがあるため、購入前に在庫のあるカラーを確認しておきましょう）。丸みのあるシルエットは定番の形で、ストレーナー付きのため基本の淹れ方をそのまま実践しやすいタイプです。
 
-[London Pottery 2CUP 600mlはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fwelly%2F10002642%2F)
+[![London Pottery 2CUP 600ml](/images/koucha-teapot-erabikata-hikaku/products/3.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fwelly%2F10002642%2F)
+
+★4.67（1001件） [London Pottery 2CUP 600mlはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fwelly%2F10002642%2F)
 
 英国ブランドの定番として長年支持されており、レビュー件数の多さからも実際の使用感を確かめやすい商品です。
 
@@ -57,7 +63,9 @@ category: teaware
 
 丸型の形状は茶葉が対流しやすい（ジャンピングしやすい）と言われ、茶こし付きで水出しの作り置きにも使いやすいサイズです。満水1500ml前後まで対応するため、来客時にまとめて淹れたいときにも重宝します。ガラス製のため、長く使ううちに細かな傷や強度の変化が気になる場合は、取り扱いに注意しましょう。
 
-[耐熱ガラスポット 大サイズ 1500mlはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fchinagrand%2Ffh205%2F)
+[![耐熱ガラスポット 大サイズ1500ml（リムテー）](/images/koucha-teapot-erabikata-hikaku/products/4.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fchinagrand%2Ffh205%2F)
+
+★4.59（242件） [耐熱ガラスポット 大サイズ 1500mlはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fchinagrand%2Ffh205%2F)
 
 大人数分を一度にまとめて淹れたいシーンで頼りになる、大容量派の定番候補です。
 

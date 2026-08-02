@@ -36,7 +36,9 @@ category: gift
 
 缶はにおい移りや湿気からも中身を守ってくれるため、配送を挟む残暑見舞いにも安心です。小さな本の形をした缶が並ぶ見た目にも特別感があり、中のティーバッグは水出しアイスティーにも対応しているものが多く、届いてすぐ暑い時期らしい飲み方を楽しんでもらえます。
 
-[BASILUR ミニチュアBOOK缶紅茶セレクトはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fbasilurtea%2F70487%2F)
+[![BASILUR ミニチュアBOOK缶紅茶セレクト](/images/zansho-mimai-koucha-gift/products/1.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fbasilurtea%2F70487%2F)
+
+★4.76（429件） [BASILUR ミニチュアBOOK缶紅茶セレクトはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fbasilurtea%2F70487%2F)
 
 評価・レビュー件数ともに多く、デザイン性と品質のバランスが取れた定番の一品です。
 
@@ -44,7 +46,9 @@ category: gift
 
 個包装のティーバッグなので、ご年配の方から甘い香りを好むお子さままで、家族みんなで少しずつ楽しんでもらえます。りんごや桃、ぶどうといった果物の香りをまとった和紅茶は渋みが穏やかで、紅茶に馴染みのない方にも受け入れられやすい味わいです。
 
-[宇治田原製茶場 話題の和紅茶セット（3種のフルーツ和紅茶ティーバッグ）はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fujitawara-seichajyo%2F27275%2F)
+[![宇治田原製茶場 話題の和紅茶セット（3種のフルーツ和紅茶ティーバッグ）](/images/zansho-mimai-koucha-gift/products/2.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fujitawara-seichajyo%2F27275%2F)
+
+★4.59（315件） [宇治田原製茶場 話題の和紅茶セット（3種のフルーツ和紅茶ティーバッグ）はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fujitawara-seichajyo%2F27275%2F)
 
 レビュー件数・評価とも高く、幅広い世代への贈り物として自信を持っておすすめできる一品です。
 
@@ -52,7 +56,9 @@ category: gift
 
 りんご・いちご・さくらんぼ・白桃・巨峰と5種類のフルーツフレーバーが揃っており、見た目にも彩りがあるので「暑い時期に涼んでほしい」という気持ちを伝えやすい詰め合わせです。パッケージに水出し専用と明記されているため、届いた相手が淹れ方に迷わずすぐアイスティーを楽しめるのも利点です。
 
-[茶つみの里 5種のフルーツフレーバー 水出し和紅茶ティーバッグはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fchatsuminosato%2F1377%2F)
+[![茶つみの里 5種のフルーツフレーバー水出し和紅茶ティーバッグ](/images/zansho-mimai-koucha-gift/products/3.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fchatsuminosato%2F1377%2F)
+
+★4.40（47件） [茶つみの里 5種のフルーツフレーバー 水出し和紅茶ティーバッグはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fchatsuminosato%2F1377%2F)
 
 まだレビュー件数は他の2つほど多くありませんが、平均評価は高めで、フレーバーの種類の豊富さが魅力です。
 

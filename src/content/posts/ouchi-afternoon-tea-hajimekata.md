@@ -38,7 +38,9 @@ category: teaware
 
 見た目は籐編みでも、素材はラタン（籐）調のポリプロピレンに一部アイアン（鉄）を使ったもので、出し入れが簡単なぶん収納スペースに余裕がない方や、まずは1台試してみたい方の最初の一台に向いています。金属パーツを含むため、汚れが気になったときは水拭きのあとしっかり乾かすと長持ちします。
 
-[UTILE NAIR ティーラック ティースタンドはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2F500works%2F92540005-0006%2F)
+[![UTILE NAIR ティーラック ティースタンド（FIVE HUNDRED WORKS）](/images/ouchi-afternoon-tea-hajimekata/products/1.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2F500works%2F92540005-0006%2F)
+
+★5.0（2件） [UTILE NAIR ティーラック ティースタンドはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2F500works%2F92540005-0006%2F)
 
 レビュー件数はまだ少ないものの評価は高く、はじめてスタンドを取り入れる方にも選びやすい一台です。
 
@@ -46,7 +48,9 @@ category: teaware
 
 割れる心配が少なく気兼ねなく使えるため、来客が多いご家庭や小さなお子さまのいるご家庭にも扱いやすい選択です。使わないときは重ねてコンパクトに収納できるタイプが多く、置き場所に悩みにくいのも利点です。
 
-[ケーキスタンド3段（プラスチック製）はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Flilyluce%2F10000002%2F)
+[![ケーキスタンド3段（lilyluce）](/images/ouchi-afternoon-tea-hajimekata/products/2.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Flilyluce%2F10000002%2F)
+
+★4.52（201件） [ケーキスタンド3段（プラスチック製）はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Flilyluce%2F10000002%2F)
 
 レビュー件数200件超と実績も十分で、実用性を重視したい方に向いています。
 
@@ -54,7 +58,9 @@ category: teaware
 
 磁器製のプレートが2枚付属し、いつも使っているティーカップとも素材感が合わせやすいのが魅力です。少ない品数でもきちんとした雰囲気にまとまり、ひとり分・ふたり分のティータイムでも大きすぎず食卓になじみます。
 
-[ミニケーキスタンド2段（磁器製2枚付き）はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fk-s-kitchen%2F793%2F)
+[![ミニケーキスタンド2段（K'sキッチン）](/images/ouchi-afternoon-tea-hajimekata/products/3.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fk-s-kitchen%2F793%2F)
+
+★4.50（154件） [ミニケーキスタンド2段（磁器製2枚付き）はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fk-s-kitchen%2F793%2F)
 
 評価・レビュー件数とも十分にあり、コンパクトさと質感の両方を大事にしたい方に向いています。
 
