@@ -38,7 +38,9 @@ category: gift
 
 ティーポットや茶こしを持っていない方でも、カップにそのまま入れるだけで手軽に楽しめるのがモスリンティーバッグです。1杯分ずつ個包装になっているため、湿気を気にせず必要な分だけ楽しんでもらえます。紅茶を淹れる習慣がまだない方への贈り物にも安心です。
 
-[マリアージュ フレール マルコポーロ モスリンティーバッグはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fbelleseve%2Fmariage-freres_marco-polo-teabag%2F)
+[![マリアージュ フレール マルコポーロ モスリンティーバッグ](/images/mariage-freres-marco-polo/products/1.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fbelleseve%2Fmariage-freres_marco-polo-teabag%2F)
+
+★4.78（124件） [マリアージュ フレール マルコポーロ モスリンティーバッグはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fbelleseve%2Fmariage-freres_marco-polo-teabag%2F)
 
 ポットや茶こしを用意せずカップひとつで淹れられる手軽さから、紅茶ギフトの入門編として選ばれやすい一品です。
 
@@ -46,7 +48,9 @@ category: gift
 
 すでにティーポットで紅茶を淹れる習慣がある方には、茶葉から本格的に香りを引き出せる100g缶入りが向いています。黒地に金文字のデザイン缶は使い終わったあとも小物入れとして活用できるほど、佇まいそのものに高級感があります。
 
-[マリアージュ フレール マルコポーロ 100g缶入りはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fshaddy%2F001569094%2F)
+[![マリアージュ フレール マルコポーロ100g缶入り TJ918](/images/mariage-freres-marco-polo/products/2.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fshaddy%2F001569094%2F)
+
+★4.46（48件） [マリアージュ フレール マルコポーロ 100g缶入りはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fshaddy%2F001569094%2F)
 
 茶葉から淹れることで、蒸らし時間による香りの変化までじっくり味わえるのがこのタイプの魅力です。
 
@@ -54,7 +58,9 @@ category: gift
 
 結婚祝いや出産祝いなど、のし対応を含めたあらたまった贈り物にしたい場合は、贈答用に体裁が整えられたギフトセットが便利です。包装やメッセージカードへの対応が用意されている場合が多く、贈る側の手間も少なくなります。一方で単品の缶入り・ティーバッグより価格帯は上がるため、贈る相手との関係性に見合うかどうかを確認してから選ぶとよいでしょう。
 
-[マリアージュ フレール 紅茶の贈り物 GS-152Nはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fshaddy%2F110632079%2F)
+[![マリアージュ フレール 紅茶の贈り物 GS-152N](/images/mariage-freres-marco-polo/products/3.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fshaddy%2F110632079%2F)
+
+★4.5（132件） [マリアージュ フレール 紅茶の贈り物 GS-152Nはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fshaddy%2F110632079%2F)
 
 レビュー件数・評価とも高く、あらたまった贈り物としても安心して選べる一品です。
 
