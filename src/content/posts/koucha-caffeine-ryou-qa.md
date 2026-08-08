@@ -2,7 +2,7 @@
 title: 紅茶のカフェイン量はどれくらい？眠れる時間帯・妊娠中の付き合い方Q&A
 slug: koucha-caffeine-ryou-qa
 date: 2026-08-04
-updated: 2026-08-04
+updated: 2026-08-08
 description: 紅茶に含まれるカフェイン量の目安と、コーヒー・緑茶との違いを整理。就寝前や妊娠中・授乳中の付き合い方、カフェインを抑えたいときの選び方をQ&A形式で紹介します。
 tags: [紅茶, カフェイン, 入門]
 hero: /images/koucha-caffeine-ryou-qa/hero.webp
@@ -50,6 +50,14 @@ category: tea-leaves
 - **茶葉の量を少なめにする**: 1杯あたりの茶葉量を減らせば、単純にカフェイン量も抑えられます
 - **水出しにする**: 低温・長時間でじっくり抽出する[水出し紅茶](/posts/mizudashi-tea-leaves/)は、渋みとあわせてカフェインも控えめに仕上がりやすい方法です
 - **デカフェ紅茶を選ぶ**: 二酸化炭素や水を使う製法など、薬剤を使わずにカフェインを取り除いた商品もあり、通常の紅茶に近い香りを楽しみながら量を抑えられます
+
+デカフェ紅茶を試してみたい方には、個包装のティーバッグタイプが扱いやすくおすすめです。
+
+★4.66（128件） [デカフェ紅茶ティーバッグ お徳セット30包（アーマッドティー）はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fnenrin%2Fdecafe-tb30p-msm%2F)
+
+いろいろな味を試してみたい場合は、アソートタイプも選択肢になります。
+
+★4.61（449件） [デカフェ ノンカフェインお試しセット24包（アーマッドティー）はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fnenrin%2Fdecafe-noncafe-tea-msm%2F)
 
 ## まとめ
 
