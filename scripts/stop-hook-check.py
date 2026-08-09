@@ -24,6 +24,14 @@ governance警告とトークン追記条件が同一ターンで両方成立し�
 sync-to-gdrive.py の失敗はStopフック自体を止めない（同期失敗で毎回
 セッションが止まる事態を避けるため）。失敗時はコンソールに警告を出すのみ。
 
+さらに、site/リポジトリに未commitの変更（変更・未追跡ファイル）が残っていないかを
+`git status --porcelain` で検知する（D-0080）。これはgovernance警告・トークン追記と
+異なりblock()を呼ばない完全に情報提供のみの仕組みで、セッションを止めたり
+D-0056のstop_hook_active強制継続の対象にしたりしない。標準出力に警告を出すのみとし、
+次回セッション冒頭でAIが気づいて固定サマリー【未決定事項】欄に反映する運用とする。
+記事のpublished化・Pin画像追加に伴う正常な差分（site/src/content/posts/配下・
+site/public/images/配下）は誤検知を避けるため対象から除外する。
+
 使い方:
   python site/scripts/stop-hook-check.py < hook入力JSON
 """
@@ -41,9 +49,50 @@ TOKEN_USAGE_SCRIPT = os.path.join(SCRIPT_DIR, "session-token-usage.py")
 SUMMARY_HEADING = "【オーナーが今やること】"
 TOKEN_OUTPUT_MARKER = "このセッションの使用トークン数"
 
+# 記事published化・Pin/hero画像追加に伴う正常な一時差分は誤検知対象から除外する（D-0080）。
+GIT_DIRTY_EXCLUDED_PREFIXES = ("src/content/posts/", "public/images/")
+
 
 def block(reason):
     print(json.dumps({"decision": "block", "reason": reason}, ensure_ascii=False))
+
+
+def check_git_dirty(site_root):
+    """site/リポジトリの未commit差分を検知する（D-0080）。
+    記事ファイル・pin/hero画像ファイルの差分は正常な公開作業中の一時状態として除外する。
+    検知できない場合（gitコマンド失敗等）はNoneを返し、何も警告しない。
+    """
+    try:
+        result = subprocess.run(
+            ["git", "-C", site_root, "status", "--porcelain"],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=15,
+        )
+    except Exception:
+        return None
+    if result.returncode != 0:
+        return None
+
+    def _path_of(line):
+        # porcelain短縮形式: "XY path" または "XY orig -> new"（リネーム）
+        path = line[3:].strip().strip('"')
+        if " -> " in path:
+            path = path.split(" -> ", 1)[1]
+        return path.replace("\\", "/")
+
+    lines = [line for line in result.stdout.splitlines() if line.strip()]
+    remaining = [
+        line for line in lines if not _path_of(line).startswith(GIT_DIRTY_EXCLUDED_PREFIXES)
+    ]
+    if not remaining:
+        return None
+    return (
+        "【警告】site/リポジトリに未commitの変更があります。次回セッション冒頭で内容を"
+        "確認してください（D-0080）。\n" + "\n".join(remaining)
+    )
 
 
 def main():
@@ -127,6 +176,14 @@ def main():
 
     if reason_parts:
         block("\n\n".join(reason_parts))
+
+    # 未commit差分の検知はblock()を呼ばない情報提供のみの警告（D-0080）。
+    # governance警告・トークン追記とは別枠のため、reason_partsには混ぜず
+    # 標準出力へ直接出す（Stopフックの停止・強制継続には一切関与しない）。
+    site_root = os.path.dirname(SCRIPT_DIR)
+    git_dirty_warning = check_git_dirty(site_root)
+    if git_dirty_warning:
+        print(git_dirty_warning)
 
     try:
         sync_result = subprocess.run(
