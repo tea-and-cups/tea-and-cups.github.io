@@ -94,8 +94,15 @@ def main():
     last_assistant_message = payload.get("last_assistant_message") or ""
     # 地の文中の言及（例:「〜という文言を含む応答」のような引用）で誤発火しないよう、
     # 単純な部分文字列一致ではなく「行頭に見出しとして出現しているか」で判定する（D-0067）。
+    # 実際の出力は "## 【オーナーが今やること】" のようにMarkdown見出し記法(#の連続)を
+    # 伴うため、行頭の空白除去だけでなく先頭の#記号と後続の空白も取り除いてから判定する
+    # （D-0071）。
+    def _strip_heading_marker(line):
+        return line.strip().lstrip("#").strip()
+
     has_summary_heading = any(
-        line.strip().startswith(SUMMARY_HEADING) for line in last_assistant_message.splitlines()
+        _strip_heading_marker(line).startswith(SUMMARY_HEADING)
+        for line in last_assistant_message.splitlines()
     )
     has_token_output = TOKEN_OUTPUT_MARKER in last_assistant_message
 
