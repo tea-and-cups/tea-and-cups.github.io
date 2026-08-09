@@ -10,6 +10,11 @@ CLAUDE.md 3節1「rules/配下のファイルの新設・削除はオーナー�
   2. decisions.md 最新エントリの日付が今日か → 1の警告に添える判断材料として使う
   3. decisions.md 直近5件の3行ルール逸脱（本体の文字数で判定）→ 【警告】
   4. CLAUDE.md本体の文字数が閾値超過 → 【警告】
+  5. フックスクリプト自身の検証用デバッグ残留物（D-0069・D-0070） → 【警告】
+     対象は .claude/settings.json・.claude/settings.local.json の hooks 項に登録された
+     全スクリプトを動的に洗い出す（固定リストにしない。フックが増えても追従できるように）。
+     「TEMP DEBUG」「一時デバッグ」「完了後に削除」等の削除予定コメント、または
+     ファイル名・変数名に debug を含むデバッグ専用ログ書き込みが残っていないかを検出する。
 
 状態は data/doc-state.tsv に保存する。プロジェクトルートはD-0043によりGit管理外のため、
 この状態ファイルがsite/リポジトリへ混入することは構造的に起こらない。
@@ -39,7 +44,9 @@ CLAUDE.md 3節1「rules/配下のファイルの新設・削除はオーナー�
 import datetime
 import hashlib
 import io
+import json
 import os
+import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -65,6 +72,28 @@ DECISIONS_MD_CHAR_LIMIT = 15000
 # 1行にまとめた長い決定がすり抜けるという逆転が起きるため（実測でD-0051とD-0050が逆転した）。
 DECISION_BODY_CHAR_LIMIT = 400
 RECENT_DECISIONS = 5
+
+# フックスクリプト自身の残留デバッグ検知（D-0069の再発防止・D-0070）。
+# 対象スクリプトは .claude/settings.json・.claude/settings.local.json の hooks 項から
+# 動的に洗い出す（固定リストにしない）。
+SETTINGS_FILES = ["settings.json", "settings.local.json"]
+
+# 削除予定を示唆したまま残っているコメント（部分一致・大小文字区別なし）
+DEBUG_COMMENT_MARKERS = [
+    "TEMP DEBUG",
+    "一時デバッグ",
+    "完了後に削除",
+]
+
+# デバッグ専用ログファイルへの書き込みを示唆するパターン。
+# 正規の成果物（reports/YYYY-MM-DD.md等）を誤検知しないよう、ファイル名・変数名に
+# 「debug」を含む場合、または一時ディレクトリ（tmp/temp）への書き込みに限定する。
+DEBUG_LOG_PATTERNS = [
+    re.compile(r"(?i)\bdebug_log\b"),
+    re.compile(r"(?i)\bDEBUG_LOG_PATH\b"),
+    re.compile(r"(?i)[\"'][^\"']*debug[^\"']*\.(log|txt)[\"']"),
+    re.compile(r"(?i)[\"'][^\"']*[\\/](tmp|temp)[\\/][^\"']*[\"']"),
+]
 
 STATE_HEADER = [
     "# doc-state.tsv — 運営文書（CLAUDE.md・decisions.md・rules/）の変更検出用の状態台帳",
@@ -115,6 +144,64 @@ def save_state(rules, max_d, claude_chars):
     lines.append("claude-md\tchars\t%d" % claude_chars)
     with io.open(STATE_TSV, "w", encoding="utf-8", newline="\n") as f:
         f.write("\n".join(lines) + "\n")
+
+
+def collect_hook_scripts():
+    """.claude/settings.json・settings.local.json のhooks項から、登録されている
+    スクリプトの絶対パス一覧を動的に洗い出して返す（固定リストにしない）。
+    JSON解析に失敗したファイル・hooks項が無いファイルはスキップする。
+    """
+    paths = set()
+    for name in SETTINGS_FILES:
+        settings_path = os.path.join(ROOT, ".claude", name)
+        if not os.path.isfile(settings_path):
+            continue
+        try:
+            data = json.loads(read_text(settings_path))
+        except Exception:
+            continue
+        hooks = data.get("hooks", {})
+        if not isinstance(hooks, dict):
+            continue
+        for groups in hooks.values():
+            if not isinstance(groups, list):
+                continue
+            for group in groups:
+                if not isinstance(group, dict):
+                    continue
+                for hook in group.get("hooks", []) or []:
+                    if not isinstance(hook, dict):
+                        continue
+                    candidates = [hook.get("command")]
+                    candidates.extend(hook.get("args", []) or [])
+                    for c in candidates:
+                        if isinstance(c, str) and c.endswith(".py"):
+                            resolved = c.replace("${CLAUDE_PROJECT_DIR}", ROOT)
+                            paths.add(os.path.normpath(resolved))
+    return sorted(paths)
+
+
+def check_hook_residue():
+    """フックスクリプト自身に検証用デバッグの残留物がないかを検出する（D-0070）。"""
+    warnings = []
+    for path in collect_hook_scripts():
+        if not os.path.isfile(path):
+            continue
+        text = read_text(path)
+        reasons = []
+        for marker in DEBUG_COMMENT_MARKERS:
+            if marker.lower() in text.lower():
+                reasons.append("削除予定を示唆するコメント「%s」" % marker)
+        for pattern in DEBUG_LOG_PATTERNS:
+            if pattern.search(text):
+                reasons.append("デバッグ専用ログ書き込みの疑いのある記述（%s）" % pattern.pattern)
+        if reasons:
+            rel = os.path.relpath(path, ROOT).replace("\\", "/")
+            warnings.append(
+                "【警告】フックスクリプト %s に検証用デバッグの残留物の疑いがあります（%s）。"
+                "削除するか正式な実装に統合してください。" % (rel, " / ".join(reasons))
+            )
+    return warnings
 
 
 def check_recent_decisions(entries):
@@ -198,6 +285,7 @@ def main():
     latest_date = heading_date(entries[0]["heading"]) if entries else None
 
     warnings = check_recent_decisions(entries)
+    warnings += check_hook_residue()
     notices = []
 
     if claude_chars > CLAUDE_MD_CHAR_LIMIT:
