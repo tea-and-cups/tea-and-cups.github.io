@@ -7,7 +7,8 @@ r"""Stopフック用: セッション終了時に check-doc-governance.py を実
 「【オーナーが今やること】」が含まれるのにトークン消費量の出力がまだ含まれていない
 場合、session-token-usage.py を実行しその出力を強制的に追記する（D-0066）。
 これによりAI自身がsession-token-usage.pyを手動実行する必要はなくなる
-（CLAUDE.md 5節ステップ6参照）。
+（CLAUDE.md 5節ステップ6参照）。見出し検知は has_summary_heading_in() が担い、
+装飾記号（#・**等）の種類を問わない部分一致判定を行う（D-0081。経緯はD-0071参照）。
 
 Stopフックのcommandから、hook入力JSON（stdin）を受け取って呼ばれる想定。
 stop_hook_active が true の場合（=このフック自身が直前に継続を強制した
@@ -55,6 +56,21 @@ GIT_DIRTY_EXCLUDED_PREFIXES = ("src/content/posts/", "public/images/")
 
 def block(reason):
     print(json.dumps({"decision": "block", "reason": reason}, ensure_ascii=False))
+
+
+def has_summary_heading_in(message):
+    """last_assistant_messageに固定サマリー見出し「【オーナーが今やること】」が
+    含まれているかを判定する（D-0081）。
+    行の中にマーカー文字列が含まれているかの部分一致判定とし、装飾記号
+    （#・**・__・絵文字付き等）の種類を問わない。装飾記号を都度列挙して剥がす
+    方式は、未対応の記法が出るたびに検知漏れを繰り返した（D-0071の`#`限定修正が
+    `**`太字記法で再発）ため廃止した。
+    地の文中の言及（例:「〜という文言を含む応答」）でも行内に文字列が含まれれば
+    Trueになるが、判定を緩めることによる誤検知（無駄にトークン追記が走るだけ）は、
+    判定を厳しくすることによる検知漏れ（D-0066が機能しない）より実害が小さいため
+    許容する。
+    """
+    return any(SUMMARY_HEADING in line for line in message.splitlines())
 
 
 def check_git_dirty(site_root):
@@ -141,18 +157,10 @@ def main():
             )
 
     last_assistant_message = payload.get("last_assistant_message") or ""
-    # 地の文中の言及（例:「〜という文言を含む応答」のような引用）で誤発火しないよう、
-    # 単純な部分文字列一致ではなく「行頭に見出しとして出現しているか」で判定する（D-0067）。
-    # 実際の出力は "## 【オーナーが今やること】" のようにMarkdown見出し記法(#の連続)を
-    # 伴うため、行頭の空白除去だけでなく先頭の#記号と後続の空白も取り除いてから判定する
-    # （D-0071）。
-    def _strip_heading_marker(line):
-        return line.strip().lstrip("#").strip()
-
-    has_summary_heading = any(
-        _strip_heading_marker(line).startswith(SUMMARY_HEADING)
-        for line in last_assistant_message.splitlines()
-    )
+    # 判定ロジック本体は has_summary_heading_in() に切り出し、
+    # test-stop-hook-check.py から同じ関数を直接呼べるようにしてある（D-0081）。
+    # 詳細は同関数のdocstring参照。
+    has_summary_heading = has_summary_heading_in(last_assistant_message)
     has_token_output = TOKEN_OUTPUT_MARKER in last_assistant_message
 
     if has_summary_heading and not has_token_output:
