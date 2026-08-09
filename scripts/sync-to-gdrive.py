@@ -43,9 +43,17 @@ SYNC_MAP_PATH = os.path.join(DATA_DIR, "gdrive-sync-map.json")
 
 # Docs本文の読み書きに必要な最小スコープ。ドキュメント新規作成にはDrive側の
 # file スコープ（このアプリが作成したファイルのみ操作可）を使う。
+# analytics.readonly はGA4データ自動取得の疎通確認用（2026-08-09追加・
+# site/scripts/fetch-ga4-metrics.py参照）。このファイルが同一クレデンシャル・
+# トークンキャッシュのスコープ定義を兼ねているため、GA4関連スコープもここに追加する。
+# webmasters.readonly はSearch Console APIでのインデックス状態調査用
+# （2026-08-09追加・D-0075）。sitemaps.list / urlInspection.index.inspect
+# 両方をこの1スコープでカバーできる。
 SCOPES = [
     "https://www.googleapis.com/auth/documents",
     "https://www.googleapis.com/auth/drive.file",
+    "https://www.googleapis.com/auth/analytics.readonly",
+    "https://www.googleapis.com/auth/webmasters.readonly",
 ]
 
 # 対象5ファイル: (ローカルパス, ドキュメントタイトル)
