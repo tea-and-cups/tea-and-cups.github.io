@@ -15,6 +15,7 @@ CLAUDE.md 3節1「rules/配下のファイルの新設・削除はオーナー�
      全スクリプトを動的に洗い出す（固定リストにしない。フックが増えても追従できるように）。
      「TEMP DEBUG」「一時デバッグ」「完了後に削除」等の削除予定コメント、または
      ファイル名・変数名に debug を含むデバッグ専用ログ書き込みが残っていないかを検出する。
+  6. docs/status.md の文字数が閾値超過（CLAUDE.md 10節「常に1画面以内」の機械チェック・D-0099） → 【警告】
 
 状態は data/doc-state.tsv に保存する。プロジェクトルートはD-0043によりGit管理外のため、
 この状態ファイルがsite/リポジトリへ混入することは構造的に起こらない。
@@ -62,12 +63,15 @@ ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 RULES_DIR = os.path.join(ROOT, "rules")
 CLAUDE_MD = os.path.join(ROOT, "CLAUDE.md")
 DECISIONS_MD = os.path.join(ROOT, "docs", "decisions.md")
+STATUS_MD = os.path.join(ROOT, "docs", "status.md")
 STATE_TSV = os.path.join(ROOT, "data", "doc-state.tsv")
 
 CLAUDE_MD_CHAR_LIMIT = 10000
 # decisions.md本体の容量閾値。超過した場合はarchive-decisions.pyでの退避対象になる
 # （検出のみ・自動実行はしない。実行可否の判断はCLAUDE.md 10節参照）
 DECISIONS_MD_CHAR_LIMIT = 15000
+# status.md本体の容量閾値。CLAUDE.md 10節「status.mdは常に1画面以内」の機械チェック（D-0099）
+STATUS_MD_CHAR_LIMIT = 3500
 # 「3行程度」の目安は文字数で判定する。物理行数だと、短文を折り返した決定が警告になる一方で
 # 1行にまとめた長い決定がすり抜けるという逆転が起きるため（実測でD-0051とD-0050が逆転した）。
 DECISION_BODY_CHAR_LIMIT = 400
@@ -299,6 +303,14 @@ def main():
             "【警告】decisions.md が%d字で閾値%d字を超えています。"
             "archive-decisions.py で古い決定を docs/decisions-archive.md へ退避してください。"
             % (decisions_chars, DECISIONS_MD_CHAR_LIMIT)
+        )
+
+    status_chars, _ = count_chars_lines(read_text(STATUS_MD))
+    if status_chars > STATUS_MD_CHAR_LIMIT:
+        warnings.append(
+            "【警告】status.md が%d字で閾値%d字を超えています。"
+            "古い情報を消すか、詳細を reports/ への参照へ置き換えてください。"
+            % (status_chars, STATUS_MD_CHAR_LIMIT)
         )
 
     state = load_state()
