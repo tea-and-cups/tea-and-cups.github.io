@@ -26,12 +26,27 @@ sync-to-gdrive.py の失敗はStopフック自体を止めない（同期失敗�
 セッションが止まる事態を避けるため）。失敗時はコンソールに警告を出すのみ。
 
 さらに、site/リポジトリに未commitの変更（変更・未追跡ファイル）が残っていないかを
-`git status --porcelain` で検知する（D-0080）。これはgovernance警告・トークン追記と
-異なりblock()を呼ばない完全に情報提供のみの仕組みで、セッションを止めたり
-D-0056のstop_hook_active強制継続の対象にしたりしない。標準出力に警告を出すのみとし、
-次回セッション冒頭でAIが気づいて固定サマリー【未決定事項】欄に反映する運用とする。
-記事のpublished化・Pin画像追加に伴う正常な差分（site/src/content/posts/配下・
-site/public/images/配下）は誤検知を避けるため対象から除外する。
+`git status --porcelain` で検知する（D-0080）。記事のpublished化・Pin画像追加に伴う
+正常な差分（site/src/content/posts/配下・site/public/images/配下）は誤検知を避けるため
+対象から除外する。
+
+D-0080は当初この検知結果をprint()で平文出力する「情報提供のみ」方式だったが、
+①平文出力はAIの会話コンテキストへ届く経路がなく実際には機能していなかったこと、
+②block()のJSONと同一stdoutに平文が混在するとトークン追記機構（D-0066・D-0081）の
+JSONパースを壊すリスクがあることが判明したため、検知結果をblock()のreasonへ統合する
+方式へ変更した（D-0082）。
+
+■ stdout出力の規律（D-0082）
+このスクリプトがstdoutへ書き出してよいのは block() による1本のJSONのみとする。
+平文をstdoutへ出してはならない（人間向けの警告・エラーはすべてstderrへ出す）。
+子プロセスの出力は subprocess.run(capture_output=True) で捕捉しており、
+このスクリプトのstdoutへは素通ししない。
+
+■ block()の呼び出し規律（D-0082）
+ガバナンス警告・トークン未出力・未commit検知が同時に成立しても、block()の呼び出しは
+1回のみ・出力されるJSONも1つのみとし、reasonに全項目をまとめて含める。
+継続強制の回数制御は既存の stop_hook_active 方式（1回だけ強制・2回目以降は無条件で
+終了を許可）をそのまま使い、新しい制御方式は作らない。
 
 使い方:
   python site/scripts/stop-hook-check.py < hook入力JSON
@@ -73,6 +88,18 @@ def has_summary_heading_in(message):
     return any(SUMMARY_HEADING in line for line in message.splitlines())
 
 
+def build_reason(*parts):
+    """検知結果（ガバナンス警告・トークン未出力・未commit）を1本のreason文字列へ
+    統合する（D-0082）。空の項目は捨て、1件も無ければNoneを返す。
+    呼び出し側はNoneでなければblock()を「1回だけ」呼ぶ。この関数を経由することで、
+    検知が何件同時に成立してもblock()の呼び出しとJSON出力が1つに保たれる。
+    """
+    filled = [p for p in parts if p]
+    if not filled:
+        return None
+    return "\n\n".join(filled)
+
+
 def check_git_dirty(site_root):
     """site/リポジトリの未commit差分を検知する（D-0080）。
     記事ファイル・pin/hero画像ファイルの差分は正常な公開作業中の一時状態として除外する。
@@ -106,8 +133,12 @@ def check_git_dirty(site_root):
     if not remaining:
         return None
     return (
-        "【警告】site/リポジトリに未commitの変更があります。次回セッション冒頭で内容を"
-        "確認してください（D-0080）。\n" + "\n".join(remaining)
+        "【警告】site/リポジトリに未commitの変更があります（D-0080）。\n"
+        "取るべき行動: 未commitの差分があることを固定サマリーの【未決定事項】欄に記載し、"
+        "オーナーへ報告してください。AIの自己判断でcommit・pushを行ってはなりません"
+        "（未commit状態の差分は書きかけの作業や実験的な変更である可能性があり、"
+        "内容を確認せず自動的に確定させることを防ぐためです）。\n"
+        "対象:\n" + "\n".join(remaining)
     )
 
 
@@ -182,16 +213,17 @@ def main():
             "Stopフックが自動的に追記します。\n%s" % token_output
         )
 
-    if reason_parts:
-        block("\n\n".join(reason_parts))
-
-    # 未commit差分の検知はblock()を呼ばない情報提供のみの警告（D-0080）。
-    # governance警告・トークン追記とは別枠のため、reason_partsには混ぜず
-    # 標準出力へ直接出す（Stopフックの停止・強制継続には一切関与しない）。
+    # 未commit差分の検知結果もreason_partsへ統合する（D-0082）。
+    # 旧実装はここでprint()による平文出力を行っていたが、AIの会話コンテキストへ
+    # 届く経路がなく機能しておらず、かつblock()のJSONと同一stdoutに平文が混在して
+    # トークン追記機構のJSONパースを壊すリスクがあったため取りやめた。
     site_root = os.path.dirname(SCRIPT_DIR)
-    git_dirty_warning = check_git_dirty(site_root)
-    if git_dirty_warning:
-        print(git_dirty_warning)
+    reason_parts.append(check_git_dirty(site_root))
+
+    # block()の呼び出しは1回のみ・出力されるJSONも1つのみ（D-0082）。
+    reason = build_reason(*reason_parts)
+    if reason:
+        block(reason)
 
     try:
         sync_result = subprocess.run(

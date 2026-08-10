@@ -14,18 +14,34 @@ transcriptを実測したところ "**【オーナーが今やること】**" �
 繰り返す構造的な脆さを持つと判断し、行の中にマーカー文字列が含まれているかの
 部分一致判定（has_summary_heading_in()）に置き換えた。
 
-本テストは stop-hook-check.py の has_summary_heading_in() を直接インポートして
-検証する（テスト側でロジックを再実装しない。再実装すると、本体側だけ直して
-テスト側が古いロジックのまま残る＝検知しない、という事態を招くため）。
+D-0082で追加した検証: 未commit検知（D-0080）の結果をblock()のreasonへ統合したことに
+伴い、「検知が何件同時に成立してもblock()の呼び出しは1回・stdoutへ出るJSONも1つだけで、
+平文が混在しない」ことを検証する（build_reason()＋block()のstdout実測）。
+あわせて check_git_dirty() が「報告のみ・AIの自己判断でcommit/pushしない」旨の
+行動指示を含むこと、除外パス（記事・画像）の判定が維持されていることを検証する。
+
+本テストは stop-hook-check.py の関数を直接インポートして検証する（テスト側で
+ロジックを再実装しない。再実装すると、本体側だけ直してテスト側が古いロジックのまま
+残る＝検知しない、という事態を招くため）。
 stop-hook-check.py はハイフンを含むモジュール名のため importlib で読み込む。
+
+副作用のないテストのみで構成する（本物のsite/リポジトリは触らず、git検知の検証には
+一時ディレクトリのテスト用リポジトリを使う。main()の全体実行は
+sync-to-gdrive.py による実際のGoogleドキュメント書き込みを伴うため、ここでは行わない）。
 
 使い方:
   python site/scripts/test-stop-hook-check.py
 """
 
+import contextlib
 import importlib.util
+import io
+import json
 import os
+import shutil
+import subprocess
 import sys
+import tempfile
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 TARGET = os.path.join(SCRIPT_DIR, "stop-hook-check.py")
@@ -36,6 +52,168 @@ def _load_module():
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
+
+
+def _emit(module, *reason_parts):
+    """main()と同じ経路（build_reason → 成立時のみblock()を1回）でstdoutへ出力し、
+    その内容を捕捉して返す（D-0082）。テスト側でJSON整形を再実装しないため、
+    本体のbuild_reason()・block()をそのまま呼ぶ。
+    """
+    buffer = io.StringIO()
+    with contextlib.redirect_stdout(buffer):
+        reason = module.build_reason(*reason_parts)
+        if reason:
+            module.block(reason)
+    return buffer.getvalue()
+
+
+def _assert_single_json(captured):
+    """stdoutがJSON1本のみ（平文の混在なし）であることを検証し、
+    (ok, 説明, パース済みオブジェクト) を返す（D-0082）。
+    """
+    lines = [line for line in captured.splitlines() if line.strip()]
+    if len(lines) != 1:
+        return False, "stdoutの行数が1ではない（実際=%d行）: %r" % (len(lines), captured[:200]), None
+    try:
+        obj = json.loads(lines[0])
+    except Exception as exc:
+        return False, "stdoutがJSONとしてパースできない（平文混在の疑い）: %s" % exc, None
+    if obj.get("decision") != "block":
+        return False, 'decisionが"block"ではない: %r' % obj.get("decision"), None
+    return True, "stdoutはJSON1本のみ", obj
+
+
+def _make_dirty_repo(tmpdir, relpath):
+    """一時ディレクトリにテスト用gitリポジトリを作り、relpathへ未追跡ファイルを1つ置く。
+    本物のsite/リポジトリには一切触れない（D-0082のテストは副作用を持たせない）。
+
+    注意: relpathの親ディレクトリに追跡済みファイルを1つ作って初回commitしておく。
+    `git status --porcelain` は「配下が丸ごと未追跡のディレクトリ」を親ディレクトリ1行
+    （例: `?? src/`）へ畳んで報告するため、追跡済みファイルが1つも無いリポジトリでは
+    フルパスが得られず、除外パス判定を実環境どおりに再現できない。本物のsite/では
+    src/content/posts/・public/images/ とも追跡済みファイルを含むため、新規ファイルは
+    `?? src/content/posts/xxx.md` とフルパスで報告される（実測確認済み）。
+    """
+    subprocess.run(
+        ["git", "init", "-q", tmpdir], capture_output=True, text=True, timeout=15
+    )
+    target = os.path.join(tmpdir, relpath.replace("/", os.sep))
+    os.makedirs(os.path.dirname(target), exist_ok=True)
+
+    keep = os.path.join(os.path.dirname(target), ".keep")
+    with open(keep, "w", encoding="utf-8") as f:
+        f.write("")
+    subprocess.run(
+        ["git", "-C", tmpdir, "add", "-A"], capture_output=True, text=True, timeout=15
+    )
+    subprocess.run(
+        [
+            "git", "-C", tmpdir,
+            "-c", "user.email=test@example.invalid",
+            "-c", "user.name=test",
+            "commit", "-q", "-m", "init",
+        ],
+        capture_output=True,
+        text=True,
+        timeout=15,
+    )
+
+    with open(target, "w", encoding="utf-8") as f:
+        f.write("test\n")
+    return tmpdir
+
+
+def run_git_and_reason_cases(module):
+    """D-0082: 未commit検知の内容と、block()呼び出し・JSON出力の単一性を検証する。
+    戻り値は (説明, 成否, 補足) のリスト。
+    """
+    results = []
+    token_part = (
+        "固定サマリーにトークン消費量の表示が含まれていなかったため、"
+        "Stopフックが自動的に追記します。\nトークン使用量: (テスト値)"
+    )
+
+    # --- check_git_dirty(): 未commit差分の検知内容 ---
+    tmpdir = tempfile.mkdtemp(prefix="stophook_test_")
+    try:
+        _make_dirty_repo(tmpdir, "scripts/_dummy_dirty.txt")
+        warning = module.check_git_dirty(tmpdir)
+        ok = bool(warning) and "_dummy_dirty.txt" in warning
+        results.append(("check_git_dirty: 未commit差分を検知する", ok, ""))
+
+        has_action = bool(warning) and (
+            "【未決定事項】" in warning
+            and "オーナーへ報告" in warning
+            and "commit・pushを行ってはなりません" in warning
+        )
+        results.append(
+            (
+                "check_git_dirty: reasonに「【未決定事項】へ記載・報告」「AI自己判断でcommit/push禁止」が含まれる",
+                has_action,
+                "",
+            )
+        )
+        git_part = warning
+    finally:
+        shutil.rmtree(tmpdir, ignore_errors=True)
+
+    # --- 除外パス（D-0080・今回変更しないことの確認） ---
+    tmpdir2 = tempfile.mkdtemp(prefix="stophook_test_excl_")
+    try:
+        _make_dirty_repo(tmpdir2, "src/content/posts/dummy-article.md")
+        excluded = module.check_git_dirty(tmpdir2)
+        results.append(
+            ("除外パス維持: 記事ファイルのみの差分は検知しない（Noneを返す）", excluded is None, "")
+        )
+    finally:
+        shutil.rmtree(tmpdir2, ignore_errors=True)
+
+    # --- a. 未commit差分のみ ---
+    captured = _emit(module, None, None, git_part)
+    ok, detail, obj = _assert_single_json(captured)
+    if ok:
+        ok = "未commitの変更があります" in obj["reason"] and (
+            "commit・pushを行ってはなりません" in obj["reason"]
+        )
+        detail = "reasonに未commit警告と自動commit禁止が含まれる" if ok else "reason内容が不足"
+    results.append(("a. 未commit差分のみ → block()1回・JSON1本", ok, detail))
+
+    # --- b. トークン未出力のみ ---
+    captured = _emit(module, None, token_part, None)
+    ok, detail, obj = _assert_single_json(captured)
+    if ok:
+        ok = "トークン消費量" in obj["reason"] and "未commit" not in obj["reason"]
+        detail = "reasonはトークン追記のみ" if ok else "reason内容が想定外"
+    results.append(("b. トークン未出力のみ → block()1回・JSON1本", ok, detail))
+
+    # --- c. トークン未出力＋未commit差分の同時発生 ---
+    captured = _emit(module, None, token_part, git_part)
+    ok, detail, obj = _assert_single_json(captured)
+    if ok:
+        ok = "トークン消費量" in obj["reason"] and "未commitの変更があります" in obj["reason"]
+        detail = "1本のreasonに両方の内容が含まれる" if ok else "両方の内容が揃っていない"
+    results.append(("c. トークン未出力＋未commit同時 → block()1回・JSON1本に両方", ok, detail))
+
+    # --- c-2. ガバナンス警告も加えた3件同時 ---
+    captured = _emit(module, "【警告】テスト用ガバナンス警告", token_part, git_part)
+    ok, detail, obj = _assert_single_json(captured)
+    if ok:
+        ok = (
+            "テスト用ガバナンス警告" in obj["reason"]
+            and "トークン消費量" in obj["reason"]
+            and "未commitの変更があります" in obj["reason"]
+        )
+        detail = "1本のreasonに3件すべてが含まれる" if ok else "3件が揃っていない"
+    results.append(("c-2. 3件同時（ガバナンス＋トークン＋未commit） → JSON1本に集約", ok, detail))
+
+    # --- d. 何も検知されない通常ケース ---
+    captured = _emit(module, None, None, None)
+    ok = captured == ""
+    results.append(
+        ("d. 検知なし → block()を呼ばずstdoutは空", ok, "stdout=%r" % captured[:100])
+    )
+
+    return results
 
 
 def main():
@@ -71,18 +249,33 @@ def main():
     ]
 
     failures = []
+    total = 0
+
+    print("=== 固定サマリー見出しの検知（D-0071・D-0081） ===")
     for description, message, expected in cases:
+        total += 1
         actual = detect(message)
         status = "OK" if actual == expected else "NG"
         if actual != expected:
             failures.append(description)
         print("[%s] %s (expected=%s, actual=%s)" % (status, description, expected, actual))
 
+    print("\n=== 未commit検知とblock()出力の単一性（D-0080・D-0082） ===")
+    for description, ok, detail in run_git_and_reason_cases(module):
+        total += 1
+        status = "OK" if ok else "NG"
+        if not ok:
+            failures.append(description)
+        suffix = " — %s" % detail if detail else ""
+        print("[%s] %s%s" % (status, description, suffix))
+
     if failures:
-        print("\n失敗: %d件" % len(failures))
+        print("\n失敗: %d件 / 全%d件" % (len(failures), total))
+        for description in failures:
+            print("  - %s" % description)
         sys.exit(1)
     else:
-        print("\n全%d件のテストにパスしました。" % len(cases))
+        print("\n全%d件のテストにパスしました。" % total)
         sys.exit(0)
 
 
