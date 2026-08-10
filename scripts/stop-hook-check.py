@@ -9,6 +9,10 @@ r"""Stopフック用: セッション終了時に check-doc-governance.py を実
 これによりAI自身がsession-token-usage.pyを手動実行する必要はなくなる
 （CLAUDE.md 5節ステップ6参照）。見出し検知は has_summary_heading_in() が担い、
 装飾記号（#・**等）の種類を問わない部分一致判定を行う（D-0081。経緯はD-0071参照）。
+session-token-usage.py のサブプロセス起動時には cwd=PROJECT_ROOT を明示的に指定する
+（D-0084）。同スクリプト自体もD-0084で__file__基準の絶対パス解決へ変更済みだが、
+呼び出し側でも二重にcwdを固定し、将来的な変更で再びos.getcwd()等が使われても
+影響を受けないようにする。
 
 Stopフックのcommandから、hook入力JSON（stdin）を受け取って呼ばれる想定。
 stop_hook_active が true の場合（=このフック自身が直前に継続を強制した
@@ -61,6 +65,9 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 GOVERNANCE_SCRIPT = os.path.join(SCRIPT_DIR, "check-doc-governance.py")
 GDRIVE_SYNC_SCRIPT = os.path.join(SCRIPT_DIR, "sync-to-gdrive.py")
 TOKEN_USAGE_SCRIPT = os.path.join(SCRIPT_DIR, "session-token-usage.py")
+SITE_ROOT = os.path.dirname(SCRIPT_DIR)
+# site/scripts -> site -> プロジェクトルート。__file__基準のためカレントディレクトリに依存しない。
+PROJECT_ROOT = os.path.dirname(SITE_ROOT)
 
 SUMMARY_HEADING = "【オーナーが今やること】"
 TOKEN_OUTPUT_MARKER = "このセッションの使用トークン数"
@@ -203,6 +210,7 @@ def main():
                 encoding="utf-8",
                 errors="replace",
                 env=child_env,
+                cwd=PROJECT_ROOT,
                 timeout=30,
             )
             token_output = token_result.stdout.strip() or token_result.stderr.strip()
@@ -217,8 +225,7 @@ def main():
     # 旧実装はここでprint()による平文出力を行っていたが、AIの会話コンテキストへ
     # 届く経路がなく機能しておらず、かつblock()のJSONと同一stdoutに平文が混在して
     # トークン追記機構のJSONパースを壊すリスクがあったため取りやめた。
-    site_root = os.path.dirname(SCRIPT_DIR)
-    reason_parts.append(check_git_dirty(site_root))
+    reason_parts.append(check_git_dirty(SITE_ROOT))
 
     # block()の呼び出しは1回のみ・出力されるJSONも1つのみ（D-0082）。
     reason = build_reason(*reason_parts)

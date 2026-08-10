@@ -14,6 +14,16 @@ D-0056のStopフック挙動には影響を与えない（Stopフックからは
   採用していない。同時に複数のClaudeCodeウィンドウ／セッションを開いている場合に
   誤って別セッションのtranscriptを拾うリスクがあるため。
 
+■ プロジェクトディレクトリ名の決定方法（D-0084・2026-08-10修正）
+以前は os.getcwd()（実行時のカレントディレクトリ）からプロジェクトディレクトリ名を
+組み立てていたが、Bashツールのcwdがcd等で本来のプロジェクトルート以外（例: site/）に
+ずれた状態でこのスクリプトが呼ばれると、実際には存在しない別名
+（例: ...-site）を参照してtranscriptファイルが見つからなくなる不具合があった
+（実例はrules/command-execution.md 1節参照）。
+このためstop-hook-check.pyの__file__基準の絶対パス解決と同じ方式に統一し、
+本スクリプト自身の絶対パス（__file__）から2階層上（site/scripts → site → プロジェクトルート）
+を求め、その絶対パスをslugifyしてプロジェクトディレクトリ名を得る。os.getcwd()は使わない。
+
 ■ トークン重複カウント対策
 transcriptのJSONL内では、1つのassistantメッセージ（message.id）がストリーミング中の
 スナップショットとして複数行にわたって重複記録される（実測で1メッセージあたり2〜4行が
@@ -49,9 +59,16 @@ USAGE_KEYS = (
 )
 
 
-def slugify_cwd_to_project_dir(cwd):
-    """Claude Codeのプロジェクトディレクトリ命名規則（英数字以外を全て'-'に置換）を再現する。"""
-    return re.sub(r"[^a-zA-Z0-9]", "-", cwd)
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+# site/scripts -> site -> プロジェクトルート の2階層上。カレントディレクトリに依存しない。
+PROJECT_ROOT = os.path.dirname(os.path.dirname(SCRIPT_DIR))
+
+
+def slugify_path_to_project_dir(path):
+    """Claude Codeのプロジェクトディレクトリ命名規則（英数字以外を全て'-'に置換）を再現する。
+    D-0084: 以前はcwdを受け取っていたが、__file__基準の絶対パス（PROJECT_ROOT）を
+    渡す運用に変更したため引数名・関数名をcwd非依存に改めた。"""
+    return re.sub(r"[^a-zA-Z0-9]", "-", path)
 
 
 def sum_usage_from_file(path):
@@ -104,7 +121,7 @@ def main():
         print("トークン使用量: 特定不可（環境変数USERPROFILEが取得できません）")
         return
 
-    project_dir = slugify_cwd_to_project_dir(os.getcwd())
+    project_dir = slugify_path_to_project_dir(PROJECT_ROOT)
     base_dir = os.path.join(userprofile, ".claude", "projects", project_dir)
     main_path = os.path.join(base_dir, session_id + ".jsonl")
 
