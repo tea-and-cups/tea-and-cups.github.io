@@ -29,6 +29,17 @@ build_governance_reason()、トークン追記経路は build_token_reason() へ
 切り出し済みで、単体テストから直接呼べる（元はmain()内にインライン実装されており
 テストできなかった）。
 
+D-0096補強で追加した検証（main()結線テスト）: 上記2件は「切り出した関数が正しい
+文字列を返すこと」までしか見ておらず、「main()がその関数を正しく呼び、複数条件が
+同時成立してもblock()が1回・JSONが1本に集約されること」（D-0082の要件）は未検証
+だった。切り出し時に呼び出し側の結線を間違えていても既存25件は全パスしてしまう。
+run_main_integration_cases() は main() をサブプロセスとしてではなく関数として直接
+呼び出し、GOVERNANCE_SCRIPT・TOKEN_USAGE_SCRIPT・GDRIVE_SYNC_SCRIPT・SITE_ROOT を
+テスト用のダミースクリプト・一時gitリポジトリへ一時的に差し替えたうえで、
+標準入力（stdin）にhook入力JSONを、標準出力（stdout）の捕捉にcontextlib.redirect_stdout
+を使い、main()実行後は差し替えた属性をすべて元に戻す（他のテストケースやテスト
+プロセス自体への副作用を残さないため）。
+
 本テストは stop-hook-check.py の関数を直接インポートして検証する（テスト側で
 ロジックを再実装しない。再実装すると、本体側だけ直してテスト側が古いロジックのまま
 残る＝検知しない、という事態を招くため）。
@@ -225,6 +236,165 @@ def run_git_and_reason_cases(module):
     return results
 
 
+def _write_dummy_script(path, exit_code, stdout_text=""):
+    """main()が subprocess.run([sys.executable, ...]) で呼ぶ先を差し替えるための
+    使い捨てダミースクリプトを書く。指定した終了コード・標準出力を返すだけの
+    最小のPythonスクリプト（実際のcheck-doc-governance.py等は一切呼ばない）。
+    """
+    with open(path, "w", encoding="utf-8") as f:
+        f.write("import sys\n")
+        if stdout_text:
+            f.write("print(%r)\n" % stdout_text)
+        f.write("sys.exit(%d)\n" % exit_code)
+
+
+def _run_main(module, payload, overrides):
+    """module.main() を関数として直接呼び出し、標準出力を捕捉して返す。
+
+    main()内部が参照する GOVERNANCE_SCRIPT・TOKEN_USAGE_SCRIPT・GDRIVE_SYNC_SCRIPT・
+    SITE_ROOT 等のモジュールグローバルを overrides で一時的に差し替えたうえで実行し、
+    実行後は必ず元の値へ戻す（try/finallyで保証。他のテストケースやテストプロセス
+    自体に副作用を残さないため）。標準入力は payload（dict）をJSON化してio.StringIOで
+    差し替える。main()はsys.exit(0)/(1)で終了するため、SystemExitを捕捉する。
+    """
+    original = {key: getattr(module, key) for key in overrides}
+    for key, value in overrides.items():
+        setattr(module, key, value)
+
+    original_stdin = sys.stdin
+    sys.stdin = io.StringIO(json.dumps(payload, ensure_ascii=False))
+
+    buffer = io.StringIO()
+    try:
+        with contextlib.redirect_stdout(buffer):
+            try:
+                module.main()
+            except SystemExit:
+                pass
+    finally:
+        sys.stdin = original_stdin
+        for key, value in original.items():
+            setattr(module, key, value)
+
+    return buffer.getvalue()
+
+
+def run_main_integration_cases(module):
+    """D-0096補強: main()を実際に呼び出し、①block()の呼び出しが1回・出力JSONが
+    1本に集約されること②reasonに3条件すべての内容が含まれること③reasonの冒頭が
+    NO_RESUMMARY_PREFIXで始まり、かつ重複して2回以上現れないこと④3条件とも
+    不成立の場合にblock()を呼ばず正常終了すること、を検証する。
+    戻り値は (説明, 成否, 補足) のリスト。
+    """
+    results = []
+    prefix = module.NO_RESUMMARY_PREFIX
+    heading = module.SUMMARY_HEADING
+
+    workdir = tempfile.mkdtemp(prefix="stophook_test_main_")
+    try:
+        governance_script = os.path.join(workdir, "dummy_governance.py")
+        token_script = os.path.join(workdir, "dummy_token.py")
+        sync_script = os.path.join(workdir, "dummy_sync.py")
+        _write_dummy_script(sync_script, 0)
+
+        # --- 1〜3. 3条件（ガバナンス警告・トークン追記・未commit検知）が同時成立 ---
+        dirty_repo = os.path.join(workdir, "dirty_repo")
+        os.makedirs(dirty_repo, exist_ok=True)
+        _make_dirty_repo(dirty_repo, "scripts/_dummy_dirty_main.txt")
+        _write_dummy_script(governance_script, 1, "【警告】テスト用ガバナンス警告(main結線)")
+        _write_dummy_script(token_script, 0, "トークン使用量: (main結線テスト値)")
+
+        payload = {
+            "stop_hook_active": False,
+            "last_assistant_message": "## %s\n本文" % heading,  # トークン出力マーカーは含めない
+        }
+        captured = _run_main(
+            module,
+            payload,
+            {
+                "GOVERNANCE_SCRIPT": governance_script,
+                "TOKEN_USAGE_SCRIPT": token_script,
+                "GDRIVE_SYNC_SCRIPT": sync_script,
+                "SITE_ROOT": dirty_repo,
+            },
+        )
+
+        ok, detail, obj = _assert_single_json(captured)
+        results.append(("D-0096-5. main()結線: 3条件同時成立でもJSONが1本のみ", ok, detail))
+
+        if ok:
+            reason = obj["reason"]
+            has_all = (
+                "テスト用ガバナンス警告(main結線)" in reason
+                and "main結線テスト値" in reason
+                and "未commitの変更があります" in reason
+            )
+            results.append(
+                ("D-0096-6. main()結線: reasonに3条件すべての内容が含まれる", has_all, "")
+            )
+
+            starts_ok = reason.startswith(prefix)
+            # build_reason()は各条件のreasonを"\n\n"で連結する（D-0082）。3条件それぞれが
+            # 自分の担当分にのみ前置きを1回付ける設計のため、連結後のreason全体には
+            # 前置き文が3回（条件の数だけ）現れるのが正しい姿であり、それ自体は異常では
+            # ない。ここで検知したいのは「冒頭で前置き文が連続して二重に貼られていないか」
+            # （例: prefix+prefix+本文、のような結線ミス）であり、それを duplicate_at_head で見る。
+            duplicate_at_head = reason.startswith(prefix + prefix)
+            expected_occurrences = 3  # ガバナンス・トークン・未commitの3条件分
+            occurrence_ok = reason.count(prefix) == expected_occurrences
+            results.append(
+                (
+                    "D-0096-7. main()結線: reasonの冒頭がNO_RESUMMARY_PREFIXで始まり、冒頭で二重貼りされていない",
+                    starts_ok and not duplicate_at_head,
+                    "starts_ok=%s duplicate_at_head=%s" % (starts_ok, duplicate_at_head),
+                )
+            )
+            results.append(
+                (
+                    "D-0096-7b. main()結線: reason全体の前置き出現回数が条件数（3）と一致（不足=結線漏れ／超過=二重付与の疑い）",
+                    occurrence_ok,
+                    "実際の出現回数=%d" % reason.count(prefix),
+                )
+            )
+        else:
+            results.append(("D-0096-6. main()結線: reasonに3条件すべての内容が含まれる", False, "前段が失敗したため未検証"))
+            results.append(("D-0096-7. main()結線: reasonの冒頭がNO_RESUMMARY_PREFIXで始まり、冒頭で二重貼りされていない", False, "前段が失敗したため未検証"))
+            results.append(("D-0096-7b. main()結線: reason全体の前置き出現回数が条件数（3）と一致（不足=結線漏れ／超過=二重付与の疑い）", False, "前段が失敗したため未検証"))
+
+        # --- 4. 3条件とも不成立 ---
+        clean_repo = os.path.join(workdir, "clean_repo")
+        os.makedirs(clean_repo, exist_ok=True)
+        subprocess.run(["git", "init", "-q", clean_repo], capture_output=True, text=True, timeout=15)
+        _write_dummy_script(governance_script, 0, "異常なし")
+
+        payload_clean = {
+            "stop_hook_active": False,
+            "last_assistant_message": "特に見出しを含まない通常の応答本文です。",
+        }
+        captured_clean = _run_main(
+            module,
+            payload_clean,
+            {
+                "GOVERNANCE_SCRIPT": governance_script,
+                "TOKEN_USAGE_SCRIPT": token_script,
+                "GDRIVE_SYNC_SCRIPT": sync_script,
+                "SITE_ROOT": clean_repo,
+            },
+        )
+        ok_clean = captured_clean == ""
+        results.append(
+            (
+                "D-0096-8. main()結線: 3条件とも不成立ならblock()を呼ばず正常終了（stdout空）",
+                ok_clean,
+                "stdout=%r" % captured_clean[:200],
+            )
+        )
+    finally:
+        shutil.rmtree(workdir, ignore_errors=True)
+
+    return results
+
+
 def run_prefix_consistency_cases(module):
     """D-0096: ガバナンス警告【のみ】・トークン追記【のみ】・未commit検知【のみ】の
     それぞれで、build()されたreasonの冒頭がNO_RESUMMARY_PREFIX定数と一致することを
@@ -330,6 +500,15 @@ def main():
 
     print("\n=== NO_RESUMMARY_PREFIXの3箇所一致（D-0096） ===")
     for description, ok, detail in run_prefix_consistency_cases(module):
+        total += 1
+        status = "OK" if ok else "NG"
+        if not ok:
+            failures.append(description)
+        suffix = " — %s" % detail if detail else ""
+        print("[%s] %s%s" % (status, description, suffix))
+
+    print("\n=== main()の結線検証（D-0096補強・block()1回集約） ===")
+    for description, ok, detail in run_main_integration_cases(module):
         total += 1
         status = "OK" if ok else "NG"
         if not ok:
