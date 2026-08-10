@@ -20,6 +20,15 @@ D-0082で追加した検証: 未commit検知（D-0080）の結果をblock()のre
 あわせて check_git_dirty() が「報告のみ・AIの自己判断でcommit/pushしない」旨の
 行動指示を含むこと、除外パス（記事・画像）の判定が維持されていることを検証する。
 
+D-0096で追加した検証: NO_RESUMMARY_PREFIX（「固定サマリー全体を再出力しないこと」の
+前置き文）をガバナンス警告・トークン追記・未commit検知の3箇所すべてが参照している
+ことを機械的に検証する。前置き文はテスト側にベタ書きせず、stop-hook-check.py側の
+NO_RESUMMARY_PREFIX 定数をimportして比較する（ベタ書きすると、本体と一緒にテストも
+書き換えられた場合に検知漏れが起きるため）。ガバナンス警告経路は
+build_governance_reason()、トークン追記経路は build_token_reason() へそれぞれ
+切り出し済みで、単体テストから直接呼べる（元はmain()内にインライン実装されており
+テストできなかった）。
+
 本テストは stop-hook-check.py の関数を直接インポートして検証する（テスト側で
 ロジックを再実装しない。再実装すると、本体側だけ直してテスト側が古いロジックのまま
 残る＝検知しない、という事態を招くため）。
@@ -216,6 +225,56 @@ def run_git_and_reason_cases(module):
     return results
 
 
+def run_prefix_consistency_cases(module):
+    """D-0096: ガバナンス警告【のみ】・トークン追記【のみ】・未commit検知【のみ】の
+    それぞれで、build()されたreasonの冒頭がNO_RESUMMARY_PREFIX定数と一致することを
+    検証する。定数はテスト側にベタ書きせず本体からimportして比較する（本体と
+    テストが一緒に書き換えられて検知漏れが起きることを防ぐため）。
+    戻り値は (説明, 成否, 補足) のリスト。
+    """
+    results = []
+    prefix = module.NO_RESUMMARY_PREFIX
+
+    # --- 1. ガバナンス警告のみ（警告行を特定できる経路） ---
+    reason = module.build_governance_reason(1, "【警告】テスト用ガバナンス警告\n")
+    ok = bool(reason) and reason.startswith(prefix)
+    results.append(
+        ("D-0096-1. ガバナンス警告のみ（警告行あり） → reasonの冒頭がNO_RESUMMARY_PREFIX", ok, "")
+    )
+
+    # --- 2. ガバナンス警告のみ（警告行を特定できないフォールバック経路） ---
+    reason_fallback = module.build_governance_reason(1, "【警告】を含まない予期しない標準出力")
+    ok = bool(reason_fallback) and reason_fallback.startswith(prefix)
+    results.append(
+        ("D-0096-2. ガバナンス警告のみ（フォールバック経路） → reasonの冒頭がNO_RESUMMARY_PREFIX", ok, "")
+    )
+
+    # returncode == 0（警告なし）ではNoneを返すことも併せて確認する（誤検知防止）
+    ok = module.build_governance_reason(0, "異常なし") is None
+    results.append(("D-0096-2b. ガバナンス警告なし（returncode=0） → build_governance_reason()はNone", ok, ""))
+
+    # --- 3. トークン追記のみ ---
+    token_reason = module.build_token_reason("トークン使用量: (テスト値)")
+    ok = bool(token_reason) and token_reason.startswith(prefix)
+    results.append(
+        ("D-0096-3. トークン追記のみ → reasonの冒頭がNO_RESUMMARY_PREFIX", ok, "")
+    )
+
+    # --- 4. 未commit検知のみ ---
+    tmpdir = tempfile.mkdtemp(prefix="stophook_test_prefix_")
+    try:
+        _make_dirty_repo(tmpdir, "scripts/_dummy_dirty_prefix.txt")
+        git_reason = module.check_git_dirty(tmpdir)
+        ok = bool(git_reason) and git_reason.startswith(prefix)
+        results.append(
+            ("D-0096-4. 未commit検知のみ → reasonの冒頭がNO_RESUMMARY_PREFIX", ok, "")
+        )
+    finally:
+        shutil.rmtree(tmpdir, ignore_errors=True)
+
+    return results
+
+
 def main():
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
@@ -262,6 +321,15 @@ def main():
 
     print("\n=== 未commit検知とblock()出力の単一性（D-0080・D-0082） ===")
     for description, ok, detail in run_git_and_reason_cases(module):
+        total += 1
+        status = "OK" if ok else "NG"
+        if not ok:
+            failures.append(description)
+        suffix = " — %s" % detail if detail else ""
+        print("[%s] %s%s" % (status, description, suffix))
+
+    print("\n=== NO_RESUMMARY_PREFIXの3箇所一致（D-0096） ===")
+    for description, ok, detail in run_prefix_consistency_cases(module):
         total += 1
         status = "OK" if ok else "NG"
         if not ok:

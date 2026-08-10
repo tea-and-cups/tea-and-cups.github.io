@@ -123,6 +123,38 @@ def build_reason(*parts):
     return "\n\n".join(filled)
 
 
+def build_governance_reason(returncode, stdout):
+    """check-doc-governance.pyの実行結果からreason文字列を組み立てる（D-0096）。
+    【警告】が1件でもある場合の経路・警告行を特定できなかった場合のフォールバック
+    経路の両方で、冒頭に NO_RESUMMARY_PREFIX を付ける。返り値はcheck_git_dirty()と
+    同じく前置き込みの完成形の文字列（またはNone）とし、呼び出し側はそのまま
+    reason_partsへappendするだけでよい形に揃える。
+    returncode == 0（警告なし）ならNoneを返す。
+    """
+    if returncode == 0:
+        return None
+    warnings = [line for line in stdout.splitlines() if line.startswith("【警告】")]
+    if warnings:
+        governance_message = "\n".join(warnings)
+    else:
+        governance_message = (
+            "check-doc-governance.pyが警告終了コード(%d)を返しましたが、"
+            "【警告】行を特定できませんでした。標準出力: %s"
+            % (returncode, stdout[:500])
+        )
+    return NO_RESUMMARY_PREFIX + governance_message
+
+
+def build_token_reason(token_output):
+    """トークン追記のreason文字列を組み立てる（D-0096でgovernance・未commit検知と
+    同じNO_RESUMMARY_PREFIX参照に統一）。"""
+    return (
+        NO_RESUMMARY_PREFIX +
+        "固定サマリーにトークン消費量の表示が含まれていなかったため、"
+        "Stopフックが自動的に追記します。\n%s" % token_output
+    )
+
+
 def check_git_dirty(site_root):
     """site/リポジトリの未commit差分を検知する（D-0080）。
     記事ファイル・pin/hero画像ファイルの差分は正常な公開作業中の一時状態として除外する。
@@ -200,17 +232,7 @@ def main():
         block("check-doc-governance.pyの実行中にエラーが発生しました: %s" % exc)
         sys.exit(0)
 
-    if result.returncode != 0:
-        warnings = [line for line in result.stdout.splitlines() if line.startswith("【警告】")]
-        if warnings:
-            governance_message = "\n".join(warnings)
-        else:
-            governance_message = (
-                "check-doc-governance.pyが警告終了コード(%d)を返しましたが、"
-                "【警告】行を特定できませんでした。標準出力: %s"
-                % (result.returncode, result.stdout[:500])
-            )
-        reason_parts.append(NO_RESUMMARY_PREFIX + governance_message)
+    reason_parts.append(build_governance_reason(result.returncode, result.stdout))
 
     last_assistant_message = payload.get("last_assistant_message") or ""
     # 判定ロジック本体は has_summary_heading_in() に切り出し、
@@ -234,11 +256,7 @@ def main():
             token_output = token_result.stdout.strip() or token_result.stderr.strip()
         except Exception as exc:
             token_output = "session-token-usage.pyの実行中にエラーが発生しました: %s" % exc
-        reason_parts.append(
-            NO_RESUMMARY_PREFIX +
-            "固定サマリーにトークン消費量の表示が含まれていなかったため、"
-            "Stopフックが自動的に追記します。\n%s" % token_output
-        )
+        reason_parts.append(build_token_reason(token_output))
 
     # 未commit差分の検知結果もreason_partsへ統合する（D-0082）。
     # 旧実装はここでprint()による平文出力を行っていたが、AIの会話コンテキストへ
