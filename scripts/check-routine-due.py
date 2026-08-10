@@ -90,12 +90,25 @@ def previous_month(base):
     return base.year, base.month - 1
 
 
+EMPTY_CELL_VALUES = ("", "-", "ー", "—", "未入力")
+
+
 def has_kpi_row(month_key):
-    """docs/kpi.md の表に month_key（YYYY-MM）の行があるか。表の行（|始まり）だけを見る。"""
+    """docs/kpi.md の表に month_key（YYYY-MM）の行があり、かつPV列に実数値が
+    入っているか。行の存在だけでなく、PV列の中身が空文字・「-」等の未記載を
+    表す値でないことまで見る（空値行を先に作った場合の silent failure を防ぐため）。"""
     for raw in read_text(KPI_MD).split("\n"):
         line = raw.strip()
-        if line.startswith("|") and month_key in line:
-            return True
+        if not line.startswith("|") or month_key not in line:
+            continue
+        cells = line.split("|")
+        # cells[0] は "|" の前の空文字。cells[1] が月列、cells[2] がPV列。
+        if len(cells) < 3:
+            continue
+        pv_cell = cells[2].strip()
+        if pv_cell in EMPTY_CELL_VALUES:
+            continue
+        return True
     return False
 
 

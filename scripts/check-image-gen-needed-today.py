@@ -45,7 +45,7 @@ def read_text(path):
 
 
 def extract_today_section(tasks_text):
-    """tasks.mdの「## 今日」節（次の「## 」見出しの直前まで）を返す。節が無ければ空文字。"""
+    """tasks.mdの「## 今日」節（次の「## 」見出しの直前まで）を行のリストで返す。節が無ければ空リスト。"""
     lines = tasks_text.split("\n")
     start = None
     for i, line in enumerate(lines):
@@ -53,13 +53,19 @@ def extract_today_section(tasks_text):
             start = i + 1
             break
     if start is None:
-        return ""
+        return []
     end = len(lines)
     for i in range(start, len(lines)):
         if lines[i].startswith("## "):
             end = i
             break
-    return "\n".join(lines[start:end])
+    return lines[start:end]
+
+
+def is_checked_line(line):
+    """チェックボックスが済み（- [x] / - [X]）の行かどうかを判定する（大文字小文字両対応）。"""
+    stripped = line.strip()
+    return stripped.startswith("- [x]") or stripped.startswith("- [X]")
 
 
 def main():
@@ -72,9 +78,14 @@ def main():
     if STATUS_TAG in status_text:
         reasons.append("NEEDED: docs/status.md に「%s」あり" % STATUS_TAG)
 
-    tasks_today = extract_today_section(read_text(TASKS_MD))
-    if TASKS_TAG in tasks_today:
-        reasons.append("NEEDED: docs/tasks.md「今日」欄に「%s」あり" % TASKS_TAG)
+    tasks_today_lines = extract_today_section(read_text(TASKS_MD))
+    for line in tasks_today_lines:
+        if is_checked_line(line):
+            continue
+        if TASKS_TAG in line:
+            reasons.append(
+                "NEEDED: docs/tasks.md「今日」欄に「%s」あり（該当行: %s）" % (TASKS_TAG, line.strip())
+            )
 
     if reasons:
         for r in reasons:
