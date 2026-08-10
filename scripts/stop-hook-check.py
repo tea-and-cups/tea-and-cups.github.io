@@ -46,12 +46,15 @@ JSONパースを壊すリスクがあることが判明したため、検知結�
 子プロセスの出力は subprocess.run(capture_output=True) で捕捉しており、
 このスクリプトのstdoutへは素通ししない。
 
-■ reason文言の規律（D-0082補足・2026-08-10）
+■ reason文言の規律（D-0082補足・2026-08-10／D-0096で対象を3箇所へ拡大）
 Stopフックのblock()はAIの直前の応答を編集できず、新しいターンを差し込む仕組みである。
 そのため「【未決定事項】欄に記載してください」等とだけ書くと、AIが固定サマリー全体を
 書き直して2重表示になる（2026-08-10のpin100セッションで実測確認）。トークン追記・
-未commit検知のreasonは、いずれも冒頭で「固定サマリー全体を再出力しないこと。直前の応答に
-続けて、該当分のみを出力すること」を明示する。
+未commit検知・ガバナンス警告のreasonは、いずれも冒頭で「固定サマリー全体を再出力しない
+こと。直前の応答に続けて、該当分のみを出力すること」を明示する。この前置き文は
+NO_RESUMMARY_PREFIX としてモジュール先頭で1箇所だけ定義し、3箇所すべてがそれを参照する
+（D-0096。当初はトークン追記・未commit検知の2箇所にしか前置きが入っておらず、
+ガバナンス警告が単独で成立した場合に元の2重表示問題が再発する欠陥があったため）。
 
 ■ block()の呼び出し規律（D-0082）
 ガバナンス警告・トークン未出力・未commit検知が同時に成立しても、block()の呼び出しは
@@ -78,6 +81,12 @@ PROJECT_ROOT = os.path.dirname(SITE_ROOT)
 
 SUMMARY_HEADING = "【オーナーが今やること】"
 TOKEN_OUTPUT_MARKER = "このセッションの使用トークン数"
+
+# reason冒頭の前置き文（D-0082補足／D-0096でガバナンス警告の経路にも適用対象を拡大）。
+# トークン追記・未commit検知・ガバナンス警告の3箇所すべてがこの定数を参照する。
+NO_RESUMMARY_PREFIX = (
+    "固定サマリー全体を再出力しないこと。直前の応答に続けて、該当分のみを出力すること。\n"
+)
 
 # 記事published化・Pin/hero画像追加に伴う正常な一時差分は誤検知対象から除外する（D-0080）。
 GIT_DIRTY_EXCLUDED_PREFIXES = ("src/content/posts/", "public/images/")
@@ -147,8 +156,7 @@ def check_git_dirty(site_root):
     if not remaining:
         return None
     return (
-        "固定サマリー全体を再出力しないこと。直前の応答に続けて、"
-        "この未commit差分に関する報告のみを出力すること。\n"
+        NO_RESUMMARY_PREFIX +
         "【警告】site/リポジトリに未commitの変更があります（D-0080）。\n"
         "取るべき行動: 未commitの差分があることを（既に出力済みの）固定サマリーの【未決定事項】欄に相当する追記として記載し、"
         "オーナーへ報告してください。AIの自己判断でcommit・pushを行ってはなりません"
@@ -195,13 +203,14 @@ def main():
     if result.returncode != 0:
         warnings = [line for line in result.stdout.splitlines() if line.startswith("【警告】")]
         if warnings:
-            reason_parts.append("\n".join(warnings))
+            governance_message = "\n".join(warnings)
         else:
-            reason_parts.append(
+            governance_message = (
                 "check-doc-governance.pyが警告終了コード(%d)を返しましたが、"
                 "【警告】行を特定できませんでした。標準出力: %s"
                 % (result.returncode, result.stdout[:500])
             )
+        reason_parts.append(NO_RESUMMARY_PREFIX + governance_message)
 
     last_assistant_message = payload.get("last_assistant_message") or ""
     # 判定ロジック本体は has_summary_heading_in() に切り出し、
@@ -226,8 +235,7 @@ def main():
         except Exception as exc:
             token_output = "session-token-usage.pyの実行中にエラーが発生しました: %s" % exc
         reason_parts.append(
-            "固定サマリー全体を再出力しないこと。直前の応答に続けて、"
-            "以下のトークン消費量の行のみを出力すること。\n"
+            NO_RESUMMARY_PREFIX +
             "固定サマリーにトークン消費量の表示が含まれていなかったため、"
             "Stopフックが自動的に追記します。\n%s" % token_output
         )

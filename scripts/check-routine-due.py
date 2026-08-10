@@ -8,10 +8,18 @@ check-image-gen-needed-today.py（D-0078）と同じ方針で、あいまいな�
 「日付」と「ファイルの有無」だけで判定する。文脈からの推測・自由記述文の解釈は行わない。
 
 判定項目:
-  1. 週次レポート（日曜のみ）
-     基準日が日曜で、かつ今週分の reports/weekly-YYYY-WW.md が存在しなければ通知する。
-     日曜以外の曜日では週次に関する出力を一切行わない（取りこぼしは次の日曜に自然に
-     検知される。毎日通知すると通知そのものが形骸化するため）。
+  1. 週次レポート（直近4週の未生成週を検知・D-0095）
+     基準日以前（基準日が日曜ならそれを含む）の直近4回分の日曜それぞれについて、
+     対応する reports/weekly-YYYY-WW.md の有無を確認する。存在しない週があれば、
+     その週ごとに通知する。上限は4週（約1か月）固定とし、それより古い週次の
+     欠落は遡って検知しない（古すぎる週次レポートは遡って作る意味がないため。
+     窓口の運用方針）。
+     通知文では、基準日自身が対象日曜（今日が日曜で今週分が未生成）なのか、
+     それより前の日曜（過去の週が未生成のまま残っている）なのかを区別する。
+     （旧実装は「日曜のみ判定・取りこぼしは次の日曜に自然に検知される」として
+     いたが誤りだった。weekly_filename() は基準日ベースで週番号を算出するため、
+     日曜のセッションを1回でも飛ばすとその週は永久に検知されないまま欠落して
+     いた。D-0095でこの前提を修正した）。
      WW の決め方: 既存ファイル（weekly-2026-31/32/33.md）の実運用に合わせ、
      「対象日曜の翌日（月曜）のISO週番号」を使う。実測での対応:
        2026-07-26(日)→翌日07-27のISO週31 → weekly-2026-31.md（実在）
@@ -47,6 +55,9 @@ KPI_MD = os.path.join(ROOT, "docs", "kpi.md")
 
 # 月次実績の催促を始める日（当月のこの日以降）
 KPI_REMINDER_DAY = 4
+
+# 週次レポートの未生成チェックを遡る上限週数（D-0095・古すぎる週は遡って作る意味がないため固定）
+WEEKLY_LOOKBACK_WEEKS = 4
 
 
 def read_text(path):
@@ -95,15 +106,20 @@ EMPTY_CELL_VALUES = ("", "-", "ー", "—", "未入力")
 
 def has_kpi_row(month_key):
     """docs/kpi.md の表に month_key（YYYY-MM）の行があり、かつPV列に実数値が
-    入っているか。行の存在だけでなく、PV列の中身が空文字・「-」等の未記載を
-    表す値でないことまで見る（空値行を先に作った場合の silent failure を防ぐため）。"""
+    入っているか。行の絞り込みは「月列（cells[1]）をstripした値がmonth_keyと
+    完全一致するか」で行う（特記事項欄等、月列以外のセルにmonth_key文字列が
+    含まれるだけの行を誤ってヒットさせないため。D-0094）。行の存在だけでなく、
+    PV列の中身が空文字・「-」等の未記載を表す値でないことまで見る
+    （空値行を先に作った場合の silent failure を防ぐため。D-0091）。"""
     for raw in read_text(KPI_MD).split("\n"):
         line = raw.strip()
-        if not line.startswith("|") or month_key not in line:
+        if not line.startswith("|"):
             continue
         cells = line.split("|")
         # cells[0] は "|" の前の空文字。cells[1] が月列、cells[2] がPV列。
         if len(cells) < 3:
+            continue
+        if cells[1].strip() != month_key:
             continue
         pv_cell = cells[2].strip()
         if pv_cell in EMPTY_CELL_VALUES:
@@ -119,12 +135,23 @@ def main():
     base = parse_args(sys.argv[1:])
     messages = []
 
-    # 1. 週次レポート（日曜のみ・月曜=0 ... 日曜=6）
-    if base.weekday() == 6:
-        name = weekly_filename(base)
-        if not os.path.isfile(os.path.join(REPORTS_DIR, name)):
+    # 1. 週次レポート（直近4週の未生成週を検知・D-0095・月曜=0 ... 日曜=6）
+    days_since_sunday = (base.weekday() - 6) % 7
+    most_recent_sunday = base - datetime.timedelta(days=days_since_sunday)
+    for i in range(WEEKLY_LOOKBACK_WEEKS):
+        sunday = most_recent_sunday - datetime.timedelta(weeks=i)
+        name = weekly_filename(sunday)
+        if os.path.isfile(os.path.join(REPORTS_DIR, name)):
+            continue
+        if sunday == base:
             messages.append(
-                "週次レポート未生成（%s は日曜・reports/%s がありません）" % (base.isoformat(), name)
+                "週次レポート未生成（%s は日曜・今週分の reports/%s がありません）"
+                % (sunday.isoformat(), name)
+            )
+        else:
+            messages.append(
+                "週次レポート未生成（過去の週が未生成のまま残っています。%s（日曜）分の"
+                " reports/%s がありません）" % (sunday.isoformat(), name)
             )
 
     # 2. 月次レポート（当月1日以降=常に真）
