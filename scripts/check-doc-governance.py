@@ -45,6 +45,7 @@ CLAUDE.md 3節1「rules/配下のファイルの新設・削除はオーナー�
 """
 
 import datetime
+import glob
 import hashlib
 import io
 import json
@@ -68,6 +69,7 @@ DECISIONS_MD = os.path.join(ROOT, "docs", "decisions.md")
 STATUS_MD = os.path.join(ROOT, "docs", "status.md")
 TASKS_MD = os.path.join(ROOT, "docs", "tasks.md")
 IDEAS_MD = os.path.join(ROOT, "docs", "ideas.md")
+POSTS_DIR = os.path.join(ROOT, "site", "src", "content", "posts")
 STATE_TSV = os.path.join(ROOT, "data", "doc-state.tsv")
 
 CLAUDE_MD_CHAR_LIMIT = 10000
@@ -301,6 +303,57 @@ def check_ideas_forbidden_words():
     return warnings
 
 
+def collect_post_slugs():
+    """site/src/content/posts/ 配下の実在slug一覧を返す
+    （prune-used-ideas.pyのcollect_slugs()と同じ定義）。"""
+    slugs = []
+    for path in glob.glob(os.path.join(POSTS_DIR, "*.md")):
+        slugs.append(os.path.splitext(os.path.basename(path))[0])
+    return slugs
+
+
+def check_ideas_unchecked_published_slugs():
+    """docs/ideas.md「## ストック」節の各行のうち、実在する記事slugを含みながら
+    [ ]（未チェック）のままの行を検知する（D-0105補足）。
+
+    [x] は「記事を公開した」ことのみを意味する運用に確定したため、公開済みの
+    slugへ言及した行が未チェックのまま残っているのは、[x]の付け忘れの可能性が
+    ある。ただし、差別化目的で既存記事のslugへ言及しているだけの正当な未着手行
+    （例:「既存の◯◯記事(slug)とは別に」）もこの条件に該当するため、機械的に
+    誤りと断定できない。よってこの関数の結果は常に【警告】として扱い、エラー
+    （exit 1の直接要因）にはしない値としては返さず、他の警告と同様の重み付けで
+    main()側に渡す（現状の実装では他の警告と同じくexit code 1になるが、内容が
+    「要確認」であって「要修正」ではないことをメッセージ文で明示する）。
+    """
+    if not os.path.isfile(IDEAS_MD):
+        return []
+    slugs = collect_post_slugs()
+    lines = read_text(IDEAS_MD).split("\n")
+    warnings = []
+    in_stock = False
+    for i, line in enumerate(lines, start=1):
+        stripped = line.strip()
+        if stripped == IDEAS_STOCK_HEADING:
+            in_stock = True
+            continue
+        if in_stock and stripped.startswith("## "):
+            in_stock = False
+        if not in_stock:
+            continue
+        if not stripped.startswith("- [ ]"):
+            continue
+        hits = [s for s in slugs if s in line]
+        if hits:
+            warnings.append(
+                "【警告・要確認】docs/ideas.md %d行目、公開済み記事のslug（%s）が"
+                "未チェックのままストック節に残っています。これが差別化目的の言及で"
+                "あれば問題ありませんが、記事化済みの題材であれば [x] を付けて"
+                "prune-used-ideas.py を実行してください（D-0105補足）。"
+                % (i, "、".join(hits))
+            )
+    return warnings
+
+
 def check_recent_decisions(entries):
     """直近RECENT_DECISIONS件の3行ルール逸脱を警告文のリストで返す。"""
     messages = []
@@ -411,6 +464,7 @@ def main():
         warnings.append(tasks_warning)
 
     warnings += check_ideas_forbidden_words()
+    warnings += check_ideas_unchecked_published_slugs()
 
     state = load_state()
 
