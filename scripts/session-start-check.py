@@ -35,11 +35,17 @@ import sys
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 SCRIPTS_DIR = os.path.join(ROOT, "site", "scripts")
 
+# 各子スクリプト名と「正常とみなす終了コードの集合」をセットで持つ。
+# 子スクリプトが増えたときもここだけ見れば済むようにするための一覧。
+# check-doc-governance.py のみ 0/1 の両方を正常とする: このスクリプトは
+# 警告を検出した場合に終了コード1を返す仕様（0=検出なし/1=警告検出）であり、
+# 1は異常終了ではなく「警告あり」を表す正常な状態のため（2026-08-11実測・D-0107）。
+# 他の3本は非ゼロ終了コードを異常とみなす通常の仕様のため 0 のみを正常とする。
 CHILD_SCRIPTS = [
-    "rotate-today-tasks.py",
-    "check-doc-governance.py",
-    "check-routine-due.py",
-    "check-image-gen-needed-today.py",
+    ("rotate-today-tasks.py", {0}),
+    ("check-doc-governance.py", {0, 1}),
+    ("check-routine-due.py", {0}),
+    ("check-image-gen-needed-today.py", {0}),
 ]
 
 TIMEOUT_SECONDS = 30
@@ -56,7 +62,7 @@ HEADER = (
 FOOTER = "=== セッション開始時チェック ここまで ==="
 
 
-def run_child(script_name):
+def run_child(script_name, ok_codes):
     script_path = os.path.join(SCRIPTS_DIR, script_name)
     print("--- %s ---" % script_name)
     try:
@@ -79,7 +85,7 @@ def run_child(script_name):
     if stdout_text:
         print(stdout_text.rstrip("\n"))
 
-    if result.returncode != 0:
+    if result.returncode not in ok_codes:
         print("【エラー】%s が失敗しました（終了コード: %d）" % (script_name, result.returncode))
         if stderr_text:
             print(stderr_text.rstrip("\n"))
@@ -92,8 +98,8 @@ def main():
     print(HEADER)
     print("")
 
-    for script_name in CHILD_SCRIPTS:
-        run_child(script_name)
+    for script_name, ok_codes in CHILD_SCRIPTS:
+        run_child(script_name, ok_codes)
         print("")
 
     print(FOOTER)
