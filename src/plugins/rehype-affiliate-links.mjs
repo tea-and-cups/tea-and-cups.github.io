@@ -10,9 +10,6 @@ const AFFILIATE_HOSTS = [
   'afr.moshimo.com',
   'hb.afl.rakuten.co.jp',
   'item.rakuten.co.jp',
-  'amzn.to',
-  'amazon.co.jp',
-  'www.amazon.co.jp',
 ];
 
 function hostOf(href) {

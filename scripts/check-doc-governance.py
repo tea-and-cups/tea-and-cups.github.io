@@ -16,6 +16,8 @@ CLAUDE.md 3節1「rules/配下のファイルの新設・削除はオーナー�
      「TEMP DEBUG」「一時デバッグ」「完了後に削除」等の削除予定コメント、または
      ファイル名・変数名に debug を含むデバッグ専用ログ書き込みが残っていないかを検出する。
   6. docs/status.md の文字数が閾値超過（CLAUDE.md 10節「常に1画面以内」の機械チェック・D-0099） → 【警告】
+  7. docs/tasks.md「## 今日」節直下の日付マーカー（<!-- date: YYYY-MM-DD -->）が今日の日付か
+     （rotate-today-tasks.py の実行漏れ検知・D-0102） → 【警告】
 
 状態は data/doc-state.tsv に保存する。プロジェクトルートはD-0043によりGit管理外のため、
 この状態ファイルがsite/リポジトリへ混入することは構造的に起こらない。
@@ -64,6 +66,7 @@ RULES_DIR = os.path.join(ROOT, "rules")
 CLAUDE_MD = os.path.join(ROOT, "CLAUDE.md")
 DECISIONS_MD = os.path.join(ROOT, "docs", "decisions.md")
 STATUS_MD = os.path.join(ROOT, "docs", "status.md")
+TASKS_MD = os.path.join(ROOT, "docs", "tasks.md")
 STATE_TSV = os.path.join(ROOT, "data", "doc-state.tsv")
 
 CLAUDE_MD_CHAR_LIMIT = 10000
@@ -76,6 +79,11 @@ STATUS_MD_CHAR_LIMIT = 3500
 # 1行にまとめた長い決定がすり抜けるという逆転が起きるため（実測でD-0051とD-0050が逆転した）。
 DECISION_BODY_CHAR_LIMIT = 400
 RECENT_DECISIONS = 5
+
+# docs/tasks.md「## 今日」節直下の日付マーカー（rotate-today-tasks.pyが更新する・D-0097）が
+# 今日の日付と一致するかの検知に使う（rotate-today-tasks.py実行漏れの機械検知・D-0102）。
+TASKS_TODAY_HEADING = "## 今日"
+TASKS_DATE_MARKER_RE = re.compile(r"^<!--\s*date:\s*(\d{4}-\d{2}-\d{2})\s*-->$")
 
 # フックスクリプト自身の残留デバッグ検知（D-0069の再発防止・D-0070）。
 # 対象スクリプトは .claude/settings.json・.claude/settings.local.json の hooks 項から
@@ -208,6 +216,44 @@ def check_hook_residue():
     return warnings
 
 
+def check_tasks_marker(today):
+    """docs/tasks.md「## 今日」節直下の日付マーカーが今日の日付と一致するかを検知する
+    （rotate-today-tasks.py の実行漏れの機械検知・D-0102）。
+    「## 今日」節が無い、直下の最初の非空行がマーカー形式でない、日付が今日と異なる、
+    のいずれの場合も警告文字列を返す。問題なければNoneを返す。
+    """
+    if not os.path.isfile(TASKS_MD):
+        return None
+    lines = read_text(TASKS_MD).split("\n")
+    in_today_section = False
+    marker_date = None
+    found_heading = False
+    for line in lines:
+        if line.strip() == TASKS_TODAY_HEADING:
+            in_today_section = True
+            found_heading = True
+            continue
+        if in_today_section:
+            stripped = line.strip()
+            if not stripped:
+                continue
+            match = TASKS_DATE_MARKER_RE.match(stripped)
+            if match:
+                marker_date = match.group(1)
+            break
+    if not found_heading or marker_date is None:
+        return (
+            "【警告】docs/tasks.md「## 今日」節直下に日付マーカー（<!-- date: YYYY-MM-DD -->）が"
+            "見つかりません。rotate-today-tasks.py が実行されていない可能性があります。"
+        )
+    if marker_date != today:
+        return (
+            "【警告】docs/tasks.md の日付マーカーが%s で本日（%s）と一致しません。"
+            "rotate-today-tasks.py が実行されていない可能性があります。" % (marker_date, today)
+        )
+    return None
+
+
 def check_recent_decisions(entries):
     """直近RECENT_DECISIONS件の3行ルール逸脱を警告文のリストで返す。"""
     messages = []
@@ -312,6 +358,10 @@ def main():
             "古い情報を消すか、詳細を reports/ への参照へ置き換えてください。"
             % (status_chars, STATUS_MD_CHAR_LIMIT)
         )
+
+    tasks_warning = check_tasks_marker(today)
+    if tasks_warning:
+        warnings.append(tasks_warning)
 
     state = load_state()
 
