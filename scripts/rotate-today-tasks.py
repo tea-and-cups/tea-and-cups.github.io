@@ -45,9 +45,97 @@ import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 TASKS_MD = os.path.join(ROOT, "docs", "tasks.md")
+ARCHIVE_MD = os.path.join(ROOT, "docs", "tasks-archive.md")
 
 TODAY_HEADING = "## 今日"
 DATE_MARKER_RE = re.compile(r"^<!--\s*date:\s*(\d{4}-\d{2}-\d{2})\s*-->\s*$")
+
+ARCHIVE_HEADER = (
+    "# tasks-archive.md — tasks.md「今日」欄の削除行アーカイブ（自動生成・参照専用）\n"
+    "\n"
+    "1. このファイルは rotate-today-tasks.py が自動で追記する。人間・AIが手で編集しない\n"
+    "2. 用途は過去の「今日」欄の内容を後から確認することのみ。"
+    "**タスクや記事の進捗状態の根拠として参照してはならない**。"
+    "進捗の正本は記事frontmatterのstatus（D-0105）、Pin投稿状況は data/pin-posted.md（D-0111）である\n"
+    "3. 保持は直近14日分のみ。古い日付のブロックは自動削除される\n"
+    "\n"
+    "---\n"
+)
+
+ARCHIVE_DATE_RE = re.compile(r"^## (\d{4}-\d{2}-\d{2})\s*$")
+ARCHIVE_MAX_BLOCKS = 14
+
+
+def parse_archive(text):
+    """アーカイブ本文を (preamble_lines, [[date, [line, ...]], ...]) に分解する。"""
+    lines = text.split("\n")
+    preamble = []
+    i = 0
+    while i < len(lines) and not ARCHIVE_DATE_RE.match(lines[i]):
+        preamble.append(lines[i])
+        i += 1
+
+    blocks = []
+    while i < len(lines):
+        m = ARCHIVE_DATE_RE.match(lines[i])
+        if not m:
+            i += 1
+            continue
+        date = m.group(1)
+        i += 1
+        block_lines = []
+        while i < len(lines) and not ARCHIVE_DATE_RE.match(lines[i]):
+            block_lines.append(lines[i])
+            i += 1
+        while block_lines and block_lines[-1] == "":
+            block_lines.pop()
+        blocks.append([date, block_lines])
+    return preamble, blocks
+
+
+def render_archive(preamble, blocks):
+    out = list(preamble)
+    for date, block_lines in blocks:
+        if out and out[-1] != "":
+            out.append("")
+        out.append("## %s" % date)
+        out.extend(block_lines)
+    text = "\n".join(out)
+    if not text.endswith("\n"):
+        text += "\n"
+    return text
+
+
+def archive_removed_lines(marker_date, removed_lines):
+    """削除された行（マーカーの日付に属していた行）を docs/tasks-archive.md へ追記する。
+    追記後、日付見出しブロックが上限を超えていれば古い日付から削除する。
+    成功したら追記件数を返す。失敗したら例外を送出する（呼び出し側で tasks.md への書き込みを止めるため）。
+    """
+    if os.path.isfile(ARCHIVE_MD):
+        existing = read_text(ARCHIVE_MD)
+    else:
+        existing = ARCHIVE_HEADER
+
+    preamble, blocks = parse_archive(existing)
+
+    target_block = None
+    for block in blocks:
+        if block[0] == marker_date:
+            target_block = block
+            break
+
+    if target_block is None:
+        blocks.append([marker_date, list(removed_lines)])
+    else:
+        target_block[1].extend(removed_lines)
+
+    if len(blocks) > ARCHIVE_MAX_BLOCKS:
+        blocks.sort(key=lambda b: b[0])
+        blocks = blocks[-ARCHIVE_MAX_BLOCKS:]
+
+    new_text = render_archive(preamble, blocks)
+    write_text(ARCHIVE_MD, new_text)
+    return len(removed_lines)
 
 
 def read_text(path):
@@ -154,6 +242,13 @@ def main():
         print(line)
 
     if not dry_run:
+        if removed:
+            try:
+                archived_count = archive_removed_lines(marker_date, removed)
+            except Exception as e:
+                print("退避に失敗したため tasks.md への書き込みを中止します: %s" % e)
+                sys.exit(1)
+            print("退避先: %s（%d件）" % (ARCHIVE_MD, archived_count))
         write_text(target, "\n".join(new_lines))
 
     sys.exit(0)
