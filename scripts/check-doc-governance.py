@@ -91,9 +91,16 @@ RECENT_DECISIONS = 5
 TASKS_TODAY_HEADING = "## 今日"
 TASKS_DATE_MARKER_RE = re.compile(r"^<!--\s*date:\s*(\d{4}-\d{2}-\d{2})\s*-->$")
 
-# docs/decisions.md 本文中の reports/ 参照の検査に使う（D-0109）。
+# docs/decisions.md 本文中の reports/ 参照の検査に使う（D-0109・D-0110で対象を絞り込み）。
+# この運用では reports/ への実参照は必ず「詳細は reports/… 参照」という決まった形で
+# 書かれる。この形以外（書式の例示・決定記録本文中の引用等）は参照ではないため、
+# 検査対象をこの表記の内側に限定する（D-0110）。
+DECISIONS_DETAIL_REF_RE = re.compile(r"詳細は.*?参照")
 # 実在性検査: reports/で始まり.mdで終わるパス表記を抽出する。
 DECISIONS_REPORTS_PATH_RE = re.compile(r"reports/[A-Za-z0-9_\-]+\.md")
+# パス中に YYYY・MM・DD のいずれかを含むものは書式のテンプレート表記とみなし、
+# 実在性検査から除外する（D-0110）。
+DECISIONS_REPORTS_TEMPLATE_RE = re.compile(r"YYYY|MM|DD")
 # 曖昧参照検査: 「本日のreports/」等のあとに具体的な日付ファイル名
 # （YYYY-MM-DD始まり）が続かない場合を曖昧参照とみなす。
 DECISIONS_REPORTS_VAGUE_RE = re.compile(
@@ -336,6 +343,13 @@ def check_ideas_unchecked_published_slugs():
     （exit 1の直接要因）にはしない値としては返さず、他の警告と同様の重み付けで
     main()側に渡す（現状の実装では他の警告と同じくexit code 1になるが、内容が
     「要確認」であって「要修正」ではないことをメッセージ文で明示する）。
+
+    行末に除外印 `<!-- 差別化参照 -->` を含む行は検知対象から外す（D-0110）。
+    差別化目的の言及と結論済みの行が毎セッション警告として出続ける状態を、
+    別ファイルの除外リストではなく対象行そのものへの印で解消する。行が消えれば
+    除外も自動的に消える。除外印を使ってよいのは、実際にオーナー承認済みの
+    窓口指示等で「差別化目的の言及であり対応不要」と結論が出ている行のみ。
+    機械的な回避手段として乱用しないこと。
     """
     if not os.path.isfile(IDEAS_MD):
         return []
@@ -353,6 +367,8 @@ def check_ideas_unchecked_published_slugs():
         if not in_stock:
             continue
         if not stripped.startswith("- [ ]"):
+            continue
+        if stripped.endswith("<!-- 差別化参照 -->"):
             continue
         hits = [s for s in slugs if s in line]
         if hits:
@@ -382,29 +398,38 @@ def check_recent_decisions(entries):
 
 def check_decisions_reports_references():
     """docs/decisions.md 本文中の reports/ 参照について、実在性検査と曖昧参照検知を
-    行う（D-0109）。対象は decisions.md のみ、decisions-archive.md は対象外
-    （decisions.mdは15,000字超過でarchiveへ退避される設計・D-0093により検査対象の
-    文字数に構造的な上限がかかっているため、このコストは将来も一定に収まる）。
+    行う（D-0109・D-0110で対象を絞り込み）。対象は decisions.md のみ、
+    decisions-archive.md は対象外（decisions.mdは15,000字超過でarchiveへ退避される
+    設計・D-0093により検査対象の文字数に構造的な上限がかかっているため、この
+    コストは将来も一定に収まる）。
+
+    検査対象は「詳細は」で始まり「参照」で終わる表記の内側のみ（DECISIONS_DETAIL_REF_RE）。
+    書式の例示や決定記録本文中の引用はこの形を取らないため、対象を絞ることで
+    件数に依存せず誤検知を構造的に除外する（D-0110）。
     """
     if not os.path.isfile(DECISIONS_MD):
         return []
     warnings = []
     lines = read_text(DECISIONS_MD).split("\n")
     for i, line in enumerate(lines, start=1):
-        for match in DECISIONS_REPORTS_PATH_RE.finditer(line):
-            rel_path = match.group(0)
-            abs_path = os.path.join(ROOT, rel_path)
-            if not os.path.isfile(abs_path):
+        for span in DECISIONS_DETAIL_REF_RE.finditer(line):
+            span_text = span.group(0)
+            for match in DECISIONS_REPORTS_PATH_RE.finditer(span_text):
+                rel_path = match.group(0)
+                if DECISIONS_REPORTS_TEMPLATE_RE.search(rel_path):
+                    continue  # 書式のテンプレート表記（例: reports/YYYY-MM-DD.md）
+                abs_path = os.path.join(ROOT, rel_path)
+                if not os.path.isfile(abs_path):
+                    warnings.append(
+                        "【警告】docs/decisions.md %d行目のreports/参照が実在しません（%s）。"
+                        "ファイル名を確認して修正してください（D-0109）。" % (i, rel_path)
+                    )
+            for match in DECISIONS_REPORTS_VAGUE_RE.finditer(span_text):
                 warnings.append(
-                    "【警告】docs/decisions.md %d行目のreports/参照が実在しません（%s）。"
-                    "ファイル名を確認して修正してください（D-0109）。" % (i, rel_path)
+                    "【警告】docs/decisions.md %d行目に具体的なファイル名を伴わないreports/参照が"
+                    "あります（%s）。参照先ファイル名を明記してください（D-0109）。"
+                    % (i, match.group(0))
                 )
-        for match in DECISIONS_REPORTS_VAGUE_RE.finditer(line):
-            warnings.append(
-                "【警告】docs/decisions.md %d行目に具体的なファイル名を伴わないreports/参照が"
-                "あります（%s）。参照先ファイル名を明記してください（D-0109）。"
-                % (i, match.group(0))
-            )
     return warnings
 
 
