@@ -46,6 +46,7 @@ CHILD_SCRIPTS = [
     ("check-doc-governance.py", {0, 1}),
     ("check-routine-due.py", {0}),
     ("check-image-gen-needed-today.py", {0}),
+    ("list-latest-reports.py", {0}),
 ]
 
 TIMEOUT_SECONDS = 30

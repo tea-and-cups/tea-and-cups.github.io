@@ -18,6 +18,9 @@ CLAUDE.md 3節1「rules/配下のファイルの新設・削除はオーナー�
   6. docs/status.md の文字数が閾値超過（CLAUDE.md 10節「常に1画面以内」の機械チェック・D-0099） → 【警告】
   7. docs/tasks.md「## 今日」節直下の日付マーカー（<!-- date: YYYY-MM-DD -->）が今日の日付か
      （rotate-today-tasks.py の実行漏れ検知・D-0102） → 【警告】
+  8. docs/decisions.md 本文中の reports/ 参照が実在するか、および「本日のreports/」等の
+     具体的なファイル名を伴わない曖昧参照になっていないか（D-0109） → 【警告】
+     対象は decisions.md のみ、decisions-archive.md は対象外（3行ルールの対象外と同じ扱い）。
 
 状態は data/doc-state.tsv に保存する。プロジェクトルートはD-0043によりGit管理外のため、
 この状態ファイルがsite/リポジトリへ混入することは構造的に起こらない。
@@ -87,6 +90,15 @@ RECENT_DECISIONS = 5
 # 今日の日付と一致するかの検知に使う（rotate-today-tasks.py実行漏れの機械検知・D-0102）。
 TASKS_TODAY_HEADING = "## 今日"
 TASKS_DATE_MARKER_RE = re.compile(r"^<!--\s*date:\s*(\d{4}-\d{2}-\d{2})\s*-->$")
+
+# docs/decisions.md 本文中の reports/ 参照の検査に使う（D-0109）。
+# 実在性検査: reports/で始まり.mdで終わるパス表記を抽出する。
+DECISIONS_REPORTS_PATH_RE = re.compile(r"reports/[A-Za-z0-9_\-]+\.md")
+# 曖昧参照検査: 「本日のreports/」等のあとに具体的な日付ファイル名
+# （YYYY-MM-DD始まり）が続かない場合を曖昧参照とみなす。
+DECISIONS_REPORTS_VAGUE_RE = re.compile(
+    r"(本日|当日|その日|同日|今日)のreports/(?!\d{4}-\d{2}-\d{2})"
+)
 
 # docs/ideas.md「## ストック」節に進捗情報が書き込まれていないかの検知に使う
 # （ideas.mdを「未着手の題材在庫リスト」に純化する運用の機械チェック・D-0105）。
@@ -368,6 +380,34 @@ def check_recent_decisions(entries):
     return messages
 
 
+def check_decisions_reports_references():
+    """docs/decisions.md 本文中の reports/ 参照について、実在性検査と曖昧参照検知を
+    行う（D-0109）。対象は decisions.md のみ、decisions-archive.md は対象外
+    （decisions.mdは15,000字超過でarchiveへ退避される設計・D-0093により検査対象の
+    文字数に構造的な上限がかかっているため、このコストは将来も一定に収まる）。
+    """
+    if not os.path.isfile(DECISIONS_MD):
+        return []
+    warnings = []
+    lines = read_text(DECISIONS_MD).split("\n")
+    for i, line in enumerate(lines, start=1):
+        for match in DECISIONS_REPORTS_PATH_RE.finditer(line):
+            rel_path = match.group(0)
+            abs_path = os.path.join(ROOT, rel_path)
+            if not os.path.isfile(abs_path):
+                warnings.append(
+                    "【警告】docs/decisions.md %d行目のreports/参照が実在しません（%s）。"
+                    "ファイル名を確認して修正してください（D-0109）。" % (i, rel_path)
+                )
+        for match in DECISIONS_REPORTS_VAGUE_RE.finditer(line):
+            warnings.append(
+                "【警告】docs/decisions.md %d行目に具体的なファイル名を伴わないreports/参照が"
+                "あります（%s）。参照先ファイル名を明記してください（D-0109）。"
+                % (i, match.group(0))
+            )
+    return warnings
+
+
 def check_rules_diff(rules_now, prev_rules, max_d, prev_max_d, latest_date, today, today_entries_text):
     """rules/の差分から (警告, 通知, 増減あり, 本日付エントリ(全件)に言及あり) を返す。"""
     warnings = []
@@ -465,6 +505,7 @@ def main():
 
     warnings += check_ideas_forbidden_words()
     warnings += check_ideas_unchecked_published_slugs()
+    warnings += check_decisions_reports_references()
 
     state = load_state()
 
