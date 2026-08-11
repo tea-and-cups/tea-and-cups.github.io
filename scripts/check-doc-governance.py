@@ -345,10 +345,10 @@ def check_ideas_unchecked_published_slugs():
         hits = [s for s in slugs if s in line]
         if hits:
             warnings.append(
-                "【警告・要確認】docs/ideas.md %d行目、公開済み記事のslug（%s）が"
-                "未チェックのままストック節に残っています。これが差別化目的の言及で"
-                "あれば問題ありませんが、記事化済みの題材であれば [x] を付けて"
-                "prune-used-ideas.py を実行してください（D-0105補足）。"
+                "【警告】（要確認・差別化目的の言及なら対応不要）docs/ideas.md %d行目、"
+                "公開済み記事のslug（%s）が未チェックのままストック節に残っています。"
+                "これが差別化目的の言及であれば問題ありませんが、記事化済みの題材で"
+                "あれば [x] を付けて prune-used-ideas.py を実行してください（D-0105補足）。"
                 % (i, "、".join(hits))
             )
     return warnings
