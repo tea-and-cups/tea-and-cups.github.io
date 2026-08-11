@@ -27,6 +27,9 @@ CLAUDE.md 3節1「rules/配下のファイルの新設・削除はオーナー�
  10. CLAUDE.md・rules/配下・docs/配下（decisions-archive.md除く）・.claude/agents/配下の
      本文中のD番号参照が、decisions.md または decisions-archive.md に見出しとして実在するか
      （D-0113） → 【警告】。site/scripts/配下・.claude/hooks/配下は対象外。
+ 11. docs/status.md 全文に、Pin投稿の未完了状態を示す禁止語（固定リスト）が含まれていないか
+     （D-0114） → 【警告】。Pinの投稿状況の正本は data/pin-posted.md と
+     check-pin-posting-status.py であり、status.md はその写しにしない。
 
 状態は data/doc-state.tsv に保存する。プロジェクトルートはD-0043によりGit管理外のため、
 この状態ファイルがsite/リポジトリへ混入することは構造的に起こらない。
@@ -140,6 +143,19 @@ IDEAS_FORBIDDEN_WORDS = [
     "判定済み",
     "push完了",
     "次回セッション",
+]
+
+# docs/status.md にPin投稿の未完了状態を示す語が残っていないかの検知に使う
+# （Pinの投稿状況の正本はdata/pin-posted.mdとcheck-pin-posting-status.pyであり、
+# status.mdを第三の台帳として機能させないための機械チェック・D-0114）。
+# 語を増やす場合はdecisions.mdへの記録を伴う変更とする（固定リスト）。
+STATUS_FORBIDDEN_WORDS = [
+    "投稿待ち",
+    "未投稿",
+    "投稿していない",
+    "Pin未着手",
+    "ピン未着手",
+    "投稿未完了",
 ]
 
 # フックスクリプト自身の残留デバッグ検知（D-0069の再発防止・D-0070）。
@@ -396,6 +412,28 @@ def check_ideas_unchecked_published_slugs():
                 "これが差別化目的の言及であれば問題ありませんが、記事化済みの題材で"
                 "あれば [x] を付けて prune-used-ideas.py を実行してください（D-0105補足）。"
                 % (i, "、".join(hits))
+            )
+    return warnings
+
+
+def check_status_forbidden_words():
+    """docs/status.md 全文にPin投稿の未完了状態を示す禁止語が残っていないかを検知する
+    （D-0114・status.mdをPin投稿状況の第三の台帳として機能させないための機械チェック）。
+    禁止語を含む行がある場合、行番号と該当行・該当語を含む警告文字列のリストを返す。
+    """
+    if not os.path.isfile(STATUS_MD):
+        return []
+    lines = read_text(STATUS_MD).split("\n")
+    warnings = []
+    for i, line in enumerate(lines, start=1):
+        hits = [w for w in STATUS_FORBIDDEN_WORDS if w in line]
+        if hits:
+            warnings.append(
+                "【警告】docs/status.md %d行目にPin投稿の未完了状態を示す語が含まれています"
+                "（%s）。該当行: %s ／ "
+                "Pinの投稿状況は data/pin-posted.md と check-pin-posting-status.py が"
+                "唯一の正本です。status.md には投稿の未完了状態を書かないでください（D-0114）。"
+                % (i, "、".join(hits), line.strip())
             )
     return warnings
 
@@ -660,6 +698,7 @@ def main():
     warnings += check_decisions_reports_references()
     warnings += check_archive_boundary()
     warnings += check_d_number_references()
+    warnings += check_status_forbidden_words()
 
     state = load_state()
 
