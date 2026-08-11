@@ -18,6 +18,12 @@ DATE_RE = re.compile(r"\d{4}-\d{2}-\d{2}")
 # 「追記」「詳細は reports/ 参照」等の注記行は3行ルールのカウント対象外にする
 NOTE_BULLET_RE = re.compile(r"^[-*]\s*(追記|補足|注記|備考|詳細)")
 
+# decisions.md冒頭の境界行（D-0112）。archive-decisions.pyが自動生成・更新し、
+# check-doc-governance.pyが整合を検査する。他の行がこの接頭辞で始まることは
+# 想定しないため、前方一致で境界行を判定する。
+BOUNDARY_PREFIX = "<!-- archive-boundary -->"
+BOUNDARY_LINE_RE = re.compile(r"^<!--\s*archive-boundary\s*-->")
+
 
 def read_text(path):
     with io.open(path, encoding="utf-8") as f:
@@ -139,3 +145,54 @@ def render_document(preamble_lines, entry_line_lists, trailing_lines):
         lines.extend(entry_lines)
     lines.extend(trailing_lines)
     return "\n".join(lines)
+
+
+def max_heading_num(text):
+    """テキスト中の "## D-XXXX:" 見出しの最大D番号を返す。見出しが無ければNoneを返す。"""
+    nums = [e["num"] for e in parse_decisions(text)]
+    return max(nums) if nums else None
+
+
+def build_boundary_line(archive_max_num):
+    """境界行の文字列を生成する（D-0112）。"""
+    return (
+        "%sD-%04d 以前の決定は docs/decisions-archive.md にある。"
+        "このファイルに無いD番号はそちらを参照する。" % (BOUNDARY_PREFIX, archive_max_num)
+    )
+
+
+def strip_boundary_lines(lines):
+    """行リストから境界行を全て除去したリストを返す（元のリストは変更しない）。"""
+    return [line for line in lines if not BOUNDARY_LINE_RE.match(line)]
+
+
+def insert_boundary_line(preamble_lines, boundary_line):
+    """preamble_lines（タイトル行を含む）の1行目（タイトル行）の直後に境界行を挿入する。
+    既存の境界行は先に除去してから挿入し直す。挿入後、境界行の次が空行でなければ
+    空行を1行差し込む。preamble_linesが空の場合は境界行のみのリストを返す。
+    """
+    stripped = strip_boundary_lines(preamble_lines)
+    if not stripped:
+        return [boundary_line]
+    rest = stripped[1:]
+    new_lines = [stripped[0], boundary_line]
+    if rest and rest[0].strip() != "":
+        new_lines.append("")
+    new_lines.extend(rest)
+    return new_lines
+
+
+def sync_boundary_line(preamble_lines, archive_text):
+    """decisions.mdのpreamble_linesを、archive側の内容に整合する境界行の状態へ更新する。
+
+    archive_text が None（decisions-archive.md が存在しない、または見出しが1件も無い）の
+    場合は境界行を除去する。存在する場合はarchive側の最大D番号から境界行を組み立てて
+    タイトル行の直後へ挿入（既存の境界行があれば置き換え）する。
+
+    戻り値: (new_preamble_lines, boundary_line または None)
+    """
+    max_num = max_heading_num(archive_text) if archive_text is not None else None
+    if max_num is None:
+        return strip_boundary_lines(preamble_lines), None
+    boundary_line = build_boundary_line(max_num)
+    return insert_boundary_line(preamble_lines, boundary_line), boundary_line

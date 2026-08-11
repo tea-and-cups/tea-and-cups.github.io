@@ -21,6 +21,12 @@ CLAUDE.md 3節1「rules/配下のファイルの新設・削除はオーナー�
   8. docs/decisions.md 本文中の reports/ 参照が実在するか、および「本日のreports/」等の
      具体的なファイル名を伴わない曖昧参照になっていないか（D-0109） → 【警告】
      対象は decisions.md のみ、decisions-archive.md は対象外（3行ルールの対象外と同じ扱い）。
+  9. docs/decisions.md 冒頭の境界行（D-0112）が decisions-archive.md の実データと整合しているか
+     （境界行の存在・境界行の番号・archive側最大D番号+1とdecisions.md側最小D番号の一致） → 【警告】
+     decisions-archive.md が存在しない場合は検査自体をスキップする。
+ 10. CLAUDE.md・rules/配下・docs/配下（decisions-archive.md除く）・.claude/agents/配下の
+     本文中のD番号参照が、decisions.md または decisions-archive.md に見出しとして実在するか
+     （D-0113） → 【警告】。site/scripts/配下・.claude/hooks/配下は対象外。
 
 状態は data/doc-state.tsv に保存する。プロジェクトルートはD-0043によりGit管理外のため、
 この状態ファイルがsite/リポジトリへ混入することは構造的に起こらない。
@@ -63,15 +69,21 @@ from decisions_lib import (
     heading_date,
     parse_decisions,
     body_char_count,
+    max_heading_num,
+    build_boundary_line,
+    BOUNDARY_LINE_RE,
 )
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 RULES_DIR = os.path.join(ROOT, "rules")
 CLAUDE_MD = os.path.join(ROOT, "CLAUDE.md")
 DECISIONS_MD = os.path.join(ROOT, "docs", "decisions.md")
+ARCHIVE_MD = os.path.join(ROOT, "docs", "decisions-archive.md")
 STATUS_MD = os.path.join(ROOT, "docs", "status.md")
 TASKS_MD = os.path.join(ROOT, "docs", "tasks.md")
 IDEAS_MD = os.path.join(ROOT, "docs", "ideas.md")
+DOCS_DIR = os.path.join(ROOT, "docs")
+AGENTS_DIR = os.path.join(ROOT, ".claude", "agents")
 POSTS_DIR = os.path.join(ROOT, "site", "src", "content", "posts")
 STATE_TSV = os.path.join(ROOT, "data", "doc-state.tsv")
 
@@ -106,6 +118,12 @@ DECISIONS_REPORTS_TEMPLATE_RE = re.compile(r"YYYY|MM|DD")
 DECISIONS_REPORTS_VAGUE_RE = re.compile(
     r"(本日|当日|その日|同日|今日)のreports/(?!\d{4}-\d{2}-\d{2})"
 )
+
+# D番号参照の実在性検査（D-0113）に使う。「D-」＋半角数字4桁で、直後が半角数字でも
+# "-"でもないもののみを対象とする。これにより .claude/hooks/check-bash-command-style.py の
+# D-2026-08-08-Downloads-check のような日付由来の識別子や、decisions.md末尾のテンプレート行
+# 「D-XXXX」は、除外リストなしで自然に対象外になる。
+D_NUMBER_REF_RE = re.compile(r"D-(\d{4})(?![\d\-])")
 
 # docs/ideas.md「## ストック」節に進捗情報が書き込まれていないかの検知に使う
 # （ideas.mdを「未着手の題材在庫リスト」に純化する運用の機械チェック・D-0105）。
@@ -433,6 +451,115 @@ def check_decisions_reports_references():
     return warnings
 
 
+def check_archive_boundary():
+    """docs/decisions.md 冒頭の境界行（D-0112）が、decisions-archive.md の実データと
+    整合しているかを検査する。decisions-archive.md が存在しない、または見出しが
+    1件も無い場合は検査自体をスキップする（[]を返す）。
+    (1) 境界行の存在有無 (2) 境界行の番号がarchive側最大D番号と一致するか
+    (3) archive側最大D番号+1がdecisions.md側の最小D番号と一致するか、の3点を検査する。
+    """
+    if not os.path.isfile(ARCHIVE_MD):
+        return []
+    archive_max = max_heading_num(read_text(ARCHIVE_MD))
+    if archive_max is None:
+        return []
+
+    warnings = []
+    fix_hint = "site/scripts/archive-decisions.py を実行すれば境界行は自動修復されます。"
+    decisions_text = read_text(DECISIONS_MD) if os.path.isfile(DECISIONS_MD) else ""
+    decisions_lines = decisions_text.split("\n")
+    boundary_line = next((line for line in decisions_lines if BOUNDARY_LINE_RE.match(line)), None)
+
+    if boundary_line is None:
+        warnings.append(
+            "【警告】docs/decisions.md 冒頭に境界行が見つかりません。"
+            "期待値: 「%s」（decisions-archive.mdの最大D番号D-%04dに基づく）。%s（D-0112）"
+            % (build_boundary_line(archive_max), archive_max, fix_hint)
+        )
+    else:
+        matched = re.search(r"D-(\d{4})", boundary_line)
+        boundary_num = int(matched.group(1)) if matched else None
+        if boundary_num != archive_max:
+            warnings.append(
+                "【警告】docs/decisions.md の境界行の番号が%sですが、期待値はD-%04d"
+                "（decisions-archive.mdの最大D番号）です。%s（D-0112）"
+                % (("D-%04d" % boundary_num) if boundary_num is not None else "不明な形式", archive_max, fix_hint)
+            )
+
+    decisions_nums = [e["num"] for e in parse_decisions(decisions_text)]
+    if decisions_nums:
+        min_num = min(decisions_nums)
+        expected_min = archive_max + 1
+        if min_num != expected_min:
+            warnings.append(
+                "【警告】docs/decisions.md の最小D番号がD-%04dですが、期待値はD-%04d"
+                "（decisions-archive.mdの最大D番号+1）です。%s（D-0112）"
+                % (min_num, expected_min, fix_hint)
+            )
+    return warnings
+
+
+def collect_d_reference_target_files():
+    """D番号参照の実在性検査（D-0113）の対象ファイル一覧を返す。
+    対象: CLAUDE.md本体・rules/配下の全.md・docs/配下の全.md（decisions-archive.md除く）・
+    .claude/agents/配下の全.md。site/scripts/配下・.claude/hooks/配下は対象外（コード内
+    コメントであり実害が無いため）。
+    """
+    paths = []
+    if os.path.isfile(CLAUDE_MD):
+        paths.append(CLAUDE_MD)
+    if os.path.isdir(RULES_DIR):
+        for name in sorted(os.listdir(RULES_DIR)):
+            if name.endswith(".md"):
+                paths.append(os.path.join(RULES_DIR, name))
+    if os.path.isdir(DOCS_DIR):
+        for dirpath, _dirnames, filenames in os.walk(DOCS_DIR):
+            for name in sorted(filenames):
+                if not name.endswith(".md"):
+                    continue
+                full = os.path.join(dirpath, name)
+                if os.path.normpath(full) == os.path.normpath(ARCHIVE_MD):
+                    continue
+                paths.append(full)
+    if os.path.isdir(AGENTS_DIR):
+        for dirpath, _dirnames, filenames in os.walk(AGENTS_DIR):
+            for name in sorted(filenames):
+                if name.endswith(".md"):
+                    paths.append(os.path.join(dirpath, name))
+    return paths
+
+
+def collect_valid_d_numbers():
+    """decisions.md・decisions-archive.md の見出しに実在するD番号の集合を返す。"""
+    valid = set()
+    if os.path.isfile(DECISIONS_MD):
+        valid.update(e["num"] for e in parse_decisions(read_text(DECISIONS_MD)))
+    if os.path.isfile(ARCHIVE_MD):
+        valid.update(e["num"] for e in parse_decisions(read_text(ARCHIVE_MD)))
+    return valid
+
+
+def check_d_number_references():
+    """CLAUDE.md・rules/・docs/（decisions-archive.md除く）・.claude/agents/ 配下の
+    D番号参照が、decisions.md または decisions-archive.md の見出しとして実在するかを
+    検査する（D-0113）。実在しないものがあれば、D番号・ファイル名・行番号を列挙する。
+    """
+    valid_numbers = collect_valid_d_numbers()
+    warnings = []
+    for path in collect_d_reference_target_files():
+        rel = os.path.relpath(path, ROOT).replace("\\", "/")
+        for i, line in enumerate(read_text(path).split("\n"), start=1):
+            for matched in D_NUMBER_REF_RE.finditer(line):
+                num = int(matched.group(1))
+                if num not in valid_numbers:
+                    warnings.append(
+                        "【警告】D-%04d の参照が decisions.md にも decisions-archive.md にも"
+                        "実在しません（%s %d行目）。番号の誤記か記録漏れの可能性があります（D-0113）。"
+                        % (num, rel, i)
+                    )
+    return warnings
+
+
 def check_rules_diff(rules_now, prev_rules, max_d, prev_max_d, latest_date, today, today_entries_text):
     """rules/の差分から (警告, 通知, 増減あり, 本日付エントリ(全件)に言及あり) を返す。"""
     warnings = []
@@ -531,6 +658,8 @@ def main():
     warnings += check_ideas_forbidden_words()
     warnings += check_ideas_unchecked_published_slugs()
     warnings += check_decisions_reports_references()
+    warnings += check_archive_boundary()
+    warnings += check_d_number_references()
 
     state = load_state()
 
