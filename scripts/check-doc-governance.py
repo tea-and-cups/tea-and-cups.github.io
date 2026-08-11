@@ -67,6 +67,7 @@ CLAUDE_MD = os.path.join(ROOT, "CLAUDE.md")
 DECISIONS_MD = os.path.join(ROOT, "docs", "decisions.md")
 STATUS_MD = os.path.join(ROOT, "docs", "status.md")
 TASKS_MD = os.path.join(ROOT, "docs", "tasks.md")
+IDEAS_MD = os.path.join(ROOT, "docs", "ideas.md")
 STATE_TSV = os.path.join(ROOT, "data", "doc-state.tsv")
 
 CLAUDE_MD_CHAR_LIMIT = 10000
@@ -84,6 +85,23 @@ RECENT_DECISIONS = 5
 # 今日の日付と一致するかの検知に使う（rotate-today-tasks.py実行漏れの機械検知・D-0102）。
 TASKS_TODAY_HEADING = "## 今日"
 TASKS_DATE_MARKER_RE = re.compile(r"^<!--\s*date:\s*(\d{4}-\d{2}-\d{2})\s*-->$")
+
+# docs/ideas.md「## ストック」節に進捗情報が書き込まれていないかの検知に使う
+# （ideas.mdを「未着手の題材在庫リスト」に純化する運用の機械チェック・D-0105）。
+IDEAS_STOCK_HEADING = "## ストック"
+IDEAS_FORBIDDEN_WORDS = [
+    "記事化",
+    "公開済み",
+    "下書き",
+    "quality-reviewer",
+    "hero画像",
+    "pin画像",
+    "投稿待ち",
+    "生成待ち",
+    "判定済み",
+    "push完了",
+    "次回セッション",
+]
 
 # フックスクリプト自身の残留デバッグ検知（D-0069の再発防止・D-0070）。
 # 対象スクリプトは .claude/settings.json・.claude/settings.local.json の hooks 項から
@@ -254,6 +272,35 @@ def check_tasks_marker(today):
     return None
 
 
+def check_ideas_forbidden_words():
+    """docs/ideas.md の「## ストック」節に進捗情報の禁止語が残っていないかを検知する
+    （D-0105・ideas.mdを未着手の題材在庫リストに純化する運用の機械チェック）。
+    禁止語を含む行がある場合、行番号と該当語を含む警告文字列のリストを返す。
+    """
+    if not os.path.isfile(IDEAS_MD):
+        return []
+    lines = read_text(IDEAS_MD).split("\n")
+    warnings = []
+    in_stock = False
+    for i, line in enumerate(lines, start=1):
+        stripped = line.strip()
+        if stripped == IDEAS_STOCK_HEADING:
+            in_stock = True
+            continue
+        if in_stock and stripped.startswith("## "):
+            in_stock = False
+        if not in_stock:
+            continue
+        hits = [w for w in IDEAS_FORBIDDEN_WORDS if w in line]
+        if hits:
+            warnings.append(
+                "【警告】docs/ideas.md %d行目に進捗情報の禁止語が含まれています（%s）。"
+                "ideas.mdのストック節に進捗情報を書かないこと。"
+                "進捗の正本は記事frontmatterのstatusである（D-0105）。" % (i, "、".join(hits))
+            )
+    return warnings
+
+
 def check_recent_decisions(entries):
     """直近RECENT_DECISIONS件の3行ルール逸脱を警告文のリストで返す。"""
     messages = []
@@ -362,6 +409,8 @@ def main():
     tasks_warning = check_tasks_marker(today)
     if tasks_warning:
         warnings.append(tasks_warning)
+
+    warnings += check_ideas_forbidden_words()
 
     state = load_state()
 
