@@ -47,6 +47,7 @@ CHILD_SCRIPTS = [
     ("check-routine-due.py", {0}),
     ("check-image-gen-needed-today.py", {0}),
     ("list-latest-reports.py", {0}),
+    ("check-pin-posting-status.py", {0}),
 ]
 
 TIMEOUT_SECONDS = 30
