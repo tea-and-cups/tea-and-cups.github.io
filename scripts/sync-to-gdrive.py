@@ -211,9 +211,20 @@ def cmd_sync():
     sys.exit(0)
 
 
+KNOWN_ARGS = {"--init"}
+
+
 def main():
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
+
+    unknown_args = [a for a in sys.argv[1:] if a not in KNOWN_ARGS]
+    if unknown_args:
+        print(
+            "エラー: 未知の引数を検出しました: %s（既知の引数は %s のみ、または引数なしの通常同期）"
+            % (" ".join(unknown_args), ", ".join(sorted(KNOWN_ARGS)))
+        )
+        sys.exit(1)
 
     if "--init" in sys.argv:
         cmd_init()

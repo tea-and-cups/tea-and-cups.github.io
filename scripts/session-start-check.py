@@ -48,6 +48,10 @@ CHILD_SCRIPTS = [
     ("check-image-gen-needed-today.py", {0}),
     ("list-latest-reports.py", {0}),
     ("check-pin-posting-status.py", {0}),
+    # check-pinterest-token.py: 0=期限余裕あり／リフレッシュ成功、1=期限接近でリフレッシュ失敗
+    # （【警告】・異常ではなく想定内の状態のためフック自体は失敗扱いにしない）、
+    # 2=リフレッシュトークン失効等で再認可が必要（正常集合外なので【エラー】として表示される）。
+    ("check-pinterest-token.py", {0, 1}),
 ]
 
 TIMEOUT_SECONDS = 30
