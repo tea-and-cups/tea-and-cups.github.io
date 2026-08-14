@@ -6,10 +6,15 @@ board_id をキーにした固定マッピング表を持つ（ボード名は�
 あるboard_idがAPI結果に無い場合はいずれも警告し、終了コード1で終わる（黙って落とさない）。
 APIエラー・0件取得の場合も、既存の正本ファイルを書き換えずに終了コード1で終わる。
 
+fetch_all_boards() / compute_rows_and_warnings() / write_file() は
+check-pinterest-boards-sync.py（T2・フェーズC-2）からも import して再利用する。
+同じAPI取得・正本生成ロジックを2箇所に書かないための共通化。
+
 使い方:
   python site/scripts/generate-pinterest-boards.py
 """
 
+import datetime
 import os
 import sys
 import urllib.error
@@ -19,14 +24,14 @@ PROJECT_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, "..", ".."))
 if SCRIPT_DIR not in sys.path:
     sys.path.insert(0, SCRIPT_DIR)
 from env_loader import require_env  # noqa: E402
-from pinterest_api import fetch_all_pages, PinterestApiError  # noqa: E402
+from pinterest_api import fetch_all_pages, PinterestApiError, DEFAULT_TIMEOUT_SECONDS  # noqa: E402
 
 OUTPUT_PATH = os.path.join(PROJECT_ROOT, "data", "pinterest-boards.md")
 
 # board_id → (選定条件, 状態)。状態は "選定可" または "廃止予定"。
 # 廃止対象3ボード（ティーカップ・食器／紅茶のいれ方／ブランドティーカップ・紅茶の時間）は
-# T2でのピン移動が実行できなかった（Pinterest API側の権限制限 pin_edit 未許可により
-# PATCH /v5/pins が全件401で失敗）ため、"凍結扱い" として 廃止予定 で載せる。
+# 2026-08-14にオーナーが手作業でピン移動を完了のうえ削除済み（D-0117/D-0118追記）。
+# そのためAPI結果に存在せず、以下のマッピングからも除外している。
 BOARD_MAPPING = {
     "1101552458798668431": {"condition": "ギフト・贈答が主題", "status": "選定可"},
     "1101552458798646171": {"condition": "器・カップ・道具が主題", "status": "選定可"},
@@ -37,15 +42,16 @@ BOARD_MAPPING = {
     "1101552458798638307": {"condition": "季節性が明確（夏）", "status": "選定可"},
     "1101552458798697777": {"condition": "季節性が明確（秋）", "status": "選定可"},
     "1101552458798640168": {"condition": "いずれにも当たらない場合の既定", "status": "選定可"},
-    "1101552458798696958": {"condition": "廃止予定（凍結・T2でのピン移動未達）", "status": "廃止予定"},
-    "1101552458798645292": {"condition": "廃止予定（凍結・T2でのピン移動未達）", "status": "廃止予定"},
-    "1101552458798676784": {"condition": "廃止予定（凍結・0件のまま維持）", "status": "廃止予定"},
 }
 
 
-def fetch_all_boards(access_token):
+def fetch_all_boards(access_token, timeout=DEFAULT_TIMEOUT_SECONDS):
+    """GET /v5/boards を1回（ページングがあれば必要な回数）呼び、boardのリストを返す。
+
+    取得失敗時はNoneを返す（呼び出し側で「正本ファイルを書き換えない」判断に使う）。
+    """
     try:
-        return fetch_all_pages("/boards", access_token)
+        return fetch_all_pages("/boards", access_token, timeout=timeout)
     except PinterestApiError as e:
         print("エラー: GET /v5/boards がHTTP %d を返しました: %s" % (e.status_code, e.body), file=sys.stderr)
         return None
@@ -54,21 +60,8 @@ def fetch_all_boards(access_token):
         return None
 
 
-def main():
-    if hasattr(sys.stdout, "reconfigure"):
-        sys.stdout.reconfigure(encoding="utf-8")
-        sys.stderr.reconfigure(encoding="utf-8")
-
-    access_token = require_env("PINTEREST_ACCESS_TOKEN")
-
-    boards = fetch_all_boards(access_token)
-    if boards is None:
-        print("エラー: API取得に失敗したため、正本ファイルは書き換えません。", file=sys.stderr)
-        sys.exit(1)
-    if len(boards) == 0:
-        print("エラー: 取得ボードが0件のため、正本ファイルは書き換えません。", file=sys.stderr)
-        sys.exit(1)
-
+def compute_rows_and_warnings(boards):
+    """fetch_all_boards()で取得したboardsから、正本ファイルの行リストと警告リストを組み立てる。"""
     api_ids = {b.get("id"): b for b in boards}
     mapping_ids = set(BOARD_MAPPING.keys())
 
@@ -100,11 +93,14 @@ def main():
 
     # ボード名でソートして出力を安定させる
     rows.sort(key=lambda r: r[0])
+    return rows, warnings
 
+
+def write_file(rows):
     lines = []
     lines.append("# pinterest-boards.md — Pinterestボード正本（自動生成・手書き編集禁止）")
     lines.append("生成コマンド: python site/scripts/generate-pinterest-boards.py")
-    lines.append("最終生成: 2026-08-14")
+    lines.append("最終生成: %s" % datetime.date.today().isoformat())
     lines.append("")
     lines.append("| ボード名 | board_id | ピン数 | 状態 | 選定条件 |")
     lines.append("|---|---|---|---|---|")
@@ -114,6 +110,25 @@ def main():
 
     with open(OUTPUT_PATH, "w", encoding="utf-8", newline="\n") as f:
         f.write("\n".join(lines))
+
+
+def main():
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
+        sys.stderr.reconfigure(encoding="utf-8")
+
+    access_token = require_env("PINTEREST_ACCESS_TOKEN")
+
+    boards = fetch_all_boards(access_token)
+    if boards is None:
+        print("エラー: API取得に失敗したため、正本ファイルは書き換えません。", file=sys.stderr)
+        sys.exit(1)
+    if len(boards) == 0:
+        print("エラー: 取得ボードが0件のため、正本ファイルは書き換えません。", file=sys.stderr)
+        sys.exit(1)
+
+    rows, warnings = compute_rows_and_warnings(boards)
+    write_file(rows)
 
     print("正本ファイルを生成しました: %s（%d行）" % (OUTPUT_PATH, len(rows)))
 

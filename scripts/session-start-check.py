@@ -52,6 +52,10 @@ CHILD_SCRIPTS = [
     # （【警告】・異常ではなく想定内の状態のためフック自体は失敗扱いにしない）、
     # 2=リフレッシュトークン失効等で再認可が必要（正常集合外なので【エラー】として表示される）。
     ("check-pinterest-token.py", {0, 1}),
+    # check-pinterest-boards-sync.py: 0=BOARDS_OK、1=【警告】検出（board_id不整合・
+    # 選定規則とのボード名不一致・API到達失敗等。異常終了ではなく想定内の状態のため
+    # フック自体は失敗扱いにしない）、2=想定外の例外（正常集合外なので【エラー】として表示される）。
+    ("check-pinterest-boards-sync.py", {0, 1}),
 ]
 
 TIMEOUT_SECONDS = 30
