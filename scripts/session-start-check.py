@@ -56,6 +56,9 @@ CHILD_SCRIPTS = [
     # 選定規則とのボード名不一致・API到達失敗等。異常終了ではなく想定内の状態のため
     # フック自体は失敗扱いにしない）、2=想定外の例外（正常集合外なので【エラー】として表示される）。
     ("check-pinterest-boards-sync.py", {0, 1}),
+    # check-published-pins-missing.py: 0=正常判定（検知の有無を問わない）。
+    # 検知時は【警告】を本文に含めて出力する仕様のため、フック自体は失敗扱いにしない。
+    ("check-published-pins-missing.py", {0}),
 ]
 
 TIMEOUT_SECONDS = 30
