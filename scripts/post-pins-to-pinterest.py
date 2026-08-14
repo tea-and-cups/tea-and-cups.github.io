@@ -51,6 +51,8 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
+from PIL import Image
+
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(SCRIPT_DIR))
 PINS_DIR = os.path.join(ROOT, "output", "pins")
@@ -270,6 +272,19 @@ def guess_content_type(image_path):
     return ctype or "image/png"
 
 
+def describe_image(image_path):
+    """画像パス・ファイルサイズ(MB)・縦横ピクセル数を1行にまとめる。
+    投稿前に目視で確認できるようdry-run/実投稿どちらの結果にも含める。"""
+    size_mb = os.path.getsize(image_path) / (1024 * 1024)
+    try:
+        with Image.open(image_path) as img:
+            w, h = img.size
+        dim = "%dx%d" % (w, h)
+    except Exception as e:
+        dim = "取得失敗: %s" % e
+    return "%s / %.2fMB / %s" % (image_path, size_mb, dim)
+
+
 def post_pin(access_token, fields, board_id):
     with open(fields["image_path"], "rb") as f:
         raw = f.read()
@@ -357,24 +372,28 @@ def main():
                              "台帳への記録漏れの可能性（既存pin_id: %s）" % dup_id))
             continue
 
+        image_detail = describe_image(fields["image_path"])
+
         if dry_run:
             results.append((pin_num, "成功見込み(dry-run)", fields["board"],
-                             "URL確認OK・重複無し・board_id=%s" % board_id))
+                             "URL確認OK・重複無し・board_id=%s / 画像: %s" % (board_id, image_detail)))
             continue
 
         try:
             resp = post_pin(access_token, fields, board_id)
         except pinterest_api.PinterestApiError as e:
             results.append((pin_num, "失敗", fields["board"],
-                             "HTTP %s: %s" % (e.status_code, e.body)))
+                             "HTTP %s: %s / 画像: %s" % (e.status_code, e.body, image_detail)))
             continue
         except Exception as e:
-            results.append((pin_num, "失敗", fields["board"], "例外: %s" % e))
+            results.append((pin_num, "失敗", fields["board"],
+                             "例外: %s / 画像: %s" % (e, image_detail)))
             continue
 
         pin_id = resp.get("id", "")
         append_ledger(pin_num)
-        results.append((pin_num, "成功", fields["board"], "pin_id: %s" % pin_id))
+        results.append((pin_num, "成功", fields["board"],
+                         "pin_id: %s / 画像: %s" % (pin_id, image_detail)))
         time.sleep(POST_INTERVAL_SECONDS)
 
     print("ピン番号 / 結果 / ボード名 / pin_id またはスキップ・失敗の理由")
