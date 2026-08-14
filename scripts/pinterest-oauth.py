@@ -5,9 +5,11 @@ demo-pinterest/step1_auth_url.py・step2_token.py の本番版。秘密情報は
 env_loader経由で .env（プロジェクトルート直下・Git管理外）から読む。
 config.jsonへの依存もハードコードもしない。
 
-要求スコープは pins:read / pins:write / boards:read / user_accounts:read の
-4つのみ。boards:write は意図的に含めない（APIからのボード新規作成を権限
-レベルで防ぎ、似たボードの量産を防止するため。rules/pinterest-api.md参照）。
+要求スコープは pins:read / pins:write / boards:read / boards:write /
+user_accounts:read の5つ。Pinterest v5 APIはピン投稿（POST/PATCH /v5/pins）
+自体にもboards:writeを要求する仕様のため付与するが、ボードの作成・改名・
+削除はコード側の共通ガード（pinterest_api.py）で機械的に封じている。
+rules/pinterest-api.md参照。
 
 トークンエンドポイントは本番ホスト https://api.pinterest.com/v5/oauth/token
 （Sandboxではない。demo-pinterest/との違いに注意）。
@@ -43,7 +45,7 @@ STATE_PATH = os.path.join(TMP_DIR, "pinterest-oauth-state.tmp")
 AUTH_BASE_URL = "https://www.pinterest.com/oauth/"
 TOKEN_URL = "https://api.pinterest.com/v5/oauth/token"
 REDIRECT_URI = "https://tea-and-cups.github.io/"
-SCOPES = "pins:read,pins:write,boards:read,user_accounts:read"
+SCOPES = "pins:read,pins:write,boards:read,boards:write,user_accounts:read"
 
 ENV_KEYS_ORDER = [
     "PINTEREST_APP_ID",
@@ -74,7 +76,7 @@ def mode_generate_url():
 
     print("=== Pinterest 本番OAuth認可 ===")
     print("要求スコープ: %s" % SCOPES.replace(",", ", "))
-    print("（boards:write は意図的に含めていません）")
+    print("（boards:write を含みます。ボード操作はコード側のガードで別途封じています）")
     print("")
     print("以下のURLをブラウザで開いて許可してください:")
     print(auth_url)

@@ -10,21 +10,17 @@ APIエラー・0件取得の場合も、既存の正本ファイルを書き換�
   python site/scripts/generate-pinterest-boards.py
 """
 
-import json
 import os
 import sys
 import urllib.error
-import urllib.parse
-import urllib.request
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, "..", ".."))
 if SCRIPT_DIR not in sys.path:
     sys.path.insert(0, SCRIPT_DIR)
 from env_loader import require_env  # noqa: E402
+from pinterest_api import fetch_all_pages, PinterestApiError  # noqa: E402
 
-BOARDS_URL = "https://api.pinterest.com/v5/boards"
-TIMEOUT_SECONDS = 15
 OUTPUT_PATH = os.path.join(PROJECT_ROOT, "data", "pinterest-boards.md")
 
 # board_id → (選定条件, 状態)。状態は "選定可" または "廃止予定"。
@@ -48,30 +44,14 @@ BOARD_MAPPING = {
 
 
 def fetch_all_boards(access_token):
-    all_boards = []
-    bookmark = None
-    while True:
-        url = BOARDS_URL + "?page_size=100"
-        if bookmark:
-            url += "&bookmark=" + urllib.parse.quote(bookmark)
-        req = urllib.request.Request(url, method="GET")
-        req.add_header("Authorization", "Bearer %s" % access_token)
-        try:
-            with urllib.request.urlopen(req, timeout=TIMEOUT_SECONDS) as resp:
-                data = json.loads(resp.read().decode("utf-8"))
-        except urllib.error.HTTPError as e:
-            body = e.read().decode("utf-8", errors="replace")
-            print("エラー: GET /v5/boards がHTTP %d を返しました: %s" % (e.code, body), file=sys.stderr)
-            return None
-        except urllib.error.URLError as e:
-            print("エラー: GET /v5/boards への接続に失敗しました: %s" % e, file=sys.stderr)
-            return None
-        items = data.get("items", [])
-        all_boards.extend(items)
-        bookmark = data.get("bookmark")
-        if not bookmark:
-            break
-    return all_boards
+    try:
+        return fetch_all_pages("/boards", access_token)
+    except PinterestApiError as e:
+        print("エラー: GET /v5/boards がHTTP %d を返しました: %s" % (e.status_code, e.body), file=sys.stderr)
+        return None
+    except urllib.error.URLError as e:
+        print("エラー: GET /v5/boards への接続に失敗しました: %s" % e, file=sys.stderr)
+        return None
 
 
 def main():
