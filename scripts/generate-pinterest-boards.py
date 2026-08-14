@@ -10,6 +10,11 @@ fetch_all_boards() / compute_rows_and_warnings() / write_file() は
 check-pinterest-boards-sync.py（T2・フェーズC-2）からも import して再利用する。
 同じAPI取得・正本生成ロジックを2箇所に書かないための共通化。
 
+「季節」列（T2-1・D-0123）: ボード名にSEASON_KEYWORDSのいずれかが含まれれば「季節」、
+含まれなければ「通年」とする。選定条件列とは独立にボード名だけから決まる。
+post-pins-to-pinterest.py がボード選定規則（1枚目=主題ボード、2枚目・3枚目=季節ボード
+または主題ボードと同じ）の形式検査に使う。
+
 使い方:
   python site/scripts/generate-pinterest-boards.py
 """
@@ -28,6 +33,12 @@ from pinterest_api import fetch_all_pages, PinterestApiError, DEFAULT_TIMEOUT_SE
 
 OUTPUT_PATH = os.path.join(PROJECT_ROOT, "data", "pinterest-boards.md")
 
+# ボード名にこのいずれかの文字列が含まれれば「季節」、含まれなければ「通年」と
+# 判定する（T2-1・D-0123）。board_idやボード名そのものを直書きで判定しないのは、
+# オーナーがボードを改名しても判定が壊れないようにするため。
+SEASON_KEYWORDS = ("春", "夏", "秋", "冬", "クリスマス", "ハロウィン", "バレンタイン",
+                    "お正月", "母の日", "父の日", "敬老")
+
 # board_id → (選定条件, 状態)。状態は "選定可" または "廃止予定"。
 # 廃止対象3ボード（ティーカップ・食器／紅茶のいれ方／ブランドティーカップ・紅茶の時間）は
 # 2026-08-14にオーナーが手作業でピン移動を完了のうえ削除済み（D-0117/D-0118追記）。
@@ -43,6 +54,15 @@ BOARD_MAPPING = {
     "1101552458798697777": {"condition": "季節性が明確（秋）", "status": "選定可"},
     "1101552458798640168": {"condition": "いずれにも当たらない場合の既定", "status": "選定可"},
 }
+
+
+def classify_season(board_name):
+    """ボード名だけから「季節」または「通年」を判定する（T2-1）。
+    選定条件列・board_idとは独立に、名前の部分一致のみで決める。"""
+    for kw in SEASON_KEYWORDS:
+        if kw in board_name:
+            return "季節"
+    return "通年"
 
 
 def fetch_all_boards(access_token, timeout=DEFAULT_TIMEOUT_SECONDS):
@@ -86,10 +106,11 @@ def compute_rows_and_warnings(boards):
             continue
         name = b.get("name", "")
         pin_count = b.get("pin_count", "")
-        rows.append((name, board_id, pin_count, meta["status"], meta["condition"]))
+        rows.append((name, board_id, pin_count, meta["status"], meta["condition"], classify_season(name)))
     for uid in unknown_ids:
         b = api_ids[uid]
-        rows.append((b.get("name", ""), uid, b.get("pin_count", ""), "未分類・要確認", "未分類・要確認"))
+        name = b.get("name", "")
+        rows.append((name, uid, b.get("pin_count", ""), "未分類・要確認", "未分類・要確認", classify_season(name)))
 
     # ボード名でソートして出力を安定させる
     rows.sort(key=lambda r: r[0])
@@ -102,10 +123,10 @@ def write_file(rows):
     lines.append("生成コマンド: python site/scripts/generate-pinterest-boards.py")
     lines.append("最終生成: %s" % datetime.date.today().isoformat())
     lines.append("")
-    lines.append("| ボード名 | board_id | ピン数 | 状態 | 選定条件 |")
-    lines.append("|---|---|---|---|---|")
-    for name, board_id, pin_count, status, condition in rows:
-        lines.append("| %s | %s | %s | %s | %s |" % (name, board_id, pin_count, status, condition))
+    lines.append("| ボード名 | board_id | ピン数 | 状態 | 選定条件 | 季節 |")
+    lines.append("|---|---|---|---|---|---|")
+    for name, board_id, pin_count, status, condition, season in rows:
+        lines.append("| %s | %s | %s | %s | %s | %s |" % (name, board_id, pin_count, status, condition, season))
     lines.append("")
 
     with open(OUTPUT_PATH, "w", encoding="utf-8", newline="\n") as f:
@@ -131,6 +152,10 @@ def main():
     write_file(rows)
 
     print("正本ファイルを生成しました: %s（%d行）" % (OUTPUT_PATH, len(rows)))
+
+    print("季節/通年判定一覧:")
+    for name, board_id, pin_count, status, condition, season in sorted(rows, key=lambda r: r[0]):
+        print("  %s -> %s" % (name, season))
 
     if warnings:
         for w in warnings:

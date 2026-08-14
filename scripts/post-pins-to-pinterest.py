@@ -2,8 +2,10 @@
 r"""未投稿ピンをPinterestへ実投稿する本体スクリプト（フェーズD・T2・D-0120）。
 
 処理順序:
-  (0) 緊急停止スイッチ確認。data/pin-auto-post-off が存在すれば即座に正常終了する
-      （他のどの処理よりも先に判定する。rules/pinterest-api.md参照）。
+  (0) 緊急停止スイッチ確認。data/ 直下に「pin-auto-post-off」で始まる名前の
+      ファイルが1つでも存在すれば（拡張子不問。従来の拡張子なしファイルも
+      引き続き対象）即座に正常終了する（他のどの処理よりも先に判定する。
+      rules/pinterest-api.md参照）。
   (1) 未投稿ピン番号の導出。check-pin-posting-status.py と同じ関数
       （extract_created_pins() / load_ledger()）をimportして再利用する
       （同じ判定を二重実装すると片方だけ直って食い違うため）。
@@ -41,6 +43,7 @@ r"""未投稿ピンをPinterestへ実投稿する本体スクリプト（フェ�
 """
 
 import base64
+import datetime
 import importlib.util
 import mimetypes
 import os
@@ -50,6 +53,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+from collections import defaultdict
 
 from PIL import Image
 
@@ -59,6 +63,8 @@ PINS_DIR = os.path.join(ROOT, "output", "pins")
 LEDGER_PATH = os.path.join(ROOT, "data", "pin-posted.md")
 BOARDS_FILE = os.path.join(ROOT, "data", "pinterest-boards.md")
 KILL_SWITCH_PATH = os.path.join(ROOT, "data", "pin-auto-post-off")
+KILL_SWITCH_PREFIX = "pin-auto-post-off"
+DATA_DIR = os.path.join(ROOT, "data")
 
 if SCRIPT_DIR not in sys.path:
     sys.path.insert(0, SCRIPT_DIR)
@@ -79,6 +85,10 @@ STATUS_LINE_RE = re.compile(r"^-\s*ステータス:.*?（(.+)）\s*$")
 GUIDE_URL_RE = re.compile(r"^-\s*誘導先URL:\s*(.+)$")
 TITLE_RE = re.compile(r"^タイトル:\s*(.+)$")
 DESC_RE = re.compile(r"^説明文:\s*(.+)$")
+# T3・D-0123: 投稿成功時に「投稿済み:」行とは別に日付つきの行を1件ずつ追記し、
+# 当日の投稿件数を数えられるようにする。既存の「投稿済み:」行の書式・解釈
+# （load_ledger/derive_unposted）は変更しない。
+POSTED_DATE_LINE_RE = re.compile(r"^投稿日:\s*(\d{4}-\d{2}-\d{2})\s+(\d+)\s*$")
 
 
 def _load_check_pin_posting_status():
@@ -93,7 +103,24 @@ def _load_check_pin_posting_status():
 
 
 def check_kill_switch():
-    return os.path.isfile(KILL_SWITCH_PATH)
+    """data/ 直下に「pin-auto-post-off」で始まる名前のファイルが1つでも
+    存在すれば停止対象とみなす（拡張子は問わない。従来の拡張子なし
+    ファイル data/pin-auto-post-off も引き続き対象に含まれる）。
+    Windowsのエクスプローラーでは拡張子なしファイルを作成できないため、
+    pin-auto-post-off.txt 等でも確実に検知できるようにする。
+    戻り値: 検知したファイル名（存在しなければ None）"""
+    if not os.path.isdir(DATA_DIR):
+        return None
+    try:
+        names = os.listdir(DATA_DIR)
+    except OSError:
+        return None
+    matches = sorted(
+        n for n in names
+        if n.startswith(KILL_SWITCH_PREFIX)
+        and os.path.isfile(os.path.join(DATA_DIR, n))
+    )
+    return matches[0] if matches else None
 
 
 def derive_unposted(mod):
@@ -182,7 +209,9 @@ def parse_pin_file(pin_num, file_name):
 
 
 def load_board_id_map():
-    """data/pinterest-boards.md からボード名->board_id の対応を返す（状態不問）。"""
+    """data/pinterest-boards.md からボード名->{"board_id":..., "season":...} の
+    対応を返す（状態不問）。「季節」列（T2-1・D-0123）が無い古い形式のファイルでは
+    季節側は空文字になる（resolve_board_idが未設定として扱う）。"""
     mapping = {}
     if not os.path.isfile(BOARDS_FILE):
         return mapping
@@ -196,15 +225,23 @@ def load_board_id_map():
                 continue
             if cells[0] in ("ボード名",) or set(cells[0]) <= {"-"}:
                 continue
-            mapping[cells[0]] = cells[1]
+            season = cells[5] if len(cells) > 5 else ""
+            mapping[cells[0]] = {"board_id": cells[1], "season": season}
     return mapping
 
 
 def resolve_board_id(board_name, board_id_map):
-    board_id = board_id_map.get(board_name)
-    if not board_id:
-        return None, "ボード名「%s」が data/pinterest-boards.md に見つかりません" % board_name
-    return board_id, None
+    """戻り値: (board_id, season, エラー理由)。board_idがNoneならエラー理由が入る。"""
+    entry = board_id_map.get(board_name)
+    if not entry or not entry.get("board_id"):
+        return None, None, "ボード名「%s」が data/pinterest-boards.md に見つかりません" % board_name
+    season = entry.get("season")
+    if season not in ("季節", "通年"):
+        return None, None, (
+            "ボード名「%s」の季節/通年列がdata/pinterest-boards.mdに記録されていません"
+            "（正本の再生成が必要な可能性があります）" % board_name
+        )
+    return entry["board_id"], season, None
 
 
 def check_url_ok(url):
@@ -260,6 +297,90 @@ def fetch_recent_own_pins(access_token, limit=DEDUPE_FETCH_LIMIT, page_size=DEDU
     return items, truncated
 
 
+def extract_slug_from_guide_url(url):
+    """誘導先URLから記事slugを取り出す（T2-2）。/posts/{slug}/ のパスから優先的に
+    取り出し、取れなければ utm_campaign クエリパラメータを使う。ピンファイル名の
+    slug断片は記事slugと不一致な事例があるため使わない。"""
+    try:
+        parsed = urllib.parse.urlparse(url)
+    except ValueError:
+        return None
+    parts = [p for p in parsed.path.split("/") if p]
+    if "posts" in parts:
+        idx = parts.index("posts")
+        if idx + 1 < len(parts):
+            return parts[idx + 1]
+    qs = urllib.parse.parse_qs(parsed.query)
+    campaign = qs.get("utm_campaign")
+    if campaign and campaign[0]:
+        return campaign[0]
+    return None
+
+
+def check_board_group_rules(items):
+    """ボード選定規則（1枚目=主題ボード、2枚目・3枚目=季節ボードか1枚目と同じボード）の
+    形式検査（T2-2）。itemsはslug抽出・ボード解決済みのfieldsのリスト。
+    戻り値: {pin_num: 違反理由の文字列}（同一グループの全ピンに同じ理由文字列を入れる）。
+    ちょうど3枚のグループのみ検査し、それ以外（1〜2枚・4枚以上）は検査対象外。"""
+    groups = defaultdict(list)
+    for f in items:
+        if f.get("slug"):
+            groups[f["slug"]].append(f)
+
+    violations = {}
+    for slug, group_items in groups.items():
+        if len(group_items) != 3:
+            continue
+        ordered = sorted(group_items, key=lambda f: f["pin_num"])
+        first, second, third = ordered
+
+        problems = []
+        if first["board_season"] == "季節":
+            problems.append(
+                "(1) 1枚目 pin%d のボード「%s」が季節ボードです"
+                % (first["pin_num"], first["board"])
+            )
+        if second["board"] != third["board"]:
+            problems.append(
+                "(2) 2枚目 pin%d「%s」と3枚目 pin%d「%s」のボードが一致していません"
+                % (second["pin_num"], second["board"], third["pin_num"], third["board"])
+            )
+        for label, item in (("2枚目", second), ("3枚目", third)):
+            ok = (item["board"] == first["board"]) or (item["board_season"] == "季節")
+            if not ok:
+                problems.append(
+                    "(3) %s pin%d「%s」が1枚目と同じボードでも季節ボードでもありません"
+                    % (label, item["pin_num"], item["board"])
+                )
+
+        if problems:
+            pins_desc = "、".join(
+                "pin%d(%s)" % (f["pin_num"], f["board"]) for f in ordered
+            )
+            detail = (
+                "ボード選定規則違反のためslug=%sの組（%s）を全件スキップ: %s"
+                % (slug, pins_desc, " / ".join(problems))
+            )
+            for f in ordered:
+                violations[f["pin_num"]] = detail
+
+    return violations
+
+
+def count_today_posted(today_str):
+    """data/pin-posted.md の「投稿日: YYYY-MM-DD N」行から、today_strと一致する
+    件数を数える（T3）。日付が無い既存行（過去の投稿）はカウントしない。"""
+    if not os.path.isfile(LEDGER_PATH):
+        return 0
+    count = 0
+    with open(LEDGER_PATH, encoding="utf-8") as f:
+        for line in f:
+            m = POSTED_DATE_LINE_RE.match(line.strip())
+            if m and m.group(1) == today_str:
+                count += 1
+    return count
+
+
 def find_duplicate(fields, recent_pins):
     for p in recent_pins:
         if p.get("link") == fields["guide_url"] and p.get("title") == fields["title"]:
@@ -304,13 +425,16 @@ def post_pin(access_token, fields, board_id):
     return pinterest_api.request("POST", "/pins", access_token, body=body, timeout=30)
 
 
-def append_ledger(pin_num):
-    """data/pin-posted.md の最後の「投稿済み:」行に1件だけ番号を追記する。
+def append_ledger(pin_num, today_str):
+    """data/pin-posted.md の最後に「投稿済み:」行を1件追記する。
     既存の書式（範囲表記込みの1行）は壊さず、新しい行として素朴に追記する
     （範囲への統合はcheck-pin-posting-status.pyが読める形式であれば良く、
-    無理に既存行を書き換えるより追記の方が安全なため）。"""
+    無理に既存行を書き換えるより追記の方が安全なため）。
+    あわせて「投稿日:」行（T3・D-0123）も1件追記し、当日投稿件数を数えられる
+    ようにする。「投稿済み:」行の書式・解釈（load_ledger）には影響しない。"""
     with open(LEDGER_PATH, "a", encoding="utf-8") as f:
         f.write("投稿済み: %d\n" % pin_num)
+        f.write("投稿日: %s %d\n" % (today_str, pin_num))
 
 
 def main():
@@ -320,8 +444,9 @@ def main():
     dry_run = "--dry-run" in sys.argv[1:]
 
     # --- (0) 緊急停止スイッチ ---
-    if check_kill_switch():
-        print("自動投稿は停止中（data/pin-auto-post-off が存在します）")
+    kill_switch_file = check_kill_switch()
+    if kill_switch_file:
+        print("自動投稿は停止中（data/%s を検知しました）" % kill_switch_file)
         sys.exit(0)
 
     # --- (1) 未投稿ピン番号の導出 ---
@@ -332,14 +457,41 @@ def main():
         print("未投稿ピンはありません")
         sys.exit(0)
 
-    # --- (2) 50件超の自主規制 ---
-    if len(unposted) > MAX_BATCH_SIZE:
-        print("投稿対象が%d件あり、上限%d件を超えています。1件も投稿せず終了します。" % (
-            len(unposted), MAX_BATCH_SIZE))
+    # --- (2) 50件超の自主規制（T3・D-0123: 当日の累計で判定する） ---
+    today_str = datetime.date.today().isoformat()
+    already_today = count_today_posted(today_str)
+    total_if_posted = already_today + len(unposted)
+    print("本日すでに投稿済み%d件 ＋ 今回の対象%d件 ＝ %d件（上限%d件）"
+          % (already_today, len(unposted), total_if_posted, MAX_BATCH_SIZE))
+    if total_if_posted > MAX_BATCH_SIZE:
+        print("上限%d件を超えるため、1件も投稿せず終了します。" % MAX_BATCH_SIZE)
         sys.exit(0)
 
     access_token = require_env("PINTEREST_ACCESS_TOKEN")
     board_id_map = load_board_id_map()
+
+    results = []  # (pin_num, result, board_name, detail)
+
+    # --- (3)(4) ファイル解析・ボード解決を先に全件行う（T2-2のグループ検査に使うため） ---
+    parsed_items = {}  # pin_num -> fields（slug・board_id・board_season込み）
+    for pin_num, file_name in unposted:
+        fields, reason = parse_pin_file(pin_num, file_name)
+        if fields is None:
+            results.append((pin_num, "スキップ", "-", reason))
+            continue
+
+        board_id, board_season, reason = resolve_board_id(fields["board"], board_id_map)
+        if board_id is None:
+            results.append((pin_num, "スキップ", fields["board"], reason))
+            continue
+
+        fields["board_id"] = board_id
+        fields["board_season"] = board_season
+        fields["slug"] = extract_slug_from_guide_url(fields["guide_url"])
+        parsed_items[pin_num] = fields
+
+    # --- T2-2: ボード選定規則の形式検査（記事slugごとに3枚1組で判定） ---
+    group_violations = check_board_group_rules(list(parsed_items.values()))
 
     # --- 重複照合用に自分の最近のピンを取得 ---
     recent_pins, truncated = fetch_recent_own_pins(access_token)
@@ -347,18 +499,16 @@ def main():
         print("【注意】GET /v5/pins が%d件の上限に達しても照合が終わりませんでした。"
               "以降の重複照合は取得できた範囲のみで行い、投稿は続行します。" % DEDUPE_FETCH_LIMIT)
 
-    results = []  # (pin_num, result, board_name, detail)
-
     for pin_num, file_name in unposted:
-        fields, reason = parse_pin_file(pin_num, file_name)
-        if fields is None:
-            results.append((pin_num, "スキップ", "-", reason))
+        if pin_num not in parsed_items:
+            continue  # 解析・ボード解決の時点で既にresultsへスキップ済み
+        fields = parsed_items[pin_num]
+
+        if pin_num in group_violations:
+            results.append((pin_num, "スキップ", fields["board"], group_violations[pin_num]))
             continue
 
-        board_id, reason = resolve_board_id(fields["board"], board_id_map)
-        if board_id is None:
-            results.append((pin_num, "スキップ", fields["board"], reason))
-            continue
+        board_id = fields["board_id"]
 
         url_ok, url_detail = check_url_ok(fields["guide_url"])
         if not url_ok:
@@ -391,11 +541,12 @@ def main():
             continue
 
         pin_id = resp.get("id", "")
-        append_ledger(pin_num)
+        append_ledger(pin_num, today_str)
         results.append((pin_num, "成功", fields["board"],
                          "pin_id: %s / 画像: %s" % (pin_id, image_detail)))
         time.sleep(POST_INTERVAL_SECONDS)
 
+    results.sort(key=lambda r: r[0])  # 2パス構成のため構築順=昇順ではなくなった。出力はpin_num昇順に揃える
     print("ピン番号 / 結果 / ボード名 / pin_id またはスキップ・失敗の理由")
     for pin_num, result, board, detail in results:
         print("%d / %s / %s / %s" % (pin_num, result, board, detail))
