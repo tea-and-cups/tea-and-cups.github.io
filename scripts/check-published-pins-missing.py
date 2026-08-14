@@ -15,14 +15,19 @@ r"""公開済み（status: published）記事のうち、ピンが1枚も作ら�
       （末尾に2桁の連番が無い等）は「抽出不能」として別途報告する。
     ここで全公開済み記事にピンが見つかれば、第2段は実行せず終了する。
   - 第2段（高い処理・第1段で取りこぼしがあったときだけ実行）: 第1段で
-    ピンが見つからなかった記事が1本でもある場合に限り、output/pins/ の
-    各ピンファイルの先頭80行を読み、"https://tea-and-cups.github.io/posts/
-    <slug>/" 形式の誘導先URLからslugを抽出する（パス /posts/ の直後から
-    1階層）。ここで見つかったslugは「ピンあり」として扱い、取りこぼした
-    記事と再照合する。
+    ピンが見つからなかった記事が1本でもある場合に限り、対象を絞って
+    output/pins/ の各ピンファイルの先頭80行を読み、"https://tea-and-cups.
+    github.io/posts/<slug>/" 形式の誘導先URLからslugを抽出する（パス
+    /posts/ の直後から1階層）。ここで見つかったslugは「ピンあり」として
+    扱い、取りこぼした記事と再照合する。
+    対象の絞り込み（D-0122）: 第1段でファイル名から抽出したslugが
+    published記事のslugのいずれかと一致したファイルは、そのピンが
+    どの記事のものかすでに確定しているため本文を読まない。一致しな
+    かったファイル（抽出不能を含む）だけを本文読み取りの対象とする。
     判定の正本は本文の誘導先URLであり、ファイル名は処理を軽くするための
     下調べに過ぎない。最近のピンはファイル名に正式slugをそのまま使って
-    いるため、通常のセッションでは第2段が走らず処理量が増えない。
+    いるため、通常のセッションでは第2段の対象は過去の非準拠ファイルの
+    みに固定され、記事数が増えても読み取り量は増えない。
   - 第2段まで実行してもファイル名・本文URLのどちらからもslugを判別
     できなかったピンファイルは「判定不能」として【警告】で別途報告する
     （沈黙で握りつぶさないため）。
@@ -89,16 +94,19 @@ def list_pin_filenames():
 
 
 def extract_pin_slugs_from_filenames(pin_filenames):
-    """(ファイル名から抽出できたslugの集合, 抽出不能だったファイル名のリスト) を返す。"""
+    """(ファイル名から抽出できたslugの集合, 抽出不能だったファイル名のリスト,
+    {ファイル名: 抽出できたslug} の辞書) を返す。"""
     slugs = set()
     unrecognized = []
+    filename_slug = {}
     for fname in pin_filenames:
         m = PIN_FILENAME_RE.match(fname)
         if m:
             slugs.add(m.group(1))
+            filename_slug[fname] = m.group(1)
         else:
             unrecognized.append(fname)
-    return slugs, unrecognized
+    return slugs, unrecognized, filename_slug
 
 
 def extract_slug_from_body(fname):
@@ -129,15 +137,23 @@ def main():
     pin_filenames = list_pin_filenames()
 
     # 第1段（安い処理）: ファイル名のみからslugを抽出する。
-    stage1_slugs, filename_unrecognized = extract_pin_slugs_from_filenames(pin_filenames)
+    stage1_slugs, filename_unrecognized, filename_slug = extract_pin_slugs_from_filenames(pin_filenames)
     missing = sorted(slug for slug in published if slug not in stage1_slugs)
 
     unresolved_files = []
 
     if missing:
-        # 第2段（高い処理）: 取りこぼしがある場合のみ、本文の誘導先URLを読む。
+        # 第2段（高い処理・D-0122で対象を絞り込み）:
+        # ファイル名から抽出したslugがpublished記事のいずれかと一致した
+        # ファイルは、そのピンの帰属がすでに確定しているため対象から除く。
+        # 一致しなかったファイル（抽出不能を含む）だけを本文読み取りの対象とする。
+        stage2_targets = [
+            fname for fname in pin_filenames
+            if filename_slug.get(fname) not in published
+        ]
+
         body_slugs = set()
-        for fname in pin_filenames:
+        for fname in stage2_targets:
             body_slug = extract_slug_from_body(fname)
             if body_slug:
                 body_slugs.add(body_slug)
