@@ -14,13 +14,23 @@
      pick-image-variation.py 側で候補不足による緩和（直近1記事のみの除外／
      除外なし）が発生する状態の場合は、重複を警告のみに留めエラーにしない。
      緩和の有無は台帳の内容から同じロジックで再計算して判定する。
+  3. Pin投稿文の数量表記チェック（D-0126）: output/pins/配下の対象記事のPin
+     投稿文ファイル（「## 投稿文」節）に、漢数字2文字以上＋単位（ml/ミリリットル/
+     cc/円/度/分/秒/個/枚/杯/人）が直後に続く表記がないか検査する。
+     検知したらNG（「五百ミリリットル」等、本来アラビア数字で書くべき数量表記）。
+     漢数字1文字＋単位（「一杯」「一枚」「十分」等の慣用表現・数量の断定ではない
+     ことが多い）は実測（reports/2026-08-15-5.md）で誤検知の主因だったため対象外
+     とする。対象記事のPin投稿文ファイルが見つからない場合はこの節をスキップする
+     （画像生成前などファイル未作成の段階でこのチェックを走らせるケースがあるため）。
 
 使い方:
   python site/scripts/check-pin-image-style.py <slug>
 """
 
+import glob
 import importlib.util
 import os
+import re
 import sys
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -32,6 +42,49 @@ _spec = importlib.util.spec_from_file_location(
 )
 piv = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(piv)
+
+ROOT = os.path.dirname(os.path.dirname(SCRIPT_DIR))
+PINS_DIR = os.path.join(ROOT, "output", "pins")
+
+# 漢数字2文字以上＋単位。1文字（「一杯」「一枚」「十分」等の慣用表現）は誤検知の
+# 主因だったため対象外にする（実測・reports/2026-08-15-5.md、D-0126）。
+KANJI_QUANTITY_RE = re.compile(
+    r"[〇一二三四五六七八九十百千]{2,}(?:ml|ミリリットル|cc|円|度|分|秒|個|枚|杯|人)"
+)
+
+
+def find_pin_files(slug):
+    pattern = os.path.join(PINS_DIR, "*-%s-*.md" % slug)
+    return sorted(glob.glob(pattern))
+
+
+def check_kanji_quantity(slug):
+    """Pin投稿文（「## 投稿文」節）の数量表記を検査する。戻り値: NGメッセージのリスト。"""
+    files = find_pin_files(slug)
+    if not files:
+        print("  （対象のPin投稿文ファイルが見つかりません。未作成の段階の場合はスキップ）")
+        return []
+
+    ng_messages = []
+    any_hit = False
+    for path in files:
+        with open(path, encoding="utf-8") as f:
+            content = f.read()
+        m = re.search(r"## 投稿文\n(.*?)(?:\n## |\Z)", content, re.S)
+        if not m:
+            continue
+        section = m.group(1)
+        base_offset = m.start(1)
+        for mm in KANJI_QUANTITY_RE.finditer(section):
+            any_hit = True
+            # 該当箇所を含む行番号を出す
+            line_no = content.count("\n", 0, base_offset + mm.start()) + 1
+            name = os.path.basename(path)
+            print("  [NG] %s 行%d: 「%s」（漢数字表記の数量はアラビア数字にする）" % (name, line_no, mm.group()))
+            ng_messages.append("%s 行%d: %s" % (name, line_no, mm.group()))
+    if not any_hit:
+        print("  OK: 検査対象%d件のPin投稿文ファイルに漢数字の数量表記なし" % len(files))
+    return ng_messages
 
 
 def main():
@@ -113,6 +166,11 @@ def main():
         print(f"  [警告] {m}")
     for m in ng:
         print(f"  [NG] {m}")
+
+    print()
+    print("=== 3. Pin投稿文の数量表記チェック（漢数字＋単位・D-0126） ===")
+    kanji_quantity_ng = check_kanji_quantity(slug)
+    ng.extend(kanji_quantity_ng)
 
     print()
     if ng:

@@ -32,6 +32,12 @@ tool_result内のbase64画像データがPNGまたはJPEGの場合、ヘッダ�
 使い方:
   python site/scripts/analyze-session-cost.py [YYYY-MM-DD ...]
   引数省略時は直近3日（実行日を含む）を対象にする。
+
+  python site/scripts/analyze-session-cost.py --chrome-detail <session_id> [区切り文言 ...]
+  指定セッションのChrome関連ツール（mcp__claude-in-chrome__* / mcp__Claude_Browser__*）
+  呼び出しを実測で集計する（D-0126・作業A）。区切り文言（例:「ダウンロードします」）を
+  渡すと、その文言が最初に出現した行を境に何回のChrome呼び出しがあったかも出す
+  （1回の画像生成にかかる実測往復数の把握用）。区切り文言を渡さない場合は(4)を省略する。
 """
 
 import base64
@@ -369,9 +375,203 @@ def default_dates():
     return [(today - timedelta(days=i)).strftime("%Y-%m-%d") for i in range(2, -1, -1)]
 
 
+def is_chrome_tool(name):
+    n = (name or "").lower()
+    return "chrome" in n or "browser" in n
+
+
+def chrome_detail_report(session_id, boundary_markers=None):
+    """指定セッションのChrome関連ツール呼び出しを実測で時系列集計する（読み取り専用）。
+
+    boundary_markers: 「ダウンロードします」等、1回の画像生成完了の目印となる
+    テキスト断片のリスト。省略時は自動検出しない（機械的に確実な区切りが無い
+    限り推測で区切らないため、呼び出し側が既知の文言を渡す運用とする）。
+
+    出力する集計はすべて記録から機械的に求まる値のみ。推測でラベル付けしない。
+    """
+    base_dir, files = list_project_jsonl_files()
+    if base_dir is None:
+        print("集計不可: 環境変数USERPROFILEが取得できません")
+        return
+    target = None
+    for path in files:
+        if os.path.basename(path) == session_id + ".jsonl":
+            target = path
+            break
+    if target is None:
+        print("集計不可: セッション%sのtranscriptが見つかりません（%s配下）" % (session_id, base_dir))
+        return
+
+    tool_use_events = []  # (lineno, id, name, input)
+    result_events = []  # (lineno, tool_use_id, has_image)
+    text_events = []  # (lineno, text) — assistantのtext/thinking（連続run直前の文脈表示用）
+    raw_line_text = {}  # (lineno -> 行全体の生JSON文字列) — 区切り文言検索用（tool_result内の文言も拾う）
+    total_lines = 0
+    with open(target, encoding="utf-8") as f:
+        for lineno, line in enumerate(f, start=1):
+            total_lines = lineno
+            line = line.strip()
+            if not line:
+                continue
+            raw_line_text[lineno] = line
+            try:
+                obj = json.loads(line)
+            except Exception:
+                continue
+            otype = obj.get("type")
+            message = obj.get("message") or {}
+            if otype == "assistant":
+                for b in message.get("content") or []:
+                    if not isinstance(b, dict):
+                        continue
+                    if b.get("type") == "tool_use":
+                        tool_use_events.append((lineno, b.get("id"), b.get("name") or "", b.get("input") or {}))
+                    elif b.get("type") == "text":
+                        t = (b.get("text") or "").strip().replace("\n", " ")
+                        if t:
+                            text_events.append((lineno, t))
+                    elif b.get("type") == "thinking":
+                        t = (b.get("thinking") or "").strip().replace("\n", " ")
+                        if t:
+                            text_events.append((lineno, t))
+            elif otype == "user":
+                content = message.get("content")
+                if not isinstance(content, list):
+                    continue
+                for block in content:
+                    if not isinstance(block, dict) or block.get("type") != "tool_result":
+                        continue
+                    inner = block.get("content")
+                    has_image = isinstance(inner, list) and any(
+                        isinstance(x, dict) and x.get("type") == "image" for x in inner
+                    )
+                    result_events.append((lineno, block.get("tool_use_id"), has_image))
+
+    chrome_calls = [(ln, tid, name, inp) for (ln, tid, name, inp) in tool_use_events if is_chrome_tool(name)]
+
+    print("=== セッション %s のChrome関連ツール呼び出し実測 ===" % session_id)
+    print("transcript総行数: %d" % total_lines)
+    print("Chrome関連tool_use件数: %d" % len(chrome_calls))
+    print()
+
+    # (1) ツール名別の回数
+    name_counts = {}
+    for _ln, _tid, name, _inp in chrome_calls:
+        name_counts[name] = name_counts.get(name, 0) + 1
+    print("--- (1) ツール名別の回数 ---")
+    for name, cnt in sorted(name_counts.items(), key=lambda x: -x[1]):
+        print("  %-45s %d" % (name, cnt))
+    print()
+
+    # computerツールのaction内訳（chrome系のcomputerのみ）
+    action_counts = {}
+    for _ln, _tid, name, inp in chrome_calls:
+        if name.endswith("computer"):
+            a = inp.get("action") or "(不明)"
+            action_counts[a] = action_counts.get(a, 0) + 1
+    if action_counts:
+        print("--- computerツールのaction内訳 ---")
+        for a, cnt in sorted(action_counts.items(), key=lambda x: -x[1]):
+            print("  %-20s %d" % (a, cnt))
+        print()
+
+    # (2) 同一/類似操作の連続（同一ツール名の連続run）上位5件
+    runs = []
+    i = 0
+    last_text_by_line = None
+    # 直前のtext/thinkingを引くための補助（行番号でソート済み前提）
+    text_events_sorted = sorted(text_events, key=lambda x: x[0])
+
+    def context_before(lineno):
+        ctx = None
+        for tln, t in text_events_sorted:
+            if tln < lineno:
+                ctx = t
+            else:
+                break
+        return ctx
+
+    while i < len(chrome_calls):
+        j = i
+        while j + 1 < len(chrome_calls) and chrome_calls[j + 1][2] == chrome_calls[i][2]:
+            j += 1
+        run_len = j - i + 1
+        ctx = context_before(chrome_calls[i][0])
+        runs.append((run_len, chrome_calls[i][2], ctx))
+        i = j + 1
+
+    print("--- (2) 同一ツールの連続呼び出し 上位5件 ---")
+    for run_len, name, ctx in sorted(runs, key=lambda x: -x[0])[:5]:
+        ctx_disp = (ctx[:60] if ctx else "取得不可")
+        print("  %d回連続 - %s - 直前: %s" % (run_len, name, ctx_disp))
+    print()
+
+    # (3) 画像を伴うtool_resultの位置（前半/中盤/後半、transcript全体の行位置基準）
+    chrome_ids = {tid for (_ln, tid, _name, _inp) in chrome_calls}
+    id_to_name = {tid: name for (_ln, tid, name, _inp) in tool_use_events}
+    image_results = [(ln, tid) for (ln, tid, has_image) in result_events if has_image]
+    third = total_lines / 3.0
+    zenhan = chuban = kouhan = 0
+    by_tool = {}
+    for ln, tid in image_results:
+        name = id_to_name.get(tid, "(取得不可)")
+        by_tool[name] = by_tool.get(name, 0) + 1
+        if ln < third:
+            zenhan += 1
+        elif ln < 2 * third:
+            chuban += 1
+        else:
+            kouhan += 1
+    print("--- (3) 画像を伴うtool_result（スクリーンショット等）の位置 ---")
+    print("  件数=%d（前半=%d 中盤=%d 後半=%d、いずれもtranscript全体の行位置基準）" % (
+        len(image_results), zenhan, chuban, kouhan
+    ))
+    if by_tool:
+        print("  発生元ツール内訳: " + "、".join("%s=%d" % (k, v) for k, v in by_tool.items()))
+    chrome_screenshot_calls = sum(
+        1 for (_ln, _tid, name, inp) in chrome_calls if name.endswith("computer") and inp.get("action") == "screenshot"
+    )
+    print("  うちcomputer{action:screenshot}呼び出し件数: %d" % chrome_screenshot_calls)
+    print()
+
+    # (4) boundary_markersが与えられた場合のみ、区切りごとのChrome呼び出し件数を出す
+    if boundary_markers:
+        print("--- (4) 指定した区切り文言ごとのChrome呼び出し件数（1回の画像生成の実測往復数） ---")
+        # 行の生JSON文字列全体を対象に検索する（assistantのtext/thinkingに限らず、
+        # tool_result内の文言（get_page_text等の抽出結果）も拾うため）。
+        # マーカーは「1回の完了ごとに出現する文言」を想定し、出現行すべてを区切りとして使う
+        # （最初の1回だけを拾うと区切りが1個しか取れず、画像枚数分に分割できない）。
+        boundary_lines = sorted(
+            {ln for ln, raw in raw_line_text.items() for marker in boundary_markers if marker in raw}
+        )
+        if not boundary_lines:
+            print("  該当する区切り文言が見つかりませんでした（取得不可）: %s" % "、".join(boundary_markers))
+        else:
+            prev = 0
+            segs = []
+            for bl in boundary_lines:
+                seg = [ln for (ln, _tid, _name, _inp) in chrome_calls if prev < ln <= bl]
+                segs.append(len(seg))
+                prev = bl
+            tail = [ln for (ln, _tid, _name, _inp) in chrome_calls if ln > prev]
+            for idx, s in enumerate(segs, start=1):
+                print("  区切り%d: Chrome呼び出し%d回" % (idx, s))
+            if tail:
+                print("  区切り後（末尾）: Chrome呼び出し%d回" % len(tail))
+            if segs:
+                print("  平均（末尾を除く）: %.1f回/区切り" % (sum(segs) / len(segs)))
+        print()
+
+
 def main():
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
+
+    if len(sys.argv) >= 3 and sys.argv[1] == "--chrome-detail":
+        session_id = sys.argv[2]
+        markers = sys.argv[3:] if len(sys.argv) > 3 else None
+        chrome_detail_report(session_id, boundary_markers=markers)
+        return
 
     dates = sys.argv[1:]
     if not dates:
