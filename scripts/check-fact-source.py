@@ -9,12 +9,21 @@
   A 発売時期 / B 価格 / C 限定性 / D 受賞・認定 / E 初・首位・シェア
   F 沿革・規模 / G 数値主張
 
-出典とみなすもの:
+出典とみなすもの（カテゴリA・C〜Gのみ）:
   同一判定単位内の Markdownリンク [表示文字](http〜) または素のhttp(s) URL。
   ただしホストが af.moshimo.com のものは出典に数えない
   （アフィリエイトリンクを出典に数えるとチェックが実質無効化されるため）。
 
-違反: 判定単位がA〜Gのいずれかに該当し、かつ有効な出典を1つも含まない場合。
+カテゴリB（価格）の特則:
+  記事本文に価格を書かない。出典URLを併記しても許可しない
+  （価格は変動するため、出典を付けてもその出典ごと古くなるため）。
+  例外は次の2つのみで、いずれも機械的に確定できるものに限る:
+    例外1 その記事自身の frontmatter の title に含まれる価格表現と同一の文字列
+    例外2 Markdownリンクのリンクテキスト（[ ] の内側）にある価格表現
+
+違反: 判定単位がA〜Gのいずれかに該当し、かつ
+      ・Bに該当する（例外1・例外2を除いた上で）場合は出典の有無を問わず違反
+      ・A・C〜Gに該当する場合は有効な出典を1つも含まないとき違反
       件数は「判定単位1つ＝1件」で数える（複数カテゴリ該当でも1件）。
       カテゴリ別件数は該当カテゴリごとの延べ数のため、合計は違反総数を超えうる。
 
@@ -61,6 +70,15 @@ CATEGORIES = [
     ),
     ("G", "数値主張", re.compile(r"\d+(?:\.\d+)?%|約\d+倍")),
 ]
+
+RE_PRICE_B = CATEGORIES[0][2]  # カテゴリB（価格）の検知パターン
+
+# 例外1: titleから抜き出す価格表現（数字＋円を含む連続した表現）
+RE_TITLE_LINE = re.compile(r"^title:\s*(.+?)\s*$", re.M)
+RE_PRICE_EXPR = re.compile(r"\d[\d,]*円(?:以下|以上|未満|前後|程度|台|超|以内)?")
+
+# 例外2: Markdownリンクの表示文字部分 [表示文字](
+RE_MD_LINK_TEXT = re.compile(r"\[([^\]\n]*)\]\(")
 
 CATEGORY_LABELS = {"A": "発売時期"}
 CATEGORY_LABELS.update({key: label for key, label, _ in CATEGORIES})
@@ -161,24 +179,51 @@ def match_categories(text):
     return hits
 
 
+def title_price_expressions(front):
+    """frontmatterのtitleに含まれる価格表現を返す（例外1の材料）。"""
+    m = RE_TITLE_LINE.search(front or "")
+    if not m:
+        return []
+    return sorted(set(RE_PRICE_EXPR.findall(m.group(1))), key=len, reverse=True)
+
+
+def price_survives_exceptions(text, title_prices):
+    """例外1・例外2を除いてもなお価格表現が残るかを返す。"""
+    # 例外2: Markdownリンクの表示文字部分を除去
+    masked = RE_MD_LINK_TEXT.sub(lambda m: "[](", text)
+    # 例外1: titleに含まれる価格表現と同一の文字列を除去
+    for expr in title_prices:
+        masked = masked.replace(expr, " ")
+    return bool(RE_PRICE_B.search(RE_URL.sub(" ", masked)))
+
+
 def excerpt(text):
     flat = re.sub(r"\s+", " ", text).strip()
     return flat[:EXCERPT_CHARS]
 
 
 def check_article(path, slug):
-    """1記事を検査し、違反リスト（dict）を返す。"""
+    """1記事を検査し、(違反リスト, 例外適用前のB該当単位数) を返す。"""
     text = io_read(path)
     front, body = split_frontmatter(text)
     body_start_line = len(front.splitlines()) + 3 if front else 1
+    title_prices = title_price_expressions(front)
 
     violations = []
+    b_before = 0
     for unit in build_units(body, body_start_line):
         text_u = unit_text(unit)
         cats = match_categories(text_u)
         if not cats:
             continue
+        if "B" in cats:
+            b_before += 1
+            if not price_survives_exceptions(text_u, title_prices):
+                cats = [c for c in cats if c != "B"]
+        # Bは出典併記による免除を認めない。A・C〜Gは従来どおり出典があれば通す。
         if has_valid_source(text_u):
+            cats = [c for c in cats if c == "B"]
+        if not cats:
             continue
         violations.append(
             {
@@ -189,7 +234,7 @@ def check_article(path, slug):
                 "in_product_block": has_affiliate(text_u),
             }
         )
-    return violations
+    return violations, b_before
 
 
 def resolve_path(slug):
@@ -216,7 +261,7 @@ def run_single(slug):
         print(f"見つかりません: output/articles/{slug}.md / site/src/content/posts/{slug}.md")
         return 1
 
-    violations = check_article(path, slug)
+    violations, _ = check_article(path, slug)
     if not violations:
         print("FACT_SOURCE_OK")
         return 0
@@ -235,11 +280,13 @@ def run_calibrate():
 
     per_article = []
     all_violations = []
+    b_before_total = 0
     for path in targets:
         slug = os.path.splitext(os.path.basename(path))[0]
-        v = check_article(path, slug)
+        v, b_before = check_article(path, slug)
         per_article.append((slug, len(v)))
         all_violations.extend(v)
+        b_before_total += b_before
 
     total = len(all_violations)
     counts = [n for _, n in per_article]
@@ -262,6 +309,10 @@ def run_calibrate():
 
     b_hits = [v for v in all_violations if "B" in v["categories"]]
     b_in = sum(1 for v in b_hits if v["in_product_block"])
+    print(
+        f"  └ B例外: 例外適用前 {b_before_total}件 / 例外適用後 {len(b_hits)}件"
+        f"（例外1・2で除外 {b_before_total - len(b_hits)}件）"
+    )
     print(
         f"  └ B内訳: 商品リンクブロック内 {b_in}件 / 本文中 {len(b_hits) - b_in}件"
     )
