@@ -14,6 +14,7 @@ Edit/Writeによるpublished化は .claude/hooks/check-publish-gate.py で拒否
        check-article-portability.py <slug>
        check-product-link-presence.py <slug>
        check-fact-source.py <slug>
+       check-source-fetched.py <slug>
        check-pin-image-naming.py
        check-pin-image-style.py <slug>
      ※quality-reviewer依頼前にも同じチェックを実行する運用は変えない。
@@ -57,6 +58,7 @@ PRE_PUBLISH_CHECKS = [
     ("check-article-portability.py", True),
     ("check-product-link-presence.py", True),
     ("check-fact-source.py", True),
+    ("check-source-fetched.py", True),
     ("check-pin-image-naming.py", False),
     ("check-pin-image-style.py", True),
 ]
