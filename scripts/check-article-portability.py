@@ -7,6 +7,9 @@
   2. categoryが site/src/data/categories.ts 定義の4択のいずれかに収まっているか
   3. 本文（frontmatter除く）が純Markdownのみか（生HTMLタグの疑いを検出。コードブロック内は除外）
   4. 商品リンク（af.moshimo.com）がMarkdownリンク構文 [text](url) で直書きされているか
+  5. hero画像の実ファイルが site/public/ 配下に実在するか（2026-08-15・D-0126。frontmatterに
+     heroキーがあるだけでは画像が実際に生成・配置されたことの保証にならないため、画像が無いまま
+     quality-reviewer依頼・公開へ進む経路を塞ぐ）
 
 使い方:
   python site/scripts/check-article-portability.py <slug>
@@ -129,6 +132,16 @@ def check_affiliate_links_plain(body):
     return ok, detail
 
 
+def check_hero_exists(values):
+    hero = values.get("hero", "")
+    if not hero:
+        return False, "heroが未設定です"
+    path = os.path.join(ROOT, "site", "public", hero.lstrip("/"))
+    if os.path.isfile(path):
+        return True, ""
+    return False, f"hero画像ファイルが実在しません: {hero}"
+
+
 def check_article(path, allowed_slugs):
     """1記事分の4項目チェックを実行し、[(項目名, ok, detail), ...] を返す。
 
@@ -147,6 +160,7 @@ def check_article(path, allowed_slugs):
     results.append(("category(4択)", *check_category(values, allowed_slugs)))
     results.append(("本文の純Markdown性", *check_html_free(body)))
     results.append(("商品リンクのURL直書き", *check_affiliate_links_plain(body)))
+    results.append(("hero画像の実在", *check_hero_exists(values)))
     return results
 
 
