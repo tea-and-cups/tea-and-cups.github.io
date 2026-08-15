@@ -52,6 +52,13 @@ RANGE_RE = re.compile(r"^(\d+)-(\d+)$")
 SINGLE_RE = re.compile(r"^(\d+)$")
 
 
+# 範囲表記（pin-78-80-...）とみなす2数字の許容差の上限。1ファイルが担当する
+# 実際のPin数（数個程度）を大きく超える差は、slugが数字始まり（例:
+# 2026-natsu-...）であることによる誤検出とみなして単一番号扱いにする
+# （2026-08-15発見・D-0124。pin-120-2026-natsu-...という記事slugでこの誤検出が発生した）。
+RANGE_MAX_SPAN = 20
+
+
 def extract_created_pins():
     """{pin番号: [該当ファイル名, ...]} を返す"""
     nums_map = {}
@@ -67,7 +74,7 @@ def extract_created_pins():
         end = start
         if m.group(2):
             second = int(m.group(2))
-            if second > start:
+            if second > start and (second - start) <= RANGE_MAX_SPAN:
                 end = second
         for n in range(start, end + 1):
             nums_map.setdefault(n, []).append(fname)
