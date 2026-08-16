@@ -37,8 +37,15 @@ r"""未投稿ピンをPinterestへ実投稿する本体スクリプト（フェ�
   (7)(8) のみ行わない。それ以外（停止スイッチ・未投稿導出・ファイル解析・
   ボード解決・URL200確認・重複照合）はすべて実行して結果を一覧出力する。
 
+--compact-ledger-only（D-0143）:
+  data/pin-posted.md の圧縮（compact_ledger()）のみを実行して終了する。
+  Pinterest APIへの投稿は一切行わない。圧縮を実投稿を伴わずに検証するための
+  オプション。圧縮は (0) 緊急停止スイッチ判定より後・通常実行時は最初の
+  Pinterest投稿より前に1回だけ実行される。
+
 使い方:
   python site/scripts/post-pins-to-pinterest.py --dry-run
+  python site/scripts/post-pins-to-pinterest.py --compact-ledger-only
   python site/scripts/post-pins-to-pinterest.py
 """
 
@@ -425,6 +432,114 @@ def post_pin(access_token, fields, board_id):
     return pinterest_api.request("POST", "/pins", access_token, body=body, timeout=30)
 
 
+LEDGER_BACKUP_PATH = os.path.join(DATA_DIR, "pin-posted.md.bak")
+
+# check-pin-posting-status.py のLEDGER_LINE_RE（「投稿済み:」行）と同じ判定を
+# ここでも使い、「投稿済み:」または「投稿日:」のいずれかの行が最初に現れるまでを
+# ヘッダー（冒頭のコメント説明文）とみなしてそのまま残す。
+
+
+def _split_ledger_header(lines):
+    """先頭から、最初に「投稿済み:」または「投稿日:」行が現れる直前までを
+    ヘッダーとみなして (header_lines, rest_start_index) を返す。"""
+    idx = 0
+    while idx < len(lines):
+        stripped = lines[idx].strip()
+        if stripped.startswith("投稿済み:") or POSTED_DATE_LINE_RE.match(stripped):
+            break
+        idx += 1
+    return lines[:idx], idx
+
+
+def _ranges_to_line(nums):
+    """昇順の番号集合を連続する範囲へ圧縮し「投稿済み: 1-3,5,7-9」形式の
+    本文（1行）を返す。"""
+    nums = sorted(nums)
+    if not nums:
+        return ""
+    parts = []
+    start = prev = nums[0]
+    for n in nums[1:]:
+        if n == prev + 1:
+            prev = n
+            continue
+        parts.append("%d" % start if start == prev else "%d-%d" % (start, prev))
+        start = prev = n
+    parts.append("%d" % start if start == prev else "%d-%d" % (start, prev))
+    return "投稿済み: %s" % ",".join(parts)
+
+
+def compact_ledger(today_str):
+    """data/pin-posted.md を圧縮する。
+    (1) 既存load_ledger()で投稿済み番号集合(before)を取得
+    (2) data/pin-posted.md.bak へ上書きバックアップ（常にこの1ファイルのみ）
+    (3) ヘッダーはそのまま残し、「投稿済み:」行を範囲圧縮した1行 + 当日分の
+        「投稿日:」行のみに書き換えた新内容を組み立てる
+    (4) 新内容を同じパーサで読み直しafterを取得
+    (5) before==afterの場合のみ本ファイルを置き換える
+    (6) 不一致なら元ファイルを変更せずexit 1する
+    戻り値: None（正常終了）。不一致時はexitする。"""
+    status_mod = _load_check_pin_posting_status()
+    before = status_mod.load_ledger()
+    if before is None:
+        before = set()
+
+    if not os.path.isfile(LEDGER_PATH):
+        return
+
+    with open(LEDGER_PATH, encoding="utf-8") as f:
+        original_text = f.read()
+    original_lines = original_text.splitlines()
+    header_lines, rest_start = _split_ledger_header(original_lines)
+
+    today_lines = []
+    for line in original_lines[rest_start:]:
+        m = POSTED_DATE_LINE_RE.match(line.strip())
+        if m and m.group(1) == today_str:
+            today_lines.append(line.strip())
+
+    new_lines = list(header_lines)
+    posted_line = _ranges_to_line(before)
+    if posted_line:
+        new_lines.append(posted_line)
+    new_lines.extend(today_lines)
+    new_text = "\n".join(new_lines) + "\n"
+
+    tmp_path = LEDGER_PATH + ".tmp"
+    with open(tmp_path, "w", encoding="utf-8") as f:
+        f.write(new_text)
+
+    # (4) 同じパーサで読み直してafterを取得する。一時的にLEDGER_PATHを
+    # tmp_pathへ差し替えてload_ledger()を呼ぶ。
+    orig_ledger_path = status_mod.LEDGER_PATH
+    try:
+        status_mod.LEDGER_PATH = tmp_path
+        after = status_mod.load_ledger()
+    finally:
+        status_mod.LEDGER_PATH = orig_ledger_path
+    if after is None:
+        after = set()
+
+    if before != after:
+        only_before = sorted(before - after)
+        only_after = sorted(after - before)
+        try:
+            os.remove(tmp_path)
+        except OSError:
+            pass
+        print("【エラー】台帳圧縮の整合性チェックに失敗しました。元ファイルは変更していません。")
+        print("圧縮前のみに存在: %s" % only_before)
+        print("圧縮後のみに存在: %s" % only_after)
+        sys.exit(1)
+
+    # (2) バックアップ（常にこの1ファイルのみを上書き）
+    with open(LEDGER_BACKUP_PATH, "w", encoding="utf-8") as f:
+        f.write(original_text)
+
+    # (5) 一致したので置き換える
+    os.replace(tmp_path, LEDGER_PATH)
+
+
 def append_ledger(pin_num, today_str):
     """data/pin-posted.md の最後に「投稿済み:」行を1件追記する。
     既存の書式（範囲表記込みの1行）は壊さず、新しい行として素朴に追記する
@@ -442,11 +557,21 @@ def main():
         sys.stdout.reconfigure(encoding="utf-8")
 
     dry_run = "--dry-run" in sys.argv[1:]
+    compact_only = "--compact-ledger-only" in sys.argv[1:]
 
     # --- (0) 緊急停止スイッチ ---
     kill_switch_file = check_kill_switch()
     if kill_switch_file:
         print("自動投稿は停止中（data/%s を検知しました）" % kill_switch_file)
+        sys.exit(0)
+
+    today_str = datetime.date.today().isoformat()
+
+    # --- 台帳圧縮（D-0143）: 緊急停止スイッチ判定より後・最初のPinterest投稿より前に1回だけ ---
+    compact_ledger(today_str)
+
+    if compact_only:
+        print("台帳圧縮のみ実行しました（--compact-ledger-only・Pinterest APIへの投稿は行っていません）")
         sys.exit(0)
 
     # --- (1) 未投稿ピン番号の導出 ---
@@ -458,7 +583,6 @@ def main():
         sys.exit(0)
 
     # --- (2) 50件超の自主規制（T3・D-0123: 当日の累計で判定する） ---
-    today_str = datetime.date.today().isoformat()
     already_today = count_today_posted(today_str)
     total_if_posted = already_today + len(unposted)
     print("本日すでに投稿済み%d件 ＋ 今回の対象%d件 ＝ %d件（上限%d件）"
