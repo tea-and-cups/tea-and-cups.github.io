@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-r"""運営5ファイル（CLAUDE.md・decisions.md・status.md・settings.json・
-settings.local.json）をGoogleドキュメントへ同期する（D-0064）。
+r"""運営ドキュメント（CLAUDE.md・docs/・.claude/settings系・rules/配下）を
+Googleドキュメントへ同期する（D-0064）。対象一覧は TARGET_FILES が正本。
 
 外部チャット窓口（Claude.aiのProject）が毎回ファイルを手動添付されなくても
 最新版を読めるようにするための対応。
@@ -14,11 +14,13 @@ settings.local.json）をGoogleドキュメントへ同期する（D-0064）。
 site/リポジトリへ混入することは構造的に起こらない。
 
 使い方:
-  python site/scripts/sync-to-gdrive.py --init   初回セットアップ
+  python site/scripts/sync-to-gdrive.py --init   セットアップ（追記型・再実行可）
     1. ブラウザでのGoogle認証フローを起動（オーナーがブラウザで許可操作）
-    2. 対象5ファイルそれぞれに新規Googleドキュメントを作成
-    3. data/gdrive-sync-map.json にドキュメントIDを保存
-    4. 作成したドキュメントのURL一覧を標準出力に表示
+    2. 既存の data/gdrive-sync-map.json を読み込む（あれば）
+    3. 対応表に無いファイルだけ新規Googleドキュメントを作成して追記する。
+       既に対応表にあるファイルは新規作成せず既存IDを維持する。
+       対応表にあるがTARGET_FILESに無いエントリも削除せず残す。
+    4. 今回新規作成したドキュメントのURL一覧を標準出力に表示
 
   python site/scripts/sync-to-gdrive.py          通常同期
     対応表を読み、各ローカルファイルの現在の中身でGoogleドキュメント本文を
@@ -56,13 +58,22 @@ SCOPES = [
     "https://www.googleapis.com/auth/webmasters.readonly",
 ]
 
-# 対象5ファイル: (ローカルパス, ドキュメントタイトル)
+# 同期対象: (ローカルパス, ドキュメントタイトル)
+# rules/配下は窓口（Claude.ai相談プロジェクト）が内容を推測で補って誤指示を出す
+# 事故を防ぐために追加した（2026-08-16）。
 TARGET_FILES = [
     (os.path.join(PROJECT_ROOT, "CLAUDE.md"), "Tea_TeaCut CLAUDE.md"),
     (os.path.join(PROJECT_ROOT, "docs", "decisions.md"), "Tea_TeaCut decisions.md"),
     (os.path.join(PROJECT_ROOT, "docs", "status.md"), "Tea_TeaCut status.md"),
     (os.path.join(PROJECT_ROOT, ".claude", "settings.json"), "Tea_TeaCut settings.json"),
     (os.path.join(PROJECT_ROOT, ".claude", "settings.local.json"), "Tea_TeaCut settings.local.json"),
+    (os.path.join(PROJECT_ROOT, "docs", "tasks.md"), "Tea_TeaCut tasks.md"),
+    (os.path.join(PROJECT_ROOT, "rules", "portability.md"), "Tea_TeaCut rules/portability.md"),
+    (os.path.join(PROJECT_ROOT, "rules", "weekly-report.md"), "Tea_TeaCut rules/weekly-report.md"),
+    (os.path.join(PROJECT_ROOT, "rules", "image-generation-flow.md"), "Tea_TeaCut rules/image-generation-flow.md"),
+    (os.path.join(PROJECT_ROOT, "rules", "pinterest-api.md"), "Tea_TeaCut rules/pinterest-api.md"),
+    (os.path.join(PROJECT_ROOT, "rules", "product-linking.md"), "Tea_TeaCut rules/product-linking.md"),
+    (os.path.join(PROJECT_ROOT, "rules", "command-execution.md"), "Tea_TeaCut rules/command-execution.md"),
 ]
 
 
@@ -106,10 +117,23 @@ def cmd_init():
     creds = get_credentials()
     docs_service = build("docs", "v1", credentials=creds)
 
+    # 既存の対応表があれば読み込み、追記型で更新する。
+    # 既にIDを持つファイルは新規作成せず既存IDを維持し、TARGET_FILESから
+    # 外れたエントリも削除しない（既存の共有リンクを失う事故を防ぐため）。
     sync_map = {}
+    if os.path.exists(SYNC_MAP_PATH):
+        with open(SYNC_MAP_PATH, "r", encoding="utf-8") as f:
+            sync_map = json.load(f)
+
     created = []
+    kept = []
 
     for local_path, title in TARGET_FILES:
+        if local_path in sync_map:
+            kept.append((title, sync_map[local_path]))
+            print("既存維持: %s -> %s" % (title, sync_map[local_path]))
+            continue
+
         if not os.path.exists(local_path):
             print("警告: %s が存在しないためスキップします。" % local_path)
             continue
@@ -137,12 +161,19 @@ def cmd_init():
     with open(SYNC_MAP_PATH, "w", encoding="utf-8") as f:
         json.dump(sync_map, f, ensure_ascii=False, indent=2)
 
-    print("\n--- 作成したGoogleドキュメント一覧 ---")
-    for title, url in created:
-        print("%s: %s" % (title, url))
+    print("\n--- 今回新規作成したGoogleドキュメント一覧 ---")
+    if created:
+        for title, url in created:
+            print("%s: %s" % (title, url))
+    else:
+        print("（新規作成なし・すべて既存の対応表にありました）")
 
-    if not created:
-        print("エラー: 1件も作成できませんでした。")
+    print("対応表の総件数: %d件（今回新規 %d件 / 既存維持 %d件）"
+          % (len(sync_map), len(created), len(kept)))
+
+    # 新規作成も既存維持も0件＝対応表が空のままなら異常。
+    if not created and not kept:
+        print("エラー: 1件も対応表に登録できませんでした。")
         sys.exit(1)
 
 
