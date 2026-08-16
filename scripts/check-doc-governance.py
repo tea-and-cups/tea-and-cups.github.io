@@ -30,6 +30,12 @@ CLAUDE.md 3節1「rules/配下のファイルの新設・削除はオーナー�
  11. docs/status.md 全文に、Pin投稿の未完了状態を示す禁止語（固定リスト）が含まれていないか
      （D-0114） → 【警告】。Pinの投稿状況の正本は data/pin-posted.md と
      check-pin-posting-status.py であり、status.md はその写しにしない。
+ 12. rules/command-execution.md の補助スクリプト一覧表・site/scripts/ の実ファイル・
+     Git追跡状況の3つの突き合わせ（旧 check-script-table.sh からの移植・D-0138） → 【警告】
+     MISSING（表にあるのに実在しない）／UNLISTED（実在するのに表に無い）／
+     UNTRACKED（実在するのにGit未追跡）の3判定。UNTRACKEDは
+     `git -C site ls-files scripts/` の出力と照合する。gitの実行に失敗した場合は
+     黙って成功扱いにせず【警告】として出す（判定が消えたことに気づけないため）。
 
 状態は data/doc-state.tsv に保存する。プロジェクトルートはD-0043によりGit管理外のため、
 この状態ファイルがsite/リポジトリへ混入することは構造的に起こらない。
@@ -63,6 +69,7 @@ import io
 import json
 import os
 import re
+import subprocess
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -89,6 +96,15 @@ DOCS_DIR = os.path.join(ROOT, "docs")
 AGENTS_DIR = os.path.join(ROOT, ".claude", "agents")
 POSTS_DIR = os.path.join(ROOT, "site", "src", "content", "posts")
 STATE_TSV = os.path.join(ROOT, "data", "doc-state.tsv")
+# 補助スクリプト一覧表の突き合わせ（検出項目12・旧check-script-table.shからの移植・D-0138）
+SITE_DIR = os.path.join(ROOT, "site")
+SCRIPTS_DIR = os.path.join(SITE_DIR, "scripts")
+COMMAND_EXECUTION_MD = os.path.join(RULES_DIR, "command-execution.md")
+# 一覧表の1列目（| xxx.py | ... の xxx.py）だけを取り出す。旧shell版の
+# grep -o '^| [A-Za-z0-9._-]\+\.\(sh\|py\|ps1\) ' と同じ範囲を対象にする。
+SCRIPT_TABLE_ROW_RE = re.compile(r"^\| ([A-Za-z0-9._-]+\.(?:sh|py|ps1)) ")
+SCRIPT_EXTENSIONS = (".sh", ".py", ".ps1")
+GIT_TIMEOUT_SECONDS = 30
 
 CLAUDE_MD_CHAR_LIMIT = 10000
 # decisions.md本体の容量閾値。超過した場合はarchive-decisions.pyでの退避対象になる
@@ -598,6 +614,96 @@ def check_d_number_references():
     return warnings
 
 
+def collect_script_table_names():
+    """rules/command-execution.md の補助スクリプト一覧表に記載された
+    スクリプト名の集合を返す（旧check-script-table.shのTMP_TABLE相当）。"""
+    names = set()
+    if not os.path.isfile(COMMAND_EXECUTION_MD):
+        return names
+    for line in read_text(COMMAND_EXECUTION_MD).split("\n"):
+        matched = SCRIPT_TABLE_ROW_RE.match(line)
+        if matched:
+            names.add(matched.group(1))
+    return names
+
+
+def collect_script_files():
+    """site/scripts/ 配下の実ファイル名の集合を返す（旧TMP_FILES相当）。
+    ディレクトリ（__pycache__等）は拡張子フィルタで自然に除外される。"""
+    if not os.path.isdir(SCRIPTS_DIR):
+        return set()
+    return set(n for n in os.listdir(SCRIPTS_DIR) if n.endswith(SCRIPT_EXTENSIONS))
+
+
+def collect_tracked_scripts():
+    """`git -C site ls-files scripts/` の出力からGit追跡済みスクリプト名の集合を返す
+    （旧TMP_TRACKED相当）。gitの実行に失敗した場合は (None, 理由) を返し、
+    呼び出し側で【警告】にする。黙って「追跡済み」扱いにすると、UNTRACKED判定が
+    消えたことに気づけないsilent failureになるため（D-0138）。"""
+    try:
+        result = subprocess.run(
+            ["git", "-C", SITE_DIR.replace("\\", "/"), "ls-files", "scripts/"],
+            cwd=ROOT,
+            capture_output=True,
+            timeout=GIT_TIMEOUT_SECONDS,
+        )
+    except Exception as e:
+        return None, "gitの起動に失敗しました（%s）" % e
+    if result.returncode != 0:
+        stderr_text = (result.stderr or b"").decode("utf-8", errors="replace").strip()
+        return None, "git ls-files が終了コード%dで失敗しました（%s）" % (result.returncode, stderr_text)
+    stdout_text = (result.stdout or b"").decode("utf-8", errors="replace")
+    tracked = set()
+    for raw in stdout_text.split("\n"):
+        path = raw.strip()
+        if not path:
+            continue
+        name = path[len("scripts/"):] if path.startswith("scripts/") else path
+        if name.endswith(SCRIPT_EXTENSIONS):
+            tracked.add(name)
+    return tracked, None
+
+
+def check_script_table():
+    """rules/command-execution.md の一覧表・site/scripts/ の実ファイル・Git追跡状況の
+    3つを突き合わせる（旧 site/scripts/check-script-table.sh からの移植・D-0138）。
+    旧スクリプトは .sh のためフック起動時のPATHにbashが無くWinError 2で必ず失敗して
+    いた。D-0044のGit追跡照合は廃止せず、ここへ移して維持する。
+    """
+    table = collect_script_table_names()
+    files = collect_script_files()
+    warnings = []
+
+    missing = sorted(table - files)
+    if missing:
+        warnings.append(
+            "【警告】rules/command-execution.md の一覧表にあるのに site/scripts/ に実在しない"
+            "スクリプトがあります（%s）。該当行を削除してください（D-0138）。" % "、".join(missing)
+        )
+
+    unlisted = sorted(files - table)
+    if unlisted:
+        warnings.append(
+            "【警告】site/scripts/ に実在するのに rules/command-execution.md の一覧表に"
+            "無いスクリプトがあります（%s）。一覧表へ追記してください（D-0138）。" % "、".join(unlisted)
+        )
+
+    tracked, git_error = collect_tracked_scripts()
+    if tracked is None:
+        warnings.append(
+            "【警告】Git追跡状況の照合ができませんでした（%s）。"
+            "UNTRACKED判定（コミット漏れの検知）が今回は行われていません（D-0138）。" % git_error
+        )
+    else:
+        untracked = sorted(files - tracked)
+        if untracked:
+            warnings.append(
+                "【警告】site/scripts/ に実在するのにGit未追跡のスクリプトがあります（%s）。"
+                "コミット漏れの可能性があります（D-0138）。" % "、".join(untracked)
+            )
+    return warnings
+
+
 def check_rules_diff(rules_now, prev_rules, max_d, prev_max_d, latest_date, today, today_entries_text):
     """rules/の差分から (警告, 通知, 増減あり, 本日付エントリ(全件)に言及あり) を返す。"""
     warnings = []
@@ -699,6 +805,7 @@ def main():
     warnings += check_archive_boundary()
     warnings += check_d_number_references()
     warnings += check_status_forbidden_words()
+    warnings += check_script_table()
 
     state = load_state()
 

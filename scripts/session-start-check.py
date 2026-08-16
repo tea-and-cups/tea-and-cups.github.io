@@ -14,9 +14,10 @@ check-image-gen-needed-today.py）をAIが順に手動実行する運用だっ�
     中継する（先頭4本の順序はD-0102の順序規定を維持する）。実行対象の正本は
     CHILD_SCRIPTS であり、この文章側に一覧を二重に持たない。
   - 各子スクリプトは cwd をプロジェクトルートに固定して起動する（D-0084と同型の予防）。
-  - 子スクリプトの起動方法は拡張子で分岐する（D-0137）。.py は sys.executable、
-    .sh は bash で起動し、いずれもパスは絶対パス・スラッシュ区切りに統一する
-    （rules/command-execution.md 2 の形。クォートはリスト形式のsubprocessが担う）。
+  - 子スクリプトは .py のみ対応で、sys.executable で起動する。パスは絶対パス・
+    スラッシュ区切りに統一する（rules/command-execution.md 2 の形。クォートは
+    リスト形式のsubprocessが担う）。.py 以外が登録された場合は起動を試みず
+    明示的に失敗させる（D-0138）。
   - 子スクリプトが例外・非ゼロ終了・タイムアウト（1本30秒）した場合も無言で飛ばさず、
     「【エラー】<スクリプト名> が失敗しました（終了コード: N）」を出力し、残りの
     スクリプトは実行を続ける（silent failureを作らないため）。
@@ -59,11 +60,6 @@ CHILD_SCRIPTS = [
     # check-published-pins-missing.py: 0=正常判定（検知の有無を問わない）。
     # 検知時は【警告】を本文に含めて出力する仕様のため、フック自体は失敗扱いにしない。
     ("check-published-pins-missing.py", {0}),
-    # check-script-table.sh: 0=一致（過不足なし）のみを正常とする。2=差分あり
-    # （表への未記載・実在しない行・Git未追跡）は【エラー】として出させるのが
-    # 追加の狙いのため、正常集合に含めない（D-0137）。追加時点で差分0であることを
-    # 実測してから登録しており、初日から警告が出続ける状態にはしていない。
-    ("check-script-table.sh", {0}),
 ]
 
 TIMEOUT_SECONDS = 30
@@ -81,14 +77,23 @@ FOOTER = "=== セッション開始時チェック ここまで ==="
 
 
 def build_argv(script_name):
-    """拡張子から起動コマンドを組み立てる（D-0137）。
+    """起動コマンドを組み立てる。対応するのは .py のみ（D-0138）。
     パスは絶対パス・スラッシュ区切りに統一する（rules/command-execution.md 2）。
     引数を渡す仕組みは意図的に持たない（現時点で必要がないため。必要になった
     時点でCHILD_SCRIPTSの構造ごと設計する）。
+
+    .py 以外は起動を試みず例外にする。フック起動時のPATHにbashが無いため
+    .sh は WinError 2 で必ず失敗する環境であり（D-0137の実装3で発覚・D-0138で
+    check-doc-governance.py へ移植して置き換え済み）、将来また .sh 等を
+    CHILD_SCRIPTS に登録して同じ穴に落ちることを機械的に防ぐ。
     """
+    if not script_name.endswith(".py"):
+        raise ValueError(
+            "フック経由の子スクリプトは .py のみ対応です（%s は起動できません）。"
+            "シェルスクリプトはフック起動時のPATHにbashが無く必ず失敗するため、"
+            "検査ロジックはPythonスクリプト側へ実装してください（D-0138）。" % script_name
+        )
     script_path = os.path.join(SCRIPTS_DIR, script_name).replace("\\", "/")
-    if script_name.endswith(".sh"):
-        return ["bash", script_path]
     return [sys.executable, script_path]
 
 
