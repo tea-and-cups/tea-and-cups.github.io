@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 r"""Stopフック用: セッション終了時に check-doc-governance.py を実行し、
 【警告】があれば1回だけ会話の継続を強制する。あわせて sync-to-gdrive.py で
-運営5ファイルをGoogleドキュメントへ同期する（D-0064）。
+運営文書をGoogleドキュメントへ同期する（D-0064。対象一覧は sync-to-gdrive.py の
+TARGET_FILES が正本）。同期の直前に generate-script-index.py で docs/script-index.md を
+再生成する（D-0135。索引も同期対象のため、同期より前に最新化する必要がある）。
 
 さらに、直前のアシスタント応答（last_assistant_message）に固定サマリーの見出し
 「【オーナーが今やること】」が含まれるのにトークン消費量の出力がまだ含まれていない
@@ -73,6 +75,7 @@ import sys
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 GOVERNANCE_SCRIPT = os.path.join(SCRIPT_DIR, "check-doc-governance.py")
+SCRIPT_INDEX_SCRIPT = os.path.join(SCRIPT_DIR, "generate-script-index.py")
 GDRIVE_SYNC_SCRIPT = os.path.join(SCRIPT_DIR, "sync-to-gdrive.py")
 TOKEN_USAGE_SCRIPT = os.path.join(SCRIPT_DIR, "session-token-usage.py")
 SITE_ROOT = os.path.dirname(SCRIPT_DIR)
@@ -270,6 +273,31 @@ def main():
     reason = build_reason(*reason_parts)
     if reason:
         block(reason)
+
+    # docs/script-index.md を再生成する。sync-to-gdrive.py より前に実行することで、
+    # 同期対象へ追加した索引が同じセッションの最新状態で同期される。
+    # sync-to-gdrive.py と同様、失敗してもStopフック自体は止めない。
+    try:
+        index_result = subprocess.run(
+            [sys.executable, SCRIPT_INDEX_SCRIPT],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            env=child_env,
+            timeout=60,
+        )
+        if index_result.returncode != 0:
+            print(
+                "警告: generate-script-index.pyが索引の生成失敗を報告しました。\n%s"
+                % (index_result.stdout or index_result.stderr),
+                file=sys.stderr,
+            )
+    except Exception as exc:
+        print(
+            "警告: generate-script-index.pyの実行中にエラーが発生しました: %s" % exc,
+            file=sys.stderr,
+        )
 
     try:
         sync_result = subprocess.run(

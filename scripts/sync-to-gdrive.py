@@ -74,6 +74,7 @@ TARGET_FILES = [
     (os.path.join(PROJECT_ROOT, "rules", "pinterest-api.md"), "Tea_TeaCut rules/pinterest-api.md"),
     (os.path.join(PROJECT_ROOT, "rules", "product-linking.md"), "Tea_TeaCut rules/product-linking.md"),
     (os.path.join(PROJECT_ROOT, "rules", "command-execution.md"), "Tea_TeaCut rules/command-execution.md"),
+    (os.path.join(PROJECT_ROOT, "docs", "script-index.md"), "Tea_TeaCut script-index.md"),
 ]
 
 
