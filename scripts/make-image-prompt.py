@@ -32,8 +32,16 @@ ChatGPTへのプロンプトはASCII文字を含めない規約（rules/image-ge
 D-0126）。型の候補プール自体（型名の一覧）は pick-image-variation.py の IMAGE_STYLES を正本と
 し、ここでは複製しない。
 
+ランキング型の順位ラベル（D-0144）:
+  「ランキング」型は順位の枠だけを描かせると、ChatGPT側が空欄・破線の記入欄や
+  架空のブランド名を描き足す生成物になりやすかった。そのため pin1〜3のいずれかが
+  ランキング型のときは --ranking-labels で1位〜3位に焼き込む文言（3件・各10文字以内）を
+  必須にし、プロンプトへそのまま埋め込む。ラベルを用意できない場合は
+  pick-image-variation.py --set-style で別の型に選び直す。
+
 使い方:
   python site/scripts/make-image-prompt.py <slug>
+  python site/scripts/make-image-prompt.py <slug> --ranking-labels "香り重視,毎日飲む用,ミルクティー向き"
 """
 
 import importlib.util
@@ -132,6 +140,29 @@ def axis_summary(row):
     )
 
 
+# --- ランキング型の順位ラベル（D-0144） ---
+RANKING_KEY = "ランキング"
+RANKING_LABEL_COUNT = 3
+RANKING_LABEL_MAX_LEN = 10
+RANKING_LABELS_OPT = "--ranking-labels"
+RANKING_LABELS_EXAMPLE = '%s "香り重視,毎日飲む用,ミルクティー向き"' % RANKING_LABELS_OPT
+
+
+def ranking_labels_error(detail):
+    """順位ラベル関連のエラーを標準エラー出力へ出して exit 1 する（D-0144）。"""
+    lines = [
+        "【エラー】%s" % detail,
+        "ランキング型のPin画像には、一位〜三位に焼き込む順位ラベルが%d件必要です"
+        "（各%d文字以内・画像内に収まらない長さを避けるため）。" % (RANKING_LABEL_COUNT, RANKING_LABEL_MAX_LEN),
+        "記述例: python site/scripts/make-image-prompt.py <slug> %s" % RANKING_LABELS_EXAMPLE,
+        "ラベルは実在のブランド名ではなく、特徴を表す語（例: 香り重視／毎日飲む用）にしてください。",
+        "ラベルを用意できない場合は、次を打ち直してランキング以外の型へ変更してかまいません:",
+        '  python site/scripts/pick-image-variation.py --set-style <slug> "pin1=<型名>" "pin2=<型名>" "pin3=<型名>"',
+    ]
+    sys.stderr.write("\n".join(lines) + "\n")
+    sys.exit(1)
+
+
 # --- 型ごとの指示方針（rules/image-generation-flow.md 1-3節の表を正本としてここへ一本化。D-0126） ---
 TYPE_GUIDANCE = {
     "写真ヒーロー": "物撮り・情景写真として、heroと同様の方向性で仕上げる。",
@@ -141,7 +172,16 @@ TYPE_GUIDANCE = {
     "ビフォーアフター": "左右または上下で対比構造にする。",
     "Q&A形式": "質問と回答を吹き出し等で対比させる。",
     "ポイント整理": "記事の要点を三〜四個の箇条書き風レイアウトで見せる。",
-    "ランキング": "一位〜三位等の順位構造（番付形式）にする。",
+    # ランキング型は渡された順位ラベル（--ranking-labels）を埋め込む形にする（D-0144）。
+    # 他の型と違い、この値は format() 用のテンプレートであり、そのままは使わない
+    # （埋め込みは ranking_guidance() が行う）。
+    "ランキング": (
+        "一位〜三位の順位構造（番付形式）にする。"
+        "一位には「{label1}」、二位には「{label2}」、三位には「{label3}」という文言を、"
+        "それぞれの順位の枠内に読みやすい文字で焼き込む。"
+        "空欄・破線・点線など「記入欄が空のまま」に見える表現は作らない。"
+        "指定した三つの文言以外の説明文や商品名・ブランド名を勝手に描き足さない。"
+    ),
     "数字訴求型": "統計・数字を大きく見せるインフォグラフィック風にする。",
     "用語解説型": "辞書・用語集ふうのレイアウトにする。",
     "シーン別ガイド": "用途・シチュエーション別に分岐したレイアウトにする。",
@@ -161,8 +201,20 @@ def build_hero_prompt(row):
     return "\n".join(lines)
 
 
-def build_pin_prompt(row, style):
-    guidance = TYPE_GUIDANCE.get(style)
+def is_ranking(style):
+    """型名にランキングが含まれるか（D-0144）。"""
+    return RANKING_KEY in style
+
+
+def ranking_guidance(labels):
+    return TYPE_GUIDANCE[RANKING_KEY].format(label1=labels[0], label2=labels[1], label3=labels[2])
+
+
+def build_pin_prompt(row, style, ranking_labels=None):
+    if is_ranking(style):
+        guidance = ranking_guidance(ranking_labels)
+    else:
+        guidance = TYPE_GUIDANCE.get(style)
     if guidance is None:
         print("型ごとの指示方針が未定義です（TYPE_GUIDANCEにない型）: %s" % style)
         sys.exit(1)
@@ -182,10 +234,19 @@ def main():
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
 
-    if len(sys.argv) != 2:
-        print("usage: make-image-prompt.py <slug>")
+    argv = sys.argv[1:]
+    raw_labels = None
+    if RANKING_LABELS_OPT in argv:
+        i = argv.index(RANKING_LABELS_OPT)
+        if i + 1 >= len(argv):
+            ranking_labels_error("%s の値が指定されていません。" % RANKING_LABELS_OPT)
+        raw_labels = argv[i + 1]
+        del argv[i:i + 2]
+
+    if len(argv) != 1:
+        print('usage: make-image-prompt.py <slug> [%s "ラベル1,ラベル2,ラベル3"]' % RANKING_LABELS_OPT)
         sys.exit(1)
-    slug = sys.argv[1]
+    slug = argv[0]
 
     rows = piv.read_ledger()
     by_type = {r["image_type"]: r for r in rows if r["slug"] == slug and r["image_type"] in piv.IMAGE_SLOTS}
@@ -211,12 +272,35 @@ def main():
         print("台帳の型選定をやり直してから再実行してください（同一記事内で異なる3つの型が必要）。")
         sys.exit(1)
 
+    # --- ランキング型の順位ラベル検証（D-0144・プロンプトを1行も出力する前に判定する） ---
+    ranking_slots = [s for s in piv.PIN_SLOTS if is_ranking(styles[s])]
+    ranking_labels = None
+    if ranking_slots:
+        if raw_labels is None:
+            ranking_labels_error(
+                "%s がランキング型（%s）ですが、%s が指定されていません。"
+                % ("・".join(ranking_slots), "／".join(styles[s] for s in ranking_slots), RANKING_LABELS_OPT)
+            )
+        ranking_labels = [v.strip() for v in raw_labels.split(",")]
+        if len(ranking_labels) != RANKING_LABEL_COUNT or any(not v for v in ranking_labels):
+            ranking_labels_error(
+                "%s の値が%d件ちょうどではありません（受け取った値: %d件）。"
+                % (RANKING_LABELS_OPT, RANKING_LABEL_COUNT, len(ranking_labels))
+            )
+        too_long = [v for v in ranking_labels if len(v) > RANKING_LABEL_MAX_LEN]
+        if too_long:
+            ranking_labels_error(
+                "%d文字を超えるラベルがあります: %s"
+                % (RANKING_LABEL_MAX_LEN, "／".join("%s（%d文字）" % (v, len(v)) for v in too_long))
+            )
+    # ランキング型が無い場合、--ranking-labels は指定されていても無視する（D-0144(4)）
+
     print("--- hero ---")
     print(build_hero_prompt(by_type["hero"]))
     print()
     for slot in piv.PIN_SLOTS:
         print("--- %s ---" % slot)
-        print(build_pin_prompt(by_type[slot], styles[slot]))
+        print(build_pin_prompt(by_type[slot], styles[slot], ranking_labels))
         print()
 
 
