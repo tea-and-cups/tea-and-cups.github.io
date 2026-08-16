@@ -58,6 +58,16 @@ NO_RESUMMARY_PREFIX としてモジュール先頭で1箇所だけ定義し、3�
 （D-0096。当初はトークン追記・未commit検知の2箇所にしか前置きが入っておらず、
 ガバナンス警告が単独で成立した場合に元の2重表示問題が再発する欠陥があったため）。
 
+■ 所要時間の記録（D-0136）
+4つの子プロセス（governance判定・トークン集計・索引生成・Googleドライブ同期）それぞれの
+所要秒数と結果を data/stop-hook-timing.tsv へ1セッション1行で追記する。目的は
+①Stopフックの親タイムアウト（.claude/settings.local.json）に対して実測がどれだけ
+余裕を持っているかを継続的に見えるようにすること、②将来「失敗の検知」を設計する際の
+材料を貯めることの2点であり、この時点では検知・警告は行わず記録のみとする。
+記録処理（write_timing_log）は全体をtry/exceptで包み、失敗してもフックの他の処理を
+止めない。固定上限30行（ヘッダ行を除く）で、超えた分は古い行から捨てる。
+data/配下はGit管理外（D-0043）のため、この位置に置いてよい。
+
 ■ block()の呼び出し規律（D-0082）
 ガバナンス警告・トークン未出力・未commit検知が同時に成立しても、block()の呼び出しは
 1回のみ・出力されるJSONも1つのみとし、reasonに全項目をまとめて含める。
@@ -72,6 +82,7 @@ import json
 import os
 import subprocess
 import sys
+import time
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 GOVERNANCE_SCRIPT = os.path.join(SCRIPT_DIR, "check-doc-governance.py")
@@ -95,6 +106,88 @@ NO_RESUMMARY_PREFIX = (
 
 # 記事published化・Pin/hero画像追加に伴う正常な一時差分は誤検知対象から除外する（D-0080）。
 GIT_DIRTY_EXCLUDED_PREFIXES = ("src/content/posts/", "public/images/")
+
+# 所要時間の記録（D-0136）。data/配下はGit管理外（D-0043）。
+TIMING_LOG = os.path.join(PROJECT_ROOT, "data", "stop-hook-timing.tsv")
+TIMING_MAX_ROWS = 30  # ヘッダ行を除いたデータ行の固定上限。超えたら古い行から捨てる。
+# 記録対象の子プロセス。表示順＝TSVの列順であり、実行順に並べてある。
+TIMING_KEYS = ("governance", "token", "script_index", "gdrive_sync")
+TIMING_HEADER = (
+    "日時",
+    "governance秒", "token秒", "索引生成秒", "同期秒",
+    "governance結果", "token結果", "索引生成結果", "同期結果",
+)
+TIMING_STATUS_SKIPPED = "スキップ"
+
+# run_child() が {キー: (所要秒数, 結果)} を積む。未実行のキーはスキップ扱いになる。
+_timings = {}
+
+
+def run_child(key, argv, timeout, **kwargs):
+    """子プロセスを実行し、所要秒数と結果を _timings へ記録する（D-0136）。
+    返り値は (CompletedProcess or None, 発生した例外 or None)。
+    結果は OK（終了コード0）／NG（0以外・例外）／タイムアウト の3種。
+    governance判定の「NG」は終了コード1＝【警告】ありを意味し、スクリプトの
+    異常終了とは限らない（check-doc-governance.pyのdocstring参照）。
+    タイムアウト値そのものは呼び出し側が従来どおり個別に持つ（子側の値は個々の
+    処理が異常に長引いたときに止める役割を担うため、親側の値と連動させない）。
+    """
+    start = time.perf_counter()
+    try:
+        result = subprocess.run(
+            argv,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=timeout,
+            **kwargs
+        )
+    except subprocess.TimeoutExpired as exc:
+        _timings[key] = (time.perf_counter() - start, "タイムアウト")
+        return None, exc
+    except Exception as exc:
+        _timings[key] = (time.perf_counter() - start, "NG")
+        return None, exc
+    _timings[key] = (time.perf_counter() - start, "OK" if result.returncode == 0 else "NG")
+    return result, None
+
+
+def write_timing_log():
+    """_timings の内容を data/stop-hook-timing.tsv へ1行追記する（D-0136）。
+    この処理自体が失敗してもフックの他の処理を止めないため、全体をtry/exceptで包み、
+    失敗はstderrへの警告のみに留める（stdoutへは書かない・D-0082のstdout規律）。
+    """
+    try:
+        row = [time.strftime("%Y-%m-%d %H:%M:%S")]
+        for key in TIMING_KEYS:
+            seconds, _status = _timings.get(key, (None, TIMING_STATUS_SKIPPED))
+            row.append("" if seconds is None else "%.2f" % seconds)
+        for key in TIMING_KEYS:
+            _seconds, status = _timings.get(key, (None, TIMING_STATUS_SKIPPED))
+            row.append(status)
+
+        rows = []
+        if os.path.exists(TIMING_LOG):
+            with open(TIMING_LOG, "r", encoding="utf-8") as f:
+                rows = [line.rstrip("\n") for line in f if line.strip()]
+            if rows and rows[0].split("\t")[0] == TIMING_HEADER[0]:
+                rows = rows[1:]
+        rows.append("\t".join(row))
+        rows = rows[-TIMING_MAX_ROWS:]
+
+        directory = os.path.dirname(TIMING_LOG)
+        if directory and not os.path.isdir(directory):
+            os.makedirs(directory)
+        with open(TIMING_LOG, "w", encoding="utf-8", newline="\n") as f:
+            f.write("\t".join(TIMING_HEADER) + "\n")
+            for line in rows:
+                f.write(line + "\n")
+    except Exception as exc:
+        print(
+            "警告: stop-hook-timing.tsvの記録中にエラーが発生しました: %s" % exc,
+            file=sys.stderr,
+        )
 
 
 def block(reason):
@@ -223,18 +316,12 @@ def main():
 
     reason_parts = []
 
-    try:
-        result = subprocess.run(
-            [sys.executable, GOVERNANCE_SCRIPT],
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            env=child_env,
-            timeout=30,
-        )
-    except Exception as exc:
+    result, exc = run_child(
+        "governance", [sys.executable, GOVERNANCE_SCRIPT], 30, env=child_env
+    )
+    if result is None:
         block("check-doc-governance.pyの実行中にエラーが発生しました: %s" % exc)
+        write_timing_log()
         sys.exit(0)
 
     reason_parts.append(build_governance_reason(result.returncode, result.stdout))
@@ -247,20 +334,19 @@ def main():
     has_token_output = TOKEN_OUTPUT_MARKER in last_assistant_message
 
     if has_summary_heading and not has_token_output:
-        try:
-            token_result = subprocess.run(
-                [sys.executable, TOKEN_USAGE_SCRIPT],
-                capture_output=True,
-                text=True,
-                encoding="utf-8",
-                errors="replace",
-                env=child_env,
-                cwd=PROJECT_ROOT,
-                timeout=30,
+        token_result, token_exc = run_child(
+            "token",
+            [sys.executable, TOKEN_USAGE_SCRIPT],
+            30,
+            env=child_env,
+            cwd=PROJECT_ROOT,
+        )
+        if token_result is None:
+            token_output = (
+                "session-token-usage.pyの実行中にエラーが発生しました: %s" % token_exc
             )
+        else:
             token_output = token_result.stdout.strip() or token_result.stderr.strip()
-        except Exception as exc:
-            token_output = "session-token-usage.pyの実行中にエラーが発生しました: %s" % exc
         reason_parts.append(build_token_reason(token_output))
 
     # 未commit差分の検知結果もreason_partsへ統合する（D-0082）。
@@ -277,46 +363,38 @@ def main():
     # docs/script-index.md を再生成する。sync-to-gdrive.py より前に実行することで、
     # 同期対象へ追加した索引が同じセッションの最新状態で同期される。
     # sync-to-gdrive.py と同様、失敗してもStopフック自体は止めない。
-    try:
-        index_result = subprocess.run(
-            [sys.executable, SCRIPT_INDEX_SCRIPT],
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            env=child_env,
-            timeout=60,
-        )
-        if index_result.returncode != 0:
-            print(
-                "警告: generate-script-index.pyが索引の生成失敗を報告しました。\n%s"
-                % (index_result.stdout or index_result.stderr),
-                file=sys.stderr,
-            )
-    except Exception as exc:
+    index_result, index_exc = run_child(
+        "script_index", [sys.executable, SCRIPT_INDEX_SCRIPT], 60, env=child_env
+    )
+    if index_result is None:
         print(
-            "警告: generate-script-index.pyの実行中にエラーが発生しました: %s" % exc,
+            "警告: generate-script-index.pyの実行中にエラーが発生しました: %s" % index_exc,
+            file=sys.stderr,
+        )
+    elif index_result.returncode != 0:
+        print(
+            "警告: generate-script-index.pyが索引の生成失敗を報告しました。\n%s"
+            % (index_result.stdout or index_result.stderr),
             file=sys.stderr,
         )
 
-    try:
-        sync_result = subprocess.run(
-            [sys.executable, GDRIVE_SYNC_SCRIPT],
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            env=child_env,
-            timeout=60,
+    sync_result, sync_exc = run_child(
+        "gdrive_sync", [sys.executable, GDRIVE_SYNC_SCRIPT], 60, env=child_env
+    )
+    if sync_result is None:
+        print(
+            "警告: sync-to-gdrive.pyの実行中にエラーが発生しました: %s" % sync_exc,
+            file=sys.stderr,
         )
-        if sync_result.returncode != 0:
-            print(
-                "警告: sync-to-gdrive.pyが同期失敗を報告しました。\n%s"
-                % (sync_result.stdout or sync_result.stderr),
-                file=sys.stderr,
-            )
-    except Exception as exc:
-        print("警告: sync-to-gdrive.pyの実行中にエラーが発生しました: %s" % exc, file=sys.stderr)
+    elif sync_result.returncode != 0:
+        print(
+            "警告: sync-to-gdrive.pyが同期失敗を報告しました。\n%s"
+            % (sync_result.stdout or sync_result.stderr),
+            file=sys.stderr,
+        )
+
+    # 記録のみ・検知や警告は行わない（D-0136）。失敗してもここで止まらない。
+    write_timing_log()
 
     sys.exit(0)
 
