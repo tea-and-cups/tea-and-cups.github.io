@@ -28,8 +28,17 @@ check-doc-governance.py は【警告】が1件でもあれば終了コード1、
 governance警告とトークン追記条件が同一ターンで両方成立した場合、block()は1回のみ
 呼び出し、reasonはgovernance警告の内容を先に、トークン消費量の内容を後ろに連結する。
 
-sync-to-gdrive.py の失敗はStopフック自体を止めない（同期失敗で毎回
-セッションが止まる事態を避けるため）。失敗時はコンソールに警告を出すのみ。
+sync-to-gdrive.py が同期失敗を報告した場合（終了コード0以外・実行中の例外・
+タイムアウト）は、その旨をblock()のreasonへ合流させ、会話の継続を1回だけ強制する
+（D-0142）。旧実装はstderrへのprintのみで、AIの会話コンテキストにも固定サマリーにも
+届かず、4セッション連続の同期停止が誰にも気づかれなかった（D-0141）。検知は
+既に正しく動いていたため新しい検知は作らず、既にある情報の行き先をD-0082（未commit
+検知）と同じ経路へ変えるだけとする。stderrへのprintはログとして残す。
+継続強制の回数制御は既存の stop_hook_active 方式をそのまま使う（新しい制御は作らない）。
+このため sync-to-gdrive.py・generate-script-index.py の実行位置は block() より前になる
+（reasonの組み立てに同期結果が要るため）。generate-script-index.py の失敗は
+従来どおりstderrへの警告のみで、reasonには載せない（索引は次回セッションで再生成される
+ため、同期のように「静かに止まり続ける」性質を持たないため）。
 
 さらに、site/リポジトリに未commitの変更（変更・未追跡ファイル）が残っていないかを
 `git status --porcelain` で検知する（D-0080）。記事のpublished化・Pin画像追加に伴う
@@ -68,9 +77,9 @@ NO_RESUMMARY_PREFIX としてモジュール先頭で1箇所だけ定義し、3�
 止めない。固定上限30行（ヘッダ行を除く）で、超えた分は古い行から捨てる。
 data/配下はGit管理外（D-0043）のため、この位置に置いてよい。
 
-■ block()の呼び出し規律（D-0082）
-ガバナンス警告・トークン未出力・未commit検知が同時に成立しても、block()の呼び出しは
-1回のみ・出力されるJSONも1つのみとし、reasonに全項目をまとめて含める。
+■ block()の呼び出し規律（D-0082／D-0142で同期失敗を4項目目として追加）
+ガバナンス警告・トークン未出力・未commit検知・同期失敗が同時に成立しても、block()の
+呼び出しは1回のみ・出力されるJSONも1つのみとし、reasonに全項目をまとめて含める。
 継続強制の回数制御は既存の stop_hook_active 方式（1回だけ強制・2回目以降は無条件で
 終了を許可）をそのまま使い、新しい制御方式は作らない。
 
@@ -253,6 +262,37 @@ def build_token_reason(token_output):
     )
 
 
+def build_sync_reason(sync_result, sync_exc):
+    """sync-to-gdrive.py の同期失敗をreason文字列へ組み立てる（D-0142）。
+    成功（終了コード0）ならNoneを返す。返り値はcheck_git_dirty()等と同じく
+    NO_RESUMMARY_PREFIX 込みの完成形とし、呼び出し側はreason_partsへappendするだけでよい。
+    再認可はオーナーのブラウザ操作を伴うため、AIが自己判断で実行しないことを明記する。
+    """
+    if sync_result is not None and sync_result.returncode == 0:
+        return None
+
+    if sync_result is None:
+        detail = "sync-to-gdrive.pyの実行自体に失敗しました: %s" % sync_exc
+    else:
+        output = (sync_result.stdout or sync_result.stderr or "").strip()
+        detail = "sync-to-gdrive.py の終了コード=%d / 出力の要点:\n%s" % (
+            sync_result.returncode,
+            output[-800:] if output else "（出力なし）",
+        )
+
+    return (
+        NO_RESUMMARY_PREFIX +
+        "【警告】Googleドキュメントへの同期が失敗しました（sync-to-gdrive.py・D-0142）。\n"
+        + detail + "\n"
+        "復旧にはオーナーのブラウザ操作（Google OAuthの再認可）が必要になる場合があります"
+        "（過去にリフレッシュトークン失効で発生・D-0141）。\n"
+        "取るべき行動: 同期が失敗したことを（既に出力済みの）固定サマリーの【未決定事項】欄に"
+        "相当する追記として記載し、オーナーへ報告してください。"
+        "オーナーへ報告し、指示があるまで再認可（sync-to-gdrive.py --init やブラウザでの認可操作）を"
+        "AIの自己判断で実行してはなりません。"
+    )
+
+
 def check_git_dirty(site_root):
     """site/リポジトリの未commit差分を検知する（D-0080）。
     記事ファイル・pin/hero画像ファイルの差分は正常な公開作業中の一時状態として除外する。
@@ -355,14 +395,11 @@ def main():
     # トークン追記機構のJSONパースを壊すリスクがあったため取りやめた。
     reason_parts.append(check_git_dirty(SITE_ROOT))
 
-    # block()の呼び出しは1回のみ・出力されるJSONも1つのみ（D-0082）。
-    reason = build_reason(*reason_parts)
-    if reason:
-        block(reason)
-
+    # 索引生成・同期は block() より前に実行する（D-0142）。同期の失敗をreasonへ
+    # 合流させるため、block()を呼ぶ時点で同期結果が確定している必要がある。
     # docs/script-index.md を再生成する。sync-to-gdrive.py より前に実行することで、
     # 同期対象へ追加した索引が同じセッションの最新状態で同期される。
-    # sync-to-gdrive.py と同様、失敗してもStopフック自体は止めない。
+    # 索引生成の失敗は従来どおりreasonへ載せず、stderrへの警告のみとする。
     index_result, index_exc = run_child(
         "script_index", [sys.executable, SCRIPT_INDEX_SCRIPT], 60, env=child_env
     )
@@ -392,6 +429,14 @@ def main():
             % (sync_result.stdout or sync_result.stderr),
             file=sys.stderr,
         )
+
+    # 上のstderr出力はログとして残したうえで、同じ検知結果をreasonへも合流させる（D-0142）。
+    reason_parts.append(build_sync_reason(sync_result, sync_exc))
+
+    # block()の呼び出しは1回のみ・出力されるJSONも1つのみ（D-0082）。
+    reason = build_reason(*reason_parts)
+    if reason:
+        block(reason)
 
     # 記録のみ・検知や警告は行わない（D-0136）。失敗してもここで止まらない。
     write_timing_log()

@@ -45,6 +45,14 @@ run_main_integration_cases() は main() をサブプロセスとしてではな�
 残る＝検知しない、という事態を招くため）。
 stop-hook-check.py はハイフンを含むモジュール名のため importlib で読み込む。
 
+D-0142で追加した検証: sync-to-gdrive.py の同期失敗をblock()のreasonへ合流させたことに
+伴い、①同期失敗のみでもJSON1本のreasonが組み立てられること②そのreasonに「同期失敗」
+「終了コードと出力の要点」「再認可はオーナーのブラウザ操作・AIは自己判断で実行しない」の
+3要素が含まれること③ガバナンス警告と同時に成立してもblock()は1回だけであること
+④stop_hook_active=true では同期失敗があってもblock()を呼ばない（継続強制が2回に
+増えない）ことを検証する。GDRIVE_SYNC_SCRIPT を終了コード1のダミーへ差し替えて行い、
+本物の sync-to-gdrive.py・data/google-token.json には一切触れない。
+
 副作用のないテストのみで構成する（本物のsite/リポジトリは触らず、git検知の検証には
 一時ディレクトリのテスト用リポジトリを使う。main()の全体実行は
 sync-to-gdrive.py による実際のGoogleドキュメント書き込みを伴うため、ここでは行わない）。
@@ -387,6 +395,99 @@ def run_main_integration_cases(module):
                 "D-0096-8. main()結線: 3条件とも不成立ならblock()を呼ばず正常終了（stdout空）",
                 ok_clean,
                 "stdout=%r" % captured_clean[:200],
+            )
+        )
+
+        # --- 5. 同期失敗のみ（D-0142） ---
+        # sync-to-gdrive.py の代わりに終了コード1のダミーを差し替える。実際の
+        # sync-to-gdrive.py・data/google-token.json には一切触れない。
+        failing_sync = os.path.join(workdir, "dummy_sync_fail.py")
+        _write_dummy_script(failing_sync, 1, "同期完了: 成功 0件 / 失敗 13件")
+        captured_sync = _run_main(
+            module,
+            payload_clean,
+            {
+                "GOVERNANCE_SCRIPT": governance_script,   # 警告なし（exit 0）
+                "TOKEN_USAGE_SCRIPT": token_script,
+                "GDRIVE_SYNC_SCRIPT": failing_sync,
+                "SITE_ROOT": clean_repo,
+            },
+        )
+        ok_sync, detail_sync, obj_sync = _assert_single_json(captured_sync)
+        results.append(("D-0142-1. 同期失敗のみ → block()1回・JSON1本", ok_sync, detail_sync))
+        if ok_sync:
+            reason_sync = obj_sync["reason"]
+            has_required = (
+                "Googleドキュメントへの同期が失敗" in reason_sync
+                and "終了コード=1" in reason_sync
+                and "失敗 13件" in reason_sync
+                and "再認可" in reason_sync
+                and "自己判断で実行してはなりません" in reason_sync
+            )
+            results.append(
+                (
+                    "D-0142-2. 同期失敗のreasonに「同期失敗」「終了コード/出力の要点」「再認可はオーナー操作・AIは自己判断で実行しない」が含まれる",
+                    has_required,
+                    "",
+                )
+            )
+            results.append(
+                (
+                    "D-0142-3. 同期失敗のreasonの冒頭がNO_RESUMMARY_PREFIX・出現1回",
+                    reason_sync.startswith(prefix) and reason_sync.count(prefix) == 1,
+                    "出現回数=%d" % reason_sync.count(prefix),
+                )
+            )
+        else:
+            results.append(("D-0142-2. 同期失敗のreasonに必須3要素が含まれる", False, "前段が失敗したため未検証"))
+            results.append(("D-0142-3. 同期失敗のreasonの冒頭がNO_RESUMMARY_PREFIX・出現1回", False, "前段が失敗したため未検証"))
+
+        # --- 6. ガバナンス警告＋同期失敗の同時成立（D-0142・継続強制が2回にならないこと） ---
+        _write_dummy_script(governance_script, 1, "【警告】テスト用ガバナンス警告(同期失敗と同時)")
+        captured_both = _run_main(
+            module,
+            payload_clean,
+            {
+                "GOVERNANCE_SCRIPT": governance_script,
+                "TOKEN_USAGE_SCRIPT": token_script,
+                "GDRIVE_SYNC_SCRIPT": failing_sync,
+                "SITE_ROOT": clean_repo,
+            },
+        )
+        ok_both, detail_both, obj_both = _assert_single_json(captured_both)
+        results.append(
+            ("D-0142-4. ガバナンス警告＋同期失敗の同時成立 → block()1回・JSON1本（継続強制は1回のみ）", ok_both, detail_both)
+        )
+        if ok_both:
+            reason_both = obj_both["reason"]
+            results.append(
+                (
+                    "D-0142-5. 同時成立時のreasonに両方の内容が含まれ、前置きの出現回数が条件数（2）と一致",
+                    "テスト用ガバナンス警告(同期失敗と同時)" in reason_both
+                    and "Googleドキュメントへの同期が失敗" in reason_both
+                    and reason_both.count(prefix) == 2,
+                    "出現回数=%d" % reason_both.count(prefix),
+                )
+            )
+        else:
+            results.append(("D-0142-5. 同時成立時のreasonに両方の内容が含まれ、前置きの出現回数が2", False, "前段が失敗したため未検証"))
+
+        # --- 7. stop_hook_active=true なら何もしない（継続強制が2回に増えないことの根拠） ---
+        captured_active = _run_main(
+            module,
+            {"stop_hook_active": True, "last_assistant_message": "## %s" % heading},
+            {
+                "GOVERNANCE_SCRIPT": governance_script,
+                "TOKEN_USAGE_SCRIPT": token_script,
+                "GDRIVE_SYNC_SCRIPT": failing_sync,
+                "SITE_ROOT": clean_repo,
+            },
+        )
+        results.append(
+            (
+                "D-0142-6. stop_hook_active=true なら同期失敗があってもblock()を呼ばない（2回目の継続強制をしない）",
+                captured_active == "",
+                "stdout=%r" % captured_active[:200],
             )
         )
     finally:
