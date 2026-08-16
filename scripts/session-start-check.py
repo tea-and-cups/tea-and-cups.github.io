@@ -10,13 +10,13 @@ check-image-gen-needed-today.py）をAIが順に手動実行する運用だっ�
 起動フレーズに依存せず必ず4本が実行される状態にする。
 
 動作:
-  - 下記4本を必ずこの順序で実行し、各スクリプトの標準出力をそのまま中継する
-    （D-0102の順序規定を維持）。
-      1. rotate-today-tasks.py
-      2. check-doc-governance.py
-      3. check-routine-due.py
-      4. check-image-gen-needed-today.py
+  - CHILD_SCRIPTS に並べた順序で必ず実行し、各スクリプトの標準出力をそのまま
+    中継する（先頭4本の順序はD-0102の順序規定を維持する）。実行対象の正本は
+    CHILD_SCRIPTS であり、この文章側に一覧を二重に持たない。
   - 各子スクリプトは cwd をプロジェクトルートに固定して起動する（D-0084と同型の予防）。
+  - 子スクリプトの起動方法は拡張子で分岐する（D-0137）。.py は sys.executable、
+    .sh は bash で起動し、いずれもパスは絶対パス・スラッシュ区切りに統一する
+    （rules/command-execution.md 2 の形。クォートはリスト形式のsubprocessが担う）。
   - 子スクリプトが例外・非ゼロ終了・タイムアウト（1本30秒）した場合も無言で飛ばさず、
     「【エラー】<スクリプト名> が失敗しました（終了コード: N）」を出力し、残りの
     スクリプトは実行を続ける（silent failureを作らないため）。
@@ -59,6 +59,11 @@ CHILD_SCRIPTS = [
     # check-published-pins-missing.py: 0=正常判定（検知の有無を問わない）。
     # 検知時は【警告】を本文に含めて出力する仕様のため、フック自体は失敗扱いにしない。
     ("check-published-pins-missing.py", {0}),
+    # check-script-table.sh: 0=一致（過不足なし）のみを正常とする。2=差分あり
+    # （表への未記載・実在しない行・Git未追跡）は【エラー】として出させるのが
+    # 追加の狙いのため、正常集合に含めない（D-0137）。追加時点で差分0であることを
+    # 実測してから登録しており、初日から警告が出続ける状態にはしていない。
+    ("check-script-table.sh", {0}),
 ]
 
 TIMEOUT_SECONDS = 30
@@ -75,12 +80,23 @@ HEADER = (
 FOOTER = "=== セッション開始時チェック ここまで ==="
 
 
+def build_argv(script_name):
+    """拡張子から起動コマンドを組み立てる（D-0137）。
+    パスは絶対パス・スラッシュ区切りに統一する（rules/command-execution.md 2）。
+    引数を渡す仕組みは意図的に持たない（現時点で必要がないため。必要になった
+    時点でCHILD_SCRIPTSの構造ごと設計する）。
+    """
+    script_path = os.path.join(SCRIPTS_DIR, script_name).replace("\\", "/")
+    if script_name.endswith(".sh"):
+        return ["bash", script_path]
+    return [sys.executable, script_path]
+
+
 def run_child(script_name, ok_codes):
-    script_path = os.path.join(SCRIPTS_DIR, script_name)
     print("--- %s ---" % script_name)
     try:
         result = subprocess.run(
-            [sys.executable, script_path],
+            build_argv(script_name),
             cwd=ROOT,
             capture_output=True,
             timeout=TIMEOUT_SECONDS,
