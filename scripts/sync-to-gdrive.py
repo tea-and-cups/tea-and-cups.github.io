@@ -75,6 +75,7 @@ TARGET_FILES = [
     (os.path.join(PROJECT_ROOT, "rules", "product-linking.md"), "Tea_TeaCut rules/product-linking.md"),
     (os.path.join(PROJECT_ROOT, "rules", "command-execution.md"), "Tea_TeaCut rules/command-execution.md"),
     (os.path.join(PROJECT_ROOT, "docs", "script-index.md"), "Tea_TeaCut script-index.md"),
+    (os.path.join(PROJECT_ROOT, "docs", "gsc-log.md"), "Tea_TeaCut gsc-log.md"),
 ]
 
 
