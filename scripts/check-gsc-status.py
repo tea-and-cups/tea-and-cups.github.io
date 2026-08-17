@@ -10,7 +10,8 @@ data/google-token.json をそのまま使う（スコープに
 webmasters.readonly が含まれている前提。再認可・スコープ変更はしない）。
 
 使い方:
-  python site/scripts/check-gsc-status.py    引数なし
+  python site/scripts/check-gsc-status.py             引数なし（Search Console API）
+  python site/scripts/check-gsc-status.py --headers    生HTTP応答ヘッダー実測（認証なし・API呼び出しなし）
 
 出力:
   1. sitemaps.list: 送信済みサイトマップごとの lastDownloaded / isPending /
@@ -19,11 +20,18 @@ webmasters.readonly が含まれている前提。再認可・スコープ変更
      coverageState / lastCrawlTime / robotsTxtState / indexingState /
      pageFetchState / userCanonical / googleCanonical
 
+--headers モード（2026-08-17追加）:
+  sitemap-index.xml / sitemap-0.xml / sitemap-alt.xml / robots.txt の4URLに対し、
+  既定UA・Googlebot名乗りUAの2種類でGETし、ステータス・Content-Type等の
+  レスポンスヘッダーと本文冒頭を表示する。認証・Search Console APIは一切使わない。
+
 終了コード: 取得できれば0、認証・API呼び出しに失敗すれば1。
 """
 
 import os
 import sys
+import urllib.request
+import urllib.error
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, "..", ".."))
@@ -140,7 +148,70 @@ def show_inspections(service, targets):
             print("  %s: %s" % (field, result.get(field, "(フィールドなし)")))
 
 
+HEADERS_URLS = [
+    "https://tea-and-cups.github.io/sitemap-index.xml",
+    "https://tea-and-cups.github.io/sitemap-0.xml",
+    "https://tea-and-cups.github.io/sitemap-alt.xml",
+    "https://tea-and-cups.github.io/robots.txt",
+]
+
+HEADERS_USER_AGENTS = [
+    ("既定UA", "check-gsc-status.py/1.0"),
+    ("Googlebot名乗りUA", "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)"),
+]
+
+HEADERS_TIMEOUT_SEC = 15
+
+
+def _fetch_headers(url, ua_label, ua_value):
+    req = urllib.request.Request(url, headers={"User-Agent": ua_value})
+    try:
+        resp = urllib.request.urlopen(req, timeout=HEADERS_TIMEOUT_SEC)
+        final_url = resp.geturl()
+        status = resp.status
+        body = resp.read()
+        headers = resp.headers
+    except urllib.error.HTTPError as e:
+        final_url = e.geturl() if hasattr(e, "geturl") else url
+        status = e.code
+        body = e.read() if e.fp else b""
+        headers = e.headers
+    except Exception as e:
+        print("- [%s] %s: 取得失敗: %s" % (ua_label, url, e))
+        return
+
+    print("- [%s] %s" % (ua_label, url))
+    if final_url != url:
+        print("  リダイレクト先: %s (status=%s)" % (final_url, status))
+    else:
+        print("  status: %s" % status)
+    print("  Content-Type: %s" % (headers.get("Content-Type", "なし")))
+    print("  Content-Length: %s" % (headers.get("Content-Length", "なし")))
+    print("  X-Robots-Tag: %s" % (headers.get("X-Robots-Tag", "なし")))
+    print("  Content-Encoding: %s" % (headers.get("Content-Encoding", "なし")))
+    print("  Server: %s" % (headers.get("Server", "なし")))
+
+    try:
+        text_head = body[:200].decode("utf-8", errors="replace")
+    except Exception:
+        text_head = repr(body[:200])
+    starts_with_bom = body[:3] == b"\xef\xbb\xbf"
+    print("  本文冒頭200字: %r" % text_head)
+    print("  BOMで始まる: %s" % starts_with_bom)
+
+
+def run_headers_check():
+    print("=== --headers: 生HTTP応答ヘッダー実測（認証なし） ===")
+    for url in HEADERS_URLS:
+        for ua_label, ua_value in HEADERS_USER_AGENTS:
+            _fetch_headers(url, ua_label, ua_value)
+    return 0
+
+
 def main():
+    if "--headers" in sys.argv[1:]:
+        return run_headers_check()
+
     try:
         from googleapiclient.discovery import build
     except ImportError:
