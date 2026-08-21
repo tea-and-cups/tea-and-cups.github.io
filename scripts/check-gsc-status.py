@@ -10,15 +10,18 @@ data/google-token.json をそのまま使う（スコープに
 webmasters.readonly が含まれている前提。再認可・スコープ変更はしない）。
 
 使い方:
-  python site/scripts/check-gsc-status.py             引数なし（Search Console API）
+  python site/scripts/check-gsc-status.py             引数なし（Search Console API・既定3件）
+  python site/scripts/check-gsc-status.py --url <URL> [--url <URL> ...]
+                                                        urlInspection対象を指定（複数可）
   python site/scripts/check-gsc-status.py --headers    生HTTP応答ヘッダー実測（認証なし・API呼び出しなし）
 
 出力:
   1. sitemaps.list: 送信済みサイトマップごとの lastDownloaded / isPending /
      warnings / errors / contents 件数
-  2. urlInspection.index.inspect: トップページ・最古記事・直近記事の
-     coverageState / lastCrawlTime / robotsTxtState / indexingState /
-     pageFetchState / userCanonical / googleCanonical
+  2. urlInspection.index.inspect: 対象URL（--url未指定時はトップページ・最古記事・
+     直近記事の3件）の coverageState / lastCrawlTime / robotsTxtState / indexingState /
+     pageFetchState / userCanonical / googleCanonical / referringUrls / sitemap
+     （APIレスポンスに無いフィールドは「なし」と表示）
 
 --headers モード（2026-08-17追加）:
   sitemap-index.xml / sitemap-0.xml / sitemap-alt.xml / robots.txt の4URLに対し、
@@ -61,6 +64,12 @@ INSPECT_FIELDS = (
     "pageFetchState",
     "userCanonical",
     "googleCanonical",
+)
+
+# indexStatusResult の直下ではなく別枝に入るフィールド。(表示ラベル, レスポンス内キー) の対応。
+EXTRA_INSPECT_FIELDS = (
+    ("referringUrls", "referringUrls"),
+    ("sitemap", "sitemap"),
 )
 
 
@@ -146,6 +155,9 @@ def show_inspections(service, targets):
         result = res.get("inspectionResult", {}).get("indexStatusResult", {})
         for field in INSPECT_FIELDS:
             print("  %s: %s" % (field, result.get(field, "(フィールドなし)")))
+        for label, key in EXTRA_INSPECT_FIELDS:
+            value = result.get(key)
+            print("  %s: %s" % (label, value if value else "なし"))
 
 
 HEADERS_URLS = [
@@ -208,6 +220,22 @@ def run_headers_check():
     return 0
 
 
+def parse_url_args(argv):
+    """--url <URL> を複数回受け取る。未指定ならNoneを返す（既定3件を使う合図）。"""
+    urls = []
+    i = 0
+    while i < len(argv):
+        if argv[i] == "--url":
+            if i + 1 >= len(argv):
+                print("エラー: --url の直後にURLを指定してください。")
+                sys.exit(1)
+            urls.append(argv[i + 1])
+            i += 2
+        else:
+            i += 1
+    return urls or None
+
+
 def main():
     if "--headers" in sys.argv[1:]:
         return run_headers_check()
@@ -221,7 +249,11 @@ def main():
     creds = get_credentials()
     service = build("searchconsole", "v1", credentials=creds, cache_discovery=False)
 
-    targets = [("トップページ", SITE_URL)] + oldest_and_newest_post_urls()
+    url_args = parse_url_args(sys.argv[1:])
+    if url_args:
+        targets = [("指定URL", u) for u in url_args]
+    else:
+        targets = [("トップページ", SITE_URL)] + oldest_and_newest_post_urls()
     try:
         show_sitemaps(service)
         show_inspections(service, targets)
