@@ -50,6 +50,7 @@ Pin画像に焼き込む文言の必須指定（D-0148）:
 
 import importlib.util
 import os
+import re
 import sys
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -81,6 +82,37 @@ def to_kanji(n):
     return s
 
 
+_ASCII_DIGITS = "0123456789"
+
+
+def _digits_to_kanji(digits):
+    n = int(digits)
+    if n <= 9999:
+        return to_kanji(n)
+    return "".join(_KANJI_DIGITS[int(d)] for d in digits)
+
+
+def kanjify_digits(text):
+    """文字列中の半角アラビア数字の並びを漢数字へ変換する（台帳由来の値の全角化・D-0149）。
+
+    台帳ファイル自体は書き換えず、依頼文へ埋め込む直前にのみ適用する。
+    例:「斜め45度」→「斜め四十五度」。
+    """
+    out = []
+    buf = ""
+    for ch in text:
+        if ch in _ASCII_DIGITS:
+            buf += ch
+        else:
+            if buf:
+                out.append(_digits_to_kanji(buf))
+                buf = ""
+            out.append(ch)
+    if buf:
+        out.append(_digits_to_kanji(buf))
+    return "".join(out)
+
+
 # --- 実測にもとづく正規寸法・比率（作業前の確認3・reports/2026-08-15-5.md） ---
 HERO_TARGET_W, HERO_TARGET_H = 1400, 735  # hero-to-webp.py TARGET（D-0020）
 HERO_RATIO_W, HERO_RATIO_H = 40, 21  # 1400:735を約分（gcd=35）
@@ -91,7 +123,7 @@ PIN_RATIO_W, PIN_RATIO_H = 2, 3  # 1024:1536を約分（gcd=512）
 
 def hero_dimension_text():
     return (
-        "画像の比率は縦横{rw}対{rh}にする（配置前に縦{h}・横{w}ピクセルのWebPへ変換するため、"
+        "画像の比率は縦横{rw}対{rh}にする（配置前に縦{h}・横{w}ピクセルへ変換するため、"
         "その比率に合わせる）。"
     ).format(
         rw=to_kanji(HERO_RATIO_H), rh=to_kanji(HERO_RATIO_W),
@@ -101,7 +133,8 @@ def hero_dimension_text():
 
 def pin_dimension_text():
     return (
-        "画像は縦長の比率{rh}対{rw}にする（目安は縦{h}・横{w}ピクセル程度）。"
+        "必ず縦長で作る（縦の辺が横の辺より長い）。横長や正方形は不可。"
+        "比率は{rh}対{rw}にする（目安は縦{h}・横{w}ピクセル程度）。"
     ).format(
         rh=to_kanji(PIN_RATIO_H), rw=to_kanji(PIN_RATIO_W),
         h=to_kanji(PIN_TARGET_H), w=to_kanji(PIN_TARGET_W),
@@ -131,11 +164,11 @@ TEXT_POSITION_LABEL = {"上部帯": "画像上部", "下部帯": "画像下部",
 
 
 def text_overlay_instruction(text_position):
-    pos = TEXT_POSITION_LABEL.get(text_position, text_position)
+    pos = kanjify_digits(TEXT_POSITION_LABEL.get(text_position, text_position))
     return (
         "{pos}に、実際の見出し文言（記事タイトルまたはピン投稿文の要点から作った短い日本語の"
         "コピー）を白抜き等の読みやすい文字で焼き込む。文字を入れない構図のみの仕上げは不可。"
-        "見出し文言: 《ここに見出し文言を入れる》"
+        "見出し文言：《ここに見出し文言を入れる》"
     ).format(pos=pos)
 
 
@@ -144,11 +177,11 @@ def pin_text_instruction(text_position, texts, ranking):
     if ranking:
         head = "各順位の枠内に、次の文言を白抜き等の読みやすい文字で焼き込む。"
     else:
-        pos = TEXT_POSITION_LABEL.get(text_position, text_position)
+        pos = kanjify_digits(TEXT_POSITION_LABEL.get(text_position, text_position))
         head = "{pos}に、次の文言を白抜き等の読みやすい文字で焼き込む。".format(pos=pos)
     lines = [head + "文字を入れない構図のみの仕上げは不可。"]
     for i, t in enumerate(texts, 1):
-        lines.append("文言その{n}: 「{t}」".format(n=to_kanji(i), t=t))
+        lines.append("文言その{n}：「{t}」".format(n=to_kanji(i), t=t))
     lines.extend(TEXT_STRICT_RULES)
     return "\n".join(lines)
 
@@ -165,8 +198,10 @@ AXIS_LABEL = {"angle": "アングル", "framing": "フレーミング", "text_po
 
 
 def axis_summary(row):
-    return "アングル={angle}／フレーミング={framing}／背景小物={background}".format(
-        angle=row["angle"], framing=row["framing"], background=background_phrase(row["background"]),
+    return "アングル＝{angle}／フレーミング＝{framing}／背景小物＝{background}".format(
+        angle=kanjify_digits(row["angle"]),
+        framing=kanjify_digits(row["framing"]),
+        background=kanjify_digits(background_phrase(row["background"])),
     )
 
 
@@ -210,6 +245,26 @@ def pin_text_error(detail):
     sys.exit(1)
 
 
+HANKAKU_RE = re.compile(r"[0-9A-Za-z]")
+
+
+def reject_hankaku_pin_text(opt, raw):
+    """--pinN-text に半角英数字が1文字でもあればプロンプトを出力せず exit 1（D-0149）。"""
+    hits = sorted(set(HANKAKU_RE.findall(raw)))
+    if not hits:
+        return
+    lines = [
+        "【エラー】%s の値に半角英数字が含まれています: %s" % (opt, "・".join(hits)),
+        "半角英数字はChatGPTの入力欄へ送信する時点で脱落するため、依頼文には使えません。",
+        "数字は漢数字で書いてください（例:「二種類用意する」）。",
+        "画像内にはアラビア数字で描かれるため（依頼文に数字の表記ルールを含めています）、"
+        "漢数字で渡して問題ありません。",
+        "受け取った値: %s" % raw,
+    ]
+    sys.stderr.write("\n".join(lines) + "\n")
+    sys.exit(1)
+
+
 def parse_pin_texts(slot, raw, style):
     """--pinN-text の値を検証して文言リストにする。違反時は exit 1（プロンプトは出力しない）。"""
     opt = pin_text_opt(slot)
@@ -248,7 +303,7 @@ def parse_pin_texts(slot, raw, style):
 
 # --- 型ごとの指示方針（rules/image-generation-flow.md 1-3節の表を正本としてここへ一本化。D-0126） ---
 TYPE_GUIDANCE = {
-    "写真ヒーロー": "物撮り・情景写真として、heroと同様の方向性で仕上げる。",
+    "写真ヒーロー": "物撮り・情景写真として、メイン画像と同様の方向性で仕上げる。",
     "比較グリッド": "二〜四項目を並べたグリッド／表形式にする。各項目にラベルと短い説明を付ける。",
     "手順図解": "三〜五ステップを段組みで示す。各段に番号とキャプションを付ける。",
     "チェックリスト": "三〜六項目のチェックボックス風レイアウトにする。",
@@ -272,9 +327,18 @@ TYPE_GUIDANCE = {
 }
 
 
+# 台帳・pick-image-variation.py 側の型名は変更せず、依頼文へ埋め込む時だけ表記を差し替える
+# （型名を変えると check-pin-image-style.py の重複判定と台帳の既存値が壊れるため・D-0149）。
+STYLE_DISPLAY_NAME = {"Q&A形式": "一問一答形式"}
+
+
+def display_style(style):
+    return kanjify_digits(STYLE_DISPLAY_NAME.get(style, style))
+
+
 def build_hero_prompt(row):
     lines = [
-        "紅茶ブログのhero画像を一枚作成してください。",
+        "紅茶ブログのメイン画像を一枚作成してください。",
         axis_summary(row) + "の構図で、物撮りまたは情景写真として仕上げてください。",
         text_overlay_instruction(row["text_position"]),
         BRAND_LOGO_BAN,
@@ -304,7 +368,7 @@ def build_pin_prompt(row, style, texts):
         print("型ごとの指示方針が未定義です（TYPE_GUIDANCEにない型）: %s" % style)
         sys.exit(1)
     lines = [
-        "紅茶ブログのPin画像を一枚作成してください。型は「%s」です。" % style,
+        "紅茶ブログのピン画像を一枚作成してください。型は「%s」です。" % display_style(style),
         guidance,
         axis_summary(row) + "を反映してください。",
         pin_text_instruction(row["text_position"], texts, ranking),
@@ -313,6 +377,36 @@ def build_pin_prompt(row, style, texts):
         pin_dimension_text(),
     ]
     return "\n".join(lines)
+
+
+# --- 実装D: 依頼文本文に半角ASCIIが混入していないかの自己チェック（D-0149） ---
+# 区切り行（--- hero --- 等）は main() 側で組み立てて出力するため、この検査の対象外。
+ASCII_RE = re.compile(r"[\x20-\x7e]")
+
+
+def assert_no_ascii(blocks):
+    """ChatGPTへ貼り付ける本文に半角ASCIIが1文字でもあれば、何も出力せず exit 1。"""
+    bad = []
+    for name, body in blocks:
+        for i, line in enumerate(body.split("\n"), 1):
+            hits = ASCII_RE.findall(line)
+            if hits:
+                bad.append((name, i, line, sorted(set(hits))))
+    if not bad:
+        return
+    lines = [
+        "【エラー】依頼文の本文に半角ASCII文字が含まれています"
+        "（ChatGPTの入力欄へ送信する時点で脱落するため出力を中止しました）。",
+    ]
+    for name, i, line, hits in bad:
+        lines.append(
+            "%s の%d行目: 混入文字 %s ／ 該当行: %s"
+            % (name, i, "・".join("「%s」" % c for c in hits), line)
+        )
+    lines.append("固定文・型ガイダンス・台帳由来の値のいずれかに半角文字が入っています。"
+                 "全角または日本語へ置き換えてください。")
+    sys.stderr.write("\n".join(lines) + "\n")
+    sys.exit(1)
 
 
 def main():
@@ -327,6 +421,7 @@ def main():
             i = argv.index(opt)
             if i + 1 >= len(argv):
                 pin_text_error("%s の値が指定されていません。" % opt)
+            reject_hankaku_pin_text(opt, argv[i + 1])
             raw_texts[slot] = argv[i + 1]
             del argv[i:i + 2]
 
@@ -367,12 +462,15 @@ def main():
     for slot in piv.PIN_SLOTS:
         texts[slot] = parse_pin_texts(slot, raw_texts.get(slot), styles[slot])
 
-    print("--- hero ---")
-    print(build_hero_prompt(by_type["hero"]))
-    print()
+    blocks = [("hero", build_hero_prompt(by_type["hero"]))]
     for slot in piv.PIN_SLOTS:
-        print("--- %s ---" % slot)
-        print(build_pin_prompt(by_type[slot], styles[slot], texts[slot]))
+        blocks.append((slot, build_pin_prompt(by_type[slot], styles[slot], texts[slot])))
+
+    assert_no_ascii(blocks)
+
+    for name, body in blocks:
+        print("--- %s ---" % name)
+        print(body)
         print()
 
 
