@@ -17,6 +17,7 @@ Edit/Writeによるpublished化は .claude/hooks/check-publish-gate.py で拒否
        check-source-fetched.py <slug>
        check-pin-image-naming.py
        check-pin-image-style.py <slug>
+       check-anchor-consistency.py <slug>
      ※quality-reviewer依頼前にも同じチェックを実行する運用は変えない。
        ここでの再実行は、レビュー往復中のEditで内容が変わっている可能性が
        あるための最終確認である。
@@ -61,6 +62,7 @@ PRE_PUBLISH_CHECKS = [
     ("check-source-fetched.py", True),
     ("check-pin-image-naming.py", False),
     ("check-pin-image-style.py", True),
+    ("check-anchor-consistency.py", True),
 ]
 
 CHECK_TIMEOUT = 120
