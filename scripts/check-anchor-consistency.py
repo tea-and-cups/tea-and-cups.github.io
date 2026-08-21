@@ -16,6 +16,8 @@ github-slugger の同一インスタンスで文書順に slug() を適用し、
 
 【判定】
   対象: frontmatter とコードフェンス（```）内を除いた本文
+  停止: 見出しに「**」「[」「`」が含まれる場合（IDの予測が未実測のため不合格にする）
+  停止: astro.config.mjs に experimentalHeadingIdCompat がある場合（末尾"-"除去の前提が崩れる）
   不合格: 本文中の Markdown リンク `](#...)` の指すIDが、本文の見出しIDに存在しない場合のみ
   「見出しはあるがリンクが無い」は不合格にしない。記事の型による分岐は持たない
   （ページ内リンクが無い記事は自動的に合格になる）。
@@ -37,6 +39,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 DRAFTS_DIR = os.path.join(ROOT, "output", "articles")
 POSTS_DIR = os.path.join(ROOT, "site", "src", "content", "posts")
 SLUGGER_ENTRY = os.path.join(ROOT, "site", "node_modules", "github-slugger", "index.js")
+ASTRO_CONFIG = os.path.join(ROOT, "site", "astro.config.mjs")
 
 NODE_TIMEOUT = 60
 
@@ -45,6 +48,9 @@ RE_FENCE = re.compile(r"^\s{0,3}```")
 RE_HEADING = re.compile(r"^(#{1,6}) +(.+?)\s*$")
 # Markdown リンクのうち、リンク先が # で始まるものだけ（外部リンクは対象外）
 RE_ANCHOR_LINK = re.compile(r"\[([^\]\[]*)\]\(\s*#([^)\s\"']*)")
+# 見出しに使われていた場合にIDの予測が保証できないインライン記法。
+# 「*」「_」の単体は日本語の見出しで誤検知しうるため対象に含めない。
+RE_HEADING_INLINE_MARKUP = re.compile(r"\*\*|\[|`")
 
 # github-slugger を同一インスタンスで文書順に適用し、Astro と同じ末尾"-"除去を行う。
 NODE_SCRIPT = r"""
@@ -105,6 +111,34 @@ def strip_fences(lines):
             continue
         kept.append((lineno, line))
     return kept
+
+
+def find_markup_headings(lines):
+    """インライン記法を含む見出しを [(行番号, 見出し行の原文), ...] で返す。
+
+    heading_text() で記法を除去した後では検出できないため、必ず除去より前に呼ぶ。
+    """
+    result = []
+    for lineno, line in lines:
+        m = RE_HEADING.match(line)
+        if m and RE_HEADING_INLINE_MARKUP.search(m.group(2)):
+            result.append((lineno, line.rstrip()))
+    return result
+
+
+def check_astro_config():
+    """astro.config.mjs の見出しID設定を確認する。問題があれば理由（文字列）を返す。
+
+    注意: ここで拾えるのは設定変更のみで、Astro本体のバージョン更新による
+    見出しID生成規則の変更は拾えない。
+    """
+    try:
+        source = io_read(ASTRO_CONFIG)
+    except Exception as e:
+        return "site/astro.config.mjs を読めませんでした: %s" % e
+    if "experimentalHeadingIdCompat" in source:
+        return "site/astro.config.mjs に experimentalHeadingIdCompat が指定されています"
+    return None
 
 
 def heading_text(raw):
@@ -206,7 +240,26 @@ def main():
         out("見つかりません: output/articles/%s.md / site/src/content/posts/%s.md" % (slug, slug))
         return 1
 
+    config_problem = check_astro_config()
+    if config_problem is not None:
+        out("見出しID設定: NG（%s）" % config_problem)
+        out("見出しIDの生成規則が変わった可能性があるため、本スクリプトの末尾ハイフン除去処理")
+        out("（slug が \"-\" で終わる場合に1つ除去する箇所）の見直しが必要です。")
+        out("Astroの実際の挙動を実測し直してから公開してください。")
+        return 1
+
     lines = strip_fences(body_lines(io_read(path)))
+
+    markup_headings = find_markup_headings(lines)
+    if markup_headings:
+        out("見出しの記法: NG（%d件の見出しにインライン記法が含まれています）" % len(markup_headings))
+        for lineno, raw in markup_headings:
+            out("  %d行目: %s" % (lineno, raw))
+        out("")
+        out("Astroが生成するIDの予測と一致するか未実測のため、見出しはプレーンテキストで書いてください")
+        out("（「**」「[」「`」を見出しに使わない）。")
+        return 1
+
     links = collect_anchor_links(lines)
     if not links:
         out("ページ内リンク: OK（本文にページ内リンクはありません）")
