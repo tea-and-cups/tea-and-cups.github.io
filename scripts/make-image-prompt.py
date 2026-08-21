@@ -32,16 +32,20 @@ ChatGPTへのプロンプトはASCII文字を含めない規約（rules/image-ge
 D-0126）。型の候補プール自体（型名の一覧）は pick-image-variation.py の IMAGE_STYLES を正本と
 し、ここでは複製しない。
 
-ランキング型の順位ラベル（D-0144）:
-  「ランキング」型は順位の枠だけを描かせると、ChatGPT側が空欄・破線の記入欄や
-  架空のブランド名を描き足す生成物になりやすかった。そのため pin1〜3のいずれかが
-  ランキング型のときは --ranking-labels で1位〜3位に焼き込む文言（3件・各10文字以内）を
-  必須にし、プロンプトへそのまま埋め込む。ラベルを用意できない場合は
-  pick-image-variation.py --set-style で別の型に選び直す。
+Pin画像に焼き込む文言の必須指定（D-0148）:
+  画像内テキストをChatGPTの自律生成に任せると本文と食い違い、quality-reviewerの2回目往復と
+  Pin画像の作り直しを招いていた（対象期間8記事中5記事で発生）。そのため pin1〜3それぞれに
+  --pin1-text / --pin2-text / --pin3-text で「その1枚に描く文言のすべて」を渡すことを必須に
+  する。1つでも未指定・制約違反があればプロンプトを一切出力せず exit 1 で終わる。
+  文言は全角の縦棒「｜」で区切る（PowerShell対策として半角の縦棒も受け付ける）。
+  制約は1枚あたり1〜6件・1件あたり30文字以内。ランキング型のPinに限り、渡された文言を
+  順位ラベルとして扱い、追加でちょうど3件・各10文字以内を課す（旧 --ranking-labels の
+  役割はここへ統合した。同じ「画像内文言」を2系統の引数で管理すると片方が腐るため・
+  D-0126と同じ理由）。
 
 使い方:
   python site/scripts/make-image-prompt.py <slug>
-  python site/scripts/make-image-prompt.py <slug> --ranking-labels "香り重視,毎日飲む用,ミルクティー向き"
+    --pin1-text "文言A｜文言B" --pin2-text "文言C" --pin3-text "文言D｜文言E｜文言F"
 """
 
 import importlib.util
@@ -111,6 +115,18 @@ BRAND_LOGO_BAN = (
 
 DIGIT_RULE = "画像内の数字はすべてアラビア数字で表記し、漢数字は使わない。"
 
+# 指定文言以外を描き足させないための固定文（Pin用依頼文に必ず入れる・D-0148）。全角のみで組み立てる
+# （rules/image-generation-flow.md 規約3・ChatGPT入力欄でASCIIが脱落するため）。
+TEXT_STRICT_RULES = [
+    "画像内に描く文字は、ここで指定した文言のみとする。",
+    "指定した文言以外の文字・数字・記号を描き足さない"
+    "（説明文・商品名・ブランド名・空欄や破線の記入欄・飾りの英字も含む）。",
+    "文言は一字一句そのまま使い、言い換え・要約・語尾の変更をしない。",
+]
+
+# heroは横長でないと配置時の中央クロップで上部の見出し文言が切れる（hero-to-webp.pyのガード・D-0148）。
+HERO_LANDSCAPE_RULE = "必ず横長で作る（横の辺が縦の辺より長い）。縦長や正方形は不可。"
+
 TEXT_POSITION_LABEL = {"上部帯": "画像上部", "下部帯": "画像下部", "中央": "画像中央"}
 
 
@@ -121,6 +137,20 @@ def text_overlay_instruction(text_position):
         "コピー）を白抜き等の読みやすい文字で焼き込む。文字を入れない構図のみの仕上げは不可。"
         "見出し文言: 《ここに見出し文言を入れる》"
     ).format(pos=pos)
+
+
+def pin_text_instruction(text_position, texts, ranking):
+    """渡された文言をそのまま列挙する焼き込み指示を作る（数字は漢数字・ASCII規約。D-0148）。"""
+    if ranking:
+        head = "各順位の枠内に、次の文言を白抜き等の読みやすい文字で焼き込む。"
+    else:
+        pos = TEXT_POSITION_LABEL.get(text_position, text_position)
+        head = "{pos}に、次の文言を白抜き等の読みやすい文字で焼き込む。".format(pos=pos)
+    lines = [head + "文字を入れない構図のみの仕上げは不可。"]
+    for i, t in enumerate(texts, 1):
+        lines.append("文言その{n}: 「{t}」".format(n=to_kanji(i), t=t))
+    lines.extend(TEXT_STRICT_RULES)
+    return "\n".join(lines)
 
 
 def background_phrase(value):
@@ -140,27 +170,80 @@ def axis_summary(row):
     )
 
 
-# --- ランキング型の順位ラベル（D-0144） ---
+# --- Pin画像に焼き込む文言（--pinN-text・旧 --ranking-labels の統合先・D-0148） ---
 RANKING_KEY = "ランキング"
 RANKING_LABEL_COUNT = 3
 RANKING_LABEL_MAX_LEN = 10
-RANKING_LABELS_OPT = "--ranking-labels"
-RANKING_LABELS_EXAMPLE = '%s "香り重視,毎日飲む用,ミルクティー向き"' % RANKING_LABELS_OPT
+
+PIN_TEXT_SEP_FULL = "｜"  # 正規の区切り（全角）
+PIN_TEXT_SEP_HALF = "|"   # PowerShell対策で受け付ける半角
+PIN_TEXT_MAX_COUNT = 6
+PIN_TEXT_MIN_COUNT = 1
+PIN_TEXT_MAX_LEN = 30
+PIN_TEXT_EXAMPLE = (
+    'python site/scripts/make-image-prompt.py <slug> '
+    '--pin1-text "雨の日の一杯｜香りで気分転換" --pin2-text "淹れる前と後" '
+    '--pin3-text "茶葉｜湯温｜蒸らし時間"'
+)
 
 
-def ranking_labels_error(detail):
-    """順位ラベル関連のエラーを標準エラー出力へ出して exit 1 する（D-0144）。"""
+def pin_text_opt(slot):
+    """スロット名（pin1等）に対応するオプション名を返す。"""
+    return "--%s-text" % slot
+
+
+def pin_text_error(detail):
+    """画像内文言（--pinN-text）関連のエラーを標準エラーへ出して exit 1 する（D-0148）。"""
     lines = [
         "【エラー】%s" % detail,
-        "ランキング型のPin画像には、一位〜三位に焼き込む順位ラベルが%d件必要です"
-        "（各%d文字以内・画像内に収まらない長さを避けるため）。" % (RANKING_LABEL_COUNT, RANKING_LABEL_MAX_LEN),
-        "記述例: python site/scripts/make-image-prompt.py <slug> %s" % RANKING_LABELS_EXAMPLE,
-        "ラベルは実在のブランド名ではなく、特徴を表す語（例: 香り重視／毎日飲む用）にしてください。",
-        "ラベルを用意できない場合は、次を打ち直してランキング以外の型へ変更してかまいません:",
+        "Pin画像に焼き込む文言は pin1〜pin3 のすべてで指定が必須です"
+        "（1枚あたり%d〜%d件・1件あたり%d文字以内。区切りは全角の縦棒「%s」）。"
+        % (PIN_TEXT_MIN_COUNT, PIN_TEXT_MAX_COUNT, PIN_TEXT_MAX_LEN, PIN_TEXT_SEP_FULL),
+        "ランキング型のPinに限り、順位ラベルとして扱うためちょうど%d件・各%d文字以内が必要です。"
+        % (RANKING_LABEL_COUNT, RANKING_LABEL_MAX_LEN),
+        "記述例: %s" % PIN_TEXT_EXAMPLE,
+        "文言は実在のブランド名ではなく、記事本文と一致する語にしてください。",
+        "ランキング型の文言を用意できない場合は、次を打ち直して別の型へ変更してかまいません:",
         '  python site/scripts/pick-image-variation.py --set-style <slug> "pin1=<型名>" "pin2=<型名>" "pin3=<型名>"',
     ]
     sys.stderr.write("\n".join(lines) + "\n")
     sys.exit(1)
+
+
+def parse_pin_texts(slot, raw, style):
+    """--pinN-text の値を検証して文言リストにする。違反時は exit 1（プロンプトは出力しない）。"""
+    opt = pin_text_opt(slot)
+    if raw is None:
+        pin_text_error("%s（型「%s」）の %s が指定されていません。" % (slot, style, opt))
+    normalized = raw.replace(PIN_TEXT_SEP_HALF, PIN_TEXT_SEP_FULL)
+    texts = [v.strip() for v in normalized.split(PIN_TEXT_SEP_FULL)]
+    texts = [v for v in texts if v]
+    if len(texts) < PIN_TEXT_MIN_COUNT:
+        pin_text_error("%s の %s に文言が1件も含まれていません（空文字）。" % (slot, opt))
+    if len(texts) > PIN_TEXT_MAX_COUNT:
+        pin_text_error(
+            "%s の %s が%d件を超えています（受け取った件数: %d件）。"
+            % (slot, opt, PIN_TEXT_MAX_COUNT, len(texts))
+        )
+    too_long = [v for v in texts if len(v) > PIN_TEXT_MAX_LEN]
+    if too_long:
+        pin_text_error(
+            "%s の %s に%d文字を超える文言があります: %s"
+            % (slot, opt, PIN_TEXT_MAX_LEN, "／".join("%s（%d文字）" % (v, len(v)) for v in too_long))
+        )
+    if is_ranking(style):
+        if len(texts) != RANKING_LABEL_COUNT:
+            pin_text_error(
+                "%s はランキング型（%s）のため順位ラベルがちょうど%d件必要ですが、%d件でした。"
+                % (slot, style, RANKING_LABEL_COUNT, len(texts))
+            )
+        over = [v for v in texts if len(v) > RANKING_LABEL_MAX_LEN]
+        if over:
+            pin_text_error(
+                "%s はランキング型のため各順位ラベルは%d文字以内が必要です: %s"
+                % (slot, RANKING_LABEL_MAX_LEN, "／".join("%s（%d文字）" % (v, len(v)) for v in over))
+            )
+    return texts
 
 
 # --- 型ごとの指示方針（rules/image-generation-flow.md 1-3節の表を正本としてここへ一本化。D-0126） ---
@@ -172,7 +255,7 @@ TYPE_GUIDANCE = {
     "ビフォーアフター": "左右または上下で対比構造にする。",
     "Q&A形式": "質問と回答を吹き出し等で対比させる。",
     "ポイント整理": "記事の要点を三〜四個の箇条書き風レイアウトで見せる。",
-    # ランキング型は渡された順位ラベル（--ranking-labels）を埋め込む形にする（D-0144）。
+    # ランキング型は渡された順位ラベル（--pinN-text）を埋め込む形にする（D-0144・D-0148）。
     # 他の型と違い、この値は format() 用のテンプレートであり、そのままは使わない
     # （埋め込みは ranking_guidance() が行う）。
     "ランキング": (
@@ -197,6 +280,7 @@ def build_hero_prompt(row):
         BRAND_LOGO_BAN,
         DIGIT_RULE,
         hero_dimension_text(),
+        HERO_LANDSCAPE_RULE,
     ]
     return "\n".join(lines)
 
@@ -210,9 +294,10 @@ def ranking_guidance(labels):
     return TYPE_GUIDANCE[RANKING_KEY].format(label1=labels[0], label2=labels[1], label3=labels[2])
 
 
-def build_pin_prompt(row, style, ranking_labels=None):
-    if is_ranking(style):
-        guidance = ranking_guidance(ranking_labels)
+def build_pin_prompt(row, style, texts):
+    ranking = is_ranking(style)
+    if ranking:
+        guidance = ranking_guidance(texts)
     else:
         guidance = TYPE_GUIDANCE.get(style)
     if guidance is None:
@@ -222,7 +307,7 @@ def build_pin_prompt(row, style, ranking_labels=None):
         "紅茶ブログのPin画像を一枚作成してください。型は「%s」です。" % style,
         guidance,
         axis_summary(row) + "を反映してください。",
-        text_overlay_instruction(row["text_position"]),
+        pin_text_instruction(row["text_position"], texts, ranking),
         BRAND_LOGO_BAN,
         DIGIT_RULE,
         pin_dimension_text(),
@@ -235,16 +320,21 @@ def main():
         sys.stdout.reconfigure(encoding="utf-8")
 
     argv = sys.argv[1:]
-    raw_labels = None
-    if RANKING_LABELS_OPT in argv:
-        i = argv.index(RANKING_LABELS_OPT)
-        if i + 1 >= len(argv):
-            ranking_labels_error("%s の値が指定されていません。" % RANKING_LABELS_OPT)
-        raw_labels = argv[i + 1]
-        del argv[i:i + 2]
+    raw_texts = {}
+    for slot in piv.PIN_SLOTS:
+        opt = pin_text_opt(slot)
+        if opt in argv:
+            i = argv.index(opt)
+            if i + 1 >= len(argv):
+                pin_text_error("%s の値が指定されていません。" % opt)
+            raw_texts[slot] = argv[i + 1]
+            del argv[i:i + 2]
 
     if len(argv) != 1:
-        print('usage: make-image-prompt.py <slug> [%s "ラベル1,ラベル2,ラベル3"]' % RANKING_LABELS_OPT)
+        print(
+            'usage: make-image-prompt.py <slug> '
+            + " ".join('%s "文言1｜文言2"' % pin_text_opt(s_) for s_ in piv.PIN_SLOTS)
+        )
         sys.exit(1)
     slug = argv[0]
 
@@ -272,35 +362,17 @@ def main():
         print("台帳の型選定をやり直してから再実行してください（同一記事内で異なる3つの型が必要）。")
         sys.exit(1)
 
-    # --- ランキング型の順位ラベル検証（D-0144・プロンプトを1行も出力する前に判定する） ---
-    ranking_slots = [s for s in piv.PIN_SLOTS if is_ranking(styles[s])]
-    ranking_labels = None
-    if ranking_slots:
-        if raw_labels is None:
-            ranking_labels_error(
-                "%s がランキング型（%s）ですが、%s が指定されていません。"
-                % ("・".join(ranking_slots), "／".join(styles[s] for s in ranking_slots), RANKING_LABELS_OPT)
-            )
-        ranking_labels = [v.strip() for v in raw_labels.split(",")]
-        if len(ranking_labels) != RANKING_LABEL_COUNT or any(not v for v in ranking_labels):
-            ranking_labels_error(
-                "%s の値が%d件ちょうどではありません（受け取った値: %d件）。"
-                % (RANKING_LABELS_OPT, RANKING_LABEL_COUNT, len(ranking_labels))
-            )
-        too_long = [v for v in ranking_labels if len(v) > RANKING_LABEL_MAX_LEN]
-        if too_long:
-            ranking_labels_error(
-                "%d文字を超えるラベルがあります: %s"
-                % (RANKING_LABEL_MAX_LEN, "／".join("%s（%d文字）" % (v, len(v)) for v in too_long))
-            )
-    # ランキング型が無い場合、--ranking-labels は指定されていても無視する（D-0144(4)）
+    # --- 画像内文言の検証（D-0148・プロンプトを1行も出力する前に全スロットを判定する） ---
+    texts = {}
+    for slot in piv.PIN_SLOTS:
+        texts[slot] = parse_pin_texts(slot, raw_texts.get(slot), styles[slot])
 
     print("--- hero ---")
     print(build_hero_prompt(by_type["hero"]))
     print()
     for slot in piv.PIN_SLOTS:
         print("--- %s ---" % slot)
-        print(build_pin_prompt(by_type[slot], styles[slot], ranking_labels))
+        print(build_pin_prompt(by_type[slot], styles[slot], texts[slot]))
         print()
 
 
