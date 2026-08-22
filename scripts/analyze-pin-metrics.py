@@ -32,8 +32,14 @@ r"""投稿済みPinの「型 × 実成果」を集計する（読み取り専用
      GET /v5/pins/{pin_id}/analytics を1件ずつ呼ぶ（間隔は ANALYTICS_INTERVAL_SECONDS）。
   5. data/pin-metrics.tsv へ出力し、標準出力に型別／スロット別／ボード別の3表を出す。
 
+--verify-saves オプション:
+  上記の通常処理に加え、インプレッション上位5件について GET /v5/pins/{pin_id}/analytics
+  を個別に呼び、lifetime_metrics（pin_metrics）側のSAVEが実測と一致するかを比較する。
+  呼び出しはちょうど5件のみ（全件取得は行わない）。通常時の挙動・出力には影響しない。
+
 使い方:
   python site/scripts/analyze-pin-metrics.py
+  python site/scripts/analyze-pin-metrics.py --verify-saves
 """
 
 import datetime
@@ -62,6 +68,13 @@ WINDOW_DAYS = 90      # created_at がこの日数以内のピンだけを対象
 # analytics を個別に呼ぶ場合の呼び出し間隔（秒）。
 # Standardのレート制限は1分100リクエスト。0.7秒間隔なら1分あたり約85件で余裕がある。
 ANALYTICS_INTERVAL_SECONDS = 0.7
+
+# --- --verify-saves オプション用（lifetime_metricsのSAVEが実測と一致するかの検証） ---
+VERIFY_SAVES_FLAG = "--verify-saves"
+VERIFY_SAVES_TOP_N = 5  # インプレッション上位何件を検証するか（ちょうどこの件数だけ呼ぶ）
+VERIFY_SAVES_INTERVAL_SECONDS = 0.7
+# インプレッションの「概ね一致」判定のしきい値（相対誤差）。これを超えたら食い違いとみなす。
+VERIFY_SAVES_IMPRESSION_TOLERANCE = 0.10
 
 API_TIMEOUT_SECONDS = 20
 
@@ -363,6 +376,93 @@ def format_table(title, header, buckets):
     return lines
 
 
+def run_verify_saves(rows, access_token, now):
+    """--verify-saves 用: インプレッション上位 VERIFY_SAVES_TOP_N 件について
+    GET /v5/pins/{pin_id}/analytics を個別に呼び、lifetime_metrics（GET /v5/pins の
+    pin_metrics）側のSAVEが実測（analytics）と一致するかを比較する。
+
+    呼び出しはちょうど VERIFY_SAVES_TOP_N 件のみ（全件取得は行わない）。
+    """
+    scored = []
+    for row in rows:
+        found, _period = extract_pin_metrics(row["pin_metrics"])
+        lifetime_impression = found.get("impression") if found else None
+        lifetime_save = found.get("save") if found else None
+        scored.append((row, lifetime_impression, lifetime_save))
+    scored = [s for s in scored if s[1] is not None]
+    scored.sort(key=lambda s: -s[1])
+    top = scored[:VERIFY_SAVES_TOP_N]
+
+    print("")
+    print("=== --verify-saves: インプレッション上位%d件のSAVE実測比較（GET系のみ） ===" % VERIFY_SAVES_TOP_N)
+
+    if not top:
+        print("比較対象（lifetime_metricsにインプレッションがあるピン）が見つかりませんでした。")
+        verdict = "SAVE_METRIC_UNRELIABLE（lifetime_metricsのSAVEは信頼できない）"
+        print("")
+        print(verdict)
+        return verdict
+
+    table_rows = []
+    for i, (row, lifetime_impression, lifetime_save) in enumerate(top):
+        if i > 0:
+            time.sleep(VERIFY_SAVES_INTERVAL_SECONDS)
+        created = datetime.datetime.fromisoformat(row["created_at"]).replace(
+            tzinfo=datetime.timezone.utc)
+        found, reason = fetch_analytics(row["pin_id"], access_token, created, now)
+        if found is None:
+            print("  【警告】pin%d の analytics 取得に失敗: %s" % (row["pin_num"], reason))
+            analytics_impression = None
+            analytics_save = None
+        else:
+            analytics_impression = found["impression"]
+            analytics_save = found["save"]
+        table_rows.append({
+            "pin_num": row["pin_num"],
+            "pin_id": row["pin_id"],
+            "lifetime_impression": lifetime_impression,
+            "analytics_impression": analytics_impression,
+            "lifetime_save": lifetime_save,
+            "analytics_save": analytics_save,
+        })
+
+    def fmt(v):
+        return "-" if v is None else str(int(v))
+
+    print("")
+    print("%-10s %-22s %10s %10s %8s %8s" % (
+        "pin番号", "pin_id", "lt_imp", "an_imp", "lt_save", "an_save"))
+    print("-" * 74)
+    for t in table_rows:
+        print("%-10s %-22s %10s %10s %8s %8s" % (
+            "pin%d" % t["pin_num"], t["pin_id"],
+            fmt(t["lifetime_impression"]), fmt(t["analytics_impression"]),
+            fmt(t["lifetime_save"]), fmt(t["analytics_save"])))
+
+    # --- 判定（機械的・表示のみ・終了コードには反映しない） ---
+    valid = [t for t in table_rows if t["analytics_impression"] is not None]
+
+    def impression_close(t):
+        lt, an = t["lifetime_impression"], t["analytics_impression"]
+        if lt is None or an is None:
+            return False
+        if lt == 0:
+            return an == 0
+        return abs(lt - an) / lt <= VERIFY_SAVES_IMPRESSION_TOLERANCE
+
+    any_analytics_save_nonzero = any((t["analytics_save"] or 0) > 0 for t in valid)
+    all_impressions_match = bool(valid) and all(impression_close(t) for t in valid)
+
+    if valid and not any_analytics_save_nonzero and all_impressions_match:
+        verdict = "SAVE_CONFIRMED_ZERO（保存は実際に発生していない）"
+    else:
+        verdict = "SAVE_METRIC_UNRELIABLE（lifetime_metricsのSAVEは信頼できない）"
+
+    print("")
+    print(verdict)
+    return verdict
+
+
 NOTICE = (
     "型別の差はスロット位置・ボードと交絡している可能性がある。表1だけで判断せず表2・表3と併読すること。\n"
     "保存数が全体で少ない場合、保存率の型別比較は判断材料にならない。"
@@ -372,6 +472,8 @@ NOTICE = (
 def main():
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
+
+    verify_saves = VERIFY_SAVES_FLAG in sys.argv[1:]
 
     try:
         access_token = require_env("PINTEREST_ACCESS_TOKEN")
@@ -578,7 +680,7 @@ def main():
                 print("    pin%d: %s" % (pin_num, reason))
 
     # --- 5. TSV出力 ---
-    header = ["pin番号", "slug", "スロット", "型", "ボード名", "created_at",
+    header = ["pin_id", "pin番号", "slug", "スロット", "型", "ボード名", "created_at",
               "経過日数", "インプレッション", "ピンクリック", "アウトバウンドクリック",
               "保存", "特定経路"]
     rows.sort(key=lambda r: r["pin_num"])
@@ -586,7 +688,8 @@ def main():
         f.write("\t".join(header) + "\n")
         for row in rows:
             f.write("\t".join([
-                str(row["pin_num"]), row["slug"], row["slot"], row["style"], row["board"],
+                str(row["pin_id"]), str(row["pin_num"]), row["slug"], row["slot"],
+                row["style"], row["board"],
                 row["created_at"], "%.1f" % row["elapsed_days"],
                 str(int(row["impression"])), str(int(row["pin_click"])),
                 str(int(row["outbound_click"])), str(int(row["save"])), row["route"],
@@ -611,6 +714,10 @@ def main():
         print("【特定不能だったピン（%d件）】" % len(unresolved))
         for link, reason in unresolved:
             print("  %s : %s" % (link, reason))
+
+    # --- 8. --verify-saves（付けた場合のみ・既存挙動には影響しない） ---
+    if verify_saves:
+        run_verify_saves(rows, access_token, now)
 
 
 if __name__ == "__main__":
