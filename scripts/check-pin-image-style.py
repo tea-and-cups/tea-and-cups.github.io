@@ -14,6 +14,9 @@
      pick-image-variation.py 側で候補不足による緩和（直近1記事のみの除外／
      除外なし）が発生する状態の場合は、重複を警告のみに留めエラーにしない。
      緩和の有無は台帳の内容から同じロジックで再計算して判定する。
+     条件（情報量×CTAの4群・D-0152）は piv.conditions_for_slug() から引く。判定に効くのは
+     情報量条件だけで、CTAの有無は型の選定に影響しない（CTAありでもpin1〜3の3枚すべてに
+     同じ帯を入れるため、型の重複判定は変わらない）。CTA条件は参考として出力に表示する。
   3. Pin投稿文の数量表記チェック（D-0126）: output/pins/配下の対象記事のPin
      投稿文ファイル（「## 投稿文」節）に、漢数字2文字以上＋単位（ml/ミリリットル/
      cc/円/度/分/秒/個/枚/杯/人）が直後に続く表記がないか検査する。
@@ -133,7 +136,8 @@ def main():
     print()
     print("=== 2. 型の重複チェック ===")
 
-    condition = piv.condition_for_slug(slug, rows) or piv.CONDITION_CURRENT
+    conditions = piv.conditions_for_slug(slug, rows) or (piv.CONDITION_CURRENT, piv.CTA_NONE)
+    condition, cta = conditions
     _candidates, used, lookback = piv.available_styles(rows, exclude_slug=slug, condition=condition)
     low_info = condition == piv.CONDITION_LOW
     relaxed = (not low_info) and lookback < piv.STYLE_LOOKBACK
@@ -142,7 +146,8 @@ def main():
     ng = []
     warn = []
 
-    print(f"  条件: {condition}（D-0152）")
+    # CTAの有無は型の重複判定に影響しない（3枚すべてに同じ帯を入れるため）。参考として表示だけする。
+    print(f"  条件: {condition}／{cta}（D-0152）")
 
     values = [styles[s] for s in piv.PIN_SLOTS]
     if len(set(values)) != len(values):

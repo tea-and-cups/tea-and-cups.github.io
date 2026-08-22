@@ -30,9 +30,14 @@ r"""投稿済みPinの「型 × 実成果」を集計する（読み取り専用
   3. 型をローカルのピンファイルから引く。
   4. 指標は手順1の pin_metrics を優先し、揃っていない場合のみ
      GET /v5/pins/{pin_id}/analytics を1件ずつ呼ぶ（間隔は ANALYTICS_INTERVAL_SECONDS）。
-  5. data/pin-metrics.tsv へ出力し、標準出力に型別／スロット別／ボード別／文言件数別の
-     4表を出す（表4はD-0152の条件比較用。文言件数はピンファイルのプロンプト全文から
-     実際に数えた件数で、数えられないピンは「不明」として別行に集計する）。
+  5. data/pin-metrics.tsv へ出力し、標準出力に型別／スロット別／ボード別／文言件数別／
+     4群別（情報量×CTA）の5表を出す（表4・表5はD-0152の条件比較用）。
+     文言件数はピンファイルのプロンプト全文から実際に数えた件数で、数えられないピンは
+     「不明」として別行に集計する。CTAの有無も同じくプロンプト全文にCTA文言
+     （pick-image-variation.py の CTA_TEXTS）が含まれるかで判定する（意図ではなく実際の
+     指示内容から判定するため）。CTA導入前（CTA_START_DATE より前に作成）のピンは
+     「CTAなし」ではなく「不明」に寄せる（当時はCTAという選択肢自体が無く、条件の一方の
+     群として扱えないため）。
 
 --verify-saves オプション:
   上記の通常処理に加え、インプレッション上位5件について GET /v5/pins/{pin_id}/analytics
@@ -57,6 +62,16 @@ if SCRIPT_DIR not in sys.path:
     sys.path.insert(0, SCRIPT_DIR)
 from env_loader import require_env, EnvLoaderError  # noqa: E402
 import pinterest_api  # noqa: E402
+
+# 条件の定義（4群の振り分け・CTA文言）は pick-image-variation.py を唯一の定義元とする。
+# ファイル名にハイフンを含むため通常のimportができず、importlibで読み込む（他スクリプトと同じ形）。
+import importlib.util  # noqa: E402
+
+_piv_spec = importlib.util.spec_from_file_location(
+    "pick_image_variation", os.path.join(SCRIPT_DIR, "pick-image-variation.py")
+)
+piv = importlib.util.module_from_spec(_piv_spec)
+_piv_spec.loader.exec_module(piv)
 
 ROOT = os.path.dirname(os.path.dirname(SCRIPT_DIR))
 PINS_DIR = os.path.join(ROOT, "output", "pins")
@@ -113,6 +128,21 @@ TEXT_COUNT_NOTICE = (
     "文言件数を機械的に数えられるのは make-image-prompt.py 経由で作成したピンのみ。\n"
     "2026-08-22より前のピンはすべて不明に集計される。条件比較には不明行を使わないこと。"
 )
+
+# CTAの有無（D-0152）。ピンファイルに記録されたプロンプト全文にCTA文言が含まれるかで判定する。
+# 「CTAを入れるつもりだったか」ではなく「実際にそう指示したか」を見るため、別途フラグは持たない。
+CTA_UNKNOWN = "不明"
+CTA_START_DATE = datetime.date(2026, 8, 23)  # CTA条件の運用開始日
+CTA_NOTICE = (
+    "CTAの有無はピンファイルのプロンプト全文にCTA文言（%s）が含まれるかで判定する。\n"
+    "%s より前に作成されたピンはCTAという選択肢自体が無かったため、すべて不明に集計される"
+    "（「CTAなし」の群には入れない）。条件比較には不明行を使わないこと。"
+    % ("／".join(piv.CTA_TEXTS), CTA_START_DATE.isoformat())
+)
+
+# 表5（4群別）の行ラベル。文言件数バケットを「情報多め／情報少なめ」の言い方へ寄せる。
+INFO_LABEL = {TEXT_COUNT_LOW: "情報少なめ", TEXT_COUNT_HIGH: "情報多め"}
+CONDITION_GROUP_UNKNOWN = "不明"
 
 TYPE_LINE_RE = re.compile(r"^-\s*型:\s*(.+)$")
 GUIDE_URL_RE = re.compile(r"^-\s*誘導先URL:\s*(\S+)\s*$")
@@ -175,8 +205,33 @@ def text_count_bucket(count):
     return TEXT_COUNT_LOW if count <= 2 else TEXT_COUNT_HIGH
 
 
+def has_cta_text(content):
+    """ピンファイル全文にCTA文言のいずれかが含まれるか（D-0152）。"""
+    return any(t in content for t in piv.CTA_TEXTS)
+
+
+def cta_bucket(cta_found, created_date):
+    """CTAの有無を集計バケット名にする（あり／なし／不明・D-0152）。
+
+    CTA_START_DATE より前に作成されたピンは、当時CTAという選択肢自体が無かったため
+    「CTAなし」ではなく「不明」に寄せる（比較対象の群として扱えないため）。
+    """
+    if created_date is None or created_date < CTA_START_DATE or cta_found is None:
+        return CTA_UNKNOWN
+    return piv.CTA_YES if cta_found else piv.CTA_NONE
+
+
+def condition_group(row):
+    """情報量×CTAの4群のラベルを返す（D-0152）。片方でも不明なら「不明」。"""
+    info = INFO_LABEL.get(row["text_count_bucket"])
+    cta = row["cta_bucket"]
+    if info is None or cta == CTA_UNKNOWN:
+        return CONDITION_GROUP_UNKNOWN
+    return "%s・%s" % (info, cta)
+
+
 def parse_pin_file(path):
-    """1ピンファイルから 型 / 誘導先URL / 文言件数 を読む。戻り値: dict。"""
+    """1ピンファイルから 型 / 誘導先URL / 文言件数 / CTAの有無 を読む。戻り値: dict。"""
     style_raw = None
     guide_url = None
     try:
@@ -199,6 +254,7 @@ def parse_pin_file(path):
         "style_raw": style_raw,
         "guide_url": guide_url,
         "text_count": count_text_items(content),
+        "cta_found": has_cta_text(content),
     }
 
 
@@ -269,6 +325,7 @@ def build_local_index():
             "style_normalized": style_changed,
             "slug": slug_from_url(parsed["guide_url"]),
             "text_count": parsed["text_count"],
+            "cta_found": parsed["cta_found"],
         }
 
     # slug ごとに Pin番号昇順で slot を振る
@@ -669,6 +726,7 @@ def main():
             "style": info["style"],
             "text_count": info.get("text_count"),
             "text_count_bucket": text_count_bucket(info.get("text_count")),
+            "cta_bucket": cta_bucket(info.get("cta_found"), created.date()),
             "board": board_names.get(str(pin.get("board_id", "")), str(pin.get("board_id", ""))),
             "created_at": created.date().isoformat(),
             "elapsed_days": elapsed,
@@ -741,9 +799,9 @@ def main():
                 print("    pin%d: %s" % (pin_num, reason))
 
     # --- 5. TSV出力 ---
-    header = ["pin_id", "pin番号", "slug", "スロット", "型", "文言件数", "ボード名", "created_at",
-              "経過日数", "インプレッション", "ピンクリック", "アウトバウンドクリック",
-              "保存", "特定経路"]
+    header = ["pin_id", "pin番号", "slug", "スロット", "型", "文言件数", "CTA", "ボード名",
+              "created_at", "経過日数", "インプレッション", "ピンクリック",
+              "アウトバウンドクリック", "保存", "特定経路"]
     rows.sort(key=lambda r: r["pin_num"])
     with open(OUTPUT_TSV, "w", encoding="utf-8", newline="") as f:
         f.write("\t".join(header) + "\n")
@@ -752,6 +810,7 @@ def main():
                 str(row["pin_id"]), str(row["pin_num"]), row["slug"], row["slot"],
                 row["style"],
                 TEXT_COUNT_UNKNOWN if row["text_count"] is None else str(row["text_count"]),
+                row["cta_bucket"],
                 row["board"],
                 row["created_at"], "%.1f" % row["elapsed_days"],
                 str(int(row["impression"])), str(int(row["pin_click"])),
@@ -760,7 +819,7 @@ def main():
     print("")
     print("出力: %s（%d行）" % (os.path.relpath(OUTPUT_TSV, ROOT).replace(os.sep, "/"), len(rows)))
 
-    # --- 6. 4つの集計表 ---
+    # --- 6. 5つの集計表 ---
     out = []
     out += format_table("【表1】型別", "型", aggregate(rows, lambda r: r["style"]))
     out += format_table("【表2】スロット別", "スロット", aggregate(rows, lambda r: r["slot"]))
@@ -769,6 +828,10 @@ def main():
     out += format_table("【表4】文言件数別（1〜2件／3件以上）", "文言件数",
                         aggregate(rows, lambda r: r["text_count_bucket"]))
     out.append(TEXT_COUNT_NOTICE)
+    # 表5はD-0152の4群（情報量×CTA）の比較用。ここも「不明」行を必ず出す。
+    out += format_table("【表5】4群別（情報量×CTA）", "条件の群",
+                        aggregate(rows, condition_group))
+    out.append(CTA_NOTICE)
     print("\n".join(out))
 
     # --- 7. 固定の注意書き ---

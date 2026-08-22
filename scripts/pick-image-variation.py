@@ -39,15 +39,25 @@ Pin画像（pin1〜3）については「型」の候補リスト提示も担う
       緩和が起きた場合は出力にその旨を注記する。
     - heroは型プールの対象外。従来どおり4軸のみで選定する（写真型を維持）。
 
-文言件数の条件分け（D-0152・pin1〜3のみ）:
-  Pin画像の情報量を減らした条件と現行条件を、記事単位で同時並行に走らせて比較する。
-  対象記事の article_seq が偶数なら「低情報量条件」、奇数なら「現行条件」と機械的に
-  判定し（condition_for_seq()）、出力の先頭に条件名を明示する。
+条件の振り分け（D-0152・情報量×CTAの4群・pin1〜3のみ）:
+  「1枚に載る情報量の多少」と「CTA帯（続きはタップ等）の有無」を掛け合わせた4群を、
+  記事単位で同時並行に走らせて比較する。対象記事の article_seq を4で割った余りで機械的に
+  判定し（conditions_for_seq()）、出力の先頭に両方の条件名を明示する。
+    余り1 → 情報多め（現行条件）・CTAなし
+    余り2 → 情報少なめ（低情報量条件）・CTAなし
+    余り3 → 情報多め（現行条件）・CTAあり
+    余り0 → 情報少なめ（低情報量条件）・CTAあり
     - 低情報量条件: 候補を低密度4種（IMAGE_STYLESで DENSITY_LOW を持つ型）だけに絞る。
       このとき「直近2記事で使った型を除外」の規則は適用しない（候補が4種しかなく、
       除外すると枯れるため）。守るのは「同一記事内でpin1〜3が重複しないこと」だけ。
       1枚あたりの文言件数（1〜2件）と型の低密度チェックは make-image-prompt.py が強制する。
-    - 現行条件: 従来の挙動から一切変更しない。
+    - 現行条件: 型・文言件数の扱いは従来のまま（型は12種・文言は1〜6件）。
+    - CTAあり: pin1〜3の3枚すべてにCTA帯を焼き込む（1枚だけに入れる方式は取らない。
+      同一記事内でCTAあり・なしが混在すると、ボードとスロットの違いが条件差に混ざるため）。
+      焼き込む文言は CTA_TEXTS の3案から article_seq で機械的に選ぶ（cta_text_for_seq()）。
+      CTA文言は --pinN-text の件数制限の対象外（見出しとCTAは役割が異なるため）。
+      帯の意匠指示と実際の焼き込み指示は make-image-prompt.py が組み立てる。
+    - CTAなし: 依頼文は従来どおりでCTAの記述を一切含めない。
 
 使い方:
   python site/scripts/pick-image-variation.py <slug>
@@ -125,16 +135,40 @@ LOW_INFO_STYLES = [s for s, d in IMAGE_STYLES.items() if d == DENSITY_LOW]
 STYLE_LOOKBACK = 2   # 型の重複除外に使う直近記事数
 MIN_CANDIDATES = 3   # pin1〜3に別々の型を割り当てるために最低限必要な候補数
 
-# --- 文言件数の条件分け（D-0152） -------------------------------------------
-# Pin画像の情報量を減らした条件と現行条件を、記事単位で同時並行に走らせて比較する。
-# 振り分けは article_seq の偶奇で機械的に決め、AIの判断に委ねない。
-#   偶数 → 低情報量条件（型は低密度4種のみ・1枚あたりの文言は1〜2件）
-#   奇数 → 現行条件（従来どおり。型は12種・文言は1〜6件）
-# 偶奇の判定は condition_for_seq() の1箇所だけに置く（make-image-prompt.py はこれを呼ぶ）。
+# --- 条件の振り分け（D-0152・情報量×CTAの4群） -------------------------------
+# Pin画像の「情報量の多少」と「CTA帯の有無」を掛け合わせた4群を、記事単位で同時並行に
+# 走らせて比較する。振り分けは article_seq を4で割った余りで機械的に決め、AIの判断に委ねない。
+#   余り1 → 情報多め（現行条件）・CTAなし
+#   余り2 → 情報少なめ（低情報量条件）・CTAなし
+#   余り3 → 情報多め（現行条件）・CTAあり
+#   余り0 → 情報少なめ（低情報量条件）・CTAあり
+# 情報量条件だけを見ると「偶数=低情報量／奇数=現行」であり、D-0152導入時（2群）の判定と
+# 完全に一致する（余り2と余り0が偶数、余り1と余り3が奇数）。
+# 判定は conditions_for_seq() の1箇所だけに置く。make-image-prompt.py / check-pin-image-style.py /
+# analyze-pin-metrics.py はこの関数（またはそこから導く薄いラッパー）を呼び、余りの計算を複製しない。
 CONDITION_LOW = "低情報量条件"
 CONDITION_CURRENT = "現行条件"
+CTA_YES = "CTAあり"
+CTA_NONE = "CTAなし"
 LOW_INFO_TEXT_MIN = 1  # 低情報量条件で1枚に指定できる文言の下限（make-image-prompt.pyが参照する）
 LOW_INFO_TEXT_MAX = 2  # 同・上限
+
+# 4群の振り分け表（キー = article_seq % 4）。群を増減するときはこの辞書だけを直す。
+CONDITION_BY_REMAINDER = {
+    1: (CONDITION_CURRENT, CTA_NONE),
+    2: (CONDITION_LOW, CTA_NONE),
+    3: (CONDITION_CURRENT, CTA_YES),
+    0: (CONDITION_LOW, CTA_YES),
+}
+
+# CTA帯に焼き込む文言の固定候補（D-0152）。自由入力は受け付けない（表記ゆれを防ぐため）。
+# 半角英数字・半角記号を含めないこと（make-image-prompt.py の出力直前ASCII検査に抵触するため・D-0149）。
+# analyze-pin-metrics.py はこのリストをそのまま検索語として使い、CTAの有無を判定する。
+CTA_TEXTS = [
+    "続きはタップ",
+    "タップして読む",
+    "詳しくはこちら",
+]
 
 MAX_ARTICLES = 8  # 台帳の保持上限（記事数）。CLAUDE.md 10節の肥大化防止原則に合わせる
 MAX_ROWS = MAX_ARTICLES * len(IMAGE_SLOTS)
@@ -199,26 +233,57 @@ def recent_style_usage(rows, exclude_slug=None, lookback=STYLE_LOOKBACK):
     return used
 
 
-def condition_for_seq(article_seq):
-    """article_seqの偶奇から条件名を返す（偶数=低情報量条件／奇数=現行条件・D-0152）。
+def conditions_for_seq(article_seq):
+    """article_seq から (情報量条件, CTA条件) を返す（4群の唯一の判定元・D-0152）。
 
-    偶奇の判定はこの関数だけに書く。make-image-prompt.py も同じ判定が必要なため、
-    向こうで書き直さずこの関数を呼ぶ（2箇所に判定ロジックを持たせない）。
+    余りの計算をここ以外に書かない。情報量条件だけが要るときは condition_for_seq()、
+    CTA条件だけが要るときは cta_for_seq() を通す（どちらもこの関数の薄いラッパー）。
     """
-    return CONDITION_LOW if int(article_seq) % 2 == 0 else CONDITION_CURRENT
+    return CONDITION_BY_REMAINDER[int(article_seq) % 4]
 
 
-def condition_for_slug(slug, rows=None):
-    """台帳から slug の article_seq を引いて条件名を返す。台帳に無ければ None。"""
+def condition_for_seq(article_seq):
+    """article_seqから情報量条件名だけを返す（低情報量条件／現行条件・D-0152）。"""
+    return conditions_for_seq(article_seq)[0]
+
+
+def cta_for_seq(article_seq):
+    """article_seqからCTA条件名だけを返す（CTAあり／CTAなし・D-0152）。"""
+    return conditions_for_seq(article_seq)[1]
+
+
+def cta_text_for_seq(article_seq):
+    """CTA帯に焼き込む文言を CTA_TEXTS から機械的に選ぶ（D-0152）。
+
+    CTAなしの群でも呼び出し自体は成立するが、実際に使うのはCTAありの群だけ。
+    どの文言を使うかはAIが選ばず article_seq から決める（表記ゆれ防止）。
+    """
+    return CTA_TEXTS[int(article_seq) % len(CTA_TEXTS)]
+
+
+def seq_for_slug(slug, rows=None):
+    """台帳から slug の article_seq を引く。見つからない／数値でなければ None。"""
     if rows is None:
         rows = read_ledger()
     for r in rows:
         if r["slug"] == slug:
             try:
-                return condition_for_seq(r["article_seq"])
+                return int(r["article_seq"])
             except (TypeError, ValueError):
                 return None
     return None
+
+
+def conditions_for_slug(slug, rows=None):
+    """台帳から slug の (情報量条件, CTA条件) を返す。台帳に無ければ None。"""
+    seq = seq_for_slug(slug, rows)
+    return None if seq is None else conditions_for_seq(seq)
+
+
+def condition_for_slug(slug, rows=None):
+    """台帳から slug の情報量条件名を返す。台帳に無ければ None。"""
+    conds = conditions_for_slug(slug, rows)
+    return None if conds is None else conds[0]
 
 
 def is_low_density(style):
@@ -333,13 +398,14 @@ def main():
     last4 = rows[-4:]
     if len(last4) == 4 and all(r["slug"] == slug for r in last4) and {r["image_type"] for r in last4} == set(IMAGE_SLOTS):
         print(f"（台帳の末尾が既に {slug} の4行のため、再消費せず再表示します）")
-        condition = condition_for_seq(last4[0]["article_seq"])
-        print_result(slug, last4, *available_styles(rows, exclude_slug=slug, condition=condition), condition=condition)
+        condition, cta = conditions_for_seq(last4[0]["article_seq"])
+        print_result(slug, last4, *available_styles(rows, exclude_slug=slug, condition=condition),
+                     condition=condition, cta=cta)
         return
 
     prev_seq = int(rows[-1]["article_seq"]) if rows else -1
     article_seq = prev_seq + 1
-    condition = condition_for_seq(article_seq)
+    condition, cta = conditions_for_seq(article_seq)
 
     from datetime import date
     today = date.today().isoformat()
@@ -369,14 +435,20 @@ def main():
         del rows[0:4]
 
     write_ledger(rows)
-    print_result(slug, new_rows, *styles_info, condition=condition)
+    print_result(slug, new_rows, *styles_info, condition=condition, cta=cta)
 
 
-def print_result(slug, rows, candidates, used, lookback, condition=CONDITION_CURRENT):
+def print_result(slug, rows, candidates, used, lookback, condition=CONDITION_CURRENT, cta=CTA_NONE):
     candidate_text = "／".join(candidates)
     article_seq = rows[0]["article_seq"]
-    parity = "偶数" if condition == CONDITION_LOW else "奇数"
-    print(f"■ 条件: {condition}（article_seq={article_seq} が{parity}・D-0152）")
+    remainder = int(article_seq) % 4
+    print(f"■ 条件: {condition}／{cta}（article_seq={article_seq} を4で割った余り={remainder}・D-0152）")
+    if cta == CTA_YES:
+        print(f"  CTA帯をpin1〜3の3枚すべてに焼き込む。文言は「{cta_text_for_seq(article_seq)}」で固定"
+              "（AIが選ばない・make-image-prompt.py が依頼文に自動で入れる）。")
+        print("  CTA文言は --pinN-text の件数制限の対象外。見出し文言の件数は下記の条件どおりに渡す。")
+    else:
+        print("  CTA帯は入れない（依頼文にCTAの記述は一切入らない）。")
     if condition == CONDITION_LOW:
         print(f"  型は低密度{len(LOW_INFO_STYLES)}種のみから選ぶ。"
               f"1枚あたりの文言は{LOW_INFO_TEXT_MIN}〜{LOW_INFO_TEXT_MAX}件"

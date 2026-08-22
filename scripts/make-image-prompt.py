@@ -44,14 +44,23 @@ Pin画像に焼き込む文言の必須指定（D-0148）:
   役割はここへ統合した。同じ「画像内文言」を2系統の引数で管理すると片方が腐るため・
   D-0126と同じ理由）。
 
-低情報量条件の強制（D-0152）:
-  対象記事の article_seq が偶数の記事は「低情報量条件」として扱い、次を満たさない限り
-  プロンプトを一切出力せず exit 1 で終わる。
+条件による分岐の強制（D-0152・情報量×CTAの4群）:
+  対象記事が属する群は article_seq を4で割った余りで決まる。判定そのものは
+  pick-image-variation.py が正本で、ここでは piv.conditions_for_slug() /
+  piv.cta_text_for_seq() / piv.is_low_density() / piv.LOW_INFO_STYLES を呼ぶだけにする
+  （余りの計算を2箇所に持たせない）。
+
+  情報量が「少なめ」の群（低情報量条件）は、次を満たさない限りプロンプトを一切出力せず
+  exit 1 で終わる。
     - --pin1-text / --pin2-text / --pin3-text が各1〜2件であること
     - pin1〜3に選ばれた型が3つとも低密度プールに含まれること
-  条件の判定（偶奇）と低密度プールの定義は pick-image-variation.py が正本で、ここでは
-  piv.condition_for_slug() / piv.is_low_density() / piv.LOW_INFO_STYLES を呼ぶだけにする
-  （判定ロジックを2箇所に持たせない）。現行条件（奇数）の記事に対する挙動は一切変えない。
+
+  CTAありの群は、pin1〜3の3枚すべての依頼文にCTA帯の指示（CTA_BAND_RULES）を足す。
+  1枚だけに入れる方式は取らない（同一記事内でCTAあり・なしが混在すると、ボードと
+  スロットの違いが条件差に混ざるため）。CTA文言は piv.CTA_TEXTS の3案から article_seq で
+  機械的に選び、自由入力は受け付けない（表記ゆれ防止）。
+  **CTA文言は --pinN-text の件数制限の対象外**（見出しとCTAは役割が異なり、件数に含めると
+  見出しが入らなくなるため）。CTAなしの群の依頼文にはCTAの記述が一切入らない。
 
 使い方:
   python site/scripts/make-image-prompt.py <slug>
@@ -167,6 +176,32 @@ TEXT_STRICT_RULES = [
     "文言は一字一句そのまま使い、言い換え・要約・語尾の変更をしない。",
 ]
 
+# CTAありの群で使う版。CTA帯の文言も画像内に描くため、1行目だけを差し替える（D-0152）。
+TEXT_STRICT_RULES_WITH_CTA = [
+    "画像内に描く文字は、ここで指定した見出しの文言と、あとで指定する誘導の帯の文言のみとする。",
+] + TEXT_STRICT_RULES[1:]
+
+
+def text_strict_rules(has_cta):
+    return TEXT_STRICT_RULES_WITH_CTA if has_cta else TEXT_STRICT_RULES
+
+
+# CTA帯の意匠・文言指示（D-0152）。CTAありの群のPin依頼文にだけ足す。
+# 全角のみで組み立てる（出力直前のASCII検査に通す必要があるため・D-0149）。
+CTA_BAND_RULES = [
+    "画像の下部に、読者を記事へ誘導するための帯を一つだけ配置する。",
+    "帯の中に焼き込む文言は「{text}」のみとする。一字一句そのまま使い、言い換え・要約・語尾の変更をしない。",
+    "帯の色は生成り・琥珀・ブラウンの範囲から選び、画像全体の世界観から外れない色にする。",
+    "帯は角丸の帯またはボタン状の形にし、周囲の余白と区別がつくようにする。",
+    "帯の中には、指定した文言以外の文字・数字・記号を描き足さない（矢印・指の形・飾りの英字も含む）。",
+    "帯は見出しの文言と重ならない位置に置き、見出しの文言と帯の文言がどちらも読める大きさにする。",
+]
+
+
+def cta_instruction(cta_text):
+    return "\n".join(line.format(text=cta_text) for line in CTA_BAND_RULES)
+
+
 # heroは横長でないと配置時の中央クロップで上部の見出し文言が切れる（hero-to-webp.pyのガード・D-0148）。
 HERO_LANDSCAPE_RULE = "必ず横長で作る（横の辺が縦の辺より長い）。縦長や正方形は不可。"
 
@@ -182,7 +217,7 @@ def text_overlay_instruction(text_position):
     ).format(pos=pos)
 
 
-def pin_text_instruction(text_position, texts, ranking):
+def pin_text_instruction(text_position, texts, ranking, has_cta=False):
     """渡された文言をそのまま列挙する焼き込み指示を作る（数字は漢数字・ASCII規約。D-0148）。"""
     if ranking:
         head = "各順位の枠内に、次の文言を白抜き等の読みやすい文字で焼き込む。"
@@ -192,7 +227,7 @@ def pin_text_instruction(text_position, texts, ranking):
     lines = [head + "文字を入れない構図のみの仕上げは不可。"]
     for i, t in enumerate(texts, 1):
         lines.append("文言その{n}：「{t}」".format(n=to_kanji(i), t=t))
-    lines.extend(TEXT_STRICT_RULES)
+    lines.extend(text_strict_rules(has_cta))
     return "\n".join(lines)
 
 
@@ -281,7 +316,7 @@ def low_info_error(problems, slug):
     どのPinが何件だったか・どの型が高密度だったかを具体的に並べる（1件ずつ止めない）。
     """
     lines = [
-        "【エラー】記事「%s」は%s（article_seqが偶数・D-0152）のため、"
+        "【エラー】記事「%s」は%s（article_seqを4で割った余りが2または0・D-0152）のため、"
         "次の条件を満たさない限り依頼文を出力しません。" % (slug, piv.CONDITION_LOW),
         "  条件1: --pinN-text が各%d〜%d件であること"
         % (piv.LOW_INFO_TEXT_MIN, piv.LOW_INFO_TEXT_MAX),
@@ -296,7 +331,8 @@ def low_info_error(problems, slug):
         "型を入れ替える場合:",
         '  python site/scripts/pick-image-variation.py --set-style %s "pin1=<型名>" "pin2=<型名>" "pin3=<型名>"'
         % slug,
-        "（現行条件＝article_seqが奇数の記事は従来どおり%d〜%d件・型は12種すべて使えます）"
+        "（現行条件＝余りが1または3の記事は従来どおり%d〜%d件・型は12種すべて使えます。"
+        "CTA帯の有無はこの件数制限に影響しません）"
         % (PIN_TEXT_MIN_COUNT, PIN_TEXT_MAX_COUNT),
     ])
     sys.stderr.write("\n".join(lines) + "\n")
@@ -419,7 +455,8 @@ def ranking_guidance(labels):
     return TYPE_GUIDANCE[RANKING_KEY].format(label1=labels[0], label2=labels[1], label3=labels[2])
 
 
-def build_pin_prompt(row, style, texts):
+def build_pin_prompt(row, style, texts, cta_text=None):
+    """Pin一枚分の依頼文を組み立てる。cta_textがあればCTA帯の指示を足す（D-0152）。"""
     ranking = is_ranking(style)
     if ranking:
         guidance = ranking_guidance(texts)
@@ -432,11 +469,15 @@ def build_pin_prompt(row, style, texts):
         "紅茶ブログのピン画像を一枚作成してください。型は「%s」です。" % display_style(style),
         guidance,
         axis_summary(row) + "を反映してください。",
-        pin_text_instruction(row["text_position"], texts, ranking),
+        pin_text_instruction(row["text_position"], texts, ranking, has_cta=bool(cta_text)),
+    ]
+    if cta_text:
+        lines.append(cta_instruction(cta_text))
+    lines.extend([
         BRAND_LOGO_BAN,
         DIGIT_RULE,
         pin_dimension_text(),
-    ]
+    ])
     return "\n".join(lines)
 
 
@@ -526,15 +567,30 @@ def main():
     for slot in piv.PIN_SLOTS:
         texts[slot] = parse_pin_texts(slot, raw_texts.get(slot), styles[slot])
 
-    # --- 低情報量条件の強制（D-0152・条件の判定は piv 側の1関数に集約） ---
-    if piv.condition_for_slug(slug, rows) == piv.CONDITION_LOW:
+    # --- 条件による分岐（D-0152・余りの判定は piv 側の1関数に集約） ---
+    conditions = piv.conditions_for_slug(slug, rows)
+    info_condition = conditions[0] if conditions else None
+    cta_condition = conditions[1] if conditions else None
+
+    if info_condition == piv.CONDITION_LOW:
         check_low_info_condition(slug, styles, texts)
+
+    # CTA文言は --pinN-text の件数制限の対象外のため、件数検証の後にここで足す（D-0152）。
+    cta_text = None
+    if cta_condition == piv.CTA_YES:
+        cta_text = piv.cta_text_for_seq(piv.seq_for_slug(slug, rows))
 
     blocks = [("hero", build_hero_prompt(by_type["hero"]))]
     for slot in piv.PIN_SLOTS:
-        blocks.append((slot, build_pin_prompt(by_type[slot], styles[slot], texts[slot])))
+        blocks.append((slot, build_pin_prompt(by_type[slot], styles[slot], texts[slot], cta_text)))
 
     assert_no_ascii(blocks)
+
+    if conditions:
+        print("■ 条件: %s／%s（D-0152・この行はChatGPTへ貼らない）" % (info_condition, cta_condition))
+        if cta_text:
+            print("■ CTA文言: 「%s」（pin1〜3の3枚すべてに焼き込む・この行も貼らない）" % cta_text)
+        print()
 
     for name, body in blocks:
         print("--- %s ---" % name)
