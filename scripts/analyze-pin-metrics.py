@@ -1,0 +1,617 @@
+# -*- coding: utf-8 -*-
+r"""投稿済みPinの「型 × 実成果」を集計する（読み取り専用・手動実行のみ）。
+
+目的:
+  Pin画像の型（写真ヒーロー・比較グリッド等・D-0062）ごとに、実際の
+  インプレッション／クリック／保存がどう違うかを実績で確認する。
+  推測ではなく実測で設計判断するための材料を作る。
+
+設計方針:
+  - 日次ルーチン・セッション開始チェック・フックからは呼ばない（手動実行のみ）。
+    Pinterest APIのレート制限（Standardは1分100リクエスト）と、記事数の増加に
+    比例して処理量が増えることを避けるため。
+  - Pinterest APIへのアクセスは pinterest_api.py の単一入口経由（GET系のみ）。
+    POST/PATCH/DELETE は一切行わない。
+  - 型の正本は output/pins/ 配下のピンファイルの「## 画像指示書」節の
+    「- 型: ○○」行。data/image-variation.tsv は使わない（直近8記事で
+    自動削除される仕様のため長期集計の正本にならない・D-0062関連）。
+  - 出力先 data/pin-metrics.tsv はGit管理外。既存があれば上書きする。
+
+処理の流れ:
+  1. GET /v5/pins を bookmark ページングで全件取得する（pin_metrics付き）。
+     created_at が実行日から WINDOW_DAYS 以内のものだけを対象にする。
+     対象が MAX_PINS を超えたら集計を行わず件数のみ報告して終了する。
+  2. 各ピンの「自前のPin番号」と「slug」を特定する。
+     第1経路: link の utm_content=pin{N} / utm_campaign={slug}
+     第2経路: link のURLパス /posts/{slug}/ から slug を取り、同一slug内で
+              created_at 昇順に1枚目→pin1、2枚目→pin2、3枚目→pin3 と割り当て、
+              ローカルのピンファイル索引から実際のPin番号を引く。
+     どちらでも特定できないものは「特定不能」として除外する。
+  3. 型をローカルのピンファイルから引く。
+  4. 指標は手順1の pin_metrics を優先し、揃っていない場合のみ
+     GET /v5/pins/{pin_id}/analytics を1件ずつ呼ぶ（間隔は ANALYTICS_INTERVAL_SECONDS）。
+  5. data/pin-metrics.tsv へ出力し、標準出力に型別／スロット別／ボード別の3表を出す。
+
+使い方:
+  python site/scripts/analyze-pin-metrics.py
+"""
+
+import datetime
+import os
+import re
+import sys
+import time
+import urllib.error
+import urllib.parse
+
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+if SCRIPT_DIR not in sys.path:
+    sys.path.insert(0, SCRIPT_DIR)
+from env_loader import require_env, EnvLoaderError  # noqa: E402
+import pinterest_api  # noqa: E402
+
+ROOT = os.path.dirname(os.path.dirname(SCRIPT_DIR))
+PINS_DIR = os.path.join(ROOT, "output", "pins")
+BOARDS_FILE = os.path.join(ROOT, "data", "pinterest-boards.md")
+OUTPUT_TSV = os.path.join(ROOT, "data", "pin-metrics.tsv")
+
+# --- 処理量の上限（記事数の増加に比例して処理が増えないよう1箇所に固定する） ---
+MAX_PINS = 200        # 対象がこれを超えたら集計せず件数のみ報告して終了
+WINDOW_DAYS = 90      # created_at がこの日数以内のピンだけを対象にする
+
+# analytics を個別に呼ぶ場合の呼び出し間隔（秒）。
+# Standardのレート制限は1分100リクエスト。0.7秒間隔なら1分あたり約85件で余裕がある。
+ANALYTICS_INTERVAL_SECONDS = 0.7
+
+API_TIMEOUT_SECONDS = 20
+
+# 集計に使う4指標。キーは内部名、値は analytics の metric_types 名。
+METRIC_KEYS = [
+    ("impression", "IMPRESSION"),
+    ("pin_click", "PIN_CLICK"),
+    ("outbound_click", "OUTBOUND_CLICK"),
+    ("save", "SAVE"),
+]
+
+# 型の正規化。ピンファイルの「- 型:」行は表記ゆれがあるため、
+# pick-image-variation.py の IMAGE_STYLES に合わせて寄せる。
+# ここに無い値は寄せずにそのまま別バケットとして扱う（勝手に統合しない）。
+CANONICAL_STYLES = [
+    "写真ヒーロー", "比較グリッド", "手順図解", "チェックリスト",
+    "ビフォーアフター", "Q&A形式", "ポイント整理", "ランキング",
+    "数字訴求型", "用語解説型", "シーン別ガイド", "相関図フローチャート",
+]
+# 語尾の「型」除去・括弧注記の除去では寄せられない表記だけを明示的に列挙する。
+STYLE_ALIASES = {
+    "質疑応答形式": "Q&A形式",
+}
+
+TYPE_LINE_RE = re.compile(r"^-\s*型:\s*(.+)$")
+GUIDE_URL_RE = re.compile(r"^-\s*誘導先URL:\s*(\S+)\s*$")
+PIN_FILE_NUM_RE = re.compile(r"pin-(\d+)")
+UTM_PIN_RE = re.compile(r"^pin(\d+)$")
+
+
+# ---------------------------------------------------------------- ローカル索引
+
+def normalize_style(raw):
+    """ピンファイルの型表記を正規化する。戻り値: (正規化後, 元の表記から変えたか)。"""
+    value = raw.strip()
+    # 「ランキング（表現は非序列に変更・下記参照）」のような括弧注記を落とす
+    value = re.split(r"[（(]", value, 1)[0].strip()
+    if value in CANONICAL_STYLES:
+        return value, value != raw.strip()
+    if value in STYLE_ALIASES:
+        return STYLE_ALIASES[value], True
+    # 「写真ヒーロー型」→「写真ヒーロー」のような語尾の「型」を落とす
+    if value.endswith("型") and value[:-1] in CANONICAL_STYLES:
+        return value[:-1], True
+    return value, value != raw.strip()
+
+
+def parse_pin_file(path):
+    """1ピンファイルから 型 / 誘導先URL を読む。戻り値: dict。"""
+    style_raw = None
+    guide_url = None
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            for line in f:
+                stripped = line.strip()
+                if style_raw is None:
+                    m = TYPE_LINE_RE.match(stripped)
+                    if m:
+                        style_raw = m.group(1).strip()
+                        continue
+                if guide_url is None:
+                    m = GUIDE_URL_RE.match(stripped)
+                    if m:
+                        guide_url = m.group(1).strip()
+    except OSError:
+        return None
+    return {"style_raw": style_raw, "guide_url": guide_url}
+
+
+def slug_from_url(url):
+    """URLから記事slugを取り出す。/posts/{slug}/ を優先し、無ければ utm_campaign。"""
+    if not url:
+        return None
+    try:
+        parsed = urllib.parse.urlparse(url)
+    except ValueError:
+        return None
+    parts = [p for p in parsed.path.split("/") if p]
+    if "posts" in parts:
+        idx = parts.index("posts")
+        if idx + 1 < len(parts):
+            return parts[idx + 1]
+    qs = urllib.parse.parse_qs(parsed.query)
+    campaign = qs.get("utm_campaign")
+    if campaign and campaign[0]:
+        return campaign[0]
+    return None
+
+
+def pin_num_from_url(url):
+    """URLの utm_content=pin{N} からPin番号を取り出す。取れなければ None。"""
+    if not url:
+        return None
+    try:
+        parsed = urllib.parse.urlparse(url)
+    except ValueError:
+        return None
+    content = urllib.parse.parse_qs(parsed.query).get("utm_content")
+    if not content:
+        return None
+    m = UTM_PIN_RE.match(content[0].strip())
+    return int(m.group(1)) if m else None
+
+
+def build_local_index():
+    """output/pins/ を読み、Pin番号 -> {style, slug, slot} の索引を作る。
+
+    slot は同一slug内のPin番号昇順で 1,2,3... を割り当てたもの。
+    型が記載されていないピン（型導入前のpin1〜83）も索引には入れるが style は None。
+    """
+    by_num = {}
+    if not os.path.isdir(PINS_DIR):
+        return by_num, {}
+
+    for name in sorted(os.listdir(PINS_DIR)):
+        if not name.endswith(".md"):
+            continue
+        m = PIN_FILE_NUM_RE.search(name)
+        if not m:
+            continue
+        pin_num = int(m.group(1))
+        parsed = parse_pin_file(os.path.join(PINS_DIR, name))
+        if parsed is None:
+            continue
+        style = None
+        style_changed = False
+        if parsed["style_raw"]:
+            style, style_changed = normalize_style(parsed["style_raw"])
+        by_num[pin_num] = {
+            "pin_num": pin_num,
+            "file_name": name,
+            "style": style,
+            "style_raw": parsed["style_raw"],
+            "style_normalized": style_changed,
+            "slug": slug_from_url(parsed["guide_url"]),
+        }
+
+    # slug ごとに Pin番号昇順で slot を振る
+    by_slug = {}
+    for info in by_num.values():
+        if info["slug"]:
+            by_slug.setdefault(info["slug"], []).append(info)
+    for slug, infos in by_slug.items():
+        infos.sort(key=lambda x: x["pin_num"])
+        for i, info in enumerate(infos, start=1):
+            info["slot"] = i
+
+    for info in by_num.values():
+        info.setdefault("slot", None)
+
+    return by_num, by_slug
+
+
+def load_board_names():
+    """data/pinterest-boards.md から board_id -> ボード名 の辞書を作る。"""
+    mapping = {}
+    if not os.path.isfile(BOARDS_FILE):
+        return mapping
+    with open(BOARDS_FILE, "r", encoding="utf-8") as f:
+        for line in f:
+            if not line.startswith("|"):
+                continue
+            cells = [c.strip() for c in line.strip().strip("|").split("|")]
+            if len(cells) < 2:
+                continue
+            if not cells[1].isdigit():
+                continue
+            mapping[cells[1]] = cells[0]
+    return mapping
+
+
+# ---------------------------------------------------------------- API取得
+
+def parse_created_at(value):
+    """Pinterestの created_at（ISO8601）を aware datetime にする。失敗時 None。"""
+    if not value:
+        return None
+    text = value.strip().replace("Z", "+00:00")
+    try:
+        dt = datetime.datetime.fromisoformat(text)
+    except ValueError:
+        return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=datetime.timezone.utc)
+    return dt
+
+
+def extract_pin_metrics(pin_metrics):
+    """GET /v5/pins の pin_metrics から4指標を取り出す。
+
+    Pinterest v5 の pin_metrics は集計期間ごとの入れ子（all_time / 90d 等）に
+    なっている。期間名は将来変わりうるため、キー名を決め打ちせず
+    「4指標のうち最も多く揃っている入れ子」を採用する。
+    戻り値: (指標dict, 採用した期間名) / 取れなければ (None, None)。
+    """
+    if not isinstance(pin_metrics, dict):
+        return None, None
+
+    wanted = [k for k, _ in METRIC_KEYS]
+
+    def pick(d):
+        if not isinstance(d, dict):
+            return None
+        lowered = {str(k).lower(): v for k, v in d.items()}
+        found = {}
+        for key in wanted:
+            if key in lowered and isinstance(lowered[key], (int, float)):
+                found[key] = lowered[key]
+        return found or None
+
+    candidates = []
+    direct = pick(pin_metrics)
+    if direct:
+        candidates.append(("(直下)", direct))
+    for period, sub in pin_metrics.items():
+        got = pick(sub)
+        if got:
+            candidates.append((str(period), got))
+    if not candidates:
+        return None, None
+
+    # 「all_time」系を優先しつつ、揃っている指標数が多いものを採る
+    def score(item):
+        period, found = item
+        preferred = 1 if "all" in period.lower() or "life" in period.lower() else 0
+        return (len(found), preferred)
+
+    period, found = max(candidates, key=score)
+    return found, period
+
+
+def fetch_analytics(pin_id, access_token, created_at, now):
+    """GET /v5/pins/{id}/analytics で4指標のサマリを取る。失敗時 (None, 理由)。"""
+    earliest = (now - datetime.timedelta(days=WINDOW_DAYS - 1)).date()
+    start = max(created_at.date(), earliest) if created_at else earliest
+    end = now.date()
+    if start > end:
+        start = end
+    params = urllib.parse.urlencode({
+        "start_date": start.isoformat(),
+        "end_date": end.isoformat(),
+        "metric_types": ",".join(m for _, m in METRIC_KEYS),
+    })
+    path = "/pins/%s/analytics?%s" % (urllib.parse.quote(str(pin_id)), params)
+    try:
+        data = pinterest_api.request("GET", path, access_token, timeout=API_TIMEOUT_SECONDS)
+    except pinterest_api.PinterestApiError as e:
+        return None, "HTTP %s" % e.status_code
+    except urllib.error.URLError as e:
+        return None, "通信失敗: %s" % e
+
+    section = data.get("all") if isinstance(data, dict) else None
+    summary = section.get("summary_metrics") if isinstance(section, dict) else None
+    if not isinstance(summary, dict):
+        return None, "summary_metrics が取得できませんでした"
+
+    result = {}
+    for key, api_name in METRIC_KEYS:
+        value = summary.get(api_name)
+        result[key] = value if isinstance(value, (int, float)) else 0
+    return result, None
+
+
+# ---------------------------------------------------------------- 集計・出力
+
+def aggregate(rows, key_func):
+    """rows を key_func 単位で集計する。戻り値: [(キー, 集計dict), ...]。"""
+    buckets = {}
+    for row in rows:
+        key = key_func(row)
+        b = buckets.setdefault(key, {
+            "count": 0, "days": 0.0,
+            "impression": 0.0, "pin_click": 0.0,
+            "outbound_click": 0.0, "save": 0.0,
+        })
+        b["count"] += 1
+        b["days"] += row["elapsed_days"]
+        for metric, _ in METRIC_KEYS:
+            b[metric] += row[metric]
+    return sorted(buckets.items(), key=lambda kv: -kv[1]["impression"])
+
+
+def format_table(title, header, buckets):
+    lines = ["", title, "-" * 78]
+    lines.append("%-22s %5s %10s %9s %9s %9s" % (
+        header, "件数", "imp/日", "クリック率", "外部率", "保存率"))
+    total_count = 0
+    for key, b in buckets:
+        imp = b["impression"]
+        per_day = imp / b["days"] if b["days"] > 0 else 0.0
+        click_rate = (b["pin_click"] / imp * 100) if imp > 0 else 0.0
+        out_rate = (b["outbound_click"] / imp * 100) if imp > 0 else 0.0
+        save_rate = (b["save"] / imp * 100) if imp > 0 else 0.0
+        lines.append("%-22s %5d %10.2f %8.2f%% %8.2f%% %8.2f%%" % (
+            key[:22], b["count"], per_day, click_rate, out_rate, save_rate))
+        total_count += b["count"]
+    lines.append("-" * 78)
+    lines.append("対象件数合計: %d件" % total_count)
+    return lines
+
+
+NOTICE = (
+    "型別の差はスロット位置・ボードと交絡している可能性がある。表1だけで判断せず表2・表3と併読すること。\n"
+    "保存数が全体で少ない場合、保存率の型別比較は判断材料にならない。"
+)
+
+
+def main():
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
+
+    try:
+        access_token = require_env("PINTEREST_ACCESS_TOKEN")
+    except EnvLoaderError as e:
+        print("エラー: アクセストークンを読み込めませんでした: %s" % e)
+        sys.exit(1)
+
+    now = datetime.datetime.now(datetime.timezone.utc)
+    local_by_num, local_by_slug = build_local_index()
+    board_names = load_board_names()
+
+    print("=== Pin 型×成果 集計（読み取り専用・GET系のみ） ===")
+    print("上限設定: MAX_PINS=%d / WINDOW_DAYS=%d" % (MAX_PINS, WINDOW_DAYS))
+
+    # --- 1. GET /v5/pins 全件取得 ---
+    try:
+        all_pins = pinterest_api.fetch_all_pages(
+            "/pins?pin_metrics=true", access_token, timeout=API_TIMEOUT_SECONDS)
+    except pinterest_api.PinterestApiError as e:
+        print("エラー: GET /v5/pins がHTTP %s を返しました: %s" % (e.status_code, e.body))
+        sys.exit(1)
+    except urllib.error.URLError as e:
+        print("エラー: GET /v5/pins への通信に失敗しました: %s" % e)
+        sys.exit(1)
+
+    cutoff = now - datetime.timedelta(days=WINDOW_DAYS)
+    in_window = []
+    no_created_at = 0
+    for pin in all_pins:
+        created = parse_created_at(pin.get("created_at"))
+        if created is None:
+            no_created_at += 1
+            continue
+        if created >= cutoff:
+            pin["_created"] = created
+            in_window.append(pin)
+
+    print("APIから取得: %d件 / うち直近%d日以内: %d件" % (len(all_pins), WINDOW_DAYS, len(in_window)))
+    if no_created_at:
+        print("【注意】created_at を解釈できなかったピン: %d件（対象外）" % no_created_at)
+
+    if len(in_window) > MAX_PINS:
+        print("")
+        print("対象が上限 MAX_PINS=%d を超えました（%d件）。集計は行いません。"
+              % (MAX_PINS, len(in_window)))
+        print("上限を変えるにはスクリプト冒頭の MAX_PINS / WINDOW_DAYS を調整してください。")
+        sys.exit(0)
+
+    # --- 2. Pin番号・slug の特定 ---
+    resolved = []
+    unresolved = []
+    route1 = 0
+    route2 = 0
+
+    # 第1経路で決まらなかったものを slug ごとにまとめ、created_at 昇順で slot を振る
+    pending = []
+    for pin in in_window:
+        link = pin.get("link") or ""
+        pin_num = pin_num_from_url(link)
+        slug = slug_from_url(link)
+        if pin_num is not None and slug:
+            resolved.append({"pin": pin, "pin_num": pin_num, "slug": slug, "route": "UTM"})
+            route1 += 1
+        else:
+            pending.append({"pin": pin, "slug": slug, "link": link})
+
+    pending_by_slug = {}
+    for item in pending:
+        if item["slug"]:
+            pending_by_slug.setdefault(item["slug"], []).append(item)
+        else:
+            unresolved.append((item["link"], "URLからslugを取り出せませんでした"))
+
+    # 第1経路で既にPin番号が確定した分は、第2経路の割当候補から除く
+    # （同一slug内でUTM有り・無しが混在した場合に同じPin番号を二重に割り当てないため）。
+    claimed_by_slug = {}
+    for item in resolved:
+        claimed_by_slug.setdefault(item["slug"], set()).add(item["pin_num"])
+
+    for slug, items in pending_by_slug.items():
+        items.sort(key=lambda x: x["pin"]["_created"])
+        claimed = claimed_by_slug.get(slug, set())
+        local_infos = [i for i in sorted(local_by_slug.get(slug, []),
+                                         key=lambda x: x["pin_num"])
+                       if i["pin_num"] not in claimed]
+        for idx, item in enumerate(items, start=1):
+            if idx <= len(local_infos):
+                resolved.append({
+                    "pin": item["pin"],
+                    "pin_num": local_infos[idx - 1]["pin_num"],
+                    "slug": slug,
+                    "route": "作成順",
+                })
+                route2 += 1
+            else:
+                unresolved.append((
+                    item["link"],
+                    "slug「%s」の未割当ローカルピンファイルが%d件しかなく%d枚目に対応するPin番号がありません"
+                    % (slug, len(local_infos), idx)))
+
+    print("特定経路の内訳: UTM経路 %d件 / 作成順経路 %d件 / 特定不能 %d件"
+          % (route1, route2, len(unresolved)))
+
+    # 同じPin番号に2件以上のピンが割り当たっていないかを検査する（沈黙させない）
+    seen_nums = {}
+    for item in resolved:
+        seen_nums.setdefault(item["pin_num"], []).append(item)
+    duplicates = {n: v for n, v in seen_nums.items() if len(v) > 1}
+    if duplicates:
+        print("【警告】同一Pin番号に複数のピンが割り当たりました（集計が二重計上になります）:")
+        for pin_num in sorted(duplicates):
+            print("  pin%d: %d件（%s）"
+                  % (pin_num, len(duplicates[pin_num]),
+                     ", ".join(d["route"] for d in duplicates[pin_num])))
+
+    # --- 3. 型を引く（型が無いピン＝型導入前は集計対象外） ---
+    rows = []
+    no_style = 0
+    normalized_styles = {}
+    for item in resolved:
+        info = local_by_num.get(item["pin_num"])
+        if info is None or not info.get("style"):
+            no_style += 1
+            continue
+        if info.get("style_normalized"):
+            normalized_styles[info["style_raw"]] = info["style"]
+        pin = item["pin"]
+        created = pin["_created"]
+        elapsed = max(1.0, (now - created).total_seconds() / 86400.0)
+        rows.append({
+            "pin_num": item["pin_num"],
+            "slug": item["slug"],
+            "slot": "pin%d" % info["slot"] if info.get("slot") else "不明",
+            "style": info["style"],
+            "board": board_names.get(str(pin.get("board_id", "")), str(pin.get("board_id", ""))),
+            "created_at": created.date().isoformat(),
+            "elapsed_days": elapsed,
+            "route": item["route"],
+            "pin_id": pin.get("id", ""),
+            "pin_metrics": pin.get("pin_metrics"),
+        })
+
+    print("型が記録されているピン: %d件 / 型なし（型導入前等・対象外）: %d件" % (len(rows), no_style))
+
+    # ローカルに型があるのにAPI側に見つからなかったピンを明示する
+    # （Pinterest側で削除された等。黙って件数が減ると集計の母数を誤解するため）。
+    api_nums = set(item["pin_num"] for item in resolved)
+    local_styled = set(n for n, i in local_by_num.items() if i.get("style"))
+    missing_from_api = sorted(local_styled - api_nums)
+    if missing_from_api:
+        print("【注意】型がローカルに記録されているがAPIの取得結果に見つからなかったピン %d件: %s"
+              % (len(missing_from_api),
+                 ", ".join("pin%d" % n for n in missing_from_api)))
+        print("       （Pinterest側で削除された可能性がある。集計の母数から外れている）")
+
+    if normalized_styles:
+        print("型の表記ゆれを正規化した対応: %s"
+              % ", ".join("%s→%s" % (k, v) for k, v in sorted(normalized_styles.items())))
+
+    if not rows:
+        print("集計対象が0件のため終了します。")
+        sys.exit(0)
+
+    # --- 4. 指標の取得 ---
+    metrics_ok = 0
+    periods = set()
+    for row in rows:
+        found, period = extract_pin_metrics(row["pin_metrics"])
+        if found and len(found) == len(METRIC_KEYS):
+            for metric, _ in METRIC_KEYS:
+                row[metric] = found[metric]
+            metrics_ok += 1
+            periods.add(period)
+
+    if metrics_ok == len(rows):
+        source = "GET /v5/pins の pin_metrics（期間: %s）" % ", ".join(sorted(periods))
+        print("")
+        print("■ 指標の取得経路: %s" % source)
+        print("  4指標すべてが pin_metrics に揃っていたため analytics の個別呼び出しは行っていません。")
+    else:
+        source = "GET /v5/pins/{pin_id}/analytics（個別呼び出し）"
+        print("")
+        print("■ 指標の取得経路: %s" % source)
+        print("  pin_metrics に4指標が揃っていたのは %d/%d件のみだったため、"
+              "%d件について analytics を個別に呼びます（間隔%.1f秒）。"
+              % (metrics_ok, len(rows), len(rows), ANALYTICS_INTERVAL_SECONDS))
+        failures = []
+        for i, row in enumerate(rows):
+            if i > 0:
+                time.sleep(ANALYTICS_INTERVAL_SECONDS)
+            created = datetime.datetime.fromisoformat(row["created_at"]).replace(
+                tzinfo=datetime.timezone.utc)
+            found, reason = fetch_analytics(row["pin_id"], access_token, created, now)
+            if found is None:
+                failures.append((row["pin_num"], reason))
+                for metric, _ in METRIC_KEYS:
+                    row[metric] = 0
+            else:
+                for metric, _ in METRIC_KEYS:
+                    row[metric] = found[metric]
+        if failures:
+            print("  【警告】analytics取得に失敗したピン %d件（指標0として集計）:" % len(failures))
+            for pin_num, reason in failures:
+                print("    pin%d: %s" % (pin_num, reason))
+
+    # --- 5. TSV出力 ---
+    header = ["pin番号", "slug", "スロット", "型", "ボード名", "created_at",
+              "経過日数", "インプレッション", "ピンクリック", "アウトバウンドクリック",
+              "保存", "特定経路"]
+    rows.sort(key=lambda r: r["pin_num"])
+    with open(OUTPUT_TSV, "w", encoding="utf-8", newline="") as f:
+        f.write("\t".join(header) + "\n")
+        for row in rows:
+            f.write("\t".join([
+                str(row["pin_num"]), row["slug"], row["slot"], row["style"], row["board"],
+                row["created_at"], "%.1f" % row["elapsed_days"],
+                str(int(row["impression"])), str(int(row["pin_click"])),
+                str(int(row["outbound_click"])), str(int(row["save"])), row["route"],
+            ]) + "\n")
+    print("")
+    print("出力: %s（%d行）" % (os.path.relpath(OUTPUT_TSV, ROOT).replace(os.sep, "/"), len(rows)))
+
+    # --- 6. 3つの集計表 ---
+    out = []
+    out += format_table("【表1】型別", "型", aggregate(rows, lambda r: r["style"]))
+    out += format_table("【表2】スロット別", "スロット", aggregate(rows, lambda r: r["slot"]))
+    out += format_table("【表3】ボード別", "ボード名", aggregate(rows, lambda r: r["board"]))
+    print("\n".join(out))
+
+    # --- 7. 固定の注意書き ---
+    print("")
+    print("【読み方の注意】")
+    print(NOTICE)
+
+    if unresolved:
+        print("")
+        print("【特定不能だったピン（%d件）】" % len(unresolved))
+        for link, reason in unresolved:
+            print("  %s : %s" % (link, reason))
+
+
+if __name__ == "__main__":
+    main()
