@@ -38,10 +38,20 @@ Pin画像に焼き込む文言の必須指定（D-0148）:
   --pin1-text / --pin2-text / --pin3-text で「その1枚に描く文言のすべて」を渡すことを必須に
   する。1つでも未指定・制約違反があればプロンプトを一切出力せず exit 1 で終わる。
   文言は全角の縦棒「｜」で区切る（PowerShell対策として半角の縦棒も受け付ける）。
-  制約は1枚あたり1〜6件・1件あたり30文字以内。ランキング型のPinに限り、渡された文言を
+  制約は1枚あたり1〜6件・1件あたり30文字以内（低情報量条件の記事は1〜2件・後述）。
+  ランキング型のPinに限り、渡された文言を
   順位ラベルとして扱い、追加でちょうど3件・各10文字以内を課す（旧 --ranking-labels の
   役割はここへ統合した。同じ「画像内文言」を2系統の引数で管理すると片方が腐るため・
   D-0126と同じ理由）。
+
+低情報量条件の強制（D-0152）:
+  対象記事の article_seq が偶数の記事は「低情報量条件」として扱い、次を満たさない限り
+  プロンプトを一切出力せず exit 1 で終わる。
+    - --pin1-text / --pin2-text / --pin3-text が各1〜2件であること
+    - pin1〜3に選ばれた型が3つとも低密度プールに含まれること
+  条件の判定（偶奇）と低密度プールの定義は pick-image-variation.py が正本で、ここでは
+  piv.condition_for_slug() / piv.is_low_density() / piv.LOW_INFO_STYLES を呼ぶだけにする
+  （判定ロジックを2箇所に持たせない）。現行条件（奇数）の記事に対する挙動は一切変えない。
 
 使い方:
   python site/scripts/make-image-prompt.py <slug>
@@ -265,6 +275,57 @@ def reject_hankaku_pin_text(opt, raw):
     sys.exit(1)
 
 
+def low_info_error(problems, slug):
+    """低情報量条件（D-0152）の違反をまとめて出し、プロンプトを一切出力せず exit 1。
+
+    どのPinが何件だったか・どの型が高密度だったかを具体的に並べる（1件ずつ止めない）。
+    """
+    lines = [
+        "【エラー】記事「%s」は%s（article_seqが偶数・D-0152）のため、"
+        "次の条件を満たさない限り依頼文を出力しません。" % (slug, piv.CONDITION_LOW),
+        "  条件1: --pinN-text が各%d〜%d件であること"
+        % (piv.LOW_INFO_TEXT_MIN, piv.LOW_INFO_TEXT_MAX),
+        "  条件2: pin1〜3の型が3つとも低密度プールに含まれること（%s）"
+        % "／".join(piv.LOW_INFO_STYLES),
+        "",
+        "違反の内訳:",
+    ]
+    lines.extend("  - %s" % p for p in problems)
+    lines.extend([
+        "",
+        "型を入れ替える場合:",
+        '  python site/scripts/pick-image-variation.py --set-style %s "pin1=<型名>" "pin2=<型名>" "pin3=<型名>"'
+        % slug,
+        "（現行条件＝article_seqが奇数の記事は従来どおり%d〜%d件・型は12種すべて使えます）"
+        % (PIN_TEXT_MIN_COUNT, PIN_TEXT_MAX_COUNT),
+    ])
+    sys.stderr.write("\n".join(lines) + "\n")
+    sys.exit(1)
+
+
+def check_low_info_condition(slug, styles, texts):
+    """低情報量条件の記事について、文言件数と型の密度をまとめて検証する（D-0152）。
+
+    現行条件の記事では何もしない（挙動を一切変えない）。
+    """
+    problems = []
+    for slot in piv.PIN_SLOTS:
+        n = len(texts[slot])
+        if not (piv.LOW_INFO_TEXT_MIN <= n <= piv.LOW_INFO_TEXT_MAX):
+            problems.append(
+                "%s の %s が%d件です（%d〜%d件にしてください）: %s"
+                % (slot, pin_text_opt(slot), n,
+                   piv.LOW_INFO_TEXT_MIN, piv.LOW_INFO_TEXT_MAX,
+                   "／".join(texts[slot])))
+    for slot in piv.PIN_SLOTS:
+        style = styles[slot]
+        if not piv.is_low_density(style):
+            problems.append(
+                "%s の型「%s」は高密度です（低密度プールに含まれていません）" % (slot, style))
+    if problems:
+        low_info_error(problems, slug)
+
+
 def parse_pin_texts(slot, raw, style):
     """--pinN-text の値を検証して文言リストにする。違反時は exit 1（プロンプトは出力しない）。"""
     opt = pin_text_opt(slot)
@@ -412,6 +473,9 @@ def assert_no_ascii(blocks):
 def main():
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
+    # エラーはすべて標準エラーへ出すため、こちらも同じくUTF-8へ寄せる（既定のcp932だと文字化けする）
+    if hasattr(sys.stderr, "reconfigure"):
+        sys.stderr.reconfigure(encoding="utf-8")
 
     argv = sys.argv[1:]
     raw_texts = {}
@@ -461,6 +525,10 @@ def main():
     texts = {}
     for slot in piv.PIN_SLOTS:
         texts[slot] = parse_pin_texts(slot, raw_texts.get(slot), styles[slot])
+
+    # --- 低情報量条件の強制（D-0152・条件の判定は piv 側の1関数に集約） ---
+    if piv.condition_for_slug(slug, rows) == piv.CONDITION_LOW:
+        check_low_info_condition(slug, styles, texts)
 
     blocks = [("hero", build_hero_prompt(by_type["hero"]))]
     for slot in piv.PIN_SLOTS:

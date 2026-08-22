@@ -39,6 +39,16 @@ Pin画像（pin1〜3）については「型」の候補リスト提示も担う
       緩和が起きた場合は出力にその旨を注記する。
     - heroは型プールの対象外。従来どおり4軸のみで選定する（写真型を維持）。
 
+文言件数の条件分け（D-0152・pin1〜3のみ）:
+  Pin画像の情報量を減らした条件と現行条件を、記事単位で同時並行に走らせて比較する。
+  対象記事の article_seq が偶数なら「低情報量条件」、奇数なら「現行条件」と機械的に
+  判定し（condition_for_seq()）、出力の先頭に条件名を明示する。
+    - 低情報量条件: 候補を低密度4種（IMAGE_STYLESで DENSITY_LOW を持つ型）だけに絞る。
+      このとき「直近2記事で使った型を除外」の規則は適用しない（候補が4種しかなく、
+      除外すると枯れるため）。守るのは「同一記事内でpin1〜3が重複しないこと」だけ。
+      1枚あたりの文言件数（1〜2件）と型の低密度チェックは make-image-prompt.py が強制する。
+    - 現行条件: 従来の挙動から一切変更しない。
+
 使い方:
   python site/scripts/pick-image-variation.py <slug>
       台帳（data/image-variation.tsv）に4行（hero/pin1/pin2/pin3）を追記し、
@@ -86,25 +96,45 @@ AXES = {
     "background": ["木目テーブル＋リネン", "大理石", "窓辺の自然光", "布ナプキン＋陶器小物"],
 }
 
-# Pin画像（pin1〜3）の型候補プール（D-0062）。
-# 増減する場合はこのリストだけを直す（他のロジックはすべてここを参照する）。
-IMAGE_STYLES = [
-    "写真ヒーロー",          # 物撮り・情景写真
-    "比較グリッド",          # 2〜4項目を並列表示
-    "手順図解",              # ステップ形式
-    "チェックリスト",
-    "ビフォーアフター",      # 対比構造
-    "Q&A形式",
-    "ポイント整理",          # 要点まとめ
-    "ランキング",            # 番付形式
-    "数字訴求型",            # 統計・数字を大きく見せる
-    "用語解説型",            # 辞書・用語集ふう
-    "シーン別ガイド",        # 用途・シチュエーション別に分岐
-    "相関図フローチャート",  # 要素同士の関係性を線・矢印で示す
-]
+# Pin画像（pin1〜3）の型候補プール（D-0062）と、型ごとの情報密度（D-0152）。
+# 増減・密度の変更はこの辞書だけを直す（他のロジックはすべてここを参照する。
+# make-image-prompt.py 側にも複製しない）。
+# 情報密度は「1枚に載る文言の多さ」の分類で、低情報量条件（後述）の候補プールを決めるのに使う。
+DENSITY_LOW = "低"
+DENSITY_HIGH = "高"
+
+IMAGE_STYLES = {
+    "写真ヒーロー": DENSITY_LOW,           # 物撮り・情景写真
+    "比較グリッド": DENSITY_HIGH,          # 2〜4項目を並列表示
+    "手順図解": DENSITY_HIGH,              # ステップ形式
+    "チェックリスト": DENSITY_HIGH,
+    "ビフォーアフター": DENSITY_LOW,       # 対比構造
+    "Q&A形式": DENSITY_LOW,
+    "ポイント整理": DENSITY_HIGH,          # 要点まとめ
+    "ランキング": DENSITY_HIGH,            # 番付形式
+    "数字訴求型": DENSITY_LOW,             # 統計・数字を大きく見せる
+    "用語解説型": DENSITY_HIGH,            # 辞書・用語集ふう
+    "シーン別ガイド": DENSITY_HIGH,        # 用途・シチュエーション別に分岐
+    "相関図フローチャート": DENSITY_HIGH,  # 要素同士の関係性を線・矢印で示す
+}
+
+# 番号指定（--set-style pin1=6 等）と一覧表示に使う型名リスト。IMAGE_STYLESの定義順をそのまま使う。
+STYLE_NAMES = list(IMAGE_STYLES)
+LOW_INFO_STYLES = [s for s, d in IMAGE_STYLES.items() if d == DENSITY_LOW]
 
 STYLE_LOOKBACK = 2   # 型の重複除外に使う直近記事数
 MIN_CANDIDATES = 3   # pin1〜3に別々の型を割り当てるために最低限必要な候補数
+
+# --- 文言件数の条件分け（D-0152） -------------------------------------------
+# Pin画像の情報量を減らした条件と現行条件を、記事単位で同時並行に走らせて比較する。
+# 振り分けは article_seq の偶奇で機械的に決め、AIの判断に委ねない。
+#   偶数 → 低情報量条件（型は低密度4種のみ・1枚あたりの文言は1〜2件）
+#   奇数 → 現行条件（従来どおり。型は12種・文言は1〜6件）
+# 偶奇の判定は condition_for_seq() の1箇所だけに置く（make-image-prompt.py はこれを呼ぶ）。
+CONDITION_LOW = "低情報量条件"
+CONDITION_CURRENT = "現行条件"
+LOW_INFO_TEXT_MIN = 1  # 低情報量条件で1枚に指定できる文言の下限（make-image-prompt.pyが参照する）
+LOW_INFO_TEXT_MAX = 2  # 同・上限
 
 MAX_ARTICLES = 8  # 台帳の保持上限（記事数）。CLAUDE.md 10節の肥大化防止原則に合わせる
 MAX_ROWS = MAX_ARTICLES * len(IMAGE_SLOTS)
@@ -169,13 +199,48 @@ def recent_style_usage(rows, exclude_slug=None, lookback=STYLE_LOOKBACK):
     return used
 
 
-def available_styles(rows, exclude_slug=None):
+def condition_for_seq(article_seq):
+    """article_seqの偶奇から条件名を返す（偶数=低情報量条件／奇数=現行条件・D-0152）。
+
+    偶奇の判定はこの関数だけに書く。make-image-prompt.py も同じ判定が必要なため、
+    向こうで書き直さずこの関数を呼ぶ（2箇所に判定ロジックを持たせない）。
+    """
+    return CONDITION_LOW if int(article_seq) % 2 == 0 else CONDITION_CURRENT
+
+
+def condition_for_slug(slug, rows=None):
+    """台帳から slug の article_seq を引いて条件名を返す。台帳に無ければ None。"""
+    if rows is None:
+        rows = read_ledger()
+    for r in rows:
+        if r["slug"] == slug:
+            try:
+                return condition_for_seq(r["article_seq"])
+            except (TypeError, ValueError):
+                return None
+    return None
+
+
+def is_low_density(style):
+    """型が低密度プールに含まれるか（D-0152）。未知の型は高密度扱いにしない＝Falseを返す。"""
+    return IMAGE_STYLES.get(style) == DENSITY_LOW
+
+
+def available_styles(rows, exclude_slug=None, condition=CONDITION_CURRENT):
     """今回選べる型の候補リストを返す。
 
     戻り値: (候補リスト, 除外に使った型の集合, 実際に適用したlookback)
       lookbackが STYLE_LOOKBACK より小さい場合は緩和が発生したことを意味する
       （0はプール全体を候補にしたケース）。
+
+    低情報量条件（D-0152）では低密度4種のみを候補とし、「直近2記事で使った型を除外」の
+    規則は適用しない（低密度プールが4種しかなく、直近2記事を除外すると候補が枯れて
+    pin1〜3に別々の型を割り当てられなくなるため）。この場合のlookbackは None を返し、
+    「除外規則そのものを適用していない」ことを緩和（0）と区別できるようにする。
+    同一記事内でpin1〜3が重複しないことだけが条件になる。
     """
+    if condition == CONDITION_LOW:
+        return list(LOW_INFO_STYLES), set(), None
     for lookback in range(STYLE_LOOKBACK, 0, -1):
         used = recent_style_usage(rows, exclude_slug, lookback)
         candidates = [s for s in IMAGE_STYLES if s not in used]
@@ -189,9 +254,9 @@ def resolve_style(value):
     value = value.strip()
     if value in IMAGE_STYLES:
         return value
-    if value.isdigit() and 1 <= int(value) <= len(IMAGE_STYLES):
-        return IMAGE_STYLES[int(value) - 1]
-    listing = "\n".join(f"  {i + 1}. {s}" for i, s in enumerate(IMAGE_STYLES))
+    if value.isdigit() and 1 <= int(value) <= len(STYLE_NAMES):
+        return STYLE_NAMES[int(value) - 1]
+    listing = "\n".join(f"  {i + 1}. {s}" for i, s in enumerate(STYLE_NAMES))
     sys.exit(f"型名が候補プールにありません: {value}\n指定できる型（番号でも可）:\n{listing}")
 
 
@@ -268,17 +333,20 @@ def main():
     last4 = rows[-4:]
     if len(last4) == 4 and all(r["slug"] == slug for r in last4) and {r["image_type"] for r in last4} == set(IMAGE_SLOTS):
         print(f"（台帳の末尾が既に {slug} の4行のため、再消費せず再表示します）")
-        print_result(slug, last4, *available_styles(rows, exclude_slug=slug))
+        condition = condition_for_seq(last4[0]["article_seq"])
+        print_result(slug, last4, *available_styles(rows, exclude_slug=slug, condition=condition), condition=condition)
         return
 
     prev_seq = int(rows[-1]["article_seq"]) if rows else -1
     article_seq = prev_seq + 1
+    condition = condition_for_seq(article_seq)
 
     from datetime import date
     today = date.today().isoformat()
 
-    # 型の候補は「今回の記事を除いた直近2記事」から計算する（追記より前に確定させる）
-    styles_info = available_styles(rows, exclude_slug=slug)
+    # 型の候補は「今回の記事を除いた直近2記事」から計算する（追記より前に確定させる）。
+    # 低情報量条件のときは直近記事による除外を行わず、低密度4種をそのまま候補にする（D-0152）。
+    styles_info = available_styles(rows, exclude_slug=slug, condition=condition)
 
     combos = pick_combinations(article_seq)
     new_rows = []
@@ -301,12 +369,25 @@ def main():
         del rows[0:4]
 
     write_ledger(rows)
-    print_result(slug, new_rows, *styles_info)
+    print_result(slug, new_rows, *styles_info, condition=condition)
 
 
-def print_result(slug, rows, candidates, used, lookback):
+def print_result(slug, rows, candidates, used, lookback, condition=CONDITION_CURRENT):
     candidate_text = "／".join(candidates)
-    print(f"記事: {slug}（article_seq={rows[0]['article_seq']}）")
+    article_seq = rows[0]["article_seq"]
+    parity = "偶数" if condition == CONDITION_LOW else "奇数"
+    print(f"■ 条件: {condition}（article_seq={article_seq} が{parity}・D-0152）")
+    if condition == CONDITION_LOW:
+        print(f"  型は低密度{len(LOW_INFO_STYLES)}種のみから選ぶ。"
+              f"1枚あたりの文言は{LOW_INFO_TEXT_MIN}〜{LOW_INFO_TEXT_MAX}件"
+              "（make-image-prompt.py が強制する）。")
+        print("  この条件では「直近2記事で使った型を除外」の規則は適用しない"
+              "（候補が4種しかないため）。同一記事内でpin1〜3が重複しないことだけを守る。")
+    else:
+        print("  従来どおり。型は12種から直近2記事使用分を除外した候補を使い、"
+              "1枚あたりの文言件数は make-image-prompt.py の既定（PIN_TEXT_MIN_COUNT〜PIN_TEXT_MAX_COUNT）のまま。")
+    print()
+    print(f"記事: {slug}（article_seq={article_seq}）")
     print()
     print("画像種別  アングル      フレーミング  テキスト配置  背景小物                  選択可能な型（pin1〜3のみ・この中から異なる3つを選ぶ）")
     print("-" * 120)
@@ -315,7 +396,11 @@ def print_result(slug, rows, candidates, used, lookback):
         print(f"{r['image_type']:<8}  {r['angle']:<10}  {r['framing']:<10}  {r['text_position']:<10}  {r['background']:<22}  {style_col}")
     print()
 
-    if lookback == 0:
+    if lookback is None:
+        print("直近記事による除外: 適用していません（低情報量条件のため・D-0152）")
+        print("※低密度プールは4種しかないため、直近2記事を除外すると候補が枯れて選定が詰まります。"
+              "同一記事内でpin1〜3が重複しないことだけを守ってください。")
+    elif lookback == 0:
         print("直近記事で使用済みの型（参考）: 候補が足りないためプール全体を候補にしています")
         print("※緩和発生: 直近2記事・直近1記事のどちらで除外しても候補が3個未満になるため、除外なし（プール全体）で出しています")
     else:

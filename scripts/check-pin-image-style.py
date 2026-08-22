@@ -133,12 +133,16 @@ def main():
     print()
     print("=== 2. 型の重複チェック ===")
 
-    _candidates, used, lookback = piv.available_styles(rows, exclude_slug=slug)
-    relaxed = lookback < piv.STYLE_LOOKBACK
+    condition = piv.condition_for_slug(slug, rows) or piv.CONDITION_CURRENT
+    _candidates, used, lookback = piv.available_styles(rows, exclude_slug=slug, condition=condition)
+    low_info = condition == piv.CONDITION_LOW
+    relaxed = (not low_info) and lookback < piv.STYLE_LOOKBACK
     used_ref = piv.recent_style_usage(rows, exclude_slug=slug, lookback=piv.STYLE_LOOKBACK)
 
     ng = []
     warn = []
+
+    print(f"  条件: {condition}（D-0152）")
 
     values = [styles[s] for s in piv.PIN_SLOTS]
     if len(set(values)) != len(values):
@@ -147,19 +151,30 @@ def main():
     else:
         print("  OK: pin1〜3の型は3つとも異なる")
 
-    overlap = sorted(set(values) & used_ref)
-    if overlap:
-        message = f"直近{piv.STYLE_LOOKBACK}記事で使用済みの型と重複しています: {'／'.join(overlap)}"
-        if relaxed:
-            warn.append(message)
+    if low_info:
+        # 低情報量条件では「直近2記事の除外」は適用しない（候補が4種しかなく枯れるため・D-0152）。
+        # 代わりに、3つとも低密度プールに含まれているかを見る（make-image-prompt.pyと同じ判定関数）。
+        high = [f"{s}={styles[s]}" for s in piv.PIN_SLOTS if not piv.is_low_density(styles[s])]
+        if high:
+            ng.append(f"低情報量条件のため型は低密度プール（{'／'.join(piv.LOW_INFO_STYLES)}）"
+                      f"から選ぶ必要がありますが、高密度の型が指定されています: {'、'.join(high)}")
         else:
-            ng.append(message)
+            print(f"  OK: pin1〜3の型は3つとも低密度プール（{'／'.join(piv.LOW_INFO_STYLES)}）に含まれる")
+        print("  ※この条件では直近2記事との重複はチェックしません（候補が4種しかないため・D-0152）")
     else:
-        print(f"  OK: 直近{piv.STYLE_LOOKBACK}記事で使用済みの型（{'／'.join(sorted(used_ref)) if used_ref else '記録なし'}）と重複なし")
+        overlap = sorted(set(values) & used_ref)
+        if overlap:
+            message = f"直近{piv.STYLE_LOOKBACK}記事で使用済みの型と重複しています: {'／'.join(overlap)}"
+            if relaxed:
+                warn.append(message)
+            else:
+                ng.append(message)
+        else:
+            print(f"  OK: 直近{piv.STYLE_LOOKBACK}記事で使用済みの型（{'／'.join(sorted(used_ref)) if used_ref else '記録なし'}）と重複なし")
 
-    if relaxed:
-        detail = "直近1記事のみの除外" if lookback == 1 else "除外なし（プール全体）"
-        print(f"  ※緩和適用中（{detail}）: 候補が3個未満になるため、直近記事との重複は警告のみとしエラーにしません")
+        if relaxed:
+            detail = "直近1記事のみの除外" if lookback == 1 else "除外なし（プール全体）"
+            print(f"  ※緩和適用中（{detail}）: 候補が3個未満になるため、直近記事との重複は警告のみとしエラーにしません")
 
     print()
     for m in warn:

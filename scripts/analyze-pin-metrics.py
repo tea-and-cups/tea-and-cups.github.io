@@ -30,7 +30,9 @@ r"""投稿済みPinの「型 × 実成果」を集計する（読み取り専用
   3. 型をローカルのピンファイルから引く。
   4. 指標は手順1の pin_metrics を優先し、揃っていない場合のみ
      GET /v5/pins/{pin_id}/analytics を1件ずつ呼ぶ（間隔は ANALYTICS_INTERVAL_SECONDS）。
-  5. data/pin-metrics.tsv へ出力し、標準出力に型別／スロット別／ボード別の3表を出す。
+  5. data/pin-metrics.tsv へ出力し、標準出力に型別／スロット別／ボード別／文言件数別の
+     4表を出す（表4はD-0152の条件比較用。文言件数はピンファイルのプロンプト全文から
+     実際に数えた件数で、数えられないピンは「不明」として別行に集計する）。
 
 --verify-saves オプション:
   上記の通常処理に加え、インプレッション上位5件について GET /v5/pins/{pin_id}/analytics
@@ -99,6 +101,19 @@ STYLE_ALIASES = {
     "質疑応答形式": "Q&A形式",
 }
 
+# 文言件数（D-0152）。make-image-prompt.py が出す「文言その一：「…」」の連番から数える。
+# 意図（低情報量条件かどうか）ではなく、実際にプロンプトへ書いた件数を集計するため、
+# 別途フラグを記録する方式は取らない。
+TEXT_ITEM_RE = re.compile(r"文言その([一二三四五六七八九十]+)")
+_KANJI_DIGITS = "〇一二三四五六七八九"
+TEXT_COUNT_UNKNOWN = "不明"
+TEXT_COUNT_LOW = "1〜2件"
+TEXT_COUNT_HIGH = "3件以上"
+TEXT_COUNT_NOTICE = (
+    "文言件数を機械的に数えられるのは make-image-prompt.py 経由で作成したピンのみ。\n"
+    "2026-08-22より前のピンはすべて不明に集計される。条件比較には不明行を使わないこと。"
+)
+
 TYPE_LINE_RE = re.compile(r"^-\s*型:\s*(.+)$")
 GUIDE_URL_RE = re.compile(r"^-\s*誘導先URL:\s*(\S+)\s*$")
 PIN_FILE_NUM_RE = re.compile(r"pin-(\d+)")
@@ -122,26 +137,69 @@ def normalize_style(raw):
     return value, value != raw.strip()
 
 
+def kanji_to_int(value):
+    """「三」「十二」等の漢数字を整数にする。解釈できなければ None。"""
+    try:
+        if value == "十":
+            return 10
+        if "十" in value:
+            upper, lower = value.split("十", 1)
+            tens = _KANJI_DIGITS.index(upper) if upper else 1
+            ones = _KANJI_DIGITS.index(lower) if lower else 0
+            return tens * 10 + ones
+        return _KANJI_DIGITS.index(value)
+    except ValueError:
+        return None
+
+
+def count_text_items(content):
+    """ピンファイル全文から、そのPinに指定された文言の件数を数える（D-0152）。
+
+    make-image-prompt.py（D-0148）は焼き込む文言を「文言その一：「…」」の形で連番付きに
+    出力する。作り直しのたびに同じ連番が繰り返し現れるため、出現回数ではなく連番の最大値を
+    件数とする。この形式を持たないピン（D-0148以前の手組みプロンプト）は None を返し、
+    呼び出し側で「不明」として別に集計する。
+    """
+    indexes = set()
+    for raw in TEXT_ITEM_RE.findall(content):
+        n = kanji_to_int(raw)
+        if n:
+            indexes.add(n)
+    return max(indexes) if indexes else None
+
+
+def text_count_bucket(count):
+    """文言件数を集計バケット名にする。"""
+    if count is None:
+        return TEXT_COUNT_UNKNOWN
+    return TEXT_COUNT_LOW if count <= 2 else TEXT_COUNT_HIGH
+
+
 def parse_pin_file(path):
-    """1ピンファイルから 型 / 誘導先URL を読む。戻り値: dict。"""
+    """1ピンファイルから 型 / 誘導先URL / 文言件数 を読む。戻り値: dict。"""
     style_raw = None
     guide_url = None
     try:
         with open(path, "r", encoding="utf-8") as f:
-            for line in f:
-                stripped = line.strip()
-                if style_raw is None:
-                    m = TYPE_LINE_RE.match(stripped)
-                    if m:
-                        style_raw = m.group(1).strip()
-                        continue
-                if guide_url is None:
-                    m = GUIDE_URL_RE.match(stripped)
-                    if m:
-                        guide_url = m.group(1).strip()
+            content = f.read()
     except OSError:
         return None
-    return {"style_raw": style_raw, "guide_url": guide_url}
+    for line in content.split("\n"):
+        stripped = line.strip()
+        if style_raw is None:
+            m = TYPE_LINE_RE.match(stripped)
+            if m:
+                style_raw = m.group(1).strip()
+                continue
+        if guide_url is None:
+            m = GUIDE_URL_RE.match(stripped)
+            if m:
+                guide_url = m.group(1).strip()
+    return {
+        "style_raw": style_raw,
+        "guide_url": guide_url,
+        "text_count": count_text_items(content),
+    }
 
 
 def slug_from_url(url):
@@ -210,6 +268,7 @@ def build_local_index():
             "style_raw": parsed["style_raw"],
             "style_normalized": style_changed,
             "slug": slug_from_url(parsed["guide_url"]),
+            "text_count": parsed["text_count"],
         }
 
     # slug ごとに Pin番号昇順で slot を振る
@@ -608,6 +667,8 @@ def main():
             "slug": item["slug"],
             "slot": "pin%d" % info["slot"] if info.get("slot") else "不明",
             "style": info["style"],
+            "text_count": info.get("text_count"),
+            "text_count_bucket": text_count_bucket(info.get("text_count")),
             "board": board_names.get(str(pin.get("board_id", "")), str(pin.get("board_id", ""))),
             "created_at": created.date().isoformat(),
             "elapsed_days": elapsed,
@@ -680,7 +741,7 @@ def main():
                 print("    pin%d: %s" % (pin_num, reason))
 
     # --- 5. TSV出力 ---
-    header = ["pin_id", "pin番号", "slug", "スロット", "型", "ボード名", "created_at",
+    header = ["pin_id", "pin番号", "slug", "スロット", "型", "文言件数", "ボード名", "created_at",
               "経過日数", "インプレッション", "ピンクリック", "アウトバウンドクリック",
               "保存", "特定経路"]
     rows.sort(key=lambda r: r["pin_num"])
@@ -689,7 +750,9 @@ def main():
         for row in rows:
             f.write("\t".join([
                 str(row["pin_id"]), str(row["pin_num"]), row["slug"], row["slot"],
-                row["style"], row["board"],
+                row["style"],
+                TEXT_COUNT_UNKNOWN if row["text_count"] is None else str(row["text_count"]),
+                row["board"],
                 row["created_at"], "%.1f" % row["elapsed_days"],
                 str(int(row["impression"])), str(int(row["pin_click"])),
                 str(int(row["outbound_click"])), str(int(row["save"])), row["route"],
@@ -697,11 +760,15 @@ def main():
     print("")
     print("出力: %s（%d行）" % (os.path.relpath(OUTPUT_TSV, ROOT).replace(os.sep, "/"), len(rows)))
 
-    # --- 6. 3つの集計表 ---
+    # --- 6. 4つの集計表 ---
     out = []
     out += format_table("【表1】型別", "型", aggregate(rows, lambda r: r["style"]))
     out += format_table("【表2】スロット別", "スロット", aggregate(rows, lambda r: r["slot"]))
     out += format_table("【表3】ボード別", "ボード名", aggregate(rows, lambda r: r["board"]))
+    # 「不明」行は集計から除外せず必ず出す（何件を見て判断したのかを後から追えるようにするため・D-0152）
+    out += format_table("【表4】文言件数別（1〜2件／3件以上）", "文言件数",
+                        aggregate(rows, lambda r: r["text_count_bucket"]))
+    out.append(TEXT_COUNT_NOTICE)
     print("\n".join(out))
 
     # --- 7. 固定の注意書き ---
