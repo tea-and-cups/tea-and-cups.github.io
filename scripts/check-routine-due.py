@@ -9,13 +9,15 @@ check-image-gen-needed-today.py（D-0078）と同じ方針で、あいまいな�
 
 判定項目:
   1. 週次レポート（直近4週の未生成週を検知・D-0095）
-     基準日以前（基準日が日曜ならそれを含む）の直近4回分の日曜それぞれについて、
-     対応する reports/weekly-YYYY-WW.md の有無を確認する。存在しない週があれば、
+     「直近に終わった週の日曜」（last_complete_week()・D-0156）を起点に、そこから
+     遡る4回分の日曜それぞれについて、対応する reports/weekly-YYYY-WW.md の有無を
+     確認する。基準日が日曜でも、その日を含む週はまだ終わっていないため対象にしない
+     （期間定義を fetch-pinterest-analytics.py と揃えるため。D-0156）。存在しない週があれば、
      その週ごとに通知する。上限は4週（約1か月）固定とし、それより古い週次の
      欠落は遡って検知しない（古すぎる週次レポートは遡って作る意味がないため。
      窓口の運用方針）。
-     通知文では、基準日自身が対象日曜（今日が日曜で今週分が未生成）なのか、
-     それより前の日曜（過去の週が未生成のまま残っている）なのかを区別する。
+     通知文では、今回の対象週（起点の日曜）なのか、それより前の日曜
+     （過去の週が未生成のまま残っている）なのかを区別する。
      （旧実装は「日曜のみ判定・取りこぼしは次の日曜に自然に検知される」として
      いたが誤りだった。weekly_filename() は基準日ベースで週番号を算出するため、
      日曜のセッションを1回でも飛ばすとその週は永久に検知されないまま欠落して
@@ -88,6 +90,25 @@ def parse_args(argv):
     return base
 
 
+def last_complete_week(base):
+    """基準日から「直近に終わった週の月曜・日曜」を (monday, sunday) で返す。
+
+    曜日ごとの場合分けはしない。(weekday+1) % 7 は「直近の日曜からの経過日数」
+    （日曜なら0）。そこから -1 して再度 mod 7 し +1 することで、0 を 7 に写しつつ
+    他の値はそのまま残す。結果は常に「基準日より前にある直近の日曜」になる。
+      基準日2026-08-23(日) → 7日前の 2026-08-16(日) → 週は 2026-08-10〜08-16
+      基準日2026-08-19(水) → 3日前の 2026-08-16(日) → 週は 2026-08-10〜08-16
+
+    fetch-pinterest-analytics.py もこの関数をimportして使う（同じ期間算出を
+    2箇所に持たないため）。
+    """
+    days_since_sunday = (base.weekday() + 1) % 7
+    days_back = (days_since_sunday - 1) % 7 + 1
+    sunday = base - datetime.timedelta(days=days_back)
+    monday = sunday - datetime.timedelta(days=6)
+    return monday, sunday
+
+
 def weekly_filename(sunday):
     """対象日曜に対応する週次レポートのファイル名を返す（docstring 1 の対応表を参照）。"""
     iso_year, iso_week, _ = (sunday + datetime.timedelta(days=1)).isocalendar()
@@ -135,15 +156,16 @@ def main():
     base = parse_args(sys.argv[1:])
     messages = []
 
-    # 1. 週次レポート（直近4週の未生成週を検知・D-0095・月曜=0 ... 日曜=6）
-    days_since_sunday = (base.weekday() - 6) % 7
-    most_recent_sunday = base - datetime.timedelta(days=days_since_sunday)
+    # 1. 週次レポート（直近4週の未生成週を検知・D-0095）
+    # 起点は「直近に終わった週の日曜」（D-0156）。基準日が日曜でもその日を含む週は
+    # まだ終わっていないため対象にしない。4週ルックバックはD-0095のまま維持する。
+    _, target_sunday = last_complete_week(base)
     for i in range(WEEKLY_LOOKBACK_WEEKS):
-        sunday = most_recent_sunday - datetime.timedelta(weeks=i)
+        sunday = target_sunday - datetime.timedelta(weeks=i)
         name = weekly_filename(sunday)
         if os.path.isfile(os.path.join(REPORTS_DIR, name)):
             continue
-        if sunday == base:
+        if sunday == target_sunday:
             messages.append(
                 "週次レポート未生成（%s は日曜・今週分の reports/%s がありません）"
                 % (sunday.isoformat(), name)

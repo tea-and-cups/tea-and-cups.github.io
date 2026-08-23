@@ -11,6 +11,8 @@ r"""週次レポート用のPinterest実績数値を、対象期間の算出ご�
      「直近に終わった週の月曜〜日曜」を求める。曜日で分岐せず単一式で求める。
      基準日が日曜なら、その日を含む週ではなく前週の月〜日になる
      （例: 基準日2026-08-23(日) → 2026-08-10〜2026-08-16）。
+     この期間算出は check-routine-due.py の last_complete_week() をimportして呼ぶ
+     （D-0156・同じ計算をこちらで再実装しない）。
   2. 週次レポートの書き込み先ファイル名は check-routine-due.py の weekly_filename() を
      importして呼ぶ（週番号の決め方をこちらで再実装しない・二重実装を作らない）。
   3. GET /v5/user_account/analytics を1回だけ呼ぶ（GET系のみ。POST/PATCH/DELETEは
@@ -63,11 +65,13 @@ DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 PERIOD_DAYS = 7
 
 
-def load_weekly_filename():
-    """check-routine-due.py の weekly_filename() をimportして返す。
+def load_routine_due_functions():
+    """check-routine-due.py の last_complete_week() と weekly_filename() を
+    importして (last_complete_week, weekly_filename) で返す（D-0156）。
 
-    ファイル名にハイフンを含み通常のimport文が使えないため、他スクリプトと同じく
-    importlibで読み込む（check-routine-due.py 側の main() は
+    対象期間の算出も週番号の決め方も、こちら側では実装しない（同じ計算を2箇所に
+    持たないため）。ファイル名にハイフンを含み通常のimport文が使えないため、
+    他スクリプトと同じくimportlibで読み込む（check-routine-due.py 側の main() は
     __name__ == "__main__" ガードの内側にあるため、importしても実行されない）。
     """
     spec = importlib.util.spec_from_file_location("check_routine_due", ROUTINE_DUE_PATH)
@@ -75,9 +79,10 @@ def load_weekly_filename():
         raise ImportError("check-routine-due.py を読み込めません（%s）" % ROUTINE_DUE_PATH)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
-    if not hasattr(module, "weekly_filename"):
-        raise ImportError("check-routine-due.py に weekly_filename() が見つかりません")
-    return module.weekly_filename
+    for name in ("last_complete_week", "weekly_filename"):
+        if not hasattr(module, name):
+            raise ImportError("check-routine-due.py に %s() が見つかりません" % name)
+    return module.last_complete_week, module.weekly_filename
 
 
 def parse_args():
@@ -87,22 +92,6 @@ def parse_args():
     if args.date and not DATE_RE.match(args.date):
         parser.error("--date は YYYY-MM-DD 形式で指定してください: %s" % args.date)
     return args
-
-
-def target_period(base):
-    """基準日から「直近に終わった週の月曜〜日曜」を求める。
-
-    曜日ごとの場合分けはしない。(weekday+1) % 7 は「直近の日曜からの経過日数」
-    （日曜なら0）。そこから -1 して再度 mod 7 し +1 することで、0 を 7 に写しつつ
-    他の値はそのまま残す。結果は常に「基準日より前にある直近の日曜」になる。
-      基準日2026-08-23(日) → 7日前の 2026-08-16(日)
-      基準日2026-08-19(水) → 3日前の 2026-08-16(日)
-    """
-    days_since_sunday = (base.weekday() + 1) % 7
-    days_back = (days_since_sunday - 1) % 7 + 1
-    end_sunday = base - datetime.timedelta(days=days_back)
-    start_monday = end_sunday - datetime.timedelta(days=PERIOD_DAYS - 1)
-    return start_monday, end_sunday
 
 
 def fetch_analytics(access_token, start_date, end_date):
@@ -155,12 +144,12 @@ def main():
     base = datetime.date.fromisoformat(args.date) if args.date else datetime.date.today()
 
     try:
-        weekly_filename = load_weekly_filename()
+        last_complete_week, weekly_filename = load_routine_due_functions()
     except Exception as e:
-        print("【エラー】check-routine-due.py の weekly_filename() を読み込めませんでした: %s" % e)
+        print("【エラー】check-routine-due.py の関数を読み込めませんでした: %s" % e)
         return 2
 
-    start_monday, end_sunday = target_period(base)
+    start_monday, end_sunday = last_complete_week(base)
     report_name = weekly_filename(end_sunday)
     ga4_command = "python site/scripts/fetch-ga4-metrics.py --start %s --end %s" % (
         start_monday.isoformat(), end_sunday.isoformat(),
