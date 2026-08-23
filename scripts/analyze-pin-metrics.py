@@ -255,16 +255,18 @@ def cta_bucket(cta_found, created_date):
 
 
 def created_before_cta(created_at):
-    """作成日がCTA運用開始日より前か（判定できない場合は False＝除外しない）。
+    """作成日がCTA運用開始日より前か（判定できない場合は True＝対象外区分へ計上）。
 
     created_at は rows の "created_at"（YYYY-MM-DD 文字列）。
     """
     if not created_at:
-        return False
+        # 日付不明時は安全側として対象外区分へ計上する（D-0159の目的である運用開始前ピンの汚染除去を守るため）
+        return True
     try:
         return datetime.date.fromisoformat(created_at) < CTA_START_DATE
     except ValueError:
-        return False
+        # 日付不明時は安全側として対象外区分へ計上する（D-0159の目的である運用開始前ピンの汚染除去を守るため）
+        return True
 
 
 def condition_group(row):
