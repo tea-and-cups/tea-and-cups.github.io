@@ -259,13 +259,24 @@ def cta_for_seq(article_seq):
     return conditions_for_seq(article_seq)[1]
 
 
-def cta_text_for_seq(article_seq):
-    """CTA帯に焼き込む文言を CTA_TEXTS から機械的に選ぶ（D-0152）。
+# CTA文言を記事内で1枚ずつずらす歩幅。CTA_TEXTS が10件・歩幅3のため、
+# 同一記事の pin1〜3 は必ず連続した別の添字になり、文言が重複しない。
+CTA_TEXT_STRIDE = 3
 
-    CTAなしの群でも呼び出し自体は成立するが、実際に使うのはCTAありの群だけ。
-    どの文言を使うかはAIが選ばず article_seq から決める（表記ゆれ防止）。
+
+def cta_text_for_seq(article_seq, pin_no=1):
+    """CTA帯に焼き込む文言を CTA_TEXTS から機械的に選ぶ（D-0152・D-0157）。
+
+    記事単位ではなくピン単位で選ぶ。同一記事の pin1〜3 は連続した添字になるため
+    3枚とも別の文言になる。どの文言を使うかはAIが選ばず、
+    article_seq と pin_no から決める（表記ゆれ防止・乱数は使わない）。
+
+    pin_no を省略した場合は pin1 の文言を返す（引数を渡さない呼び出しの互換のため）。
+    添字の計算はこの関数だけに置く。make-image-prompt.py 側で余りの計算や
+    CTA_TEXTS への添字アクセスを複製しない。
     """
-    return CTA_TEXTS[int(article_seq) % len(CTA_TEXTS)]
+    index = (int(article_seq) * CTA_TEXT_STRIDE + (int(pin_no) - 1)) % len(CTA_TEXTS)
+    return CTA_TEXTS[index]
 
 
 def seq_for_slug(slug, rows=None):
@@ -451,8 +462,11 @@ def print_result(slug, rows, candidates, used, lookback, condition=CONDITION_CUR
     remainder = int(article_seq) % 4
     print(f"■ 条件: {condition}／{cta}（article_seq={article_seq} を4で割った余り={remainder}・D-0152）")
     if cta == CTA_YES:
-        print(f"  CTA帯をpin1〜3の3枚すべてに焼き込む。文言は「{cta_text_for_seq(article_seq)}」で固定"
-              "（AIが選ばない・make-image-prompt.py が依頼文に自動で入れる）。")
+        cta_list = "／".join(
+            "pin%d=「%s」" % (i, cta_text_for_seq(article_seq, i)) for i in (1, 2, 3)
+        )
+        print("  CTA帯をpin1〜3の3枚すべてに焼き込む。文言はピンごとに異なる（%s）"
+              "（AIが選ばない・make-image-prompt.py が依頼文に自動で入れる）。" % cta_list)
         print("  CTA文言は --pinN-text の件数制限の対象外。見出し文言の件数は下記の条件どおりに渡す。")
     else:
         print("  CTA帯は入れない（依頼文にCTAの記述は一切入らない）。")

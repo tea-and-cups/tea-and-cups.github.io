@@ -191,8 +191,14 @@ def text_strict_rules(has_cta):
 CTA_BAND_RULES = [
     "画像の下部に、読者を記事へ誘導するための帯を一つだけ配置する。",
     "帯の中に焼き込む文言は「{text}」のみとする。一字一句そのまま使い、言い換え・要約・語尾の変更をしない。",
-    "帯の色は生成り・琥珀・ブラウンの範囲から選び、画像全体の世界観から外れない色にする。",
+    "帯の地の色は、濃い茶色（＃４Ａ３４２Ａ）の一色で塗りつぶす。"
+    "背景がどんな色であってもこの色を変えない。透過・半透明にしない。",
+    "帯の中の文字の色は白（＃ＦＦＦＦＦＦ）にする。",
+    "帯の外周すべてに、クリーム色（＃Ｆ５ＥＦＥ６）の太さ二ピクセルの枠線を入れる。"
+    "背景が茶系でも帯の輪郭が消えないようにするための枠線であり、省略しない。",
     "帯は角丸の帯またはボタン状の形にし、周囲の余白と区別がつくようにする。",
+    "帯の下端と画像の下辺のあいだに、画像の高さの四パーセントぶんの余白を必ず空ける。"
+    "帯を画像の最も下の辺に接触させない。",
     "帯の中には、指定した文言以外の文字・数字・記号を描き足さない（矢印・指の形・飾りの英字も含む）。",
     "帯は見出しの文言と重ならない位置に置き、見出しの文言と帯の文言がどちらも読める大きさにする。",
 ]
@@ -576,20 +582,26 @@ def main():
         check_low_info_condition(slug, styles, texts)
 
     # CTA文言は --pinN-text の件数制限の対象外のため、件数検証の後にここで足す（D-0152）。
-    cta_text = None
+    # 文言はピン単位で変える（D-0157）。添字の計算は piv 側の1関数に集約し、ここでは複製しない。
+    cta_texts = {slot: None for slot in piv.PIN_SLOTS}
     if cta_condition == piv.CTA_YES:
-        cta_text = piv.cta_text_for_seq(piv.seq_for_slug(slug, rows))
+        article_seq = piv.seq_for_slug(slug, rows)
+        for pin_no, slot in enumerate(piv.PIN_SLOTS, start=1):
+            cta_texts[slot] = piv.cta_text_for_seq(article_seq, pin_no)
 
     blocks = [("hero", build_hero_prompt(by_type["hero"]))]
     for slot in piv.PIN_SLOTS:
-        blocks.append((slot, build_pin_prompt(by_type[slot], styles[slot], texts[slot], cta_text)))
+        blocks.append((slot, build_pin_prompt(by_type[slot], styles[slot], texts[slot], cta_texts[slot])))
 
     assert_no_ascii(blocks)
 
     if conditions:
         print("■ 条件: %s／%s（D-0152・この行はChatGPTへ貼らない）" % (info_condition, cta_condition))
-        if cta_text:
-            print("■ CTA文言: 「%s」（pin1〜3の3枚すべてに焼き込む・この行も貼らない）" % cta_text)
+        if cta_condition == piv.CTA_YES:
+            listed = "／".join(
+                "%s=「%s」" % (slot, cta_texts[slot]) for slot in piv.PIN_SLOTS
+            )
+            print("■ CTA文言: %s（3枚とも別の文言・この行も貼らない）" % listed)
         print()
 
     for name, body in blocks:
