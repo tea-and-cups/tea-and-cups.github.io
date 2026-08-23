@@ -32,6 +32,8 @@ r"""投稿済みPinの「型 × 実成果」を集計する（読み取り専用
      GET /v5/pins/{pin_id}/analytics を1件ずつ呼ぶ（間隔は ANALYTICS_INTERVAL_SECONDS）。
   5. data/pin-metrics.tsv へ出力し、標準出力に型別／スロット別／ボード別／文言件数別／
      4群別（情報量×CTA）の5表を出す（表4・表5はD-0152の条件比較用）。
+     表5の群分けは記事連番（ピンファイルの「- 記事連番:」行）を4で割った余りだけで決め、
+     実際の文言件数は「設計と一致しないピンの件数と割合」を併記する補助列にのみ使う（D-0158）。
      文言件数はピンファイルのプロンプト全文から実際に数えた件数で、数えられないピンは
      「不明」として別行に集計する。CTAの有無も同じくプロンプト全文にCTA文言
      （pick-image-variation.py の CTA_TEXTS）が含まれるかで判定する（意図ではなく実際の
@@ -134,15 +136,41 @@ TEXT_COUNT_NOTICE = (
 CTA_UNKNOWN = "不明"
 CTA_START_DATE = datetime.date(2026, 8, 23)  # CTA条件の運用開始日
 CTA_NOTICE = (
-    "CTAの有無はピンファイルのプロンプト全文にCTA文言（%s）が含まれるかで判定する。\n"
-    "%s より前に作成されたピンはCTAという選択肢自体が無かったため、すべて不明に集計される"
-    "（「CTAなし」の群には入れない）。条件比較には不明行を使わないこと。"
+    "TSVのCTA列（表5の群分類には使わない・D-0158）のCTAの有無は、ピンファイルの"
+    "プロンプト全文にCTA文言（%s）が含まれるかで判定する。\n"
+    "%s より前に作成されたピンはCTAという選択肢自体が無かったため、CTA列はすべて不明になる"
+    "（表5の群分類は記事連番のみで決まるため、この不明は群には影響しない）。"
     % ("／".join(piv.CTA_TEXTS), CTA_START_DATE.isoformat())
 )
 
-# 表5（4群別）の行ラベル。文言件数バケットを「情報多め／情報少なめ」の言い方へ寄せる。
-INFO_LABEL = {TEXT_COUNT_LOW: "情報少なめ", TEXT_COUNT_HIGH: "情報多め"}
+# 表5（4群別）の行ラベル。群は記事連番（article_seq）から決めるため、
+# pick-image-variation.py の条件名を表示用の言い方へ寄せるだけにする（D-0158）。
+CONDITION_INFO_LABEL = {
+    piv.CONDITION_LOW: "情報少なめ",
+    piv.CONDITION_CURRENT: "情報多め",
+}
 CONDITION_GROUP_UNKNOWN = "不明"
+
+# 表5の補助列（実文言件数が設計と一致しないピンの件数と割合）の見出し。
+DEVIATION_HEADER = "設計と不一致の文言件数"
+
+GROUP_NOTICE = (
+    "表5の群は記事連番（output/pins/*.md の「- 記事連番:」行）を4で割った余りだけで決まる"
+    "（D-0158）。実際の文言件数は分類に使わず、設計との乖離の監視にのみ使う。\n"
+    "記事連番の行が無いピンは「不明」行に入る。群分類は記事連番のみを見るため、"
+    "CTA運用開始（%s）より前に作成されたピンも余りに従ってCTAあり／なしの群へ入る"
+    "（実際にCTA文言が入っていたかはTSVのCTA列で確認する）。"
+    % CTA_START_DATE.isoformat()
+)
+
+# 旧仕様のまま作られたピンの注記（群からの除外はしない・D-0158）。
+LEGACY_PIN_NOTICE = (
+    "【注記】seq35（pin157〜159）は旧仕様（3枚とも同一のCTA文言・帯色が背景依存）で"
+    "作成されたピンだが、群からは除外していない。"
+)
+
+# 記事連番の行（rules/image-generation-flow.md・書き漏れは check-pin-board.py が拒否する）。
+ARTICLE_SEQ_RE = re.compile(r"^-\s*記事連番:\s*([0-9]+)\s*$")
 
 TYPE_LINE_RE = re.compile(r"^-\s*型:\s*(.+)$")
 GUIDE_URL_RE = re.compile(r"^-\s*誘導先URL:\s*(\S+)\s*$")
@@ -222,18 +250,68 @@ def cta_bucket(cta_found, created_date):
 
 
 def condition_group(row):
-    """情報量×CTAの4群のラベルを返す（D-0152）。片方でも不明なら「不明」。"""
-    info = INFO_LABEL.get(row["text_count_bucket"])
-    cta = row["cta_bucket"]
-    if info is None or cta == CTA_UNKNOWN:
+    """情報量×CTAの4群のラベルを返す（D-0152・分類基準はD-0158で記事連番へ変更）。
+
+    群は記事連番を4で割った余りだけで決まる（判定元は pick-image-variation.py の
+    conditions_for_seq()。余りの計算はここに複製しない）。実際の文言件数・CTAの有無は
+    分類に使わない。結果側の実績で群を決めると各群の件数が事前に読めず、低密度に
+    振れたピンだけが情報少なめ群へ混入するため（D-0158）。
+    記事連番が記録されていないピンだけが「不明」になる。
+    """
+    seq = row.get("article_seq")
+    if seq is None:
+        return CONDITION_GROUP_UNKNOWN
+    condition, cta = piv.conditions_for_seq(seq)
+    info = CONDITION_INFO_LABEL.get(condition)
+    if info is None:
         return CONDITION_GROUP_UNKNOWN
     return "%s・%s" % (info, cta)
 
 
+def text_count_matches_design(row):
+    """実際の文言件数が、記事連番から決まる設計上の件数と一致するか。
+
+    戻り値: True（一致）／False（不一致）／None（判定不可＝記事連番か文言件数が無い）。
+    低情報量条件は piv.LOW_INFO_TEXT_MIN〜MAX 件、現行条件はそれを超える件数を設計とする。
+    """
+    seq = row.get("article_seq")
+    count = row.get("text_count")
+    if seq is None or count is None:
+        return None
+    if piv.condition_for_seq(seq) == piv.CONDITION_LOW:
+        return piv.LOW_INFO_TEXT_MIN <= count <= piv.LOW_INFO_TEXT_MAX
+    return count > piv.LOW_INFO_TEXT_MAX
+
+
+def deviation_summary(rows):
+    """表5の補助列。群ごとに「実文言件数が設計と一致しないピン」の件数と割合を作る。
+
+    文言件数を数えられないピン（make-image-prompt.py 以前の手組み）は分母に入れない。
+    """
+    stats = {}
+    for row in rows:
+        s = stats.setdefault(condition_group(row), {"judged": 0, "mismatch": 0})
+        verdict = text_count_matches_design(row)
+        if verdict is None:
+            continue
+        s["judged"] += 1
+        if not verdict:
+            s["mismatch"] += 1
+    summary = {}
+    for key, s in stats.items():
+        if s["judged"] == 0:
+            summary[key] = "判定不可（文言件数を数えられるピンなし）"
+        else:
+            summary[key] = "%d件/%d件（%.0f%%）" % (
+                s["mismatch"], s["judged"], s["mismatch"] * 100.0 / s["judged"])
+    return summary
+
+
 def parse_pin_file(path):
-    """1ピンファイルから 型 / 誘導先URL / 文言件数 / CTAの有無 を読む。戻り値: dict。"""
+    """1ピンファイルから 型 / 誘導先URL / 記事連番 / 文言件数 / CTAの有無 を読む。戻り値: dict。"""
     style_raw = None
     guide_url = None
+    article_seq = None
     try:
         with open(path, "r", encoding="utf-8") as f:
             content = f.read()
@@ -250,9 +328,15 @@ def parse_pin_file(path):
             m = GUIDE_URL_RE.match(stripped)
             if m:
                 guide_url = m.group(1).strip()
+                continue
+        if article_seq is None:
+            m = ARTICLE_SEQ_RE.match(stripped)
+            if m:
+                article_seq = int(m.group(1))
     return {
         "style_raw": style_raw,
         "guide_url": guide_url,
+        "article_seq": article_seq,
         "text_count": count_text_items(content),
         "cta_found": has_cta_text(content),
     }
@@ -324,6 +408,7 @@ def build_local_index():
             "style_raw": parsed["style_raw"],
             "style_normalized": style_changed,
             "slug": slug_from_url(parsed["guide_url"]),
+            "article_seq": parsed["article_seq"],
             "text_count": parsed["text_count"],
             "cta_found": parsed["cta_found"],
         }
@@ -473,10 +558,15 @@ def aggregate(rows, key_func):
     return sorted(buckets.items(), key=lambda kv: -kv[1]["impression"])
 
 
-def format_table(title, header, buckets):
-    lines = ["", title, "-" * 78]
-    lines.append("%-22s %5s %10s %9s %9s %9s" % (
-        header, "件数", "imp/日", "クリック率", "外部率", "保存率"))
+def format_table(title, header, buckets, extra_header=None, extra_values=None):
+    """集計表を組み立てる。extra_header を渡した表だけ右端に補助列を1つ足す（D-0158）。"""
+    width = 78 if extra_header is None else 108
+    lines = ["", title, "-" * width]
+    head = "%-22s %5s %10s %9s %9s %9s" % (
+        header, "件数", "imp/日", "クリック率", "外部率", "保存率")
+    if extra_header is not None:
+        head += "  %s" % extra_header
+    lines.append(head)
     total_count = 0
     for key, b in buckets:
         imp = b["impression"]
@@ -484,10 +574,13 @@ def format_table(title, header, buckets):
         click_rate = (b["pin_click"] / imp * 100) if imp > 0 else 0.0
         out_rate = (b["outbound_click"] / imp * 100) if imp > 0 else 0.0
         save_rate = (b["save"] / imp * 100) if imp > 0 else 0.0
-        lines.append("%-22s %5d %10.2f %8.2f%% %8.2f%% %8.2f%%" % (
-            key[:22], b["count"], per_day, click_rate, out_rate, save_rate))
+        line = "%-22s %5d %10.2f %8.2f%% %8.2f%% %8.2f%%" % (
+            key[:22], b["count"], per_day, click_rate, out_rate, save_rate)
+        if extra_header is not None:
+            line += "  %s" % (extra_values or {}).get(key, "")
+        lines.append(line)
         total_count += b["count"]
-    lines.append("-" * 78)
+    lines.append("-" * width)
     lines.append("対象件数合計: %d件" % total_count)
     return lines
 
@@ -724,6 +817,7 @@ def main():
             "slug": item["slug"],
             "slot": "pin%d" % info["slot"] if info.get("slot") else "不明",
             "style": info["style"],
+            "article_seq": info.get("article_seq"),
             "text_count": info.get("text_count"),
             "text_count_bucket": text_count_bucket(info.get("text_count")),
             "cta_bucket": cta_bucket(info.get("cta_found"), created.date()),
@@ -828,10 +922,15 @@ def main():
     out += format_table("【表4】文言件数別（1〜2件／3件以上）", "文言件数",
                         aggregate(rows, lambda r: r["text_count_bucket"]))
     out.append(TEXT_COUNT_NOTICE)
-    # 表5はD-0152の4群（情報量×CTA）の比較用。ここも「不明」行を必ず出す。
-    out += format_table("【表5】4群別（情報量×CTA）", "条件の群",
-                        aggregate(rows, condition_group))
+    # 表5はD-0152の4群（情報量×CTA）の比較用。群分けは記事連番基準（D-0158）。
+    # ここも「不明」行を必ず出す。
+    out += format_table("【表5】4群別（情報量×CTA・記事連番基準）", "条件の群",
+                        aggregate(rows, condition_group),
+                        extra_header=DEVIATION_HEADER,
+                        extra_values=deviation_summary(rows))
+    out.append(GROUP_NOTICE)
     out.append(CTA_NOTICE)
+    out.append(LEGACY_PIN_NOTICE)
     print("\n".join(out))
 
     # --- 7. 固定の注意書き ---
