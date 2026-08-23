@@ -47,8 +47,9 @@ Pin画像（pin1〜3）については「型」の候補リスト提示も担う
     余り2 → 情報少なめ（低情報量条件）・CTAなし
     余り3 → 情報多め（現行条件）・CTAあり
     余り0 → 情報少なめ（低情報量条件）・CTAあり
-    - 低情報量条件: 候補を低密度4種（IMAGE_STYLESで DENSITY_LOW を持つ型）だけに絞る。
-      このとき「直近2記事で使った型を除外」の規則は適用しない（候補が4種しかなく、
+    - 低情報量条件: 候補を LOW_INFO_STYLES（IMAGE_STYLESで DENSITY_LOW を持つ型から
+      LOW_INFO_EXCLUDED を除いたもの）だけに絞る。
+      このとき「直近2記事で使った型を除外」の規則は適用しない（候補が数種しかなく、
       除外すると枯れるため）。守るのは「同一記事内でpin1〜3が重複しないこと」だけ。
       1枚あたりの文言件数（1〜2件）と型の低密度チェックは make-image-prompt.py が強制する。
     - 現行条件: 型・文言件数の扱いは従来のまま（型は12種・文言は1〜6件）。
@@ -130,7 +131,20 @@ IMAGE_STYLES = {
 
 # 番号指定（--set-style pin1=6 等）と一覧表示に使う型名リスト。IMAGE_STYLESの定義順をそのまま使う。
 STYLE_NAMES = list(IMAGE_STYLES)
-LOW_INFO_STYLES = [s for s, d in IMAGE_STYLES.items() if d == DENSITY_LOW]
+
+# 低密度に分類しつつ、低情報量条件の候補プールからだけは外す型。
+# 「数字訴求型」は見出しで項目数を言明する構成（例:「はじめる前の四つの確認」）のため、
+# 低情報量条件で項目テキストを1〜2件までしか画像プロンプトへ渡せないと、実項目数より少ない
+# 文言しか届かず、ChatGPTが中身の空いた番号枠だけを描くリスクがある（Pin162で実際に発生）。
+# D-0144でランキング型に入れた安全策（順位ラベルを必ず枠の数だけ渡す）と同種のリスクだが、
+# ランキング型は高密度のためこの条件の対象外で、数字訴求型は手当てされていなかった。
+# 高情報量条件（現行条件）では十分な項目数を渡せるため、そちらの候補プール（IMAGE_STYLES全体）
+# からは除外しない。
+LOW_INFO_EXCLUDED = {"数字訴求型"}
+
+LOW_INFO_STYLES = [
+    s for s, d in IMAGE_STYLES.items() if d == DENSITY_LOW and s not in LOW_INFO_EXCLUDED
+]
 
 STYLE_LOOKBACK = 2   # 型の重複除外に使う直近記事数
 MIN_CANDIDATES = 3   # pin1〜3に別々の型を割り当てるために最低限必要な候補数
@@ -305,8 +319,12 @@ def condition_for_slug(slug, rows=None):
 
 
 def is_low_density(style):
-    """型が低密度プールに含まれるか（D-0152）。未知の型は高密度扱いにしない＝Falseを返す。"""
-    return IMAGE_STYLES.get(style) == DENSITY_LOW
+    """型が低情報量条件の候補プール（LOW_INFO_STYLES）に含まれるか（D-0152）。
+
+    未知の型と LOW_INFO_EXCLUDED の型は False を返す。低情報量条件の可否判定は
+    すべてこの関数か LOW_INFO_STYLES を通し、IMAGE_STYLES の密度値を直接見ない。
+    """
+    return style in LOW_INFO_STYLES
 
 
 def available_styles(rows, exclude_slug=None, condition=CONDITION_CURRENT):
@@ -316,8 +334,8 @@ def available_styles(rows, exclude_slug=None, condition=CONDITION_CURRENT):
       lookbackが STYLE_LOOKBACK より小さい場合は緩和が発生したことを意味する
       （0はプール全体を候補にしたケース）。
 
-    低情報量条件（D-0152）では低密度4種のみを候補とし、「直近2記事で使った型を除外」の
-    規則は適用しない（低密度プールが4種しかなく、直近2記事を除外すると候補が枯れて
+    低情報量条件（D-0152）では LOW_INFO_STYLES のみを候補とし、「直近2記事で使った型を除外」の
+    規則は適用しない（低密度プールが数種しかなく、直近2記事を除外すると候補が枯れて
     pin1〜3に別々の型を割り当てられなくなるため）。この場合のlookbackは None を返し、
     「除外規則そのものを適用していない」ことを緩和（0）と区別できるようにする。
     同一記事内でpin1〜3が重複しないことだけが条件になる。
@@ -475,7 +493,7 @@ def print_result(slug, rows, candidates, used, lookback, condition=CONDITION_CUR
               f"1枚あたりの文言は{LOW_INFO_TEXT_MIN}〜{LOW_INFO_TEXT_MAX}件"
               "（make-image-prompt.py が強制する）。")
         print("  この条件では「直近2記事で使った型を除外」の規則は適用しない"
-              "（候補が4種しかないため）。同一記事内でpin1〜3が重複しないことだけを守る。")
+              f"（候補が{len(LOW_INFO_STYLES)}種しかないため）。同一記事内でpin1〜3が重複しないことだけを守る。")
     else:
         print("  従来どおり。型は12種から直近2記事使用分を除外した候補を使い、"
               "1枚あたりの文言件数は make-image-prompt.py の既定（PIN_TEXT_MIN_COUNT〜PIN_TEXT_MAX_COUNT）のまま。")
@@ -491,7 +509,7 @@ def print_result(slug, rows, candidates, used, lookback, condition=CONDITION_CUR
 
     if lookback is None:
         print("直近記事による除外: 適用していません（低情報量条件のため・D-0152）")
-        print("※低密度プールは4種しかないため、直近2記事を除外すると候補が枯れて選定が詰まります。"
+        print(f"※低密度プールは{len(LOW_INFO_STYLES)}種しかないため、直近2記事を除外すると候補が枯れて選定が詰まります。"
               "同一記事内でpin1〜3が重複しないことだけを守ってください。")
     elif lookback == 0:
         print("直近記事で使用済みの型（参考）: 候補が足りないためプール全体を候補にしています")

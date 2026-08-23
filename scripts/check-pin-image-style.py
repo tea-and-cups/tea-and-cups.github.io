@@ -157,7 +157,7 @@ def main():
         print("  OK: pin1〜3の型は3つとも異なる")
 
     if low_info:
-        # 低情報量条件では「直近2記事の除外」は適用しない（候補が4種しかなく枯れるため・D-0152）。
+        # 低情報量条件では「直近2記事の除外」は適用しない（候補が数種しかなく枯れるため・D-0152）。
         # 代わりに、3つとも低密度プールに含まれているかを見る（make-image-prompt.pyと同じ判定関数）。
         high = [f"{s}={styles[s]}" for s in piv.PIN_SLOTS if not piv.is_low_density(styles[s])]
         if high:
@@ -165,7 +165,7 @@ def main():
                       f"から選ぶ必要がありますが、高密度の型が指定されています: {'、'.join(high)}")
         else:
             print(f"  OK: pin1〜3の型は3つとも低密度プール（{'／'.join(piv.LOW_INFO_STYLES)}）に含まれる")
-        print("  ※この条件では直近2記事との重複はチェックしません（候補が4種しかないため・D-0152）")
+        print(f"  ※この条件では直近2記事との重複はチェックしません（候補が{len(piv.LOW_INFO_STYLES)}種しかないため・D-0152）")
     else:
         overlap = sorted(set(values) & used_ref)
         if overlap:
