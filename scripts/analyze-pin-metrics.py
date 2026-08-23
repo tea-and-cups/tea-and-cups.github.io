@@ -32,8 +32,10 @@ r"""投稿済みPinの「型 × 実成果」を集計する（読み取り専用
      GET /v5/pins/{pin_id}/analytics を1件ずつ呼ぶ（間隔は ANALYTICS_INTERVAL_SECONDS）。
   5. data/pin-metrics.tsv へ出力し、標準出力に型別／スロット別／ボード別／文言件数別／
      4群別（情報量×CTA）の5表を出す（表4・表5はD-0152の条件比較用）。
-     表5の群分けは記事連番（ピンファイルの「- 記事連番:」行）を4で割った余りだけで決め、
+     表5の群分けは記事連番（ピンファイルの「- 記事連番:」行）を4で割った余りで決め、
      実際の文言件数は「設計と一致しないピンの件数と割合」を併記する補助列にのみ使う（D-0158）。
+     ただし CTA_START_DATE より前に作成されたピンは実際にはCTA帯が焼かれていないため、
+     余りに関わらず群から外し「対象外（CTA運用開始前）」行に計上する（D-0159）。
      文言件数はピンファイルのプロンプト全文から実際に数えた件数で、数えられないピンは
      「不明」として別行に集計する。CTAの有無も同じくプロンプト全文にCTA文言
      （pick-image-variation.py の CTA_TEXTS）が含まれるかで判定する（意図ではなく実際の
@@ -138,8 +140,8 @@ CTA_START_DATE = datetime.date(2026, 8, 23)  # CTA条件の運用開始日
 CTA_NOTICE = (
     "TSVのCTA列（表5の群分類には使わない・D-0158）のCTAの有無は、ピンファイルの"
     "プロンプト全文にCTA文言（%s）が含まれるかで判定する。\n"
-    "%s より前に作成されたピンはCTAという選択肢自体が無かったため、CTA列はすべて不明になる"
-    "（表5の群分類は記事連番のみで決まるため、この不明は群には影響しない）。"
+    "%s より前に作成されたピンはCTAという選択肢自体が無かったため、CTA列はすべて不明になり、"
+    "表5でも群から外れて「対象外（CTA運用開始前）」行に入る。"
     % ("／".join(piv.CTA_TEXTS), CTA_START_DATE.isoformat())
 )
 
@@ -150,17 +152,20 @@ CONDITION_INFO_LABEL = {
     piv.CONDITION_CURRENT: "情報多め",
 }
 CONDITION_GROUP_UNKNOWN = "不明"
+# CTA運用開始前に作成されたピンの区分。記事連番の余りではCTAあり／なしの群に当たるが、
+# 実際にはCTA帯が焼かれていないため、4群の比較対象から外してこの行に計上する。
+CONDITION_GROUP_PRE_CTA = "対象外（CTA運用開始前）"
 
 # 表5の補助列（実文言件数が設計と一致しないピンの件数と割合）の見出し。
 DEVIATION_HEADER = "設計と不一致の文言件数"
 
 GROUP_NOTICE = (
-    "表5の群は記事連番（output/pins/*.md の「- 記事連番:」行）を4で割った余りだけで決まる"
+    "表5の群は記事連番（output/pins/*.md の「- 記事連番:」行）を4で割った余りで決まる"
     "（D-0158）。実際の文言件数は分類に使わず、設計との乖離の監視にのみ使う。\n"
-    "記事連番の行が無いピンは「不明」行に入る。群分類は記事連番のみを見るため、"
-    "CTA運用開始（%s）より前に作成されたピンも余りに従ってCTAあり／なしの群へ入る"
-    "（実際にCTA文言が入っていたかはTSVのCTA列で確認する）。"
-    % CTA_START_DATE.isoformat()
+    "記事連番の行が無いピンは「不明」行に入る。\n"
+    "CTA運用開始（%s）より前に作成されたピンは、余りの上ではCTAあり／なしの群に当たっても"
+    "実際にはCTA帯が焼かれていないため、群の集計から外して「%s」行に計上する（D-0159）。"
+    % (CTA_START_DATE.isoformat(), CONDITION_GROUP_PRE_CTA)
 )
 
 # 旧仕様のまま作られたピンの注記（群からの除外はしない・D-0158）。
@@ -249,6 +254,19 @@ def cta_bucket(cta_found, created_date):
     return piv.CTA_YES if cta_found else piv.CTA_NONE
 
 
+def created_before_cta(created_at):
+    """作成日がCTA運用開始日より前か（判定できない場合は False＝除外しない）。
+
+    created_at は rows の "created_at"（YYYY-MM-DD 文字列）。
+    """
+    if not created_at:
+        return False
+    try:
+        return datetime.date.fromisoformat(created_at) < CTA_START_DATE
+    except ValueError:
+        return False
+
+
 def condition_group(row):
     """情報量×CTAの4群のラベルを返す（D-0152・分類基準はD-0158で記事連番へ変更）。
 
@@ -256,8 +274,13 @@ def condition_group(row):
     conditions_for_seq()。余りの計算はここに複製しない）。実際の文言件数・CTAの有無は
     分類に使わない。結果側の実績で群を決めると各群の件数が事前に読めず、低密度に
     振れたピンだけが情報少なめ群へ混入するため（D-0158）。
-    記事連番が記録されていないピンだけが「不明」になる。
+    記事連番が記録されていないピンは「不明」になる。
+    CTA運用開始（CTA_START_DATE）より前に作成されたピンは、余りがCTAあり／なしの
+    どちらに当たっても実際にはCTA帯が焼かれていないため、群の集計から外して
+    CONDITION_GROUP_PRE_CTA に計上する。
     """
+    if created_before_cta(row.get("created_at")):
+        return CONDITION_GROUP_PRE_CTA
     seq = row.get("article_seq")
     if seq is None:
         return CONDITION_GROUP_UNKNOWN
