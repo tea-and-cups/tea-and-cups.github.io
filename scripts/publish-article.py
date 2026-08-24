@@ -12,7 +12,7 @@ Edit/Writeによるpublished化は .claude/hooks/check-publish-gate.py で拒否
   1. output/articles/<slug>.md の存在確認
   2. 公開前チェック群を順に実行（1本でも非ゼロ終了なら中断）
        check-article-portability.py <slug>
-       check-product-link-presence.py <slug>
+       check-product-link-presence.py <slug> --min 3
        check-fact-source.py <slug>
        check-source-fetched.py <slug>
        check-pin-image-naming.py
@@ -54,15 +54,17 @@ SCRIPTS_DIR = os.path.join(ROOT, "site", "scripts")
 DRAFTS_DIR = os.path.join(ROOT, "output", "articles")
 POSTS_DIR = os.path.join(ROOT, "site", "src", "content", "posts")
 
-# (スクリプト名, slugを引数に取るか)
+# (スクリプト名, slugを引数に取るか, 追加の固定引数)
 PRE_PUBLISH_CHECKS = [
-    ("check-article-portability.py", True),
-    ("check-product-link-presence.py", True),
-    ("check-fact-source.py", True),
-    ("check-source-fetched.py", True),
-    ("check-pin-image-naming.py", False),
-    ("check-pin-image-style.py", True),
-    ("check-anchor-consistency.py", True),
+    ("check-article-portability.py", True, []),
+    # 新規記事は商品3点紹介を標準とする（rules/product-linking.md 0節）。
+    # 週次の健全性チェックは引数なし（1点以上）で実行するため、ここだけが --min 3 を渡す。
+    ("check-product-link-presence.py", True, ["--min", "3"]),
+    ("check-fact-source.py", True, []),
+    ("check-source-fetched.py", True, []),
+    ("check-pin-image-naming.py", False, []),
+    ("check-pin-image-style.py", True, []),
+    ("check-anchor-consistency.py", True, []),
 ]
 
 CHECK_TIMEOUT = 120
@@ -87,12 +89,15 @@ def abort(message):
 
 def run_checks(slug):
     """公開前チェックを順に実行する。1本でも落ちたらFalseを返す。"""
-    for script_name, takes_slug in PRE_PUBLISH_CHECKS:
+    for script_name, takes_slug, extra_args in PRE_PUBLISH_CHECKS:
         script_path = os.path.join(SCRIPTS_DIR, script_name)
         cmd = [sys.executable, script_path]
         if takes_slug:
             cmd.append(slug)
+        cmd.extend(extra_args)
         label = script_name + ((" " + slug) if takes_slug else "")
+        if extra_args:
+            label += " " + " ".join(extra_args)
         try:
             result = subprocess.run(
                 cmd,
