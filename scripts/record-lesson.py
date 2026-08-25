@@ -17,10 +17,14 @@ r"""教訓リスト機構（D-0163）。日次セッションで得られた教�
 確認済み（2026-08-25・詳細は reports/2026-08-25-3.md 参照）。
 
 【data/lessons.tsv の列】
-  id / category / summary / count / status / first_seen / last_seen / resolved_at
+  id / category / summary / count / status / first_seen / last_seen / resolved_at /
+  details
   status: active（未処遇）／pending（週次で浮上済み・処遇待ち）／fixed（対策済み）／
           accepted（許容）
   resolved_at: status が最後に変わった日。active は空文字。
+  details: 再発の具体症状。`YYYY-MM-DD:詳細|YYYY-MM-DD:詳細` 形式で直近3件のみ保持
+           （4件目の追加時に最古を捨てる）。summary が抽象的なままだと週次に浮上しても
+           対策を設計できないため、bump 時に必ず1件記録する。
 
 【data/lessons-session.txt】
   1行目: そのセッションの CLAUDE_CODE_SESSION_ID
@@ -29,15 +33,16 @@ r"""教訓リスト機構（D-0163）。日次セッションで得られた教�
 使い方:
   python site/scripts/record-lesson.py mark
   python site/scripts/record-lesson.py list [--category <カテゴリ>]
-  python site/scripts/record-lesson.py add --category <カテゴリ> --summary "<40字以内>"
-  python site/scripts/record-lesson.py bump --id L001
+  python site/scripts/record-lesson.py add --category <カテゴリ> --summary "<40字以内>" [--detail "<20字以内>"]
+  python site/scripts/record-lesson.py bump --id L001 --detail "<20字以内>"
   python site/scripts/record-lesson.py none
   python site/scripts/record-lesson.py check
   python site/scripts/record-lesson.py weekly
   python site/scripts/record-lesson.py resolve --id L001 --status fixed
 
 終了コード: 0=正常 / 1=入力エラー（不正カテゴリ・40字超・summaryのタブ/改行混入・
-  存在しないID・処遇済み項目へのresolve・セッション上限超過）
+  存在しないID・処遇済み項目へのresolve・セッション上限超過・bumpの--detail未指定・
+  detailの20字超・detailのタブ/改行/パイプ記号混入）
 """
 
 import argparse
@@ -67,10 +72,13 @@ RESOLVED_STATUSES = ("fixed", "accepted")
 RESOLVABLE_STATUSES = ("active", "pending")
 COLUMNS = (
     "id", "category", "summary", "count", "status",
-    "first_seen", "last_seen", "resolved_at",
+    "first_seen", "last_seen", "resolved_at", "details",
 )
 
 SUMMARY_MAX_CHARS = 40
+DETAIL_MAX_CHARS = 20          # --detail 1件あたりの上限
+DETAILS_KEEP = 3               # details に保持する件数（超過分は最古から捨てる）
+DETAIL_SEPARATOR = "|"         # details 内の区切り。detail 本文への混入は弾く
 ADD_LIMIT = 3                  # 1セッションで実行できる add の件数
 BUMP_LIMIT = 5                 # 1セッションで実行できる bump の件数（addとは別枠）
 ACTIVE_STALE_DAYS = 30         # active かつ count=1 をこの日数で自動削除する
@@ -318,12 +326,21 @@ def cmd_list(args):
         rows = [r for r in rows if r.get("category") == category]
         print("=== カテゴリ: %s ===" % category)
 
+    # details は照合が要る --category 指定時のみ出す（全件表示で毎回出すとトークンを食う）
+    show_details = bool(category)
+
+    def print_detail_lines(row):
+        if show_details:
+            for line in detail_lines(row):
+                print(line)
+
     actives = [r for r in rows if r.get("status") == "active"]
     actives.sort(key=lambda r: (r.get("category", ""), -to_int(r.get("count")), r.get("id", "")))
     print("=== active（未処遇・%d件） ===" % len(actives))
     if actives:
         for row in actives:
             print(format_row(row))
+            print_detail_lines(row)
     else:
         print("（なし）")
 
@@ -334,6 +351,7 @@ def cmd_list(args):
     if pendings:
         for row in pendings:
             print(pending_line(row))
+            print_detail_lines(row)
     else:
         print("（なし）")
 
@@ -364,6 +382,62 @@ def check_summary_safe(summary):
     return True
 
 
+def check_detail(detail, required):
+    """--detail の内容を検査する。不正なら None を返す（呼び出し側が終了コード1）。
+    パイプ記号は details 列の区切りに使うため、本文への混入を弾く。
+    """
+    if detail is None or not str(detail).strip():
+        if required:
+            print(
+                "エラー: bump には --detail \"<20字以内>\" が必須です。"
+                "何が起きたかを具体的に記録してください。",
+                file=sys.stderr,
+            )
+            return None
+        return ""
+    detail = str(detail).strip()
+    for char, label in (("\t", "タブ文字"), ("\n", "改行"), ("\r", "改行"),
+                        (DETAIL_SEPARATOR, "パイプ記号(|)")):
+        if char in detail:
+            print(
+                "エラー: detailに%sが含まれています。TSVが破損するため記録できません。" % label,
+                file=sys.stderr,
+            )
+            return None
+    if len(detail) > DETAIL_MAX_CHARS:
+        print(
+            "エラー: detailが%d字です。%d字以内にしてください。"
+            % (len(detail), DETAIL_MAX_CHARS),
+            file=sys.stderr,
+        )
+        return None
+    return detail
+
+
+def parse_details(value):
+    """details 列を ["YYYY-MM-DD:詳細", ...] のリストにする。空なら空リスト。"""
+    raw = str(value or "").strip()
+    if not raw:
+        return []
+    return [part for part in raw.split(DETAIL_SEPARATOR) if part.strip()]
+
+
+def append_detail(value, detail):
+    """details 列へ1件追記し、直近 DETAILS_KEEP 件だけを残した文字列を返す。"""
+    entries = parse_details(value)
+    entries.append("%s:%s" % (today_str(), detail))
+    return DETAIL_SEPARATOR.join(entries[-DETAILS_KEEP:])
+
+
+def detail_lines(row, indent="    "):
+    """details を日付付きの箇条書き行のリストにする。空なら空リスト。"""
+    lines = []
+    for entry in parse_details(row.get("details")):
+        head, sep, body = entry.partition(":")
+        lines.append("%s- %s" % (indent, ("%s %s" % (head, body)) if sep else entry))
+    return lines
+
+
 def next_id(rows):
     numbers = []
     for row in rows:
@@ -392,6 +466,10 @@ def cmd_add(args):
         )
         return 1
 
+    detail = check_detail(getattr(args, "detail", None), required=False)
+    if detail is None:
+        return 1
+
     ensure_session_capacity("ADD")
 
     rows = load_rows()
@@ -405,6 +483,7 @@ def cmd_add(args):
         "first_seen": today,
         "last_seen": today,
         "resolved_at": "",
+        "details": append_detail("", detail) if detail else "",
     }
     rows.append(new_row)
     save_rows(run_maintenance(rows))
@@ -427,10 +506,15 @@ def cmd_bump(args):
     if not check_summary_safe(target.get("summary", "")):
         return 1
 
+    detail = check_detail(getattr(args, "detail", None), required=True)
+    if detail is None:
+        return 1
+
     ensure_session_capacity("BUMP")
 
     target["count"] = str(to_int(target.get("count")) + 1)
     target["last_seen"] = today_str()
+    target["details"] = append_detail(target.get("details"), detail)
 
     note = ""
     if target.get("status") == "fixed":
@@ -446,6 +530,8 @@ def cmd_bump(args):
     save_rows(run_maintenance(rows))
     append_session_record("BUMP\t%s" % target["id"])
     print("更新: %s%s" % (format_row(target), note))
+    for line in detail_lines(target):
+        print(line)
     return 0
 
 
@@ -498,6 +584,8 @@ def cmd_weekly(_args):
                 row.get("first_seen", ""),
                 row.get("last_seen", ""),
             ))
+            for line in detail_lines(row):
+                print(line)
     else:
         print("今週の浮上項目なし")
 
@@ -514,6 +602,8 @@ def cmd_weekly(_args):
                 to_int(row.get("count")),
                 elapsed,
             ))
+            for line in detail_lines(row):
+                print(line)
     else:
         print("処遇待ちなし")
 
@@ -563,9 +653,14 @@ def build_parser():
     p_add = sub.add_parser("add", help="新しい教訓を追加する")
     p_add.add_argument("--category", required=True)
     p_add.add_argument("--summary", required=True)
+    p_add.add_argument("--detail", default=None,
+                       help="具体的な症状（20字以内・任意。指定時はdetailsの1件目になる）")
 
     p_bump = sub.add_parser("bump", help="既存の教訓の再発を記録する")
     p_bump.add_argument("--id", required=True)
+    # argparse の required=True は終了コード2になるため、必須判定は check_detail 側で行う
+    p_bump.add_argument("--detail", default=None,
+                        help="具体的な症状（20字以内・必須）")
 
     sub.add_parser("none", help="そのセッションで教訓ゼロだったことを記録する")
     sub.add_parser("check", help="Stopフック用: 記録漏れを検知する")
