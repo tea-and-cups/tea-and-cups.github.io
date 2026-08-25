@@ -67,6 +67,15 @@ NO_RESUMMARY_PREFIX としてモジュール先頭で1箇所だけ定義し、3�
 （D-0096。当初はトークン追記・未commit検知の2箇所にしか前置きが入っておらず、
 ガバナンス警告が単独で成立した場合に元の2重表示問題が再発する欠陥があったため）。
 
+■ 教訓リストの記録漏れ検知（D-0163）
+record-lesson.py check を実行し、標準出力に LESSON_NOT_RECORDED が含まれる場合、
+教訓の記録（add / bump / none）を促す文言を既存のreason統合へ合流させる。
+日次セッションかどうかの判別はマーカー方式（data/lessons-session.txt に書かれた
+セッションIDと現在の CLAUDE_CODE_SESSION_ID の一致）で行い、日次フローでしか
+実行されないスクリプト（check-topic-duplicate.py・publish-article.py）がマーカーを作る。
+改善・修正セッションではマーカーが作られないため、この検知は何も要求しない。
+追加する子プロセスはこの1本のみで、処理はファイル1本の読み比べに留める。
+
 ■ 所要時間の記録（D-0136）
 4つの子プロセス（governance判定・トークン集計・索引生成・Googleドライブ同期）それぞれの
 所要秒数と結果を data/stop-hook-timing.tsv へ1セッション1行で追記する。目的は
@@ -78,7 +87,8 @@ NO_RESUMMARY_PREFIX としてモジュール先頭で1箇所だけ定義し、3�
 data/配下はGit管理外（D-0043）のため、この位置に置いてよい。
 
 ■ block()の呼び出し規律（D-0082／D-0142で同期失敗を4項目目として追加）
-ガバナンス警告・トークン未出力・未commit検知・同期失敗が同時に成立しても、block()の
+ガバナンス警告・トークン未出力・未commit検知・同期失敗・教訓リスト未記録（D-0163）が
+同時に成立しても、block()の
 呼び出しは1回のみ・出力されるJSONも1つのみとし、reasonに全項目をまとめて含める。
 継続強制の回数制御は既存の stop_hook_active 方式（1回だけ強制・2回目以降は無条件で
 終了を許可）をそのまま使い、新しい制御方式は作らない。
@@ -98,12 +108,14 @@ GOVERNANCE_SCRIPT = os.path.join(SCRIPT_DIR, "check-doc-governance.py")
 SCRIPT_INDEX_SCRIPT = os.path.join(SCRIPT_DIR, "generate-script-index.py")
 GDRIVE_SYNC_SCRIPT = os.path.join(SCRIPT_DIR, "sync-to-gdrive.py")
 TOKEN_USAGE_SCRIPT = os.path.join(SCRIPT_DIR, "session-token-usage.py")
+RECORD_LESSON_SCRIPT = os.path.join(SCRIPT_DIR, "record-lesson.py")
 SITE_ROOT = os.path.dirname(SCRIPT_DIR)
 # site/scripts -> site -> プロジェクトルート。__file__基準のためカレントディレクトリに依存しない。
 PROJECT_ROOT = os.path.dirname(SITE_ROOT)
 
 SUMMARY_HEADING = "【オーナーが今やること】"
 TOKEN_OUTPUT_MARKER = "このセッションの使用トークン数"
+LESSON_NOT_RECORDED_MARKER = "LESSON_NOT_RECORDED"
 
 # reason冒頭の前置き文（D-0082補足／D-0096でガバナンス警告の経路にも適用対象を拡大）。
 # トークン追記・未commit検知・ガバナンス警告の3箇所すべてがこの定数を参照する。
@@ -262,6 +274,31 @@ def build_token_reason(token_output):
     )
 
 
+def build_lesson_reason(lesson_result, lesson_exc):
+    """教訓リストの記録漏れ（record-lesson.py check）をreason文字列へ組み立てる（D-0163）。
+    check は日次フローのマーカー（data/lessons-session.txt）が現在のセッションIDと
+    一致するときだけ LESSON_NOT_RECORDED を出力する。改善・修正セッションでは
+    マーカーが作られないため何も出力されず、この関数もNoneを返す（＝誤爆しない）。
+    check は仕様上 exit 1 を使わないため、判定は標準出力のマーカー文字列のみで行う。
+    返り値は他の系統と同じくNO_RESUMMARY_PREFIX込みの完成形とする。
+    """
+    if lesson_result is None:
+        print(
+            "警告: record-lesson.py checkの実行中にエラーが発生しました: %s" % lesson_exc,
+            file=sys.stderr,
+        )
+        return None
+    if LESSON_NOT_RECORDED_MARKER not in (lesson_result.stdout or ""):
+        return None
+    return (
+        NO_RESUMMARY_PREFIX +
+        "教訓リストが未記録です。record-lesson.py list で既存項目を確認し、"
+        "add / bump / none のいずれかを実行してください"
+        "（python site/scripts/record-lesson.py list ／ "
+        "add --category <カテゴリ> --summary \"<40字以内>\" ／ bump --id <L番号> ／ none）。"
+    )
+
+
 def build_sync_reason(sync_result, sync_exc):
     """sync-to-gdrive.py の同期失敗をreason文字列へ組み立てる（D-0142）。
     成功（終了コード0）ならNoneを返す。返り値はcheck_git_dirty()等と同じく
@@ -394,6 +431,15 @@ def main():
     # 届く経路がなく機能しておらず、かつblock()のJSONと同一stdoutに平文が混在して
     # トークン追記機構のJSONパースを壊すリスクがあったため取りやめた。
     reason_parts.append(check_git_dirty(SITE_ROOT))
+
+    # 教訓リストの記録漏れ検知（D-0163）。子プロセスはこの1本のみで、判定は
+    # data/lessons-session.txt の読み比べだけの軽い処理である。
+    # 所要時間TSV（D-0136）の列は既存4本のまま変えないため、_timingsのキー"lesson"は
+    # TIMING_KEYSに含めず記録対象外とする（列構成を変えると過去行と食い違うため）。
+    lesson_result, lesson_exc = run_child(
+        "lesson", [sys.executable, RECORD_LESSON_SCRIPT, "check"], 15, env=child_env
+    )
+    reason_parts.append(build_lesson_reason(lesson_result, lesson_exc))
 
     # 索引生成・同期は block() より前に実行する（D-0142）。同期の失敗をreasonへ
     # 合流させるため、block()を呼ぶ時点で同期結果が確定している必要がある。

@@ -202,9 +202,32 @@ def ahead_count():
 # --- メイン --------------------------------------------------------------------
 
 
+MARKER_SCRIPT = os.path.join(SCRIPTS_DIR, "record-lesson.py")
+
+
+def mark_daily_session():
+    """教訓リストのセッションマーカーを作る（D-0163）。
+    このスクリプトは日次フローでしか実行されないため、実行された事実を
+    「今日は日次セッションである」ことの根拠として record-lesson.py へ渡す。
+    マーカーの失敗で本来の処理が止まるのは本末転倒のため、例外・非ゼロ終了は
+    すべて握りつぶし、呼び出し元の動作には一切影響させない。
+    """
+    try:
+        subprocess.run(
+            [sys.executable, MARKER_SCRIPT, "mark"],
+            capture_output=True,
+            timeout=15,
+        )
+    except Exception:
+        pass
+
+
 def main():
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
+
+    # 日次フロー実行の記録（D-0163）。判定・公開処理そのものには影響しない。
+    mark_daily_session()
 
     args = [a for a in sys.argv[1:]]
     dry_run = "--dry-run" in args
