@@ -18,8 +18,9 @@ r"""教訓リスト機構（D-0163）。日次セッションで得られた教�
 
 【data/lessons.tsv の列】
   id / category / summary / count / status / first_seen / last_seen / resolved_at
-  status: active（未処遇）／fixed（対策済み）／accepted（許容）
-  resolved_at: fixed・accepted になった日。active は空文字。
+  status: active（未処遇）／pending（週次で浮上済み・処遇待ち）／fixed（対策済み）／
+          accepted（許容）
+  resolved_at: status が最後に変わった日。active は空文字。
 
 【data/lessons-session.txt】
   1行目: そのセッションの CLAUDE_CODE_SESSION_ID
@@ -27,7 +28,7 @@ r"""教訓リスト機構（D-0163）。日次セッションで得られた教�
 
 使い方:
   python site/scripts/record-lesson.py mark
-  python site/scripts/record-lesson.py list
+  python site/scripts/record-lesson.py list [--category <カテゴリ>]
   python site/scripts/record-lesson.py add --category <カテゴリ> --summary "<40字以内>"
   python site/scripts/record-lesson.py bump --id L001
   python site/scripts/record-lesson.py none
@@ -35,7 +36,8 @@ r"""教訓リスト機構（D-0163）。日次セッションで得られた教�
   python site/scripts/record-lesson.py weekly
   python site/scripts/record-lesson.py resolve --id L001 --status fixed
 
-終了コード: 0=正常 / 1=入力エラー（不正カテゴリ・40字超・存在しないID・3件上限超過）
+終了コード: 0=正常 / 1=入力エラー（不正カテゴリ・40字超・summaryのタブ/改行混入・
+  存在しないID・処遇済み項目へのresolve・セッション上限超過）
 """
 
 import argparse
@@ -59,26 +61,32 @@ CATEGORIES = (
     "external-service",
     "other",
 )
-STATUSES = ("active", "fixed", "accepted")
+STATUSES = ("active", "pending", "fixed", "accepted")
 RESOLVED_STATUSES = ("fixed", "accepted")
+# resolve を受け付ける status（＝まだ処遇されていないもの）
+RESOLVABLE_STATUSES = ("active", "pending")
 COLUMNS = (
     "id", "category", "summary", "count", "status",
     "first_seen", "last_seen", "resolved_at",
 )
 
 SUMMARY_MAX_CHARS = 40
-SESSION_RECORD_LIMIT = 3       # 1セッションで記録できる add + bump の合計件数
+ADD_LIMIT = 3                  # 1セッションで実行できる add の件数
+BUMP_LIMIT = 5                 # 1セッションで実行できる bump の件数（addとは別枠）
 ACTIVE_STALE_DAYS = 30         # active かつ count=1 をこの日数で自動削除する
 FIXED_KEEP_DAYS = 50           # fixed をこの日数で自動削除する
+ACCEPTED_KEEP_DAYS = 180       # accepted を last_seen からこの日数で自動削除する
 ACTIVE_MAX = 40                # active の保持上限（超過分は count=1 の古い順に削除）
 RESOLVED_WARN = 40             # fixed+accepted がこの件数を超えたら stderr で通知
+OTHER_CATEGORY_WARN = 5        # category=other の active がこの件数を超えたら通知
 WEEKLY_THRESHOLD = 3           # 週次へ浮上させる count の閾値
 
 FAILED_PREFIX = "[対策失敗]"   # fixed を bump したときに summary の先頭へ付ける
 NOT_RECORDED_MARKER = "LESSON_NOT_RECORDED"
 
 SESSION_RECORD_KINDS = ("ADD", "BUMP", "NONE")
-COUNTED_RECORD_KINDS = ("ADD", "BUMP")
+# 種別ごとの1セッション上限（add と bump は合算しない）
+SESSION_LIMITS = {"ADD": ADD_LIMIT, "BUMP": BUMP_LIMIT}
 
 
 # --------------------------------------------------------------------------
@@ -133,9 +141,18 @@ def today_str():
 # 自動メンテナンス（list / add / bump / weekly の実行時に毎回走る）
 # --------------------------------------------------------------------------
 
+def elapsed_days(value):
+    """日付文字列から今日までの経過日数を返す。読めなければ None。"""
+    parsed = parse_date(value)
+    if parsed is None:
+        return None
+    return (date.today() - parsed).days
+
+
 def run_maintenance(rows):
     """古びた項目を自動的に整理する。count>=2 の active は絶対に削除しない。
-    accepted は削除対象にしない（許容と判断した記録は残す）。
+    pending（処遇待ち）はどの削除対象にもしない（処遇されるまで消えない）。
+    accepted は180日再発していなければ削除する（事象が消滅しているため）。
     """
     today = date.today()
     kept = []
@@ -148,6 +165,10 @@ def run_maintenance(rows):
         if status == "fixed":
             resolved_at = parse_date(row.get("resolved_at"))
             if resolved_at and (today - resolved_at).days >= FIXED_KEEP_DAYS:
+                continue
+        if status == "accepted":
+            last_seen = parse_date(row.get("last_seen"))
+            if last_seen and (today - last_seen).days >= ACCEPTED_KEEP_DAYS:
                 continue
         kept.append(row)
 
@@ -170,6 +191,12 @@ def run_maintenance(rows):
     resolved = [r for r in kept if r.get("status") in RESOLVED_STATUSES]
     if len(resolved) > RESOLVED_WARN:
         print("処遇済みが40件を超過。棚卸しを検討", file=sys.stderr)
+
+    # other がゴミ箱化すると同カテゴリ照合が機能しなくなるため、件数だけ通知する
+    others = [r for r in kept
+              if r.get("status") == "active" and r.get("category") == "other"]
+    if len(others) > OTHER_CATEGORY_WARN:
+        print("カテゴリ other が5件超過。カテゴリ分割の検討が必要", file=sys.stderr)
 
     return kept
 
@@ -215,21 +242,24 @@ def append_session_record(record):
     write_session(session_id, records)
 
 
-def counted_records(records):
-    return [r for r in records if r.split("\t")[0] in COUNTED_RECORD_KINDS]
+def counted_records(records, kind):
+    return [r for r in records if r.split("\t")[0] == kind]
 
 
-def ensure_session_capacity():
-    """同一セッションでの add + bump の合計が上限を超えていないか確かめる。
-    超えている場合はメッセージを出して終了コード1で止める。
+def ensure_session_capacity(kind):
+    """同一セッションでの kind（ADD / BUMP）の件数が上限を超えていないか確かめる。
+    add と bump は別枠で数える（bumpはリストを増やさずカウントを+1するだけのため、
+    同じ枠で絞るとカウント精度が落ちる）。超過時は終了コード1で止める。
     """
     session_id, records = read_session()
     if session_id != (current_session_id() or "UNKNOWN"):
         return  # 別セッション（または未作成）なら数え直しになるので上限には掛からない
-    if len(counted_records(records)) >= SESSION_RECORD_LIMIT:
+    limit = SESSION_LIMITS[kind]
+    used = len(counted_records(records, kind))
+    if used >= limit:
         print(
-            "エラー: このセッションでは既に%d件（add+bump）を記録済みです。"
-            "1セッションの上限は%d件です。" % (len(counted_records(records)), SESSION_RECORD_LIMIT),
+            "エラー: このセッションでは既に %s を%d件記録済みです。"
+            "1セッションの %s 上限は%d件です。" % (kind.lower(), used, kind.lower(), limit),
             file=sys.stderr,
         )
         sys.exit(1)
@@ -266,9 +296,27 @@ def format_row(row):
     )
 
 
-def cmd_list(_args):
+def pending_line(row):
+    days = elapsed_days(row.get("resolved_at"))
+    suffix = "経過日数不明" if days is None else "浮上から%d日経過" % days
+    return "%s  resolved_at=%s（%s）" % (format_row(row), row.get("resolved_at", ""), suffix)
+
+
+def cmd_list(args):
     rows = run_maintenance(load_rows())
     save_rows(rows)
+
+    category = getattr(args, "category", None)
+    if category:
+        if category not in CATEGORIES:
+            print(
+                "エラー: カテゴリ '%s' は定義されていません。使えるのは次の9種類です:\n  %s"
+                % (category, " / ".join(CATEGORIES)),
+                file=sys.stderr,
+            )
+            return 1
+        rows = [r for r in rows if r.get("category") == category]
+        print("=== カテゴリ: %s ===" % category)
 
     actives = [r for r in rows if r.get("status") == "active"]
     actives.sort(key=lambda r: (r.get("category", ""), -to_int(r.get("count")), r.get("id", "")))
@@ -276,6 +324,16 @@ def cmd_list(_args):
     if actives:
         for row in actives:
             print(format_row(row))
+    else:
+        print("（なし）")
+
+    pendings = [r for r in rows if r.get("status") == "pending"]
+    pendings.sort(key=lambda r: (r.get("resolved_at", ""), r.get("id", "")))
+    print("")
+    print("=== pending（処遇待ち・%d件） ===" % len(pendings))
+    if pendings:
+        for row in pendings:
+            print(pending_line(row))
     else:
         print("（なし）")
 
@@ -290,6 +348,20 @@ def cmd_list(_args):
     else:
         print("（なし）")
     return 0
+
+
+def check_summary_safe(summary):
+    """summary にタブ・改行が含まれていないか確かめる。TSVが壊れると機構全体が
+    止まるため、混入していればここで弾く。
+    """
+    for char, label in (("\t", "タブ文字"), ("\n", "改行"), ("\r", "改行")):
+        if char in summary:
+            print(
+                "エラー: summaryに%sが含まれています。TSVが破損するため記録できません。" % label,
+                file=sys.stderr,
+            )
+            return False
+    return True
 
 
 def next_id(rows):
@@ -309,6 +381,8 @@ def cmd_add(args):
             file=sys.stderr,
         )
         return 1
+    if not check_summary_safe(args.summary):
+        return 1
     summary = args.summary.strip()
     if len(summary) > SUMMARY_MAX_CHARS:
         print(
@@ -318,7 +392,7 @@ def cmd_add(args):
         )
         return 1
 
-    ensure_session_capacity()
+    ensure_session_capacity("ADD")
 
     rows = load_rows()
     today = today_str()
@@ -350,7 +424,10 @@ def cmd_bump(args):
         print("エラー: ID '%s' は lessons.tsv に存在しません。" % args.id, file=sys.stderr)
         return 1
 
-    ensure_session_capacity()
+    if not check_summary_safe(target.get("summary", "")):
+        return 1
+
+    ensure_session_capacity("BUMP")
 
     target["count"] = str(to_int(target.get("count")) + 1)
     target["last_seen"] = today_str()
@@ -363,7 +440,8 @@ def cmd_bump(args):
         if not target.get("summary", "").startswith(FAILED_PREFIX):
             target["summary"] = FAILED_PREFIX + target.get("summary", "")
         note = "（対策失敗としてactiveへ戻し、週次の浮上対象にしました）"
-    # accepted は count を加算するだけで status を変えない。
+    # pending は処遇待ちのまま count だけ加算する（statusは変えない）。
+    # accepted も count を加算するだけで status を変えない。
 
     save_rows(run_maintenance(rows))
     append_session_record("BUMP\t%s" % target["id"])
@@ -390,30 +468,61 @@ def cmd_check(_args):
 
 def cmd_weekly(_args):
     rows = run_maintenance(load_rows())
+
+    # (c) 先に「処遇待ち」を拾う。今回浮上した分は含めない（初出は新規浮上側に出す）。
+    waiting = [r for r in rows if r.get("status") == "pending"]
+    waiting.sort(key=lambda r: (r.get("resolved_at", ""), r.get("id", "")))
+
+    # (a) 今回浮上する分
     targets = [
         r for r in rows
         if r.get("status") == "active"
         and (to_int(r.get("count")) >= WEEKLY_THRESHOLD
              or r.get("summary", "").startswith(FAILED_PREFIX))
     ]
-    if not targets:
+    targets.sort(key=lambda r: (-to_int(r.get("count")), r.get("category", ""), r.get("id", "")))
+
+    if not targets and not waiting:
         save_rows(rows)
-        print("今週の浮上項目なし")
+        print("今週の浮上項目なし／処遇待ちなし")
         return 0
 
-    targets.sort(key=lambda r: (-to_int(r.get("count")), r.get("category", ""), r.get("id", "")))
-    print("今週浮上した教訓（%d件・出力後リストから削除済み）" % len(targets))
-    for row in targets:
-        print("- [%s] %s（%d回・%s〜%s）" % (
-            row.get("category", ""),
-            row.get("summary", ""),
-            to_int(row.get("count")),
-            row.get("first_seen", ""),
-            row.get("last_seen", ""),
-        ))
+    if targets:
+        print("今週浮上した教訓（%d件・処遇待ちとしてリストに残ります）" % len(targets))
+        for row in targets:
+            print("- %s [%s] %s（%d回・%s〜%s）" % (
+                row.get("id", ""),
+                row.get("category", ""),
+                row.get("summary", ""),
+                to_int(row.get("count")),
+                row.get("first_seen", ""),
+                row.get("last_seen", ""),
+            ))
+    else:
+        print("今週の浮上項目なし")
 
-    drop_ids = set(r.get("id") for r in targets)
-    save_rows([r for r in rows if r.get("id") not in drop_ids])
+    print("")
+    if waiting:
+        print("処遇待ち（過去に浮上・未処遇・%d件）" % len(waiting))
+        for row in waiting:
+            days = elapsed_days(row.get("resolved_at"))
+            elapsed = "経過日数不明" if days is None else "浮上から%d日経過" % days
+            print("- %s [%s] %s（%d回・%s）" % (
+                row.get("id", ""),
+                row.get("category", ""),
+                row.get("summary", ""),
+                to_int(row.get("count")),
+                elapsed,
+            ))
+    else:
+        print("処遇待ちなし")
+
+    # (b) 出力した項目は削除せず pending にして残す
+    today = today_str()
+    for row in targets:
+        row["status"] = "pending"
+        row["resolved_at"] = today
+    save_rows(rows)
     return 0
 
 
@@ -426,6 +535,13 @@ def cmd_resolve(args):
             break
     if target is None:
         print("エラー: ID '%s' は lessons.tsv に存在しません。" % args.id, file=sys.stderr)
+        return 1
+    if target.get("status") in RESOLVED_STATUSES:
+        print(
+            "エラー: %s は既に status=%s で処遇済みです。再度の resolve はできません。"
+            % (target.get("id", ""), target.get("status", "")),
+            file=sys.stderr,
+        )
         return 1
     target["status"] = args.status
     target["resolved_at"] = today_str()
@@ -440,7 +556,9 @@ def build_parser():
     sub = parser.add_subparsers(dest="command")
 
     sub.add_parser("mark", help="日次セッションのマーカーを作る（日次フローのスクリプトから呼ばれる）")
-    sub.add_parser("list", help="既存の教訓を一覧表示する（照合用）")
+    p_list = sub.add_parser("list", help="既存の教訓を一覧表示する（照合用）")
+    p_list.add_argument("--category", default=None,
+                        help="指定したカテゴリの項目だけを表示する")
 
     p_add = sub.add_parser("add", help="新しい教訓を追加する")
     p_add.add_argument("--category", required=True)
@@ -451,7 +569,7 @@ def build_parser():
 
     sub.add_parser("none", help="そのセッションで教訓ゼロだったことを記録する")
     sub.add_parser("check", help="Stopフック用: 記録漏れを検知する")
-    sub.add_parser("weekly", help="週次: count>=3 の項目を出力して削除する")
+    sub.add_parser("weekly", help="週次: count>=3 の項目と処遇待ちを出力する")
 
     p_resolve = sub.add_parser("resolve", help="窓口での処遇判断を反映する")
     p_resolve.add_argument("--id", required=True)
