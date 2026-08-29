@@ -5,7 +5,7 @@ import BaseLayout from '../../../layouts/BaseLayout.astro';
 import PostCard from '../../../components/PostCard.astro';
 import Pagination from '../../../components/Pagination.astro';
 import { CATEGORIES } from '../../../data/categories';
-import { POSTS_PER_PAGE } from '../../../data/pagination';
+import { POSTS_PER_PAGE, compareByDateDescThenSlugAsc } from '../../../data/pagination';
 
 export async function getStaticPaths({ paginate }) {
   const posts = await getCollection('posts', (p) => p.data.status === 'published');
@@ -13,7 +13,7 @@ export async function getStaticPaths({ paginate }) {
   return CATEGORIES.flatMap((category) => {
     const list = posts
       .filter((p) => p.data.category === category.slug)
-      .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
+      .sort(compareByDateDescThenSlugAsc);
     if (list.length === 0) return [];
     return paginate(list, {
       params: { category: category.slug },

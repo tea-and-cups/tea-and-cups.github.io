@@ -3,6 +3,7 @@ import { getCollection, render } from 'astro:content';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import PostCard from '../../components/PostCard.astro';
 import { getCategory } from '../../data/categories';
+import { compareByDateDescThenSlugAsc } from '../../data/pagination';
 
 // URL規約: /posts/{slug}/ 。slugはfrontmatterで手動固定（公開後変更禁止）
 export async function getStaticPaths() {
@@ -43,7 +44,7 @@ const related = posts
   }))
   .sort(
     (a, b) =>
-      b.score - a.score || b.post.data.date.valueOf() - a.post.data.date.valueOf()
+      b.score - a.score || compareByDateDescThenSlugAsc(a.post, b.post)
   )
   .slice(0, 3)
   .map((r) => r.post);

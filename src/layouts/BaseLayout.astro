@@ -2,6 +2,7 @@
 // サイト共通レイアウト。SEOメタ・OGP・ナビゲーション・構造化データはここで一元管理する。
 import { getCollection } from 'astro:content';
 import { CATEGORIES } from '../data/categories';
+import { compareByDateDescThenSlugAsc } from '../data/pagination';
 
 const {
   title,
@@ -22,7 +23,7 @@ const ogImageUrl = ogImage ? new URL(ogImage, Astro.site) : null;
 // フッターの回遊導線用（全ページ共通・新着6件）
 const publishedPosts = await getCollection('posts', (p) => p.data.status === 'published');
 const footerPosts = [...publishedPosts]
-  .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf())
+  .sort(compareByDateDescThenSlugAsc)
   .slice(0, 6);
 // 記事が1本もないカテゴリは導線に出さない（空ページへ送らない）
 const footerCategories = CATEGORIES.filter((c) =>
