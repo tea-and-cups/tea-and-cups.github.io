@@ -1,6 +1,7 @@
 ---
 // トップの記事一覧。1ページ12件で、13件目以降は /2/ /3/ … に分割する。
 // （旧 index.astro を paginate 化したもの。1ページ目のURLは従来どおり / のまま）
+// 1ページ目だけランディング構成（ヒーロー→はじめての方へ→テーマ→おすすめ→新着）にする。
 import { getCollection } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import PostCard from '../components/PostCard.astro';
@@ -21,18 +22,25 @@ const baseDescription =
   '紅茶とティーカップの静かな時間。茶葉の選び方からカップの楽しみまで、丁寧にご紹介するメディア「琥珀時間」です。';
 
 // 2ページ目以降はタイトル・descriptionを変えて重複を避ける（canonicalはBaseLayoutが自ページを指す）
-const title = isFirst ? siteName : `記事一覧（${page.currentPage}ページ目）`;
+// 1ページ目は siteName と異なる文字列にすることで <title> を「〜｜琥珀時間」にする（BaseLayout側は変更しない）
+const title = isFirst ? '紅茶とティーカップの静かな時間' : `記事一覧（${page.currentPage}ページ目）`;
 const description = isFirst
   ? baseDescription
   : `${baseDescription}（記事一覧 ${page.currentPage}ページ目）`;
 
-// 1ページ目だけに出す「はじめて読む方へ」の導線。
+// 1ページ目だけに出す固定スロット。
 // slugだけを持ち、タイトル・説明文・サムネイルはコレクション側から引く（テンプレートにべた書きしない）。
 const STARTER_SLUGS = [
-  'hachimitsu-koucha-tsukurikata',
-  'ouchi-afternoon-tea-hajimekata',
-  'natsu-fruit-flavor-tea-hikaku',
+  'mizudashi-koucha-chaba-erabikata',
+  'mizudashi-koucha-hozon-eisei-qa',
+  'hot-brew-mizudashi-icetea-hikaku',
+  'koucha-shomikigen-kireta-fuumi-mikiwame',
+];
+const PICKUP_SLUGS = [
+  'earl-grey-koucha-brand-kaori-hikaku',
   'wakoucha-nyumon',
+  'honey-koucha-erabikata',
+  'mizudashi-tea-leaves',
 ];
 const publishedPosts = isFirst
   ? await getCollection('posts', (p) => p.data.status === 'published')
@@ -40,18 +48,55 @@ const publishedPosts = isFirst
 const starterPosts = STARTER_SLUGS.map((slug) =>
   publishedPosts.find((p) => p.data.slug === slug)
 ).filter(Boolean);
+const pickupPosts = PICKUP_SLUGS.map((slug) =>
+  publishedPosts.find((p) => p.data.slug === slug)
+).filter(Boolean);
+
+// 固定スロットのslugが解決できないまま公開されるのを防ぐ（.filter(Boolean) は静かに欠落させるため）
+if (isFirst && (starterPosts.length !== STARTER_SLUGS.length || pickupPosts.length !== PICKUP_SLUGS.length)) {
+  throw new Error('[home] 固定記事のslugが解決できません。STARTER_SLUGS / PICKUP_SLUGS を確認してください。');
+}
+
+// 1ページ目の「新着記事」は先頭6件をカード、残りをテキストリストにする（件数・並び順は変えない）
+const recentCards = isFirst ? page.data.slice(0, 6) : page.data;
+const recentMore = isFirst ? page.data.slice(6) : [];
 ---
 <BaseLayout
   title={title}
   description={description}
   showRecentPosts={false}
 >
-  <p class="site-tagline">紅茶とティーカップの静かな時間</p>
-  <h1>記事一覧{!isFirst && `（${page.currentPage}ページ目）`}</h1>
+  {isFirst ? (
+    <section class="home-hero">
+      <h1>琥珀時間</h1>
+      <p class="site-tagline">紅茶とティーカップの静かな時間</p>
+      <p class="site-intro">
+        「琥珀時間」は、紅茶とティーカップのある時間を少しだけ丁寧にするための小さなメディアです。茶葉の選び方から淹れ方、器や道具、贈りものまで、暮らしの中で試せることをひとつずつご紹介しています。
+      </p>
+      <img
+        class="home-hero-image"
+        src="/images/home/hero.webp"
+        width="1400"
+        height="735"
+        loading="eager"
+        decoding="async"
+        alt="窓辺のテーブルに置かれた紅茶のティーカップとガラスのティーポット"
+      />
+    </section>
+  ) : (
+    <Fragment>
+      <p class="site-tagline">紅茶とティーカップの静かな時間</p>
+      <h1>記事一覧{!isFirst && `（${page.currentPage}ページ目）`}</h1>
+    </Fragment>
+  )}
   {isFirst && (
-    <p class="site-intro">
-      「琥珀時間」は、紅茶とティーカップのある時間を少しだけ丁寧にするための小さなメディアです。茶葉の選び方から淹れ方、器や道具、贈りものまで、暮らしの中で試せることをひとつずつご紹介しています。
-    </p>
+    <section class="home-starter" aria-labelledby="home-starter-heading">
+      <h2 id="home-starter-heading" class="home-block-title">はじめての方へ</h2>
+      <p class="home-lead">まず読んでほしい4記事です。</p>
+      <ul class="post-list">
+        {starterPosts.map((post) => <PostCard post={post} />)}
+      </ul>
+    </section>
   )}
   {isFirst && (
     <nav class="home-themes" aria-labelledby="home-themes-heading">
@@ -65,20 +110,30 @@ const starterPosts = STARTER_SLUGS.map((slug) =>
       </ul>
     </nav>
   )}
-  {isFirst && starterPosts.length > 0 && (
-    <section class="home-starter" aria-labelledby="home-starter-heading">
-      <h2 id="home-starter-heading" class="home-block-title">はじめて読む方へ</h2>
+  {isFirst && (
+    <section class="home-pickup" aria-labelledby="home-pickup-heading">
+      <h2 id="home-pickup-heading" class="home-block-title">おすすめの記事</h2>
       <ul class="post-list">
-        {starterPosts.map((post) => <PostCard post={post} />)}
+        {pickupPosts.map((post) => <PostCard post={post} />)}
       </ul>
     </section>
   )}
   {isFirst && <h2 class="home-block-title">新着記事</h2>}
   {page.data.length === 0 && <p>記事は準備中です。どうぞ楽しみにお待ちください。</p>}
   <ul class="post-list">
-    {page.data.map((post, i) => <PostCard post={post} eager={isFirst && i === 0} />)}
+    {recentCards.map((post) => <PostCard post={post} />)}
   </ul>
+  {recentMore.length > 0 && (
+    <ul class="home-recent-more">
+      {recentMore.map((post) => (
+        <li><a href={`/posts/${post.data.slug}/`}>{post.data.title}</a></li>
+      ))}
+    </ul>
+  )}
   <Pagination page={page} />
+  {isFirst && (
+    <p class="home-more"><a href="/category/">テーマ一覧をすべて見る →</a></p>
+  )}
 </BaseLayout>
 
 <style>

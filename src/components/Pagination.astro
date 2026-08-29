@@ -7,9 +7,7 @@ const show = page.lastPage > 1;
 ---
 {show && (
   <nav class="pagination" aria-label="ページ送り">
-    {page.url.prev
-      ? <a class="pagination-link" href={page.url.prev} rel="prev">← 前へ</a>
-      : <span class="pagination-link is-disabled">← 前へ</span>}
+    {page.url.prev && <a class="pagination-link" href={page.url.prev} rel="prev">← 前へ</a>}
     <span class="pagination-current">{page.currentPage} / {page.lastPage}</span>
     {page.url.next
       ? <a class="pagination-link" href={page.url.next} rel="next">次へ →</a>

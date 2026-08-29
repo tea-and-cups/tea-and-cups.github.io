@@ -113,7 +113,7 @@ const structuredData = [siteJsonLd, ...(jsonLd ?? [])];
       </ul>
     </nav>
     <p class="footer-links">
-      <a href="/">ホーム</a> ／ <a href="/category/">テーマ</a> ／ <a href="/about/">運営者情報</a> ／ <a href="/privacy-policy/">プライバシーポリシー</a>
+      <a href="/">ホーム</a> ／ <a href="/category/">テーマ</a> ／ <a href="/about/">このサイトについて</a> ／ <a href="/privacy-policy/">プライバシーポリシー</a>
     </p>
     <p>© {new Date().getFullYear()} {siteName} (Kohaku Jikan) / Tea and Cups</p>
   </footer>
@@ -334,6 +334,31 @@ const structuredData = [siteJsonLd, ...(jsonLd ?? [])];
 
   /* トップの導入文 */
   .site-intro { color: var(--ink-soft); font-size: 0.92rem; margin: 0.75rem 0 1.75rem; }
+
+  /* トップ1ページ目のランディング構成（[...page].astro の1ページ目のみ） */
+  .home-hero { margin-bottom: 2.5rem; }
+  .home-hero-image {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1400 / 735;
+    border-radius: 4px;
+    display: block;
+  }
+  .home-lead { color: var(--ink-soft); font-size: 0.9rem; margin: -0.4rem 0 0.6rem; }
+  .home-pickup { margin: 0 0 2.5rem; }
+  .home-recent-more { list-style: none; margin: 0; padding: 0.4rem 0 0; }
+  .home-recent-more li { padding: 0.55rem 0; border-bottom: 1px solid var(--line); }
+  .home-recent-more li:last-child { border-bottom: none; }
+  .home-recent-more a {
+    color: var(--ink);
+    text-decoration: none;
+    font-size: 0.95rem;
+    line-height: 1.6;
+  }
+  .home-recent-more a:hover { text-decoration: underline; }
+  .home-more { margin-top: 1.5rem; font-size: 0.9rem; }
+  .home-more a { color: var(--accent); text-decoration: none; }
+  .home-more a:hover { text-decoration: underline; }
 
   /* ページ送り（Pagination.astro） */
   .pagination {
