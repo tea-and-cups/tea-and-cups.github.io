@@ -418,45 +418,53 @@ const structuredData = [siteJsonLd, ...(jsonLd ?? [])];
   .site-operator p { margin: 0.5rem 0 0; }
   .site-operator p:first-of-type { margin-top: 0; }
 
-  /* 商品ブロックのカード化（記事Markdownは無改変・CSSのみ）。
-     Markdownが生む「画像だけのsponsored段落」と、その直後の「★評価＋テキストリンク段落」を
-     :has()と隣接セレクタで特定し、2段落をまたぐ1枚のカードに見せる。
-     直後が正準形（sponsoredリンクを直下に持つ段落）でない記事（★行が箇条書き・
-     末尾補足付き等）では :has(+ p > a) が外れ、カード化されず従来の見た目のままになる。 */
-  article p:has(> a[rel~="sponsored"] > img):has(+ p > a[rel~="sponsored"]) {
-    margin: 2rem 0 0;
-    padding: 1.25rem 1.25rem 0.85rem;
+  /* 商品ブロックのカード化（記事Markdownは無改変）。
+     包む処理は rehype-affiliate-links.mjs がビルド時に行い、ここは見た目だけを持つ。
+     .product-card        … カード本体（画像段落＋★段落／画像と★が同一段落／★段落単独）
+     .product-card__image … 画像だけのsponsored段落（無い記事もある）
+     .product-card__meta  … ★評価＋テキストリンクの段落（必ずある。画像を含む場合もある）
+     記事側で画像行と★行の間に空行が無い書き方をしていても同じ見た目になるよう、
+     画像のサイズ指定とボタン化は段落の位置ではなくリンクの中身（<img>の有無）で振り分ける。
+     ★行が箇条書きの記事など、対象条件を満たさないものはカード化されず従来の見た目のままになる。 */
+  .product-card {
+    margin: 2rem 0;
     background: #fff;
     border: 1px solid var(--line);
-    border-bottom: none;
-    border-radius: 8px 8px 0 0;
+    border-radius: 8px;
+  }
+  article .product-card__image {
+    margin: 0;
+    padding: 1.25rem 1.25rem 0;
     text-align: center;
   }
-  article p:has(> a[rel~="sponsored"] > img):has(+ p > a[rel~="sponsored"]) + p {
-    margin: 0 0 2rem;
-    padding: 0.85rem 1.25rem 1.25rem;
-    background: #fff;
-    border: 1px solid var(--line);
-    border-top: none;
-    border-radius: 0 0 8px 8px;
+  article .product-card__meta {
+    margin: 0;
+    padding: 0 1.25rem 1.25rem;
     color: var(--ink-soft);
     font-size: 0.85rem;
     line-height: 1.7;
   }
-  article p:has(> a[rel~="sponsored"] > img):has(+ p > a[rel~="sponsored"]) > a {
-    display: inline-block;
+  /* 画像段落が無いカード・画像と★が同一段落のカードでは★段落が先頭に来るため、
+     上の余白を画像段落ありと同じ厚みに戻す（どちらの書き方でも上下の余白が揃う） */
+  article .product-card__meta:first-child {
+    padding-top: 1.25rem;
   }
-  article p:has(> a[rel~="sponsored"] > img):has(+ p > a[rel~="sponsored"]) > a > img {
+  /* 画像を含むリンクは画像のまま（ボタンにしない）。段落をまたいでも中央に置く */
+  .product-card a:has(img) {
     display: block;
-    margin: 0 auto;
+    text-decoration: none;
+  }
+  .product-card img {
+    display: block;
+    margin: 0 auto 0.9rem;   /* 下の余白が画像と★行の間隔になる（段落が分かれていても同じ） */
     width: min(240px, 100%);
     aspect-ratio: 1 / 1;   /* 商品画像は全記事600×600で統一。読み込み前に枠を確保しCLSを防ぐ */
     max-height: 280px;
     height: auto;
     object-fit: contain;
   }
-  /* テキストリンクをボタンにする */
-  article p:has(> a[rel~="sponsored"] > img):has(+ p > a[rel~="sponsored"]) + p > a[rel~="sponsored"] {
+  /* テキストリンク（画像を含まないもの）をボタンにする */
+  .product-card a[rel~="sponsored"]:not(:has(img)) {
     display: block;
     margin-top: 0.65rem;
     padding: 0.7rem 1rem;
@@ -471,15 +479,15 @@ const structuredData = [siteJsonLd, ...(jsonLd ?? [])];
     overflow-wrap: anywhere;
     transition: background-color 0.15s ease;
   }
-  article p:has(> a[rel~="sponsored"] > img):has(+ p > a[rel~="sponsored"]) + p > a[rel~="sponsored"]:hover {
+  .product-card a[rel~="sponsored"]:not(:has(img)):hover {
     background: var(--ink);
   }
-  article p:has(> a[rel~="sponsored"] > img):has(+ p > a[rel~="sponsored"]) + p > a[rel~="sponsored"]:focus-visible {
+  .product-card a[rel~="sponsored"]:not(:has(img)):focus-visible {
     background: var(--ink);
     outline: 2px solid var(--accent);
     outline-offset: 2px;
   }
   @media (max-width: 30rem) {
-    article p:has(> a[rel~="sponsored"] > img):has(+ p > a[rel~="sponsored"]) + p > a[rel~="sponsored"] { font-size: 0.83rem; }
+    .product-card a[rel~="sponsored"]:not(:has(img)) { font-size: 0.83rem; }
   }
 </style>
