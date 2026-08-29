@@ -14,13 +14,25 @@
   data/image-variation.tsv（pick-image-variation.py が読み書きする台帳）の image_style列。
   このスクリプトは新しい管理ファイルを作らず、read_ledger() 経由でこの台帳のみを読む。
 
-寸法・比率の根拠（実測・reports/2026-08-15-5.md）:
-  hero: site/scripts/hero-to-webp.py の TARGET=(1400, 735) がWebP変換後の正規サイズ
-        （D-0020で確定済みの値。ChatGPT生成直後の実寸ではなく変換後の最終値）。
+節構成（hero・Pin共通・D-0172）:
+  依頼文は【比率】【用途】【構図】【画像に描く文字】（Pinの CTAあり群のみ【誘導の帯】）
+  【描かない要素】【仕上げ】の順で組み立てる。比率は冒頭と末尾の2箇所に置く（生成AIが
+  長い依頼文の途中の指示を取りこぼしやすいため）。否定形の指示は【描かない要素】へ集約し、
+  他の節では肯定形のホワイトリスト（描いてよい文字はこれだけ）で書く。
+
+寸法・比率の根拠（実測・reports/2026-08-15-5.md／D-0172）:
+  hero: 横縦比およそ一・八倍を指示する。site/scripts/hero-to-webp.py の TARGET=(1400, 735)
+        は「WebP変換後」の正規サイズ（D-0020）であり、ChatGPTが生成時に出せる寸法ではない
+        （生成側の最も横に広い形は約1.75倍）。達成不可能な実寸を指示すると他の指示への追従が
+        弱まるため、実寸ではなく比率で指示する。1.8倍あれば hero-to-webp.py の縦長ガード
+        下限（横縦比1.4・D-0148）を確実に上回る。あわせて中央クロップで上下が削られるため、
+        見出し文言を上下の端へ寄せない指示を【画像に描く文字】節に置く。
   pin : output/Pin-images/ 配下の直近実測で、pin108〜119の12枚は 1024x1536（比率2:3）で
         一貫していた。pin120〜122（2026-08-15）はプロンプトで異なる比率（四対五等）を
         指定したためズレていた（1122x1402／1003x1568）。本スクリプトは実測で最も長く
-        安定していた 2:3 を正規値として毎回のプロンプトに固定する。
+        安定していた 2:3 を正規値として毎回のプロンプトに固定する。縦長という指示と整合する
+        よう「横二に対して縦三」の語順で書く（D-0172以前は「三対二」と書いており、縦長指示と
+        矛盾して横長Pinが生成される原因になっていた）。
 
 ChatGPTへのプロンプトはASCII文字を含めない規約（rules/image-generation-flow.md 2節3）が
 あるため、寸法・比率の数値は漢数字で表記する（本スクリプト内でアラビア数字→漢数字に変換する。
@@ -132,109 +144,138 @@ def kanjify_digits(text):
     return "".join(out)
 
 
-# --- 実測にもとづく正規寸法・比率（作業前の確認3・reports/2026-08-15-5.md） ---
-HERO_TARGET_W, HERO_TARGET_H = 1400, 735  # hero-to-webp.py TARGET（D-0020）
-HERO_RATIO_W, HERO_RATIO_H = 40, 21  # 1400:735を約分（gcd=35）
+# --- 節構成（hero・Pin共通・D-0172） ---
+# 依頼文は【比率】【用途】【構図】【画像に描く文字】（【誘導の帯】）【描かない要素】【仕上げ】の
+# 順に組み立てる。節の区切りは全角の【】のみを使う（ASCII検査に通す必要があるため・D-0149）。
+SEC_RATIO = "比率"
+SEC_PURPOSE = "用途"
+SEC_COMPOSITION = "構図"
+SEC_TEXT = "画像に描く文字"
+SEC_CTA = "誘導の帯"
+SEC_EXCLUDE = "描かない要素"
+SEC_FINISH = "仕上げ"
 
-PIN_TARGET_W, PIN_TARGET_H = 1024, 1536  # 実測（pin108〜119・12枚で一貫）
-PIN_RATIO_W, PIN_RATIO_H = 2, 3  # 1024:1536を約分（gcd=512）
+
+def section(title, bodies):
+    """【見出し】＋本文行 の1節を組み立てる。空の行は落とす。"""
+    return "\n".join(["【%s】" % title] + [b for b in bodies if b])
 
 
-def hero_dimension_text():
+# --- 比率（D-0172） ---
+# hero: 生成側（ChatGPT）が直接出せる最も横に広い形は約一・七五倍で、hero-to-webp.py の
+#       出力寸法（1400x735・約1.90）は生成時には達成できない。達成不可能な実寸を指示すると
+#       他の指示への追従も弱まるため、比率表記（およそ一・八倍）で指示する。一・八倍あれば
+#       hero-to-webp.py の縦長ガード下限（横縦比1.4）を確実に上回る。
+HERO_RATIO_APPROX = "一・八"
+
+# pin: 実測（pin108〜119・12枚で一貫）した1024x1536＝2:3。縦長であることが要件のため、
+#      横（PIN_RATIO_W）を先に、縦（PIN_RATIO_H）を後に置いて「二に対して三」と読ませる。
+PIN_RATIO_W, PIN_RATIO_H = 2, 3
+
+
+def hero_ratio_head():
     return (
-        "画像の比率は縦横{rw}対{rh}にする（配置前に縦{h}・横{w}ピクセルへ変換するため、"
-        "その比率に合わせる）。"
-    ).format(
-        rw=to_kanji(HERO_RATIO_H), rh=to_kanji(HERO_RATIO_W),
-        h=to_kanji(HERO_TARGET_H), w=to_kanji(HERO_TARGET_W),
-    )
+        "この画像は横長で作る。横の長さが縦の長さのおよそ{r}倍になる、横に広い形にする。"
+    ).format(r=HERO_RATIO_APPROX)
 
 
-def pin_dimension_text():
+def hero_ratio_tail():
+    return "横長で、横の長さが縦の長さのおよそ{r}倍になる形で出力する。".format(r=HERO_RATIO_APPROX)
+
+
+def pin_ratio_head():
     return (
-        "必ず縦長で作る（縦の辺が横の辺より長い）。横長や正方形は不可。"
-        "比率は{rh}対{rw}にする（目安は縦{h}・横{w}ピクセル程度）。"
-    ).format(
-        rh=to_kanji(PIN_RATIO_H), rw=to_kanji(PIN_RATIO_W),
-        h=to_kanji(PIN_TARGET_H), w=to_kanji(PIN_TARGET_W),
-    )
+        "この画像は縦長で作る。横の長さ{w}に対して縦の長さ{h}の比率にする。"
+    ).format(w=to_kanji(PIN_RATIO_W), h=to_kanji(PIN_RATIO_H))
+
+
+def pin_ratio_tail():
+    return (
+        "縦長で、横の長さ{w}に対して縦の長さ{h}の比率で出力する。"
+    ).format(w=to_kanji(PIN_RATIO_W), h=to_kanji(PIN_RATIO_H))
 
 
 # --- rules/image-generation-flow.md にある既存の固定要素（正本はこのファイル・D-0126） ---
-BRAND_LOGO_BAN = (
-    "実在のブランドを想起させるロゴや文字は絶対に描かない。無地でロゴや文字を一切入れない。"
-)
+# 【用途】節。
+HERO_PURPOSE = "紅茶と器の暮らしを紹介するブログの、記事の見出しに使う横長画像を一枚作る。"
+PIN_PURPOSE = "紅茶と器の暮らしを紹介するブログの、写真共有サイト向けの縦長画像を一枚作る。"
 
-DIGIT_RULE = "画像内の数字はすべてアラビア数字で表記し、漢数字は使わない。"
-
-# 指定文言以外を描き足させないための固定文（Pin用依頼文に必ず入れる・D-0148）。全角のみで組み立てる
-# （rules/image-generation-flow.md 規約3・ChatGPT入力欄でASCIIが脱落するため）。
-TEXT_STRICT_RULES = [
-    "画像内に描く文字は、ここで指定した文言のみとする。",
-    "指定した文言以外の文字・数字・記号を描き足さない"
-    "（説明文・商品名・ブランド名・空欄や破線の記入欄・飾りの英字も含む）。",
-    "文言は一字一句そのまま使い、言い換え・要約・語尾の変更をしない。",
+# 【描かない要素】節（D-0172）。否定形の指示はこの1節に集約し、他の節では繰り返さない
+# （同じ趣旨の否定文を各所に散らすと他の指示への追従が弱まるため）。
+# 2文目は実在ブランドの模造禁止（D-0059）であり、削除しない。
+EXCLUDE_RULES = [
+    "上に挙げた文言以外の文字・数字・記号・説明文・英字・記入欄は描かない。",
+    "実在の商標を思わせるロゴや文字は描かず、缶や箱の面は無地にする。",
 ]
 
-# CTAありの群で使う版。CTA帯の文言も画像内に描くため、1行目だけを差し替える（D-0152）。
-TEXT_STRICT_RULES_WITH_CTA = [
-    "画像内に描く文字は、ここで指定した見出しの文言と、あとで指定する誘導の帯の文言のみとする。",
-] + TEXT_STRICT_RULES[1:]
+DIGIT_RULE = "数字はアラビア数字で描く。"
 
-
-def text_strict_rules(has_cta):
-    return TEXT_STRICT_RULES_WITH_CTA if has_cta else TEXT_STRICT_RULES
-
+# heroは後工程の hero-to-webp.py が 1400x735 へ中央クロップするため上下が削られる。
+# 端に寄った見出し文言は切れて作り直しになる（D-0148）。
+HERO_MARGIN_RULE = (
+    "見出しの文字と主要な被写体は、画像の上下の端から十分に内側へ入れて配置する。"
+    "上部帯または下部帯の指定であっても、端に接するほど寄せない。"
+)
 
 # CTA帯の意匠・文言指示（D-0152）。CTAありの群のPin依頼文にだけ足す。
+# 生成AIが制御できない微細指定（余白の割合・外周の枠線の太さ）は置かない（D-0172）。
 # 全角のみで組み立てる（出力直前のASCII検査に通す必要があるため・D-0149）。
 CTA_BAND_RULES = [
-    "画像の下部に、読者を記事へ誘導するための帯を一つだけ配置する。",
-    "帯の中に焼き込む文言は「{text}」のみとする。一字一句そのまま使い、言い換え・要約・語尾の変更をしない。",
-    "帯の地の色は、濃い茶色（＃４Ａ３４２Ａ）の一色で塗りつぶす。"
-    "背景がどんな色であってもこの色を変えない。透過・半透明にしない。",
-    "帯の中の文字の色は白（＃ＦＦＦＦＦＦ）にする。",
-    "帯の外周すべてに、クリーム色（＃Ｆ５ＥＦＥ６）の太さ二ピクセルの枠線を入れる。"
-    "背景が茶系でも帯の輪郭が消えないようにするための枠線であり、省略しない。",
-    "帯は角丸の帯またはボタン状の形にし、周囲の余白と区別がつくようにする。",
-    "帯の下端と画像の下辺のあいだに、画像の高さの四パーセントぶんの余白を必ず空ける。"
-    "帯を画像の最も下の辺に接触させない。",
-    "帯の中には、指定した文言以外の文字・数字・記号を描き足さない（矢印・指の形・飾りの英字も含む）。",
-    "帯は見出しの文言と重ならない位置に置き、見出しの文言と帯の文言がどちらも読める大きさにする。",
+    "画像の下部に、角丸の帯を一つだけ置く。",
+    "帯の地の色は濃い茶色系にし、帯の中の文字の色は白にする。",
+    "帯の中に描く文字は「{text}」の一つだけとする。",
+    "帯の下側に少しの余白を空ける。",
 ]
 
 
 def cta_instruction(cta_text):
-    return "\n".join(line.format(text=cta_text) for line in CTA_BAND_RULES)
+    return [line.format(text=cta_text) for line in CTA_BAND_RULES]
 
-
-# heroは横長でないと配置時の中央クロップで上部の見出し文言が切れる（hero-to-webp.pyのガード・D-0148）。
-HERO_LANDSCAPE_RULE = "必ず横長で作る（横の辺が縦の辺より長い）。縦長や正方形は不可。"
 
 TEXT_POSITION_LABEL = {"上部帯": "画像上部", "下部帯": "画像下部", "中央": "画像中央"}
 
 
-def text_overlay_instruction(text_position):
-    pos = kanjify_digits(TEXT_POSITION_LABEL.get(text_position, text_position))
-    return (
-        "{pos}に、実際の見出し文言（記事タイトルまたはピン投稿文の要点から作った短い日本語の"
-        "コピー）を白抜き等の読みやすい文字で焼き込む。文字を入れない構図のみの仕上げは不可。"
-        "見出し文言：《ここに見出し文言を入れる》"
-    ).format(pos=pos)
-
-
-def pin_text_instruction(text_position, texts, ranking, has_cta=False):
-    """渡された文言をそのまま列挙する焼き込み指示を作る（数字は漢数字・ASCII規約。D-0148）。"""
+def text_position_line(text_position, ranking):
     if ranking:
-        head = "各順位の枠内に、次の文言を白抜き等の読みやすい文字で焼き込む。"
-    else:
-        pos = kanjify_digits(TEXT_POSITION_LABEL.get(text_position, text_position))
-        head = "{pos}に、次の文言を白抜き等の読みやすい文字で焼き込む。".format(pos=pos)
-    lines = [head + "文字を入れない構図のみの仕上げは不可。"]
+        return "各順位の枠内に、白抜き等の読みやすい文字で配置する。"
+    pos = kanjify_digits(TEXT_POSITION_LABEL.get(text_position, text_position))
+    return "{pos}に、白抜き等の読みやすい文字で配置する。".format(pos=pos)
+
+
+def text_whitelist_head(count, has_cta):
+    """【画像に描く文字】節の冒頭。肯定形のホワイトリストとして書く（D-0172）。
+
+    「文字を入れない仕上げは不可」という否定文は「必ず描き込む」が同じ役割を果たすため置かない。
+    """
+    n = to_kanji(count)
+    only = "この{n}件".format(n=n)
+    if has_cta:
+        only += "と、後述の【%s】に指定する文言" % SEC_CTA
+    return (
+        "次の{n}件の文言を必ず画像に描き込む。一字一句そのまま描く。"
+        "画像に描いてよい文字は{only}だけとする。{digit}"
+    ).format(n=n, only=only, digit=DIGIT_RULE)
+
+
+def hero_text_section(text_position):
+    return section(SEC_TEXT, [
+        "次の見出し文言を必ず画像に描き込む。一字一句そのまま描く。"
+        "画像に描いてよい文字はこの見出し文言だけとする。" + DIGIT_RULE,
+        text_position_line(text_position, False),
+        "見出し文言：《記事タイトルまたはピン投稿文の要点から作った短い日本語のコピーをここに入れる》",
+        HERO_MARGIN_RULE,
+    ])
+
+
+def pin_text_section(text_position, texts, ranking, has_cta):
+    """渡された文言をそのまま列挙する焼き込み指示を作る（数字は漢数字・ASCII規約。D-0148）。"""
+    lines = [
+        text_whitelist_head(len(texts), has_cta),
+        text_position_line(text_position, ranking),
+    ]
     for i, t in enumerate(texts, 1):
         lines.append("文言その{n}：「{t}」".format(n=to_kanji(i), t=t))
-    lines.extend(text_strict_rules(has_cta))
-    return "\n".join(lines)
+    return section(SEC_TEXT, lines)
 
 
 def background_phrase(value):
@@ -440,16 +481,17 @@ def display_style(style):
 
 
 def build_hero_prompt(row):
-    lines = [
-        "紅茶ブログのメイン画像を一枚作成してください。",
-        axis_summary(row) + "の構図で、物撮りまたは情景写真として仕上げてください。",
-        text_overlay_instruction(row["text_position"]),
-        BRAND_LOGO_BAN,
-        DIGIT_RULE,
-        hero_dimension_text(),
-        HERO_LANDSCAPE_RULE,
-    ]
-    return "\n".join(lines)
+    """hero用の依頼文を6節構成で組み立てる（D-0172・heroに【誘導の帯】は無い）。"""
+    return "\n".join([
+        section(SEC_RATIO, [hero_ratio_head()]),
+        section(SEC_PURPOSE, [HERO_PURPOSE]),
+        section(SEC_COMPOSITION, [
+            axis_summary(row) + "の構図で、物撮りまたは情景写真として仕上げる。",
+        ]),
+        hero_text_section(row["text_position"]),
+        section(SEC_EXCLUDE, EXCLUDE_RULES),
+        section(SEC_FINISH, [hero_ratio_tail()]),
+    ])
 
 
 def is_ranking(style):
@@ -471,20 +513,23 @@ def build_pin_prompt(row, style, texts, cta_text=None):
     if guidance is None:
         print("型ごとの指示方針が未定義です（TYPE_GUIDANCEにない型）: %s" % style)
         sys.exit(1)
-    lines = [
-        "紅茶ブログのピン画像を一枚作成してください。型は「%s」です。" % display_style(style),
-        guidance,
-        axis_summary(row) + "を反映してください。",
-        pin_text_instruction(row["text_position"], texts, ranking, has_cta=bool(cta_text)),
+    parts = [
+        section(SEC_RATIO, [pin_ratio_head()]),
+        section(SEC_PURPOSE, [PIN_PURPOSE]),
+        section(SEC_COMPOSITION, [
+            "型は「%s」。" % display_style(style),
+            guidance,
+            axis_summary(row) + "を反映する。",
+        ]),
+        pin_text_section(row["text_position"], texts, ranking, bool(cta_text)),
     ]
     if cta_text:
-        lines.append(cta_instruction(cta_text))
-    lines.extend([
-        BRAND_LOGO_BAN,
-        DIGIT_RULE,
-        pin_dimension_text(),
+        parts.append(section(SEC_CTA, cta_instruction(cta_text)))
+    parts.extend([
+        section(SEC_EXCLUDE, EXCLUDE_RULES),
+        section(SEC_FINISH, [pin_ratio_tail()]),
     ])
-    return "\n".join(lines)
+    return "\n".join(parts)
 
 
 # --- 実装D: 依頼文本文に半角ASCIIが混入していないかの自己チェック（D-0149） ---
