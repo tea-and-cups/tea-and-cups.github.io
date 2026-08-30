@@ -23,6 +23,18 @@ case "$DEST" in
     ;;
 esac
 
+# 配置する前にコピー元の寸法を検査する（D-0174）
+# 判定ロジック・閾値はこのファイルに書き写さず、check-pin-image-dimensions.py を正本とする。
+# コピーしてから消す方式は取らない（中途半端なファイルを output/Pin-images/ に残さないため。
+# 残るとファイル名規則チェックや今後のPin投稿を巻き込む）。
+CHECK_SCRIPT="C:/Claude/Tea_TeaCut/site/scripts/check-pin-image-dimensions.py"
+if ! python "$CHECK_SCRIPT" "$HOME/Downloads/$SRC"; then
+  echo "配置を中止しました: 寸法チェックに失敗したためコピーしていません。" >&2
+  echo "  この画像は作り直しが必要です。ChatGPTへ縦長（高さが幅の1.4倍以上）での" >&2
+  echo "  生成し直しを依頼してから、あらためてこのスクリプトを実行してください。" >&2
+  exit 1
+fi
+
 mkdir -p "$DEST_DIR"
 cp "$HOME/Downloads/$SRC" "$DEST_DIR/$DEST"
 ls -la "$DEST_DIR/$DEST"
