@@ -74,8 +74,16 @@ Pin画像に焼き込む文言の必須指定（D-0148）:
   **CTA文言は --pinN-text の件数制限の対象外**（見出しとCTAは役割が異なり、件数に含めると
   見出しが入らなくなるため）。CTAなしの群の依頼文にはCTAの記述が一切入らない。
 
+hero画像に焼き込む見出し文言の必須指定（D-0173）:
+  hero用の【画像に描く文字】節は、以前はプレースホルダー《…》を出力し、AIが手で置き換える
+  前提だった。置き換えを忘れると説明文がそのまま画像へ焼き込まれるため、pin側（D-0148）と
+  同じく --hero-text で受け取る必須引数にした。受け取り方・検査は --pinN-text と同一で、
+  上限件数だけが異なる（見出しは一行または二行のため1〜2件・1件あたり30文字以内）。
+  未指定・件数超過・文字数超過・半角英数字混入のいずれでも、hero用もpin用もプロンプトを
+  一切出力せず exit 1 で終わる。
+
 使い方:
-  python site/scripts/make-image-prompt.py <slug>
+  python site/scripts/make-image-prompt.py <slug> --hero-text "見出し文言"
     --pin1-text "文言A｜文言B" --pin2-text "文言C" --pin3-text "文言D｜文言E｜文言F"
 """
 
@@ -225,6 +233,7 @@ CTA_BAND_RULES = [
     "帯の地の色は濃い茶色系にし、帯の中の文字の色は白にする。",
     "帯の中に描く文字は「{text}」の一つだけとする。",
     "帯の下側に少しの余白を空ける。",
+    "帯は見出しの文言と重ならない位置に置き、見出しの文言と帯の文言がどちらも読める大きさにする。",
 ]
 
 
@@ -257,14 +266,19 @@ def text_whitelist_head(count, has_cta):
     ).format(n=n, only=only, digit=DIGIT_RULE)
 
 
-def hero_text_section(text_position):
-    return section(SEC_TEXT, [
-        "次の見出し文言を必ず画像に描き込む。一字一句そのまま描く。"
-        "画像に描いてよい文字はこの見出し文言だけとする。" + DIGIT_RULE,
+def hero_text_section(text_position, texts):
+    """渡された見出し文言をそのまま列挙する（プレースホルダーは出さない・D-0173）。
+
+    冒頭文・列挙の書式は pin側（pin_text_section）と同一にする（覚える規則を増やさないため）。
+    """
+    lines = [
+        text_whitelist_head(len(texts), False),
         text_position_line(text_position, False),
-        "見出し文言：《記事タイトルまたはピン投稿文の要点から作った短い日本語のコピーをここに入れる》",
-        HERO_MARGIN_RULE,
-    ])
+    ]
+    for i, t in enumerate(texts, 1):
+        lines.append("文言その{n}：「{t}」".format(n=to_kanji(i), t=t))
+    lines.append(HERO_MARGIN_RULE)
+    return section(SEC_TEXT, lines)
 
 
 def pin_text_section(text_position, texts, ranking, has_cta):
@@ -309,9 +323,68 @@ PIN_TEXT_MIN_COUNT = 1
 PIN_TEXT_MAX_LEN = 30
 PIN_TEXT_EXAMPLE = (
     'python site/scripts/make-image-prompt.py <slug> '
+    '--hero-text "雨の日の紅茶時間" '
     '--pin1-text "雨の日の一杯｜香りで気分転換" --pin2-text "淹れる前と後" '
     '--pin3-text "茶葉｜湯温｜蒸らし時間"'
 )
+
+
+# --- hero画像に焼き込む見出し文言（--hero-text・D-0173） ---
+# 受け取り方・検査は --pinN-text と同一に揃える（上限件数だけが異なる。見出しは一行または二行）。
+HERO_TEXT_OPT = "--hero-text"
+HERO_TEXT_MIN_COUNT = 1
+HERO_TEXT_MAX_COUNT = 2
+HERO_TEXT_MAX_LEN = 30
+HERO_TEXT_EXAMPLE = (
+    'python site/scripts/make-image-prompt.py <slug> '
+    '--hero-text "雨の日の紅茶時間" '
+    '--pin1-text "雨の日の一杯｜香りで気分転換" --pin2-text "淹れる前と後" '
+    '--pin3-text "茶葉｜湯温｜蒸らし時間"'
+)
+
+
+def hero_text_error(detail):
+    """--hero-text 関連のエラーを標準エラーへ出して exit 1 する（D-0173）。
+
+    hero用・pin用のどちらの依頼文も出力しない（--pinN-text と同じ挙動）。
+    """
+    lines = [
+        "【エラー】%s" % detail,
+        "hero画像に焼き込む見出し文言は %s での指定が必須です"
+        "（%d〜%d件・1件あたり%d文字以内。区切りは全角の縦棒「%s」）。"
+        % (HERO_TEXT_OPT, HERO_TEXT_MIN_COUNT, HERO_TEXT_MAX_COUNT,
+           HERO_TEXT_MAX_LEN, PIN_TEXT_SEP_FULL),
+        "見出しは一行または二行のため上限は%d件です（Pinの上限%d件とは異なります）。"
+        % (HERO_TEXT_MAX_COUNT, PIN_TEXT_MAX_COUNT),
+        "記述例: %s" % HERO_TEXT_EXAMPLE,
+        "文言は実在のブランド名ではなく、記事本文と一致する語にしてください。",
+    ]
+    sys.stderr.write("\n".join(lines) + "\n")
+    sys.exit(1)
+
+
+def parse_hero_texts(raw):
+    """--hero-text の値を検証して文言リストにする。違反時は exit 1（プロンプトは出力しない）。"""
+    if raw is None:
+        hero_text_error("%s が指定されていません。" % HERO_TEXT_OPT)
+    normalized = raw.replace(PIN_TEXT_SEP_HALF, PIN_TEXT_SEP_FULL)
+    texts = [v.strip() for v in normalized.split(PIN_TEXT_SEP_FULL)]
+    texts = [v for v in texts if v]
+    if len(texts) < HERO_TEXT_MIN_COUNT:
+        hero_text_error("%s に文言が1件も含まれていません（空文字）。" % HERO_TEXT_OPT)
+    if len(texts) > HERO_TEXT_MAX_COUNT:
+        hero_text_error(
+            "%s が%d件を超えています（受け取った件数: %d件）: %s"
+            % (HERO_TEXT_OPT, HERO_TEXT_MAX_COUNT, len(texts), "／".join(texts))
+        )
+    too_long = [v for v in texts if len(v) > HERO_TEXT_MAX_LEN]
+    if too_long:
+        hero_text_error(
+            "%s に%d文字を超える文言があります: %s"
+            % (HERO_TEXT_OPT, HERO_TEXT_MAX_LEN,
+               "／".join("%s（%d文字）" % (v, len(v)) for v in too_long))
+        )
+    return texts
 
 
 def pin_text_opt(slot):
@@ -480,7 +553,7 @@ def display_style(style):
     return kanjify_digits(STYLE_DISPLAY_NAME.get(style, style))
 
 
-def build_hero_prompt(row):
+def build_hero_prompt(row, texts):
     """hero用の依頼文を6節構成で組み立てる（D-0172・heroに【誘導の帯】は無い）。"""
     return "\n".join([
         section(SEC_RATIO, [hero_ratio_head()]),
@@ -488,7 +561,7 @@ def build_hero_prompt(row):
         section(SEC_COMPOSITION, [
             axis_summary(row) + "の構図で、物撮りまたは情景写真として仕上げる。",
         ]),
-        hero_text_section(row["text_position"]),
+        hero_text_section(row["text_position"], texts),
         section(SEC_EXCLUDE, EXCLUDE_RULES),
         section(SEC_FINISH, [hero_ratio_tail()]),
     ])
@@ -570,6 +643,15 @@ def main():
         sys.stderr.reconfigure(encoding="utf-8")
 
     argv = sys.argv[1:]
+    raw_hero_text = None
+    if HERO_TEXT_OPT in argv:
+        i = argv.index(HERO_TEXT_OPT)
+        if i + 1 >= len(argv):
+            hero_text_error("%s の値が指定されていません。" % HERO_TEXT_OPT)
+        reject_hankaku_pin_text(HERO_TEXT_OPT, argv[i + 1])
+        raw_hero_text = argv[i + 1]
+        del argv[i:i + 2]
+
     raw_texts = {}
     for slot in piv.PIN_SLOTS:
         opt = pin_text_opt(slot)
@@ -583,7 +665,7 @@ def main():
 
     if len(argv) != 1:
         print(
-            'usage: make-image-prompt.py <slug> '
+            'usage: make-image-prompt.py <slug> %s "見出し文言" ' % HERO_TEXT_OPT
             + " ".join('%s "文言1｜文言2"' % pin_text_opt(s_) for s_ in piv.PIN_SLOTS)
         )
         sys.exit(1)
@@ -614,6 +696,7 @@ def main():
         sys.exit(1)
 
     # --- 画像内文言の検証（D-0148・プロンプトを1行も出力する前に全スロットを判定する） ---
+    hero_texts = parse_hero_texts(raw_hero_text)
     texts = {}
     for slot in piv.PIN_SLOTS:
         texts[slot] = parse_pin_texts(slot, raw_texts.get(slot), styles[slot])
@@ -634,7 +717,7 @@ def main():
         for pin_no, slot in enumerate(piv.PIN_SLOTS, start=1):
             cta_texts[slot] = piv.cta_text_for_seq(article_seq, pin_no)
 
-    blocks = [("hero", build_hero_prompt(by_type["hero"]))]
+    blocks = [("hero", build_hero_prompt(by_type["hero"], hero_texts))]
     for slot in piv.PIN_SLOTS:
         blocks.append((slot, build_pin_prompt(by_type[slot], styles[slot], texts[slot], cta_texts[slot])))
 
