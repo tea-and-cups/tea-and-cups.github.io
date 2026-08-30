@@ -65,6 +65,9 @@ PRE_PUBLISH_CHECKS = [
     ("check-pin-image-naming.py", False, []),
     ("check-pin-image-style.py", True, []),
     ("check-anchor-consistency.py", True, []),
+    # X向けの本文（ピンmdの「- X用説明文: 」行）が280に収まるかを機械で見る。
+    # 文章のルールとして書くだけでは守られないため、公開前に必ず通る位置に置く。
+    ("check-x-post-length.py", True, []),
 ]
 
 CHECK_TIMEOUT = 120

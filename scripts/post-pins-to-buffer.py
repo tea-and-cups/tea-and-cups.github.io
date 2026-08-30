@@ -24,13 +24,19 @@ r"""未投稿ピンをBuffer経由でX・Instagram・Threadsへ送る本体ス�
   (4) 上限判定。「当日すでに投稿した件数 ＋ 今回の対象件数」が
       DAILY_LIMIT（30件＝10ピン×3チャンネル）を超えるなら、1件も投稿せず
       件数だけ報告して終了する。
-  (5) 本文の組み立て。説明文＋誘導文＋誘導先URL（utm_sourceを送信先ごとに
-      x / instagram / threads へ置換）。誘導文は固定3種からピン番号の
-      3で割った余りで機械的に選ぶ（自由入力は受け付けない）。
-  (6) X向けの文字数見積もり。URLを23文字として数え、280を超えたら
+  (5) 本文の組み立て。送信先で構成が違う。
+      Instagram・Threads … 説明文＋誘導文＋誘導先URL（従来どおり）。誘導文は
+        固定3種からピン番号の3で割った余りで機械的に選ぶ（自由入力は受け付けない）。
+      X … ピンmdの「- X用説明文: 」行＋改行＋誘導先URL。誘導文は付けない。
+        共通の説明文はXの数え方だと必ず280を超えるため、Xだけ専用の短い本文を
+        持たせる（書式は rules/pinterest-api.md「X向けの説明文」節が正本）。
+        この行が無い／空／2行以上あるピンは **X投稿だけ** を理由つきでスキップし、
+        Instagram・Threadsへの投稿はそのまま続ける。
+  (6) X向けの文字数判定。X重み（全角=2 / 半角=1 / URLは長さに関わらず23）と
+      実文字数（Bufferの入力検証が見る）の**両方**が280以下でなければ
       **そのピンのX投稿だけ**をスキップする。自動切り詰めはしない
       （文末が途中で切れた投稿が公開されるのを防ぐため）。
-      Instagram・Threadsは同じピンでも続行する。
+      数え方・上限・本文の組み立ての正本は check-x-post-length.py。
   (7) 画像の公開。publish-pin-images.py の変換処理をimportして呼び、
       site/public/pin-images/pin{番号}.jpg を作る。続けて site/ リポジトリで
       add・commit・push まで本スクリプト内で完結させる（変換だけしてcommitして
@@ -46,6 +52,14 @@ r"""未投稿ピンをBuffer経由でX・Instagram・Threadsへ送る本体ス�
       サービス・エラー内容を出力して次へ進む。
   (9) 成功のつど台帳へ1行追記する（3チャンネル分をまとめて最後に書かない。
       1つ失敗したときに再試行で二重投稿になるため）。
+ (10) 公開画像の刈り込み。**投稿処理がすべて終わってから**、
+      publish-pin-images.py の KEEP_LIMIT（番号降順で60件）まで
+      site/public/pin-images/ を刈り込み、削除分をcommit・pushする。
+      ただし削除前に参照系クエリで Buffer のキュー（status=scheduled）に
+      残っている投稿を引き、その本文の utm_content=pin{番号} が指すピン番号は
+      件数上限を超えていても削除対象から除外する（公開前に画像URLが消えると
+      投稿が壊れるため。今の運用では60件を超えないが、超えないことを人が
+      覚えている設計にしない）。キューを読めなかったときは1件も削除しない。
 
 公式ドキュメントで確認した点（2026-08-30）:
   - createPost の戻り値は union で、成功は PostActionSuccess、失敗は
@@ -65,7 +79,10 @@ r"""未投稿ピンをBuffer経由でX・Instagram・Threadsへ送る本体ス�
   - **XのURL重み付けは createPost の入力検証には適用されない。**
     23で数えて203文字（URL実長込みで338文字）の本文が
     「Twitter / X posts cannot exceed 280 characters.」で弾かれた。
-    → X_CHAR_LIMIT の判定は重み付け長と実長の両方で行う（定数のコメント参照）。
+    → 判定はX重みと実文字数の両方で行う（check-x-post-length.py が正本）。
+    さらに、日本語の全角文字はX側で1文字あたり2として数えられるため、
+    Pinterest向けの説明文（200字前後）はどうやってもXには載らない。
+    → Xだけ「- X用説明文: 」行の専用本文を使う（(5) 参照）。
   - **Instagramは metadata.instagram が必須。**
     reference.html の createPost の例（examples/create-image-post.html）は
     metadata を省いているが、Instagramチャンネルへ送ると
@@ -133,16 +150,15 @@ CTA_LINES = (
     "👇詳しくはブログでどうぞ☕️",
 )
 
-# X（無料枠）の上限。
-X_CHAR_LIMIT = 280
-# 公式ドキュメント（guides/character-limits.html）は「XではURLを23として数える」と
-# 書いているが、**createPost の入力検証はこの重み付けを適用していない**。
+# Xの文字数の数え方・上限・X用説明文の扱いは check-x-post-length.py が正本で、
+# ここでは書き写さない（同じ判定を二重実装すると片方だけ直って食い違うため）。
+#
+# 判定は2つの上限を同時に見る。
+#   ・X側の数え方（全角=2 / 半角=1 / URLは長さに関わらず23）
+#   ・Buffer の createPost の入力検証（全角・半角を区別せず、URLも実長のまま数える）
 # 2026-08-30の実測: 23で数えると203文字の本文（URLの実長を含めると338）が
 # 「Twitter / X posts cannot exceed 280 characters.」で弾かれた。
-# そのため判定は「23で数えた見積もり」と「URLを実長で数えた長さ」の両方を見て、
-# **どちらかが280を超えたらスキップする**（ドキュメントの規則を満たしつつ、
-# 実際に弾かれる投稿を送らないため）。切り詰めは行わない。
-X_URL_WEIGHT = 23
+# どちらか一方でも超えたら**そのピンのX投稿だけ**をスキップする。切り詰めは行わない。
 
 # サービスごとに createPost へ添える metadata。
 # Instagramは metadata.instagram の type（PostType!）と shouldShareToFeed（Boolean!）が
@@ -163,6 +179,10 @@ GIT_TIMEOUT = 180
 
 DESC_RE = re.compile(r"^説明文:\s*(.+)$")
 GUIDE_URL_RE = re.compile(r"^-\s*誘導先URL:\s*(.+)$")
+# X（twitter）だけに使う短い専用本文。0行または1行。
+# 共通の説明文はXの数え方だと必ず280を超えるため、Xだけ別の本文を持たせる
+# （書式・目的は rules/pinterest-api.md「X向けの説明文」節が正本）。
+X_DESC_RE = re.compile(r"^-\s*X用説明文:\s*(.*)$")
 
 # 台帳の書式。
 # 「投稿済み: {ピン番号} {service}」  … 二重投稿防止の判定に使う（日付を持たない）
@@ -315,6 +335,26 @@ def _load_publish_pin_images():
     return mod
 
 
+_XCHECK_CACHE = []
+
+
+def _load_check_x_post_length():
+    """check-x-post-length.py をモジュールとして読み込む（1プロセスにつき1回）。
+
+    module直下で読まず関数の中で読むのは、あちらが module 直下でこのファイルを
+    読み込むため（相互に module 直下で読むと循環する）。X の数え方・上限・本文の
+    組み立てはあちらが正本であり、ここへ書き写さない。
+    """
+    if _XCHECK_CACHE:
+        return _XCHECK_CACHE[0]
+    path = os.path.join(SCRIPT_DIR, "check-x-post-length.py")
+    spec = importlib.util.spec_from_file_location("check_x_post_length", path)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    _XCHECK_CACHE.append(mod)
+    return mod
+
+
 def load_posted_pairs(path=LEDGER_PATH):
     """台帳から投稿済みの (ピン番号, service) の集合を返す。ファイルが無ければ空集合。"""
     posted = set()
@@ -375,7 +415,12 @@ def derive_targets(created_map, posted_pairs, only=None):
 
 
 def parse_pin_file(file_name):
-    """ピンファイルから説明文と誘導先URLを読む。戻り値: (dict または None, 理由)"""
+    """ピンファイルから説明文・X用説明文・誘導先URLを読む。
+
+    戻り値: (dict または None, 理由)
+    x_description は0行のとき None（X投稿だけをスキップする材料になる。
+    Instagram・Threadsは同じピンでも投稿を続ける）。
+    """
     path = os.path.join(PINS_DIR, file_name)
     try:
         with open(path, encoding="utf-8") as f:
@@ -385,6 +430,7 @@ def parse_pin_file(file_name):
 
     description = None
     guide_url = None
+    x_descriptions = []
     for line in lines:
         stripped = line.strip()
         if description is None:
@@ -395,12 +441,32 @@ def parse_pin_file(file_name):
             m = GUIDE_URL_RE.match(stripped)
             if m:
                 guide_url = m.group(1).strip()
+        m = X_DESC_RE.match(stripped)
+        if m:
+            x_descriptions.append(m.group(1).strip())
 
     if not description:
         return None, "「説明文:」行が見つからないか空です"
     if not guide_url:
         return None, "「- 誘導先URL:」行が見つからないか空です"
-    return {"description": description, "guide_url": guide_url}, None
+
+    # 2行以上あるとどれを送るかが決まらないため、Xだけ見送る材料として None にする。
+    x_description = x_descriptions[0] if len(x_descriptions) == 1 else None
+    x_reason = None
+    if not x_descriptions:
+        x_reason = "「- X用説明文: 」行がありません"
+    elif len(x_descriptions) > 1:
+        x_reason = "「- X用説明文: 」行が%d本あります（1ファイルにつき0行または1行）" % len(x_descriptions)
+    elif not x_description:
+        x_description = None
+        x_reason = "「- X用説明文: 」行が空です"
+
+    return {
+        "description": description,
+        "guide_url": guide_url,
+        "x_description": x_description,
+        "x_reason": x_reason,
+    }, None
 
 
 def pick_cta(pin_num):
@@ -425,38 +491,35 @@ def rewrite_utm_source(url, service):
     return urllib.parse.urlunsplit((parts.scheme, parts.netloc, parts.path, query, parts.fragment))
 
 
-def build_text(pin_num, description, guide_url, service):
-    """投稿本文を組み立てる。戻り値: (本文, 差し替え後のURL)"""
-    url = rewrite_utm_source(guide_url, service)
-    body = "%s\n\n%s\n%s" % (description, pick_cta(pin_num), url)
+def build_text(pin_num, fields, service):
+    """投稿本文を組み立てる。戻り値: (本文, 差し替え後のURL) または (None, 理由)
+
+    Instagram・Threads … 説明文 ＋ 空行 ＋ 誘導文 ＋ 改行 ＋ 誘導先URL（従来どおり）
+    X（twitter）        … X用説明文 ＋ 改行 ＋ 誘導先URL（誘導文は付けない）
+
+    X に誘導文を付けないのは、280という上限に対して誘導文が固定で
+    十数文字（X重みでは倍）を占め、本文に載せられる情報が削れるため。
+    """
+    url = rewrite_utm_source(fields["guide_url"], service)
+    if service == "twitter":
+        if not fields.get("x_description"):
+            return None, fields.get("x_reason") or "X用説明文がありません"
+        xcheck = _load_check_x_post_length()
+        return xcheck.build_x_text(fields["x_description"], url), url
+    body = "%s\n\n%s\n%s" % (fields["description"], pick_cta(pin_num), url)
     return body, url
 
 
-# --- (6) Xの文字数見積もり ------------------------------------------------------
-
-
-def utf16_length(text):
-    """UTF-16コード単位で数える。Buffer/Xの数え方に合わせるため
-    （絵文字・サロゲートペアは2として数えられる）。"""
-    return len(text.encode("utf-16-le")) // 2
-
-
-def estimate_x_length(text, url):
-    """URLを X_URL_WEIGHT 文字として数えた見積もり長を返す（ドキュメント上の規則）。"""
-    without_url = text.replace(url, "")
-    occurrences = text.count(url)
-    return utf16_length(without_url) + X_URL_WEIGHT * occurrences
+# --- (6) Xの文字数判定（数え方の正本は check-x-post-length.py） -----------------
 
 
 def x_length_verdict(text, url):
-    """X向け本文の長さを判定する。戻り値: (送ってよいか, 重み付け長, 実長)
-
-    Bufferの入力検証はURLの重み付けを適用しないため（定数のコメント参照）、
-    どちらか一方でも上限を超えたら送らない。
-    """
-    weighted = estimate_x_length(text, url)
-    raw = utf16_length(text)
-    return (weighted <= X_CHAR_LIMIT and raw <= X_CHAR_LIMIT), weighted, raw
+    """X向け本文の長さを判定する。戻り値: (送ってよいか, X重み, 実文字数)"""
+    xcheck = _load_check_x_post_length()
+    raw = xcheck.raw_length(text)
+    weighted = xcheck.x_weighted_length(text, url)
+    limit = xcheck.X_CHAR_LIMIT
+    return (weighted <= limit and raw <= limit), weighted, raw
 
 
 # --- (7) 画像の公開 -------------------------------------------------------------
@@ -502,10 +565,12 @@ def publish_images(pin_nums, out):
     return urls, failed
 
 
-def commit_and_push_images(out):
+def commit_and_push_images(out, message="publish: pin images for SNS"):
     """site/public/pin-images/ をadd・commit・pushする。
 
     変換だけしてcommitしていない状態を作らないため、変換の直後に必ず呼ぶ。
+    刈り込み（削除）の反映にも同じ関数を使う（`git add <ディレクトリ>` は
+    追跡済みファイルの削除もステージするため、追加と削除で処理を分けない）。
     戻り値: (成功したか, メッセージ)
     """
     result = git("add", "--", "public/pin-images")
@@ -516,10 +581,10 @@ def commit_and_push_images(out):
     if staged.returncode == 0:
         out("  ステージ対象に差分が無いため commit はスキップ（画像は既に公開済み）")
     elif staged.returncode == 1:
-        result = git("commit", "-m", "publish: pin images for SNS")
+        result = git("commit", "-m", message)
         if result.returncode != 0:
             return False, "git commit に失敗しました: %s" % (result.stderr or result.stdout).strip()
-        out("  git commit: publish: pin images for SNS")
+        out("  git commit: %s" % message)
     else:
         return False, "git diff --cached の判定に失敗しました: %s" % (staged.stderr or staged.stdout).strip()
 
@@ -600,6 +665,121 @@ def create_post(graphql, payload):
         return True, "postId=%s status=%s dueAt=%s" % (
             post.get("id"), post.get("status"), post.get("dueAt"))
     return False, "%s: %s" % (typename or "(型不明)", result.get("message") or result)
+
+
+# --- (10) 公開画像の刈り込み（キューに残る投稿の参照分は除外） ------------------
+
+
+# 誘導先URLの utm_content からピン番号を取り出す。
+# 投稿本文に残る唯一の機械可読なピン番号がこれで、UTMの構成は変えない約束
+# （rules/pinterest-api.md・GA4の計測をPinterestと揃えるため）なので当てにできる。
+PIN_UTM_RE = re.compile(r"utm_content=pin(\d+)")
+
+ACCOUNT_QUERY = """
+query Account {
+  account { organizations { id } }
+}
+"""
+
+# キューに残っている（まだ公開されていない）投稿。status は enum で、
+# 値は scheduled（2026-08-30に PostStatus enum を実測して確認）。
+SCHEDULED_POSTS_QUERY = """
+query ScheduledPosts($organizationId: OrganizationId!) {
+  posts(input: {organizationId: $organizationId, filter: {status: scheduled}}) {
+    pageInfo { hasNextPage }
+    edges { node { id status dueAt channelId text } }
+  }
+}
+"""
+
+
+def fetch_scheduled_pin_numbers(graphql):
+    """Bufferのキュー（status=scheduled）に残る投稿が参照するピン番号の集合を返す。
+
+    戻り値: (集合 または None, 説明文字列)
+    None は「取得できなかった」を表す。取得できなかったときに空集合を返すと
+    「除外すべき番号が無い」と区別できず、公開前の画像を消してしまうため。
+    """
+    data = graphql(ACCOUNT_QUERY, operation_name="Account")
+    orgs = ((data or {}).get("account") or {}).get("organizations") or []
+    if not orgs:
+        return None, "組織IDを取得できませんでした"
+
+    numbers = set()
+    truncated = False
+    for org in orgs:
+        data = graphql(
+            SCHEDULED_POSTS_QUERY,
+            {"organizationId": org["id"]},
+            operation_name="ScheduledPosts",
+        )
+        posts = (data or {}).get("posts") or {}
+        if ((posts.get("pageInfo") or {}).get("hasNextPage")):
+            truncated = True
+        for edge in posts.get("edges") or []:
+            text = (edge.get("node") or {}).get("text") or ""
+            for match in PIN_UTM_RE.finditer(text):
+                numbers.add(int(match.group(1)))
+    if truncated:
+        # 続きのページを読まないまま「除外対象はこれだけ」と決めると
+        # 読めていない投稿の画像を消しうるので、取得できなかった扱いにする。
+        return None, "キューが1ページに収まらず全件を読めませんでした"
+    return numbers, "キューに残る投稿が参照するピン番号: %s" % (
+        ", ".join(str(n) for n in sorted(numbers)) if numbers else "なし")
+
+
+def prune_published_images(graphql, out):
+    """公開画像を KEEP_LIMIT 件まで刈り込む。キューが参照する番号は残す。
+
+    件数上限を超えていても、まだ公開されていない投稿が参照している画像を
+    消すとその投稿が壊れるため、削除対象から必ず除外する。
+    """
+    # buffer_api は main() と同じく関数の中で読む（module直下で読むと
+    # 緊急停止スイッチの判定より先に .env を読みに行くため）。
+    from buffer_api import BufferApiError, BufferGuardError  # noqa: E402
+
+    mod = _load_publish_pin_images()
+    if not os.path.isdir(mod.OUTPUT_DIR):
+        out("  公開先ディレクトリがまだありません。刈り込みは行いません。")
+        return
+
+    try:
+        protected, note = fetch_scheduled_pin_numbers(graphql)
+    except (BufferApiError, BufferGuardError) as e:
+        protected, note = None, "キューの取得に失敗しました: %s" % e
+    out("  %s" % note)
+    if protected is None:
+        out("  除外すべき番号を確定できないため、削除は1件も行いません。")
+        return
+
+    doomed = mod.select_files_to_delete(os.listdir(mod.OUTPUT_DIR))
+    kept = []
+    to_delete = []
+    for name in doomed:
+        match = mod.OUTPUT_NAME_RE.match(name)
+        number = int(match.group(1)) if match else None
+        if number is not None and number in protected:
+            kept.append(number)
+            continue
+        to_delete.append(name)
+
+    if kept:
+        out("  上限超過だがキューが参照しているため残した番号: %s"
+            % ", ".join(str(n) for n in sorted(kept)))
+    if not to_delete:
+        out("  削除なし（上限 %d件・現在 %d件）" % (
+            mod.KEEP_LIMIT,
+            len([n for n in os.listdir(mod.OUTPUT_DIR) if mod.OUTPUT_NAME_RE.match(n)]),
+        ))
+        return
+
+    for name in to_delete:
+        os.remove(os.path.join(mod.OUTPUT_DIR, name))
+        out("  削除: %s" % name)
+    ok, message = commit_and_push_images(out, message="prune: pin images for SNS")
+    if not ok:
+        out("  【警告】削除のcommit・pushに失敗しました: %s" % message)
+        out("  ファイルは既に削除済みです。site/ で手動commitしてください。")
 
 
 # --- メイン ---------------------------------------------------------------------
@@ -717,6 +897,7 @@ def main(argv):
 
     # (5)(6) 本文の組み立てと、Xの文字数見積もり
     out("=== 投稿本文の組み立て ===")
+    xcheck = _load_check_x_post_length()
     plans = []  # [(pin_num, [(service, text, url), ...])]
     for pin_num, file_name, services in targets:
         fields, reason = parse_pin_file(file_name)
@@ -725,15 +906,26 @@ def main(argv):
             continue
         entries = []
         for service in services:
-            text, url = build_text(pin_num, fields["description"], fields["guide_url"], service)
+            text, url = build_text(pin_num, fields, service)
+            if text is None:
+                # X用説明文が無い／複数ある場合。X投稿だけを見送り、
+                # Instagram・Threadsは同じピンでもそのまま投稿する。
+                out("  スキップ: ピン%d の X 投稿 — %s" % (pin_num, url))
+                out("            書式: 「%s<%d字以内の本文>」（rules/pinterest-api.md）"
+                    % (xcheck.X_DESC_LABEL, xcheck.X_DESC_TARGET_CHARS))
+                out("            Instagram・Threadsへは投稿します。")
+                continue
             if service == "twitter":
                 ok, weighted, raw = x_length_verdict(text, url)
                 if not ok:
+                    _rw, _ww, need_fw, need_hw = xcheck.shortfall(raw, weighted)
                     out("  スキップ: ピン%d の X 投稿 — 上限 %d文字を超えます"
-                        % (pin_num, X_CHAR_LIMIT))
-                    out("            URLを%d文字として数えた見積もり: %d文字"
-                        % (X_URL_WEIGHT, weighted))
-                    out("            URLを実長で数えた長さ（Bufferの検証がこちらを見る）: %d文字" % raw)
+                        % (pin_num, xcheck.X_CHAR_LIMIT))
+                    out("            X重み（全角=2 / URLは%d）: %d文字"
+                        % (xcheck.X_URL_WEIGHT, weighted))
+                    out("            実文字数（Bufferの検証がこちらを見る）: %d文字" % raw)
+                    out("            あと 全角なら%d文字 / 半角なら%d文字 削れば両方を満たします"
+                        % (need_fw, need_hw))
                     out("            自動切り詰めは行いません。Instagram・Threadsへは投稿します。")
                     continue
             entries.append((service, text, url))
@@ -752,8 +944,8 @@ def main(argv):
             out(text)
             if service == "twitter":
                 _ok, weighted, raw = x_length_verdict(text, url)
-                out("  [Xの文字数: 見積もり %d（URLを%d文字として計算）/ 実長 %d / 上限 %d]"
-                    % (weighted, X_URL_WEIGHT, raw, X_CHAR_LIMIT))
+                out("  [Xの文字数: X重み %d（全角=2・URLは%d）/ 実文字数 %d / 上限 %d]"
+                    % (weighted, xcheck.X_URL_WEIGHT, raw, xcheck.X_CHAR_LIMIT))
     out()
 
     if opts["dry_run"]:
@@ -823,6 +1015,13 @@ def main(argv):
             else:
                 out("  失敗: ピン%d / %s — %s" % (pin_num, service, detail))
                 failed += 1
+
+    # (10) 投稿処理がすべて終わってから公開画像を刈り込む。
+    # 投稿より先に消すと、これから送る投稿の画像URLが消えるため順序を入れ替えない。
+    out()
+    out("=== 公開画像の刈り込み（上限 %d件・キューが参照する番号は除外） ==="
+        % _load_publish_pin_images().KEEP_LIMIT)
+    prune_published_images(graphql, out)
 
     out()
     out("=== 結果 ===")
