@@ -62,10 +62,15 @@ r"""未投稿ピンをBuffer経由でX・Instagram・Threadsへ送る本体ス�
       publish-pin-images.py の KEEP_LIMIT（番号降順で60件）まで
       site/public/pin-images/ を刈り込み、削除分をcommit・pushする。
       ただし削除前に参照系クエリで Buffer のキュー（status=scheduled）に
-      残っている投稿を引き、その本文の utm_content=pin{番号} が指すピン番号は
-      件数上限を超えていても削除対象から除外する（公開前に画像URLが消えると
-      投稿が壊れるため。今の運用では60件を超えないが、超えないことを人が
-      覚えている設計にしない）。キューを読めなかったときは1件も削除しない。
+      残っている投稿を引き、各投稿に添付された画像URL（末尾が
+      /pin-images/pin{番号}.jpg）が指すピン番号は、件数上限を超えていても
+      削除対象から除外する（公開前に画像URLが消えると投稿が壊れるため。
+      今の運用では60件を超えないが、超えないことを人が覚えている設計にしない）。
+      保護対象は本文ではなく画像URLから取る。Instagram向けの本文には誘導先URLを
+      載せない（D-0178）ため本文の utm_content からは番号を拾えず、画像URLは
+      3チャンネルすべてへ同じ形で渡しているため本文の書式変更に依存しない。
+      キューを読めなかったとき、および画像URLからピン番号を取れない投稿が
+      1件でもあったときは、保護対象を確定できないと判断して1件も削除しない。
 
 公式ドキュメントで確認した点（2026-08-30）:
   - createPost の戻り値は union で、成功は PostActionSuccess、失敗は
@@ -736,10 +741,11 @@ def create_post(graphql, payload):
 # --- (10) 公開画像の刈り込み（キューに残る投稿の参照分は除外） ------------------
 
 
-# 誘導先URLの utm_content からピン番号を取り出す。
-# 投稿本文に残る唯一の機械可読なピン番号がこれで、UTMの構成は変えない約束
-# （rules/pinterest-api.md・GA4の計測をPinterestと揃えるため）なので当てにできる。
-PIN_UTM_RE = re.compile(r"utm_content=pin(\d+)")
+# 投稿に添付された画像URLからピン番号を取り出す。画像URL（assets[].source）は
+# X・Instagram・Threadsの3チャンネルすべてへ同じ形で渡しているため、本文の書式に
+# 依存しない。本文の utm_content から拾わないのは、Instagram向けの本文には誘導先URLを
+# 載せない（D-0178）ため、Instagramのみがキューに残ったピンの番号を取りこぼすため。
+PIN_IMAGE_URL_RE = re.compile(r"/pin-images/pin(\d+)\.jpg")
 
 ACCOUNT_QUERY = """
 query Account {
@@ -753,7 +759,7 @@ SCHEDULED_POSTS_QUERY = """
 query ScheduledPosts($organizationId: OrganizationId!) {
   posts(input: {organizationId: $organizationId, filter: {status: scheduled}}) {
     pageInfo { hasNextPage }
-    edges { node { id status dueAt channelId text } }
+    edges { node { id status dueAt channelId assets { source } } }
   }
 }
 """
@@ -762,9 +768,16 @@ query ScheduledPosts($organizationId: OrganizationId!) {
 def fetch_scheduled_pin_numbers(graphql):
     """Bufferのキュー（status=scheduled）に残る投稿が参照するピン番号の集合を返す。
 
+    ピン番号は投稿に添付された画像URL（assets[].source の末尾が
+    /pin-images/pin{番号}.jpg）から取る。画像URLは3チャンネルすべてへ同じ形で
+    渡しているため、本文の構成に依存しない（Instagram向けの本文には誘導先URLを
+    載せないため・D-0178、本文の utm_content からは番号を拾えない）。
+
     戻り値: (集合 または None, 説明文字列)
     None は「取得できなかった」を表す。取得できなかったときに空集合を返すと
     「除外すべき番号が無い」と区別できず、公開前の画像を消してしまうため。
+    画像URLからピン番号を取り出せない投稿が1件でもあれば None を返す
+    （保護対象を確定できないため、削除を1件も行わない）。
     """
     data = graphql(ACCOUNT_QUERY, operation_name="Account")
     orgs = ((data or {}).get("account") or {}).get("organizations") or []
@@ -783,9 +796,19 @@ def fetch_scheduled_pin_numbers(graphql):
         if ((posts.get("pageInfo") or {}).get("hasNextPage")):
             truncated = True
         for edge in posts.get("edges") or []:
-            text = (edge.get("node") or {}).get("text") or ""
-            for match in PIN_UTM_RE.finditer(text):
-                numbers.add(int(match.group(1)))
+            node = edge.get("node") or {}
+            found = set()
+            for asset in node.get("assets") or []:
+                source = (asset or {}).get("source") or ""
+                match = PIN_IMAGE_URL_RE.search(source)
+                if match:
+                    found.add(int(match.group(1)))
+            if not found:
+                return None, (
+                    "キューの投稿 %s に /pin-images/pin{番号}.jpg 形式の画像URLが無く、"
+                    "保護対象を確定できません" % (node.get("id") or "(id不明)")
+                )
+            numbers |= found
     if truncated:
         # 続きのページを読まないまま「除外対象はこれだけ」と決めると
         # 読めていない投稿の画像を消しうるので、取得できなかった扱いにする。
