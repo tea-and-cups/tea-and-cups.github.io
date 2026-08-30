@@ -20,13 +20,19 @@ r"""未投稿ピンをBuffer経由でX・Instagram・Threadsへ送る本体ス�
   (3) 未投稿の導出。台帳は data/buffer-posted.md。「ピン番号 × サービス」の
       組を単位にする。ピン番号の抽出は check-pin-posting-status.py の
       extract_created_pins() をimportして再利用する（同じ判定を二重実装すると
-      片方だけ直って食い違うため）。
+      片方だけ直って食い違うため）。BUFFER_START_PIN 未満のピン番号は対象外に
+      し、除外件数を1行で出す。
   (4) 上限判定。「当日すでに投稿した件数 ＋ 今回の対象件数」が
       DAILY_LIMIT（30件＝10ピン×3チャンネル）を超えるなら、1件も投稿せず
       件数だけ報告して終了する。
   (5) 本文の組み立て。送信先で構成が違う。
-      Instagram・Threads … 説明文＋誘導文＋誘導先URL（従来どおり）。誘導文は
+      Threads … 説明文＋誘導文＋誘導先URL（従来どおり）。誘導文は
         固定3種からピン番号の3で割った余りで機械的に選ぶ（自由入力は受け付けない）。
+      Instagram … 説明文（ハッシュタグを除いた部分）＋ハッシュタグ部分＋空行＋
+        固定の誘導文（INSTAGRAM_CTA_LINE）。**誘導先URLを載せない**ため
+        utm_source の置換も行わない。Instagramはキャプション内のリンクが
+        クリックできず、URLを載せる意味がないため、プロフィールのリンクへ
+        誘導する形に統一する。
       X … ピンmdの「- X用説明文: 」行＋改行＋誘導先URL。誘導文は付けない。
         共通の説明文はXの数え方だと必ず280を超えるため、Xだけ専用の短い本文を
         持たせる（書式は rules/pinterest-api.md「X向けの説明文」節が正本）。
@@ -133,12 +139,19 @@ KEY_EXPIRY_WARN_DAYS = 30
 # 送信先サービス。台帳・TSV・Buffer側の service 名はすべてこの表記で揃える。
 SERVICES = ("twitter", "instagram", "threads")
 
+# Buffer投稿の対象にする最小のピン番号。これ未満は未投稿の導出から除外する。
+# ピン195以前には「- X用説明文: 」行が無く、対象に含めると恒久的に未投稿として
+# 残り続け、check-buffer-posting-status.py の警告が常態化して機能しなくなるため。
+BUFFER_START_PIN = 196
+
 # サービス名 → 誘導先URLの utm_source に入れる値。X は utm_source=x にする
 # （Buffer側の service 名は twitter のままなので、両者を取り違えないよう
 #  変換表をここ1箇所に置く）。
+# Instagramは載せる誘導先URLが無いためこの表に持たない。キャプション内のリンクが
+# クリックできず、URLを載せる意味がないため（Instagram経由の到達はプロフィールの
+# リンクに付けたUTMでチャネル単位のみ計測する・rules/pinterest-api.md）。
 UTM_SOURCE_BY_SERVICE = {
     "twitter": "x",
-    "instagram": "instagram",
     "threads": "threads",
 }
 
@@ -149,6 +162,15 @@ CTA_LINES = (
     "👇続きはブログにまとめています☕️",
     "👇詳しくはブログでどうぞ☕️",
 )
+
+# Instagram向けの誘導文。1種類だけを固定で使う（ピン番号による選択・自由入力は
+# 行わない）。Instagramはキャプション内のリンクがクリックできないため、URLの
+# 代わりにプロフィールのリンクへ誘導する。
+INSTAGRAM_CTA_LINE = "☕️ 詳しい内容はプロフィールのリンクから「琥珀時間」へ"
+
+# 説明文をハッシュタグの手前で切る目印。最初に現れる「半角スペース＋#」を境に
+# 前後へ分ける。見つからなければ分割しない（説明文全体を1行目に置く）。
+HASHTAG_SPLIT = " #"
 
 # Xの文字数の数え方・上限・X用説明文の扱いは check-x-post-length.py が正本で、
 # ここでは書き写さない（同じ判定を二重実装すると片方だけ直って食い違うため）。
@@ -398,17 +420,25 @@ def append_ledger(pin_num, service, today_str, path=LEDGER_PATH):
 def derive_targets(created_map, posted_pairs, only=None):
     """「作成済みピン番号 × 3サービス」から台帳の組を引いた差集合を返す。
 
-    戻り値: [(pin_num, file_name, [service, ...]), ...]（ピン番号の昇順）
+    BUFFER_START_PIN 未満のピン番号は対象にしない（X用説明文が無く、
+    含めると恒久的に未投稿として残り続けるため）。
+
+    戻り値: ([(pin_num, file_name, [service, ...]), ...], 除外した件数)
+            一覧はピン番号の昇順。
     """
     targets = []
+    excluded = 0
     for pin_num in sorted(created_map.keys()):
+        if pin_num < BUFFER_START_PIN:
+            excluded += 1
+            continue
         if only is not None and pin_num != only:
             continue
         pending = [s for s in SERVICES if (pin_num, s) not in posted_pairs]
         if not pending:
             continue
         targets.append((pin_num, created_map[pin_num][0], pending))
-    return targets
+    return targets, excluded
 
 
 # --- (5) 本文の組み立て ---------------------------------------------------------
@@ -491,15 +521,51 @@ def rewrite_utm_source(url, service):
     return urllib.parse.urlunsplit((parts.scheme, parts.netloc, parts.path, query, parts.fragment))
 
 
+def split_description(description):
+    """説明文を（ハッシュタグを除いた部分, ハッシュタグ部分）に分ける。
+
+    最初に現れる「半角スペース＋#」を境にする。境が見つからない場合は分割せず
+    (説明文全体, None) を返す。
+    """
+    idx = description.find(HASHTAG_SPLIT)
+    if idx < 0:
+        return description, None
+    return description[:idx].strip(), description[idx + 1:].strip()
+
+
+def build_instagram_text(description):
+    """Instagram向け本文。誘導先URLは含めない。
+
+      <説明文（ハッシュタグを除いた部分）>
+      <ハッシュタグ部分>
+      （空行）
+      <固定の誘導文>
+
+    URLを載せないのは、Instagramではキャプション内のリンクがクリックできず
+    載せる意味がないため。代わりにプロフィールのリンクへ誘導する。
+    """
+    body, tags = split_description(description)
+    lines = [body]
+    if tags:
+        lines.append(tags)
+    lines.append("")
+    lines.append(INSTAGRAM_CTA_LINE)
+    return "\n".join(lines)
+
+
 def build_text(pin_num, fields, service):
     """投稿本文を組み立てる。戻り値: (本文, 差し替え後のURL) または (None, 理由)
 
-    Instagram・Threads … 説明文 ＋ 空行 ＋ 誘導文 ＋ 改行 ＋ 誘導先URL（従来どおり）
-    X（twitter）        … X用説明文 ＋ 改行 ＋ 誘導先URL（誘導文は付けない）
+    Instagram   … 説明文 ＋ ハッシュタグ ＋ 空行 ＋ 固定の誘導文（URLを載せない）
+                  URLが無いので utm_source の置換も行わない。第2要素は None。
+    Threads     … 説明文 ＋ 空行 ＋ 誘導文 ＋ 改行 ＋ 誘導先URL（従来どおり）
+    X（twitter）… X用説明文 ＋ 改行 ＋ 誘導先URL（誘導文は付けない）
 
     X に誘導文を付けないのは、280という上限に対して誘導文が固定で
     十数文字（X重みでは倍）を占め、本文に載せられる情報が削れるため。
     """
+    if service == "instagram":
+        return build_instagram_text(fields["description"]), None
     url = rewrite_utm_source(fields["guide_url"], service)
     if service == "twitter":
         if not fields.get("x_description"):
@@ -866,10 +932,12 @@ def main(argv):
     check_mod = _load_check_pin_posting_status()
     created_map = check_mod.extract_created_pins()
     posted_pairs = load_posted_pairs()
-    targets = derive_targets(created_map, posted_pairs, only=opts["only"])
+    targets, excluded = derive_targets(created_map, posted_pairs, only=opts["only"])
 
     out("=== 対象の導出（output/pins のピン番号 × 3サービス − 台帳） ===")
     out("  作成済みピン: %d件 / 台帳の投稿済み: %d組" % (len(created_map), len(posted_pairs)))
+    out("  対象外（ピン番号 %d 未満・X用説明文が無いため）: %d件"
+        % (BUFFER_START_PIN, excluded))
     if opts["only"] is not None:
         out("  --only %d が指定されています" % opts["only"])
         if opts["only"] not in created_map:
@@ -939,8 +1007,11 @@ def main(argv):
     for pin_num, entries in plans:
         for service, text, url in entries:
             out()
-            out("  --- ピン%d / %s（誘導先 utm_source=%s） ---"
-                % (pin_num, service, UTM_SOURCE_BY_SERVICE[service]))
+            out("  --- ピン%d / %s（%s） ---"
+                % (pin_num, service,
+                   "誘導先 utm_source=%s" % UTM_SOURCE_BY_SERVICE[service]
+                   if service in UTM_SOURCE_BY_SERVICE
+                   else "誘導先URLを載せない"))
             out(text)
             if service == "twitter":
                 _ok, weighted, raw = x_length_verdict(text, url)
