@@ -61,6 +61,12 @@ KPI_REMINDER_DAY = 4
 # 週次レポートの未生成チェックを遡る上限週数（D-0095・古すぎる週は遡って作る意味がないため固定）
 WEEKLY_LOOKBACK_WEEKS = 4
 
+# 最新の対象週（i=0）の催促を出し始めるまでの猶予日数（対象週の日曜からの経過日数）。
+# 4 の根拠: Pinterest Analytics の確定に数日を要し、2026-08-31実測で対象週最終日が
+# 4日後もPROCESSING、2026-08-23実測では4日で確定だった。これ未満で催促しても
+# fetch-pinterest-analytics.py が未確定で止まり催促だけが出続けるため。
+WEEKLY_GRACE_DAYS = 4
+
 
 def read_text(path):
     if not os.path.isfile(path):
@@ -164,6 +170,11 @@ def main():
         sunday = target_sunday - datetime.timedelta(weeks=i)
         name = weekly_filename(sunday)
         if os.path.isfile(os.path.join(REPORTS_DIR, name)):
+            continue
+        # 最新の対象週（i=0）のみ、確定が見込める WEEKLY_GRACE_DAYS 経過後に催促する。
+        # i>=1（過去週の取りこぼし検知・D-0095）には猶予をかけない。猶予をかけると
+        # 取りこぼしの検知が猶予日数だけ遅れるため、ここは従来どおり即時に検知する。
+        if i == 0 and (base - sunday).days < WEEKLY_GRACE_DAYS:
             continue
         if sunday == target_sunday:
             messages.append(
