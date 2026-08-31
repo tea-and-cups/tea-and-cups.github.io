@@ -2,7 +2,7 @@
 """hero・Pin画像（pin1〜3）のChatGPT用依頼文を組み立てる（D-0126）。
 
 背景:
-  依頼文をその場で毎回組み立てると、寸法・比率・アラビア数字指定・ブランドロゴ禁止等の
+  依頼文をその場で毎回組み立てると、寸法・比率・ブランドロゴ禁止等の
   固定要素の指定漏れが起き、ChatGPT側の生成物がやり直しになり、Chrome連携ツールの
   往復（トークン消費の主因）が増えていた（reports/2026-08-15-5.md の実測調査）。
   このスクリプトは「そのまま貼れる依頼文」を機械的に組み立てることで、指定漏れそのものを
@@ -34,10 +34,10 @@
         よう「横二に対して縦三」の語順で書く（D-0172以前は「三対二」と書いており、縦長指示と
         矛盾して横長Pinが生成される原因になっていた）。
 
-ChatGPTへのプロンプトはASCII文字を含めない規約（rules/image-generation-flow.md 2節3）が
-あるため、寸法・比率の数値は漢数字で表記する（本スクリプト内でアラビア数字→漢数字に変換する。
-「画像内の数字はアラビア数字で」という指示文自体は日本語の指示文であり、プロンプトに含める
-文言としてASCII規約に抵触しない）。
+指示ゾーン（固定文・型ガイダンス・台帳由来の値）はASCII文字を含めない規約
+（rules/image-generation-flow.md 2節3）があるため、寸法・比率の数値は漢数字で表記する
+（本スクリプト内でアラビア数字→漢数字に変換する）。描き込み文言（--hero-text /
+--pinN-text の値）はこの規約の対象外で、半角英数字をそのまま画像へ描かせる（D-0180）。
 
 型ごとの指示方針（TYPE_GUIDANCE）は rules/image-generation-flow.md 1-3節の表と重複させず、
 このスクリプトを正本とする（rules側は表の型名一覧のみ残し、指示文言はここを参照する形にした。
@@ -216,8 +216,6 @@ EXCLUDE_RULES = [
     "実在の商標を思わせるロゴや文字は描かず、缶や箱の面は無地にする。",
 ]
 
-DIGIT_RULE = "数字はアラビア数字で描く。"
-
 # heroは後工程の hero-to-webp.py が 1400x735 へ中央クロップするため上下が削られる。
 # 端に寄った見出し文言は切れて作り直しになる（D-0148）。
 HERO_MARGIN_RULE = (
@@ -262,8 +260,8 @@ def text_whitelist_head(count, has_cta):
         only += "と、後述の【%s】に指定する文言" % SEC_CTA
     return (
         "次の{n}件の文言を必ず画像に描き込む。一字一句そのまま描く。"
-        "画像に描いてよい文字は{only}だけとする。{digit}"
-    ).format(n=n, only=only, digit=DIGIT_RULE)
+        "画像に描いてよい文字は{only}だけとする。"
+    ).format(n=n, only=only)
 
 
 def hero_text_section(text_position, texts):
@@ -282,7 +280,7 @@ def hero_text_section(text_position, texts):
 
 
 def pin_text_section(text_position, texts, ranking, has_cta):
-    """渡された文言をそのまま列挙する焼き込み指示を作る（数字は漢数字・ASCII規約。D-0148）。"""
+    """渡された文言をそのまま列挙する焼き込み指示を作る（D-0148・半角はそのまま渡す。D-0180）。"""
     lines = [
         text_whitelist_head(len(texts), has_cta),
         text_position_line(text_position, ranking),
@@ -410,21 +408,22 @@ def pin_text_error(detail):
     sys.exit(1)
 
 
-HANKAKU_RE = re.compile(r"[0-9A-Za-z]")
+NEWLINE_RE = re.compile(r"[\r\n]")
 
 
-def reject_hankaku_pin_text(opt, raw):
-    """--pinN-text に半角英数字が1文字でもあればプロンプトを出力せず exit 1（D-0149）。"""
-    hits = sorted(set(HANKAKU_RE.findall(raw)))
-    if not hits:
+def reject_newline_text(opt, raw):
+    """描き込み文言に改行が含まれていればプロンプトを出力せず exit 1（D-0180）。
+
+    半角英数字は許可する（2026-08-31の実測で、送信時に脱落しないことを確認した）。
+    改行だけはChatGPTの入力欄で挙動が変わり送信事故の原因になるため従来どおり禁じる。
+    """
+    if not NEWLINE_RE.search(raw):
         return
     lines = [
-        "【エラー】%s の値に半角英数字が含まれています: %s" % (opt, "・".join(hits)),
-        "半角英数字はChatGPTの入力欄へ送信する時点で脱落するため、依頼文には使えません。",
-        "数字は漢数字で書いてください（例:「二種類用意する」）。",
-        "画像内にはアラビア数字で描かれるため（依頼文に数字の表記ルールを含めています）、"
-        "漢数字で渡して問題ありません。",
-        "受け取った値: %s" % raw,
+        "【エラー】%s の値に改行が含まれています。" % opt,
+        "改行はChatGPTの入力欄で挙動が変わり、途中送信の事故になるため使えません。",
+        "一行で書き、区切りが必要な場合は全角の縦棒「%s」を使ってください。" % PIN_TEXT_SEP_FULL,
+        "受け取った値: %s" % repr(raw),
     ]
     sys.stderr.write("\n".join(lines) + "\n")
     sys.exit(1)
@@ -605,17 +604,51 @@ def build_pin_prompt(row, style, texts, cta_text=None):
     return "\n".join(parts)
 
 
-# --- 実装D: 依頼文本文に半角ASCIIが混入していないかの自己チェック（D-0149） ---
+# --- 指示ゾーンに半角ASCIIが混入していないかの自己チェック（D-0149・範囲はD-0180で変更） ---
 # 区切り行（--- hero --- 等）は main() 側で組み立てて出力するため、この検査の対象外。
 ASCII_RE = re.compile(r"[\x20-\x7e]")
 
+# 描き込み文言（--hero-text / --pinN-text の値）が実際に埋め込まれる行は次の2種のみ。
+# この2種に限り文言部分を除いてからASCII検査し、それ以外の行は全文を検査する（D-0180・2026-08-31）。
+# 行の特定は文字列一致ではなく書式（下記の正規表現）で行う。文字列一致で判定すると、同一の
+# 文字列がたまたま指示ゾーンの行にあった場合にその行の半角も一緒に除かれ、検査をすり抜けるため。
+#   (1) 【画像に描く文字】節の「文言その{n}：「{t}」」行（hero_text_section / pin_text_section）
+#   (2) ランキング型ガイダンス行（ranking_guidance が TYPE_GUIDANCE["ランキング"] から組み立てる行）
+_DRAWN_TEXT_LINE_RE = re.compile(r"^文言その[〇一二三四五六七八九十]+：「(.*)」$")
+_RANKING_GUIDANCE_RE = re.compile(
+    "^" + "(.*)".join(re.escape(p) for p in re.split(r"\{label[123]\}", TYPE_GUIDANCE[RANKING_KEY])) + "$"
+)
+
+
+def strip_drawn_texts(line):
+    """描き込み文言が埋め込まれた行に限り、文言部分だけを取り除いて返す（D-0180・2026-08-31）。
+
+    対象は _DRAWN_TEXT_LINE_RE（「文言その{n}：「{t}」」行）と _RANKING_GUIDANCE_RE
+    （ランキング型ガイダンス行）にマッチする行のみ。マッチした行はキャプチャした文言位置
+    だけを空にして返し、それ以外の行はそのまま返す（全文がASCII検査の対象になる）。
+    行の特定は書式で行うため、同一文字列が指示ゾーンの他の行にあっても影響しない。
+    """
+    m = _DRAWN_TEXT_LINE_RE.match(line)
+    if not m:
+        m = _RANKING_GUIDANCE_RE.match(line)
+    if not m:
+        return line
+    out = line
+    for gi in range(m.lastindex, 0, -1):
+        out = out[:m.start(gi)] + out[m.end(gi):]
+    return out
+
 
 def assert_no_ascii(blocks):
-    """ChatGPTへ貼り付ける本文に半角ASCIIが1文字でもあれば、何も出力せず exit 1。"""
+    """指示ゾーンに半角ASCIIが1文字でもあれば、何も出力せず exit 1。
+
+    描き込み文言（--hero-text / --pinN-text の値）は検査対象外（D-0180）。
+    固定文・型ガイダンス・台帳由来の値に半角が紛れ込むのを検知する役割は維持する。
+    """
     bad = []
     for name, body in blocks:
         for i, line in enumerate(body.split("\n"), 1):
-            hits = ASCII_RE.findall(line)
+            hits = ASCII_RE.findall(strip_drawn_texts(line))
             if hits:
                 bad.append((name, i, line, sorted(set(hits))))
     if not bad:
@@ -629,8 +662,8 @@ def assert_no_ascii(blocks):
             "%s の%d行目: 混入文字 %s ／ 該当行: %s"
             % (name, i, "・".join("「%s」" % c for c in hits), line)
         )
-    lines.append("固定文・型ガイダンス・台帳由来の値のいずれかに半角文字が入っています。"
-                 "全角または日本語へ置き換えてください。")
+    lines.append("固定文・型ガイダンス・台帳由来の値のいずれかに半角文字が入っています"
+                 "（描き込み文言は検査対象外です）。全角または日本語へ置き換えてください。")
     sys.stderr.write("\n".join(lines) + "\n")
     sys.exit(1)
 
@@ -648,7 +681,7 @@ def main():
         i = argv.index(HERO_TEXT_OPT)
         if i + 1 >= len(argv):
             hero_text_error("%s の値が指定されていません。" % HERO_TEXT_OPT)
-        reject_hankaku_pin_text(HERO_TEXT_OPT, argv[i + 1])
+        reject_newline_text(HERO_TEXT_OPT, argv[i + 1])
         raw_hero_text = argv[i + 1]
         del argv[i:i + 2]
 
@@ -659,7 +692,7 @@ def main():
             i = argv.index(opt)
             if i + 1 >= len(argv):
                 pin_text_error("%s の値が指定されていません。" % opt)
-            reject_hankaku_pin_text(opt, argv[i + 1])
+            reject_newline_text(opt, argv[i + 1])
             raw_texts[slot] = argv[i + 1]
             del argv[i:i + 2]
 
