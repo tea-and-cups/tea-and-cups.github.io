@@ -123,20 +123,24 @@ RECENT_DECISIONS = 5
 TASKS_TODAY_HEADING = "## 今日"
 TASKS_DATE_MARKER_RE = re.compile(r"^<!--\s*date:\s*(\d{4}-\d{2}-\d{2})\s*-->$")
 
-# docs/decisions.md 本文中の reports/ 参照の検査に使う（D-0109・D-0110で対象を絞り込み）。
-# この運用では reports/ への実参照は必ず「詳細は reports/… 参照」という決まった形で
-# 書かれる。この形以外（書式の例示・決定記録本文中の引用等）は参照ではないため、
-# 検査対象をこの表記の内側に限定する（D-0110）。
-DECISIONS_DETAIL_REF_RE = re.compile(r"詳細は.*?参照")
-# 実在性検査: reports/で始まり.mdで終わるパス表記を抽出する。
-DECISIONS_REPORTS_PATH_RE = re.compile(r"reports/[A-Za-z0-9_\-]+\.md")
+# docs/decisions.md 本文中の reports/ 参照の検査に使う（D-0109・D-0110・D-0188）。
+# 導入語は「詳細は」に限らず「経緯は」「実測は」「突き合わせ結果は」等さまざまで、
+# 「詳細は…参照」の区間だけを検査対象にしていた旧方式（D-0110）では大半の参照が
+# 素通りしていた。行全体から reports/ 表記を抽出する方式へ変更した（D-0188）。
+# 実在性検査: reports/ に続く、区切り記号（空白・和文句読点・各種閉じ括弧）以外の
+# 連続を抽出する。抽出結果のうち末尾が .md のものだけを実在確認の対象にする。
+DECISIONS_REPORTS_PATH_RE = re.compile(r"reports/[^\s、。）)」』】]*")
 # パス中に YYYY・MM・DD のいずれかを含むものは書式のテンプレート表記とみなし、
 # 実在性検査から除外する（D-0110）。
 DECISIONS_REPORTS_TEMPLATE_RE = re.compile(r"YYYY|MM|DD")
 # 曖昧参照検査: 「本日のreports/」等のあとに具体的な日付ファイル名
 # （YYYY-MM-DD始まり）が続かない場合を曖昧参照とみなす。
+# 「の」と「reports/」の間の半角・全角空白は許容する（D-0188）。
+# 直後がリテラルの "YYYY-MM-DD"（書式の説明文）の場合は実参照ではないため除外する
+# （D-0189）。除外はマッチ直後の文字列だけで判定するので、同じ行に書式説明と
+# 本物の曖昧参照が同居していても後者は従来どおり検出される。
 DECISIONS_REPORTS_VAGUE_RE = re.compile(
-    r"(本日|当日|その日|同日|今日)のreports/(?!\d{4}-\d{2}-\d{2})"
+    r"(本日|当日|その日|同日|今日)の[ 　]*reports/(?!\d{4}-\d{2}-\d{2}|YYYY-MM-DD)"
 )
 
 # D番号参照の実在性検査（D-0113）に使う。「D-」＋半角数字4桁で、直後が半角数字でも
@@ -476,33 +480,33 @@ def check_decisions_reports_references():
     設計・D-0093により検査対象の文字数に構造的な上限がかかっているため、この
     コストは将来も一定に収まる）。
 
-    検査対象は「詳細は」で始まり「参照」で終わる表記の内側のみ（DECISIONS_DETAIL_REF_RE）。
-    書式の例示や決定記録本文中の引用はこの形を取らないため、対象を絞ることで
-    件数に依存せず誤検知を構造的に除外する（D-0110）。
+    検査対象は decisions.md の各行全体である。導入語（詳細は／経緯は／実測は等）には
+    依存せず、行中の reports/ 表記を全件抽出し、末尾が .md のものを実在確認にかける
+    （D-0188。旧方式は「詳細は…参照」の区間内のみを見ており大半を取りこぼしていた）。
+    書式のテンプレート表記（YYYY・MM・DD を含むもの）は従来どおり除外する（D-0110）。
     """
     if not os.path.isfile(DECISIONS_MD):
         return []
     warnings = []
     lines = read_text(DECISIONS_MD).split("\n")
     for i, line in enumerate(lines, start=1):
-        for span in DECISIONS_DETAIL_REF_RE.finditer(line):
-            span_text = span.group(0)
-            for match in DECISIONS_REPORTS_PATH_RE.finditer(span_text):
-                rel_path = match.group(0)
-                if DECISIONS_REPORTS_TEMPLATE_RE.search(rel_path):
-                    continue  # 書式のテンプレート表記（例: reports/YYYY-MM-DD.md）
-                abs_path = os.path.join(ROOT, rel_path)
-                if not os.path.isfile(abs_path):
-                    warnings.append(
-                        "【警告】docs/decisions.md %d行目のreports/参照が実在しません（%s）。"
-                        "ファイル名を確認して修正してください（D-0109）。" % (i, rel_path)
-                    )
-            for match in DECISIONS_REPORTS_VAGUE_RE.finditer(span_text):
+        for rel_path in DECISIONS_REPORTS_PATH_RE.findall(line):
+            if not rel_path.endswith(".md"):
+                continue  # ディレクトリ表記等、ファイル名を指していないもの
+            if DECISIONS_REPORTS_TEMPLATE_RE.search(rel_path):
+                continue  # 書式のテンプレート表記（例: reports/YYYY-MM-DD.md）
+            abs_path = os.path.join(ROOT, rel_path)
+            if not os.path.isfile(abs_path):
                 warnings.append(
-                    "【警告】docs/decisions.md %d行目に具体的なファイル名を伴わないreports/参照が"
-                    "あります（%s）。参照先ファイル名を明記してください（D-0109）。"
-                    % (i, match.group(0))
+                    "【警告】docs/decisions.md %d行目のreports/参照が実在しません（%s）。"
+                    "ファイル名を確認して修正してください（D-0109）。" % (i, rel_path)
                 )
+        for match in DECISIONS_REPORTS_VAGUE_RE.finditer(line):
+            warnings.append(
+                "【警告】docs/decisions.md %d行目に具体的なファイル名を伴わないreports/参照が"
+                "あります（%s）。参照先ファイル名を明記してください（D-0109）。"
+                % (i, match.group(0))
+            )
     return warnings
 
 
