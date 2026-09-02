@@ -1,4 +1,5 @@
 #!/bin/bash
+# 記事の下書きと公開済みファイルの先頭数行を突き合わせて差分を表示する。
 # usage: diff-draft-published.sh <slug> [lines]
 set -euo pipefail
 

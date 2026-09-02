@@ -1,3 +1,9 @@
+"""商品ページのURLをもしもアフィリエイトのクリック用リンクへ変換して出力する。
+
+使い方:
+  python site/scripts/build-moshimo-link.py <url1> [<url2> ...]
+"""
+
 import sys
 import urllib.parse
 

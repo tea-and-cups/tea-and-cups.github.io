@@ -76,6 +76,21 @@ HOOK_EVENT_ORDER = ["SessionStart", "Stop", "PreToolUse", "PostToolUse"]
 
 RE_HOOK_TARGET = re.compile(r"((?:site/scripts|\.claude/hooks)/[A-Za-z0-9_.\-]+\.py)")
 
+# 2節・3節の「用途」列の最大長（全角100文字）。1行1件で読み下せる長さの上限として置く。
+# これを超える説明は先頭 PURPOSE_MAX_CHARS 文字で切り、末尾に PURPOSE_ELLIPSIS を付ける。
+PURPOSE_MAX_CHARS = 100
+PURPOSE_ELLIPSIS = "…"
+
+# docstring も冒頭コメントも取れなかったファイルの用途列に入る文字列。
+PURPOSE_UNKNOWN = "（説明なし）"
+
+# 用途として採らない冒頭コメント行（shebang とエンコーディング宣言）。
+RE_SHEBANG = re.compile(r"^#!")
+RE_CODING_DECL = re.compile(r"^#.*coding[:=]")
+
+# 用途列に入れてはいけない文字（行を壊す・列区切りと紛れる）。半角スペースへ置換する。
+PURPOSE_FORBIDDEN_CHARS = ("\r", "\n", "\t", "|")
+
 
 class ScanError(Exception):
     """走査失敗。呼び出し側はこれを捕まえて終了コード1で終わる。"""
@@ -297,6 +312,76 @@ def list_real_files(rel_dir, extensions=None):
 # --- 索引の組み立て ---------------------------------------------------------
 
 
+def extract_purpose(rel):
+    """ファイルの「用途1行」を抽出して正規化する。抽出規則と切り詰めはこの関数だけが持つ。
+
+    抽出は次の順で、最初に取れたものを採用する。
+      (a) モジュール docstring（.py のみ）の、空行でない最初の1行
+      (b) ファイル冒頭の連続する # コメント行のうち、空行でない最初の1行
+          （shebang 行とエンコーディング宣言行は飛ばす）
+      (c) どちらも取れなければ PURPOSE_UNKNOWN
+
+    読み込み・構文解析に失敗したファイルは (c) 扱いにして索引全体の生成は止めない。
+    その場合は用途列が PURPOSE_UNKNOWN になるため、索引を見れば取りこぼしに気づける。
+    """
+    try:
+        text = read_text(rel)
+    except ScanError:
+        return PURPOSE_UNKNOWN
+
+    raw = None
+
+    # (a) モジュール docstring
+    if rel.endswith(".py"):
+        try:
+            doc = ast.get_docstring(ast.parse(text))
+        except SyntaxError:
+            doc = None
+        if doc:
+            for line in doc.splitlines():
+                if line.strip():
+                    raw = line
+                    break
+
+    # (b) ファイル冒頭の連続する # コメント行
+    if raw is None:
+        for line in text.splitlines():
+            stripped = line.strip()
+            if not stripped:
+                break
+            if not stripped.startswith("#"):
+                break
+            if RE_SHEBANG.match(stripped) or RE_CODING_DECL.match(stripped):
+                continue
+            body = stripped.lstrip("#").strip()
+            if body:
+                raw = body
+                break
+
+    # (c)
+    if raw is None:
+        return PURPOSE_UNKNOWN
+
+    purpose = raw
+    for char in PURPOSE_FORBIDDEN_CHARS:
+        purpose = purpose.replace(char, " ")
+    purpose = purpose.strip()
+    if purpose.startswith("# "):
+        purpose = purpose[2:].strip()
+    if not purpose:
+        return PURPOSE_UNKNOWN
+    if len(purpose) > PURPOSE_MAX_CHARS:
+        purpose = purpose[:PURPOSE_MAX_CHARS] + PURPOSE_ELLIPSIS
+    return purpose
+
+
+def format_index_line(name, sources, purpose):
+    """2節・3節の1行を組み立てる。索引の行形式の正本はこの関数だけが持つ。
+    呼び出し側で "- %s — %s — %s" を直接組み立てないこと（形式が複数箇所へ散るため）。
+    """
+    return "- %s — %s — %s" % (name, sources, purpose)
+
+
 def build_index():
     hook_entries = collect_hook_definitions()
     child_scripts = collect_list_of_first_strings(
@@ -405,14 +490,26 @@ def build_index():
     for name in script_files:
         rel = SCRIPTS_REL + "/" + name
         sources = callers.get(rel)
-        lines.append("- %s — %s" % (name, " / ".join(sources) if sources else "自動起動は検出されず"))
+        lines.append(
+            format_index_line(
+                name,
+                " / ".join(sources) if sources else "自動起動は検出されず",
+                extract_purpose(rel),
+            )
+        )
     lines.append("")
     lines.append("### %s（%d件）" % (HOOKS_REL, len(hook_files)))
     lines.append("")
     for name in hook_files:
         rel = HOOKS_REL + "/" + name
         sources = callers.get(rel)
-        lines.append("- %s — %s" % (name, " / ".join(sources) if sources else "自動起動は検出されず"))
+        lines.append(
+            format_index_line(
+                name,
+                " / ".join(sources) if sources else "自動起動は検出されず",
+                extract_purpose(rel),
+            )
+        )
     lines.append("")
 
     # 3節 -------------------------------------------------------------------
@@ -430,7 +527,9 @@ def build_index():
                 continue
             hits = detect_invocations(rel)
             if hits:
-                unclassified.append("- %s — %s を含む" % (rel, "・".join(hits)))
+                unclassified.append(
+                    format_index_line(rel, "%s を含む" % "・".join(hits), extract_purpose(rel))
+                )
     if unclassified:
         lines.extend(unclassified)
     else:
