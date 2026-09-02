@@ -30,12 +30,13 @@ CLAUDE.md 3節1「rules/配下のファイルの新設・削除はオーナー�
  11. docs/status.md 全文に、Pin投稿の未完了状態を示す禁止語（固定リスト）が含まれていないか
      （D-0114） → 【警告】。Pinの投稿状況の正本は data/pin-posted.md と
      check-pin-posting-status.py であり、status.md はその写しにしない。
- 12. rules/command-execution.md の補助スクリプト一覧表・site/scripts/ の実ファイル・
-     Git追跡状況の3つの突き合わせ（旧 check-script-table.sh からの移植・D-0138） → 【警告】
-     MISSING（表にあるのに実在しない）／UNLISTED（実在するのに表に無い）／
-     UNTRACKED（実在するのにGit未追跡）の3判定。UNTRACKEDは
-     `git -C site ls-files scripts/` の出力と照合する。gitの実行に失敗した場合は
-     黙って成功扱いにせず【警告】として出す（判定が消えたことに気づけないため）。
+ 12. site/scripts/ の実ファイルについて、用途未記載とGit未追跡の2つを検出する → 【警告】
+     PURPOSE（docstringも冒頭#コメントも無く用途が読み取れない）／
+     UNTRACKED（実在するのにGit未追跡）の2判定。用途の抽出規則の正本は
+     generate-script-index.py の extract_purpose() であり、ここへ書き写さず import して使う。
+     UNTRACKEDは `git -C site ls-files scripts/` の出力と照合する。gitの実行または
+     extract_purpose() の読み込みに失敗した場合は、黙って成功扱いにせず【警告】として出す
+     （判定が消えたことに気づけないため）。
 
 状態は data/doc-state.tsv に保存する。プロジェクトルートはD-0043によりGit管理外のため、
 この状態ファイルがsite/リポジトリへ混入することは構造的に起こらない。
@@ -65,6 +66,7 @@ CLAUDE.md 3節1「rules/配下のファイルの新設・削除はオーナー�
 import datetime
 import glob
 import hashlib
+import importlib.util
 import io
 import json
 import os
@@ -96,13 +98,12 @@ DOCS_DIR = os.path.join(ROOT, "docs")
 AGENTS_DIR = os.path.join(ROOT, ".claude", "agents")
 POSTS_DIR = os.path.join(ROOT, "site", "src", "content", "posts")
 STATE_TSV = os.path.join(ROOT, "data", "doc-state.tsv")
-# 補助スクリプト一覧表の突き合わせ（検出項目12・旧check-script-table.shからの移植・D-0138）
+# site/scripts/ の健全性チェック（検出項目12）
 SITE_DIR = os.path.join(ROOT, "site")
 SCRIPTS_DIR = os.path.join(SITE_DIR, "scripts")
-COMMAND_EXECUTION_MD = os.path.join(RULES_DIR, "command-execution.md")
-# 一覧表の1列目（| xxx.py | ... の xxx.py）だけを取り出す。旧shell版の
-# grep -o '^| [A-Za-z0-9._-]\+\.\(sh\|py\|ps1\) ' と同じ範囲を対象にする。
-SCRIPT_TABLE_ROW_RE = re.compile(r"^\| ([A-Za-z0-9._-]+\.(?:sh|py|ps1)) ")
+SCRIPTS_REL = "site/scripts"
+# 用途1行の抽出規則の正本。ここでは再実装せず、このファイルから import して使う。
+SCRIPT_INDEX_SCRIPT = os.path.join(SCRIPTS_DIR, "generate-script-index.py")
 SCRIPT_EXTENSIONS = (".sh", ".py", ".ps1")
 GIT_TIMEOUT_SECONDS = 30
 
@@ -614,19 +615,6 @@ def check_d_number_references():
     return warnings
 
 
-def collect_script_table_names():
-    """rules/command-execution.md の補助スクリプト一覧表に記載された
-    スクリプト名の集合を返す（旧check-script-table.shのTMP_TABLE相当）。"""
-    names = set()
-    if not os.path.isfile(COMMAND_EXECUTION_MD):
-        return names
-    for line in read_text(COMMAND_EXECUTION_MD).split("\n"):
-        matched = SCRIPT_TABLE_ROW_RE.match(line)
-        if matched:
-            names.add(matched.group(1))
-    return names
-
-
 def collect_script_files():
     """site/scripts/ 配下の実ファイル名の集合を返す（旧TMP_FILES相当）。
     ディレクトリ（__pycache__等）は拡張子フィルタで自然に除外される。"""
@@ -664,29 +652,56 @@ def collect_tracked_scripts():
     return tracked, None
 
 
-def check_script_table():
-    """rules/command-execution.md の一覧表・site/scripts/ の実ファイル・Git追跡状況の
-    3つを突き合わせる（旧 site/scripts/check-script-table.sh からの移植・D-0138）。
-    旧スクリプトは .sh のためフック起動時のPATHにbashが無くWinError 2で必ず失敗して
-    いた。D-0044のGit追跡照合は廃止せず、ここへ移して維持する。
+def load_extract_purpose():
+    """generate-script-index.py の extract_purpose() を読み込んで返す。
+
+    用途1行の抽出規則の正本はあちら1箇所であり、ここへ書き写さない
+    （規則が2箇所へ分裂すると、片方だけ直した時に判定がずれるため）。
+    ファイル名がハイフンを含みそのままimportできないため importlib で読み込む。
+    あちらは実処理を `if __name__ == "__main__"` 配下の main() に置いており、
+    importしただけでは索引生成もファイル書き込みも走らない。
+    読み込みに失敗した場合は (None, None, 理由) を返し、呼び出し側で【警告】にする。
     """
-    table = collect_script_table_names()
+    try:
+        spec = importlib.util.spec_from_file_location(
+            "generate_script_index", SCRIPT_INDEX_SCRIPT
+        )
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        return mod.extract_purpose, mod.PURPOSE_UNKNOWN, None
+    except Exception as e:
+        return None, None, "generate-script-index.py の読み込みに失敗しました（%s）" % e
+
+
+def check_script_health():
+    """site/scripts/ の実ファイルについて、用途未記載とGit未追跡を検出する（検出項目12）。
+
+    用途未記載: generate-script-index.py の extract_purpose() が PURPOSE_UNKNOWN を
+      返すファイル。docs/script-index.md の用途列が埋まらない状態を、索引を見に行く前に
+      その場で気づけるようにする。
+    Git未追跡: `git -C site ls-files scripts/` に現れないファイル（コミット漏れ）。
+      判定ロジックは従来（D-0044・D-0138）から変更していない。
+    """
     files = collect_script_files()
     warnings = []
 
-    missing = sorted(table - files)
-    if missing:
+    extract_purpose, purpose_unknown, load_error = load_extract_purpose()
+    if extract_purpose is None:
         warnings.append(
-            "【警告】rules/command-execution.md の一覧表にあるのに site/scripts/ に実在しない"
-            "スクリプトがあります（%s）。該当行を削除してください（D-0138）。" % "、".join(missing)
+            "【警告】スクリプトの用途未記載チェックができませんでした（%s）。"
+            "今回は用途未記載の検知が行われていません。" % load_error
         )
-
-    unlisted = sorted(files - table)
-    if unlisted:
-        warnings.append(
-            "【警告】site/scripts/ に実在するのに rules/command-execution.md の一覧表に"
-            "無いスクリプトがあります（%s）。一覧表へ追記してください（D-0138）。" % "、".join(unlisted)
-        )
+    else:
+        no_purpose = []
+        for name in sorted(files):
+            if extract_purpose(SCRIPTS_REL + "/" + name) == purpose_unknown:
+                no_purpose.append(name)
+        if no_purpose:
+            warnings.append(
+                "【警告】site/scripts/ に用途が読み取れないスクリプトがあります（%s）。"
+                "docstring または冒頭#コメントに用途を1行書くこと。"
+                % "、".join(no_purpose)
+            )
 
     tracked, git_error = collect_tracked_scripts()
     if tracked is None:
@@ -805,7 +820,7 @@ def main():
     warnings += check_archive_boundary()
     warnings += check_d_number_references()
     warnings += check_status_forbidden_words()
-    warnings += check_script_table()
+    warnings += check_script_health()
 
     state = load_state()
 
