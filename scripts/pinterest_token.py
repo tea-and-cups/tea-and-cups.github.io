@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-r"""Pinterestアクセストークンの残り日数計算とリフレッシュ（T4）。
+r"""Pinterestアクセストークンの残り日数計算とリフレッシュ（D-0017・rules/pinterest-api.md）。
 
 他スクリプトからimportして使う想定（アンダースコア名）。
 

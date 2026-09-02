@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-r"""Pinterest API v5 のOpenAPI仕様を取得し、必要箇所だけを抽出するスクリプト（常設・T1）。
+r"""Pinterest API v5 のOpenAPI仕様を取得し、必要箇所だけを抽出するスクリプト（常設・D-0017）。
 
 背景: developers.pinterest.com はJavaScript描画のSPAでWebFetchでは読めない。
 pinterest/api-description リポジトリがGitHub上でOpenAPI仕様を公開しているため、

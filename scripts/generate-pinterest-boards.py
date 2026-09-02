@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-r"""GET /v5/boards からボード正本ファイル（data/pinterest-boards.md）を生成する（T3・フェーズC）。
+r"""GET /v5/boards からボード正本ファイル（data/pinterest-boards.md）を生成する（D-0017・rules/pinterest-api.md）。
 
 board_id をキーにした固定マッピング表を持つ（ボード名はオーナーが改名可能なため、
 名前をキーにすると壊れる）。マッピングに無いboard_idを検出した場合・マッピングに
@@ -7,10 +7,10 @@ board_id をキーにした固定マッピング表を持つ（ボード名は�
 APIエラー・0件取得の場合も、既存の正本ファイルを書き換えずに終了コード1で終わる。
 
 fetch_all_boards() / compute_rows_and_warnings() / write_file() は
-check-pinterest-boards-sync.py（T2・フェーズC-2）からも import して再利用する。
+check-pinterest-boards-sync.py（D-0119）からも import して再利用する。
 同じAPI取得・正本生成ロジックを2箇所に書かないための共通化。
 
-「季節」列（T2-1・D-0123）: ボード名にSEASON_KEYWORDSのいずれかが含まれれば「季節」、
+「季節」列（D-0123）: ボード名にSEASON_KEYWORDSのいずれかが含まれれば「季節」、
 含まれなければ「通年」とする。選定条件列とは独立にボード名だけから決まる。
 post-pins-to-pinterest.py がボード選定規則（1枚目=主題ボード、2枚目・3枚目=季節ボード
 または主題ボードと同じ）の形式検査に使う。
@@ -57,7 +57,7 @@ BOARD_MAPPING = {
 
 
 def classify_season(board_name):
-    """ボード名だけから「季節」または「通年」を判定する（T2-1）。
+    """ボード名だけから「季節」または「通年」を判定する（D-0123）。
     選定条件列・board_idとは独立に、名前の部分一致のみで決める。"""
     for kw in SEASON_KEYWORDS:
         if kw in board_name:

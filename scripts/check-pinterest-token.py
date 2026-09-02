@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-r"""Pinterestトークンの期限監視（session-start-check.py の子スクリプト・T4）。
+r"""Pinterestトークンの期限監視（session-start-check.py の子スクリプト・D-0017）。
 
 挙動:
   - 残り7日以上: ネットワーク通信を一切行わずローカルの日付比較のみで判定し、

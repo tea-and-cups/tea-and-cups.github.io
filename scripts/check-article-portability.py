@@ -1,4 +1,4 @@
-"""記事の可搬性規約（CLAUDE.md 9-2 / D-0005）を機械的にチェックする。
+"""記事の可搬性規約（rules/portability.md・D-0183）を機械的にチェックする。
 
 対象は output/articles/{slug}.md（下書き段階。無ければ site/src/content/posts/{slug}.md）。
 

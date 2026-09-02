@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
-r"""GET /v5/boards で実ボード一覧を取得する（読み取り専用・T5）。
+r"""GET /v5/boards で実ボード一覧を取得する（読み取り専用・D-0017）。
 
 ボード名・board_id・ピン数を一覧表示する。bookmarkによるページングがあれば
 全ページ取得する。ファイル化は行わない（親チャットで対応表を決めてから次
 フェーズで行う）。
 
-Pinterest APIへのリクエストは pinterest_api.py の単一入口経由で行う（T1）。
+Pinterest APIへのリクエストは pinterest_api.py の単一入口経由で行う（D-0017）。
 
 使い方:
   python site/scripts/pinterest-list-boards.py

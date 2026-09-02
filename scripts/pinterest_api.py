@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-r"""Pinterest v5 APIへの全HTTPリクエストの単一入口（T1・boards:write追加に伴う新設）。
+r"""Pinterest v5 APIへの全HTTPリクエストの単一入口（D-0017・boards:write追加に伴う新設）。
 
 他スクリプト（pinterest-list-boards.py・generate-pinterest-boards.py・
 今後のピン投稿処理）はここを経由してAPIを呼ぶ。requestsライブラリではなく

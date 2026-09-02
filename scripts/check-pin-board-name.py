@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-r"""ボード名が data/pinterest-boards.md の「選定可」ボードと一致するか判定する（T4）。
+r"""ボード名が data/pinterest-boards.md の「選定可」ボードと一致するか判定する（D-0017・rules/pinterest-api.md）。
 
 CLIから単体実行できる判定ロジック本体。.claude/hooks/check-pin-board.py（PreToolUse
 フック用の薄いラッパ）から呼ばれる想定だが、判定ロジックはこちら側に置く（フックを

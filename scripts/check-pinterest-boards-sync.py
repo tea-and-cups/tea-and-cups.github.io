@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 r"""ボード正本（data/pinterest-boards.md）とボード選定規則（rules/pinterest-api.md）の
-実態整合をセッション開始時に確認する（T2・フェーズC-2・D-0119）。
+実態整合をセッション開始時に確認する（D-0119・rules/pinterest-api.md）。
 
 背景: オーナーがPinterest上でボードを改名・追加・削除した瞬間に data/pinterest-boards.md
 が黙って古くなり、ボード名検証のPreToolUseフックが正しいボード名を弾いて記事作成が

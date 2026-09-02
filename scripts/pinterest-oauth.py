@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-r"""Pinterest API 本番OAuth認可スクリプト（T3）。
+r"""Pinterest API 本番OAuth認可スクリプト（D-0017・rules/pinterest-api.md）。
 
 demo-pinterest/step1_auth_url.py・step2_token.py の本番版。秘密情報は
 env_loader経由で .env（プロジェクトルート直下・Git管理外）から読む。
