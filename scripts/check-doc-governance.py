@@ -38,6 +38,10 @@ CLAUDE.md 3節1「rules/配下のファイルの新設・削除はオーナー�
      extract_purpose() の読み込みに失敗した場合は、黙って成功扱いにせず【警告】として出す
      （判定が消えたことに気づけないため）。
 
+ 13. data/link-health.md（商品リンク健全性台帳）の鮮度指標（D-0190） → 通常行1行を常時出力し、
+     最古の最終確認日が一巡見込みの LINK_HEALTH_STALE_FACTOR 倍を超える場合と、
+     一巡見込みが LINK_HEALTH_MAX_CYCLE_DAYS を超える場合に【警告】。台帳は読み取りのみ。
+
 状態は data/doc-state.tsv に保存する。プロジェクトルートはD-0043によりGit管理外のため、
 この状態ファイルがsite/リポジトリへ混入することは構造的に起こらない。
 
@@ -117,6 +121,16 @@ STATUS_MD_CHAR_LIMIT = 3500
 # 1行にまとめた長い決定がすり抜けるという逆転が起きるため（実測でD-0051とD-0050が逆転した）。
 DECISION_BODY_CHAR_LIMIT = 400
 RECENT_DECISIONS = 5
+
+# data/link-health.md（商品リンク健全性台帳）の週次ローテーション状態の監視に使う（D-0190）。
+# 台帳は読み取り専用。件数上限は rules/product-linking.md 4節「固定10件・絶対上限」と同期する。
+LINK_HEALTH_PATH = os.path.join(ROOT, "data", "link-health.md")
+LINK_HEALTH_ROTATION_PER_WEEK = 10  # rules/product-linking.md 4節「固定10件・絶対上限」と同期
+LINK_HEALTH_STALE_FACTOR = 1.5
+LINK_HEALTH_MAX_CYCLE_DAYS = 180
+LINK_HEALTH_DATE_COLUMN = "最終確認日"
+LINK_HEALTH_DATE_RE = re.compile(r"^\d\d\d\d-\d\d-\d\d$")
+LINK_HEALTH_SEPARATOR_CELL_RE = re.compile(r"^:?-\-*:?$")
 
 # docs/tasks.md「## 今日」節直下の日付マーカー（rotate-today-tasks.pyが更新する・D-0097）が
 # 今日の日付と一致するかの検知に使う（rotate-today-tasks.py実行漏れの機械検知・D-0102）。
@@ -775,6 +789,102 @@ def check_rules_diff(rules_now, prev_rules, max_d, prev_max_d, latest_date, toda
     return warnings, notices, bool(added or removed), mentioned_today
 
 
+def split_table_row(line):
+    """Markdownテーブルの1行をセルのリストへ分解する（前後の縦棒を除いてstrip）。"""
+    return [cell.strip() for cell in line.strip().strip("|").split("|")]
+
+
+def check_link_health(today):
+    """data/link-health.md（商品リンク健全性台帳）の鮮度指標を算出する（D-0190）。
+
+    台帳の週次ローテーション（rules/product-linking.md 4節）は、どのスクリプトからも
+    読まれておらず実行漏れの機械検知が無かった（2週連続で漏れた実例・D-0156）。
+    台帳の書式は変えず、行数・最古の最終確認日・一巡見込み日数を毎回可視化し、
+    ローテーション停止と処理能力不足の2つを警告条件で検知する。
+    台帳は読み取りのみ（書き換えない）。ファイル1回読みで完結し、外部アクセスはしない。
+
+    戻り値は (通常行1行の文字列, 警告文字列のリスト)。
+    """
+    if not os.path.isfile(LINK_HEALTH_PATH):
+        return None, [
+            "【警告】link-health: 台帳を解析できない（data/link-health.md が存在しない）"
+        ]
+
+    lines = read_text(LINK_HEALTH_PATH).split("\n")
+    date_index = None
+    header_line_no = None
+    for i, line in enumerate(lines):
+        stripped = line.strip()
+        if not stripped.startswith("|"):
+            continue
+        cells = split_table_row(stripped)
+        if LINK_HEALTH_DATE_COLUMN in cells:
+            # 列位置はハードコードせずヘッダ名から動的に特定する（将来の列順変更に追従するため）
+            date_index = cells.index(LINK_HEALTH_DATE_COLUMN)
+            header_line_no = i
+            break
+
+    if date_index is None:
+        return None, [
+            "【警告】link-health: 台帳を解析できない"
+            "（「%s」列を持つヘッダ行が見つからない）" % LINK_HEALTH_DATE_COLUMN
+        ]
+
+    total = 0
+    unparsed = 0
+    dates = []
+    for line in lines[header_line_no + 1:]:
+        stripped = line.strip()
+        if not stripped.startswith("|"):
+            continue
+        cells = split_table_row(stripped)
+        if cells and all(LINK_HEALTH_SEPARATOR_CELL_RE.match(c) for c in cells if c):
+            continue
+        total += 1
+        value = cells[date_index] if date_index < len(cells) else ""
+        if not LINK_HEALTH_DATE_RE.match(value):
+            unparsed += 1
+            continue
+        try:
+            dates.append(datetime.date(int(value[0:4]), int(value[5:7]), int(value[8:10])))
+        except ValueError:
+            unparsed += 1
+
+    if not dates:
+        return None, [
+            "【警告】link-health: 台帳を解析できない"
+            "（最終確認日を解析できるデータ行が1行も無い・データ行%d行）" % total
+        ]
+
+    oldest = min(dates)
+    today_date = datetime.date(int(today[0:4]), int(today[5:7]), int(today[8:10]))
+    elapsed = (today_date - oldest).days
+    weeks = (total + LINK_HEALTH_ROTATION_PER_WEEK - 1) // LINK_HEALTH_ROTATION_PER_WEEK
+    cycle_days = weeks * 7
+
+    info = "[link-health] %d行 / 最古 %s（%d日経過） / 一巡見込み %d日" % (
+        total, oldest.isoformat(), elapsed, cycle_days
+    )
+    if unparsed:
+        info += " / 最終確認日を解析できない行 %d行（計算から除外）" % unparsed
+
+    warnings = []
+    if elapsed > cycle_days * LINK_HEALTH_STALE_FACTOR:
+        warnings.append(
+            "【警告】link-health: 最古の最終確認日が一巡見込みを大きく超過"
+            "（最古 %s・%d日経過／一巡見込み %d日）。"
+            "ローテーション停止または処理能力不足の疑い"
+            % (oldest.isoformat(), elapsed, cycle_days)
+        )
+    if cycle_days > LINK_HEALTH_MAX_CYCLE_DAYS:
+        warnings.append(
+            "【警告】link-health: 台帳%d行に対し一巡見込み %d日。週%d件では半年で一巡しない。"
+            "rules/product-linking.md 4節の件数上限の見直しをオーナーに確認すること"
+            % (total, cycle_days, LINK_HEALTH_ROTATION_PER_WEEK)
+        )
+    return info, warnings
+
+
 def main():
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
@@ -825,6 +935,11 @@ def main():
     warnings += check_d_number_references()
     warnings += check_status_forbidden_words()
     warnings += check_script_health()
+
+    link_info, link_warnings = check_link_health(today)
+    warnings += link_warnings
+    if link_info:
+        print(link_info)
 
     state = load_state()
 
