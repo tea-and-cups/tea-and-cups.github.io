@@ -86,6 +86,20 @@ record-lesson.py check を実行し、標準出力に LESSON_NOT_RECORDED が含
 止めない。固定上限30行（ヘッダ行を除く）で、超えた分は古い行から捨てる。
 data/配下はGit管理外（D-0043）のため、この位置に置いてよい。
 
+■ 子プロセスのstderr保存（2026-09-02）
+子プロセスが異常終了（終了コード0以外）またはタイムアウトした場合に限り、
+data/hook-child-errors.log へ1レコード（日時／子プロセス名／終了状況／経過秒／
+stderr末尾2000文字）を追記する。正常終了時は何も書かない。保持は「全体で直近N件」
+ではなく「子プロセス名ごとに直近 CHILD_ERROR_MAX_PER_CHILD 件」とする。
+check-doc-governance.py は【警告】が1件でもあれば終了コード1を返す仕様のため、
+全体で件数を切ると governance のレコードが常時積まれ、本当に見たい他の子プロセスの
+異常終了を押し出してしまうためである。governance を記録対象から除外する案は採らない
+（Pythonの例外も終了コード1を返すため、除外すると governance 自身のクラッシュを
+検知できなくなる）。ファイル内の並びは従来どおり日時の昇順を保つ。
+書き込み処理（write_child_error）は全体をtry/exceptで包み、失敗しても
+Stopフック本体の処理は止めない。
+data/stop-hook-timing.tsv の列構成（D-0136）は一切変更しない。
+
 ■ block()の呼び出し規律（D-0082／D-0142で同期失敗を4項目目として追加）
 ガバナンス警告・トークン未出力・未commit検知・同期失敗・教訓リスト未記録（D-0163）が
 同時に成立しても、block()の
@@ -140,6 +154,14 @@ TIMING_HEADER = (
 )
 TIMING_STATUS_SKIPPED = "スキップ"
 
+# 子プロセスのstderr保存（PART A）。data/配下はGit管理外（D-0043）。
+# 目的は「子プロセスが異常終了・タイムアウトしたとき、その原因がstderrごと
+# 後から追えるようにする」ことのみ。正常終了時は1文字も書かない。
+CHILD_ERROR_LOG = os.path.join(PROJECT_ROOT, "data", "hook-child-errors.log")
+CHILD_ERROR_SEPARATOR = "===== hook-child-error ====="
+CHILD_ERROR_MAX_PER_CHILD = 5  # 子プロセス名ごとに残すレコード数。全体では最大 5種×5件＝25件。
+CHILD_ERROR_STDERR_TAIL = 2000  # stderrは末尾この文字数までに切り詰める。
+
 # run_child() が {キー: (所要秒数, 結果)} を積む。未実行のキーはスキップ扱いになる。
 _timings = {}
 
@@ -165,13 +187,99 @@ def run_child(key, argv, timeout, **kwargs):
             **kwargs
         )
     except subprocess.TimeoutExpired as exc:
-        _timings[key] = (time.perf_counter() - start, "タイムアウト")
+        elapsed = time.perf_counter() - start
+        _timings[key] = (elapsed, "タイムアウト")
+        write_child_error(key, "タイムアウト(%ss)" % timeout, elapsed, getattr(exc, "stderr", None))
         return None, exc
     except Exception as exc:
-        _timings[key] = (time.perf_counter() - start, "NG")
+        elapsed = time.perf_counter() - start
+        _timings[key] = (elapsed, "NG")
+        write_child_error(key, "例外: %s" % type(exc).__name__, elapsed, str(exc))
         return None, exc
-    _timings[key] = (time.perf_counter() - start, "OK" if result.returncode == 0 else "NG")
+    elapsed = time.perf_counter() - start
+    _timings[key] = (elapsed, "OK" if result.returncode == 0 else "NG")
+    if result.returncode != 0:
+        write_child_error(key, "exit %d" % result.returncode, elapsed, result.stderr)
     return result, None
+
+
+def _child_error_field(block, label):
+    """レコード本文から「label: 値」行の値を取り出す。最初に一致した行を採用する
+    （ヘッダ行はstderr本文より必ず前に来るため、stderr側に同じ書式の行があっても
+    ヘッダが優先される）。見つからなければ空文字を返す。
+    """
+    prefix = label + ": "
+    for line in block.splitlines():
+        if line.startswith(prefix):
+            return line[len(prefix):].strip()
+    return ""
+
+
+def trim_child_error_blocks(blocks):
+    """レコード群を、子プロセス名ごとに直近 CHILD_ERROR_MAX_PER_CHILD 件へ絞り込む。
+    返す並びは日時の昇順（同一日時は元の順序を保つ＝安定ソート）。
+    子プロセス名を取り出せなかったレコードは空文字のグループへまとめ、同じ上限を適用する。
+    """
+    order = sorted(range(len(blocks)), key=lambda i: _child_error_field(blocks[i], "日時"))
+    by_child = {}
+    for i in order:
+        by_child.setdefault(_child_error_field(blocks[i], "子プロセス"), []).append(i)
+    keep = set()
+    for indices in by_child.values():
+        keep.update(indices[-CHILD_ERROR_MAX_PER_CHILD:])
+    return [blocks[i] for i in order if i in keep]
+
+
+def write_child_error(key, status, seconds, stderr_text):
+    """子プロセスが異常終了・タイムアウトした場合にのみ、その状況とstderr末尾を
+    data/hook-child-errors.log へ1レコード追記する（PART A）。
+    正常終了時は呼ばれない（＝何も書かない）。
+    ログ書き込みの失敗でStopフック本体を落としてはならないため、全体をtry/exceptで
+    包み、失敗はstderrへの警告のみに留める（stdoutへは書かない・D-0082のstdout規律）。
+    追記後、子プロセス名ごとに直近 CHILD_ERROR_MAX_PER_CHILD 件だけを残す
+    （governanceのレコードが他の子プロセスの異常終了を押し出すのを防ぐため）。
+    書き戻す並びは日時の昇順で、時系列で読める形を保つ。
+    """
+    try:
+        if stderr_text is None:
+            stderr_text = ""
+        if isinstance(stderr_text, bytes):
+            stderr_text = stderr_text.decode("utf-8", "replace")
+        stderr_text = stderr_text.strip()
+        if len(stderr_text) > CHILD_ERROR_STDERR_TAIL:
+            stderr_text = stderr_text[-CHILD_ERROR_STDERR_TAIL:]
+
+        body = (
+            "日時: %s\n" % time.strftime("%Y-%m-%d %H:%M:%S")
+            + "子プロセス: %s\n" % key
+            + "終了状況: %s\n" % status
+            + "経過秒: %.2f\n" % seconds
+            + "stderr末尾(最大%d文字):\n" % CHILD_ERROR_STDERR_TAIL
+            + (stderr_text if stderr_text else "（stderrは空）")
+            + "\n"
+        )
+
+        existing = ""
+        if os.path.exists(CHILD_ERROR_LOG):
+            with open(CHILD_ERROR_LOG, "r", encoding="utf-8", errors="replace") as f:
+                existing = f.read()
+
+        # 区切り行でレコード単位に分割し、子プロセス名ごとに直近N件だけ残す。
+        blocks = [b for b in existing.split(CHILD_ERROR_SEPARATOR + "\n") if b.strip()]
+        blocks.append(body)
+        blocks = trim_child_error_blocks(blocks)
+
+        directory = os.path.dirname(CHILD_ERROR_LOG)
+        if directory and not os.path.isdir(directory):
+            os.makedirs(directory)
+        with open(CHILD_ERROR_LOG, "w", encoding="utf-8", newline="\n") as f:
+            for block in blocks:
+                f.write(CHILD_ERROR_SEPARATOR + "\n" + block)
+    except Exception as exc:
+        print(
+            "警告: hook-child-errors.logの記録中にエラーが発生しました: %s" % exc,
+            file=sys.stderr,
+        )
 
 
 def write_timing_log():

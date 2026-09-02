@@ -22,15 +22,31 @@ site/リポジトリへ混入することは構造的に起こらない。
        対応表にあるがTARGET_FILESに無いエントリも削除せず残す。
     4. 今回新規作成したドキュメントのURL一覧を標準出力に表示
 
-  python site/scripts/sync-to-gdrive.py          通常同期
-    対応表を読み、各ローカルファイルの現在の中身でGoogleドキュメント本文を
-    全置換する。1件の同期失敗は他ファイルの同期を止めない。
-    成功件数・失敗件数を標準出力に出す。
+  python site/scripts/sync-to-gdrive.py          通常同期（差分方式・D-0182）
+    対応表を読み、各ローカル元ファイルの内容ハッシュを
+    data/gdrive-sync-hashes.json の記録と突き合わせる。
+      一致          -> その対象はスキップ（Google APIを1回も呼ばない）
+      不一致・記録なし -> 従来どおり get + delete + insert の全置換を行い、
+                       成功した対象だけハッシュを更新する
+    置換に失敗した対象のハッシュは更新しないため、次回実行で必ず再試行される。
+    1件の同期失敗は他ファイルの同期を止めない。
+    「同期 N件 / スキップ N件 / 失敗 N件」を標準出力に出す。
+
+  python site/scripts/sync-to-gdrive.py --force  全件同期（手動実行専用・D-0182）
+    ハッシュ判定を無視して全対象を全置換する。Googleドキュメント側を手で編集・
+    削除した場合、ローカルが変わっていないと差分方式では復旧できないため、その
+    手動復旧手段として用意している。
+    日次・週次・月次のどのルーチンにも組み込まない（Stopフックは引数なしで呼ぶ）。
+
+ハッシュ記録: data/gdrive-sync-hashes.json（Git管理外・対応表と同じdata/直下）
+  {"local_path": "sha256hex", ...}
+  このファイルを削除すると、次回の通常同期が全件同期になる（安全側に倒れる）。
 
 終了コード: 通常同期時、1件でも失敗があれば1、全件成功または対象0件なら0。
   --init時は成功すれば0、認証・作成に失敗すれば1。
 """
 
+import hashlib
 import json
 import os
 import sys
@@ -42,6 +58,8 @@ DATA_DIR = os.path.join(PROJECT_ROOT, "data")
 CREDENTIALS_PATH = os.path.join(DATA_DIR, "google-credentials.json")
 TOKEN_PATH = os.path.join(DATA_DIR, "google-token.json")
 SYNC_MAP_PATH = os.path.join(DATA_DIR, "gdrive-sync-map.json")
+# 差分同期用のハッシュ記録（D-0182）。対応表と同じくdata/直下・JSON・Git管理外。
+SYNC_HASH_PATH = os.path.join(DATA_DIR, "gdrive-sync-hashes.json")
 
 # Docs本文の読み書きに必要な最小スコープ。ドキュメント新規作成にはDrive側の
 # file スコープ（このアプリが作成したファイルのみ操作可）を使う。
@@ -114,6 +132,40 @@ def get_credentials():
 def read_file_text(path):
     with open(path, "r", encoding="utf-8", newline="") as f:
         return f.read()
+
+
+def content_hash(text):
+    """Googleドキュメントへ実際に入れる本文そのもののハッシュを取る（D-0182）。
+    read_file_text() の戻り値＝挿入する文字列を対象にすることで、「記録された
+    ハッシュと一致する＝ドキュメント側に入っている本文と同じ」が成り立つ。
+    """
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def load_sync_hashes():
+    """ハッシュ記録を読む。無い・壊れている場合は空dictを返す（＝全件同期）。
+    判定材料が失われたときは同期しすぎる側（安全側）に倒す。
+    """
+    if not os.path.exists(SYNC_HASH_PATH):
+        return {}
+    try:
+        with open(SYNC_HASH_PATH, "r", encoding="utf-8") as f:
+            loaded = json.load(f)
+        return loaded if isinstance(loaded, dict) else {}
+    except Exception as exc:
+        print("警告: %s を読めなかったため全件同期します: %s" % (SYNC_HASH_PATH, exc))
+        return {}
+
+
+def save_sync_hashes(hashes):
+    """ハッシュ記録を書き出す。失敗しても同期結果そのものは覆らないため、
+    警告のみに留める（次回が全件同期になるだけで、不整合は生じない）。
+    """
+    try:
+        with open(SYNC_HASH_PATH, "w", encoding="utf-8") as f:
+            json.dump(hashes, f, ensure_ascii=False, indent=2)
+    except Exception as exc:
+        print("警告: %s の書き出しに失敗しました: %s" % (SYNC_HASH_PATH, exc))
 
 
 def cmd_init():
@@ -208,7 +260,10 @@ def sync_one(docs_service, local_path, doc_id):
         ).execute()
 
 
-def cmd_sync():
+def cmd_sync(force=False):
+    """通常同期。ローカル元ファイルの内容ハッシュで差分判定する（D-0182）。
+    force=True（--force）のときだけ判定を無視して全対象を同期する。
+    """
     from googleapiclient.discovery import build
 
     if not os.path.exists(SYNC_MAP_PATH):
@@ -222,22 +277,47 @@ def cmd_sync():
         print("同期対象0件。")
         sys.exit(0)
 
-    creds = get_credentials()
-    docs_service = build("docs", "v1", credentials=creds)
+    hashes = {} if force else load_sync_hashes()
 
-    ok_count = 0
+    # 先にローカル側だけで判定を済ませ、同期すべき対象が1件も無ければ
+    # 認証・APIクライアントの構築すら行わない（差分方式の効果はここが本体）。
+    to_sync = []      # [(local_path, doc_id, 現在のハッシュ or None)]
+    skipped = []
     failures = []
 
     for local_path, doc_id in sync_map.items():
         try:
             if not os.path.exists(local_path):
                 raise FileNotFoundError(local_path)
-            sync_one(docs_service, local_path, doc_id)
-            ok_count += 1
+            current = content_hash(read_file_text(local_path))
         except Exception as exc:
             failures.append((local_path, str(exc)))
+            continue
+        if not force and hashes.get(local_path) == current:
+            skipped.append(local_path)
+            continue
+        to_sync.append((local_path, doc_id, current))
 
-    print("同期完了: 成功 %d件 / 失敗 %d件" % (ok_count, len(failures)))
+    ok_count = 0
+    if to_sync:
+        creds = get_credentials()
+        docs_service = build("docs", "v1", credentials=creds)
+
+        for local_path, doc_id, current in to_sync:
+            try:
+                sync_one(docs_service, local_path, doc_id)
+            except Exception as exc:
+                # 失敗した対象のハッシュは更新しない＝次回必ず再試行される。
+                failures.append((local_path, str(exc)))
+                continue
+            hashes[local_path] = current
+            ok_count += 1
+
+        # 途中で失敗があっても、成功済みの分の記録は残す。
+        save_sync_hashes(hashes)
+
+    print("同期 %d件 / スキップ %d件 / 失敗 %d件%s"
+          % (ok_count, len(skipped), len(failures), "（--force指定）" if force else ""))
     if failures:
         print("--- 失敗一覧 ---")
         for local_path, err in failures:
@@ -247,7 +327,8 @@ def cmd_sync():
     sys.exit(0)
 
 
-KNOWN_ARGS = {"--init"}
+# --force は手動復旧専用（D-0182）。日次・週次・月次のルーチンには組み込まない。
+KNOWN_ARGS = {"--init", "--force"}
 
 
 def main():
@@ -265,7 +346,7 @@ def main():
     if "--init" in sys.argv:
         cmd_init()
     else:
-        cmd_sync()
+        cmd_sync(force="--force" in sys.argv)
 
 
 if __name__ == "__main__":
