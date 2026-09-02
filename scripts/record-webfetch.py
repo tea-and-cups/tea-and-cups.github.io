@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 """WebFetch で実際に取得できたURLを data/webfetch-log.md へ記録する（D-0133）。
 
+PostToolUseフックから自動実行される。AIが手で実行することはない。
+
 PostToolUse フック（matcher: WebFetch）から標準入力でフック入力JSONを受け取る。
 記事の出典URLが「実際にWebFetchした記録」に存在するかを
 check-source-fetched.py が照合できるようにするための台帳を作るのが目的。

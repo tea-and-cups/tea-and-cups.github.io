@@ -2,6 +2,8 @@
 r"""運営ドキュメント（CLAUDE.md・docs/・.claude/settings系・rules/配下）を
 Googleドキュメントへ同期する（D-0064）。対象一覧は TARGET_FILES が正本。
 
+再認可および --init は、オーナーの指示があるまでAIの自己判断で実行しない。
+
 外部チャット窓口（Claude.aiのProject）が毎回ファイルを手動添付されなくても
 最新版を読めるようにするための対応。
 

@@ -5,6 +5,8 @@ r"""Stopフック用: セッション終了時に check-doc-governance.py を実
 TARGET_FILES が正本）。同期の直前に generate-script-index.py で docs/script-index.md を
 再生成する（D-0135。索引も同期対象のため、同期より前に最新化する必要がある）。
 
+.claude/settings.local.json のStopフックから呼ばれる。手で直接実行しない（D-0056）。
+
 さらに、直前のアシスタント応答（last_assistant_message）に固定サマリーの見出し
 「【オーナーが今やること】」が含まれるのにトークン消費量の出力がまだ含まれていない
 場合、session-token-usage.py を実行しその出力を強制的に追記する（D-0066）。

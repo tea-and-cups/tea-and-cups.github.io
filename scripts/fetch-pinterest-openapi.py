@@ -107,7 +107,7 @@ def find_by_pointer(doc, *keys):
 
 
 def extract_sections(doc, raw_text):
-    print("\n===== T1 抽出結果 =====")
+    print("\n===== OpenAPI仕様の抽出結果 =====")
 
     # (a) POST /v5/pins media_source
     print("\n--- (a) POST /v5/pins media_source ---")

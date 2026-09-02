@@ -1,6 +1,8 @@
 #!/bin/bash
 # 公開サイト（GitHub Pages）の疎通確認。デプロイ待機と全URL点検を1本で行う。
 #
+# デプロイ確認はこのスクリプトによるcurl直接確認に一本化する。GitHub Actions画面をWebFetchで繰り返しポーリングしない（WebFetchの15分キャッシュにより古い状態が返り続けるため・D-0050）。
+#
 # 使い方:
 #   wait-for-deploy.sh <slug>
 #       記事ページ /posts/<slug>/ が200を返すまで待機する（従来どおりの使い方）。
