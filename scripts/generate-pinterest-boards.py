@@ -34,7 +34,7 @@ from pinterest_api import fetch_all_pages, PinterestApiError, DEFAULT_TIMEOUT_SE
 OUTPUT_PATH = os.path.join(PROJECT_ROOT, "data", "pinterest-boards.md")
 
 # ボード名にこのいずれかの文字列が含まれれば「季節」、含まれなければ「通年」と
-# 判定する（T2-1・D-0123）。board_idやボード名そのものを直書きで判定しないのは、
+# 判定する（D-0123）。board_idやボード名そのものを直書きで判定しないのは、
 # オーナーがボードを改名しても判定が壊れないようにするため。
 SEASON_KEYWORDS = ("春", "夏", "秋", "冬", "クリスマス", "ハロウィン", "バレンタイン",
                     "お正月", "母の日", "父の日", "敬老")
