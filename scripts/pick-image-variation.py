@@ -1,6 +1,18 @@
 """hero画像・Pin画像3枚（計4枚）の構図バリエーションを機械的に選ぶ（D-0152）。
 Pin画像（pin1〜3）については「型」の候補リスト提示も担う（D-0062）。
 
+【重要】このスクリプトは台帳（data/image-variation.tsv）を書き換える破壊的コマンドである（D-0194）。
+  名前が「pick（選ぶ）」であるため読み取りに見えるが、引数にslugを渡した実行は必ず
+  4行の追記を伴い、保持上限（8記事）を超えると古い記事の行が台帳から外れる。
+  台帳はGit管理外のため、外れた行はgitから復元できない（D-0194で退避区画を設けたのはこのため）。
+  - 読み取り目的でこのスクリプトを実行してはならない。
+  - 既存記事の4軸・型を確認したいだけなら、台帳を直接読む
+    （例: grep <slug> data/image-variation.tsv）。
+  - 既存記事の依頼文を作り直したいだけなら、台帳は既に埋まっているので
+    make-image-prompt.py をそのまま実行すればよい（このスクリプトの再実行は不要）。
+  - 新規記事の4軸を採番する時だけ実行する。既に台帳にあるslugを渡した場合は
+    追記せずエラー終了する（exit 1）。
+
 背景:
   ChatGPT用の画像生成プロンプトを毎回AIが記事内容だけを見て組み立てると、
   「安全に通った過去の表現」を無意識に使い回してしまい、俯瞰・木製テーブル・
@@ -66,9 +78,10 @@ Pin画像（pin1〜3）については「型」の候補リスト提示も担う
       選んだ組み合わせと、pin1〜3で選択可能な型の候補リストを標準出力に表示する。
       この時点では image_style 列は空欄のまま追記される（AIが記事内容を見て
       選ぶのはこの後のため）。
-      同じslugを続けて実行した場合（同一セッション内の再実行等）は、台帳の
-      末尾4行がそのslugのものであればそれをそのまま再表示するだけで、
-      二重に消費しない。
+      既に台帳に存在するslugを渡した場合は、追記せずエラー終了する（exit 1・D-0194）。
+      保持上限を超えて古い記事の行が台帳から外れる実行では、外れる対象のslugとseqを
+      処理前に標準出力へ告知し、外れた行は台帳末尾の退避区画（コメント行・直近40行まで）
+      へ移す（対話的な確認プロンプトは設けない）。
 
   python site/scripts/pick-image-variation.py --set-style <slug> "pin1=手順図解" "pin2=チェックリスト" "pin3=Q&A形式"
       AIが選定した型を台帳の image_style 列に記録する（画像生成後に必ず実行する）。
@@ -91,7 +104,22 @@ HEADER_COMMENT = """# image-variation.tsv — hero/Pin画像の構図バリエ�
 # image_style は Pin画像の「型」（D-0062）。pin1〜3のみ値が入り、heroは常に空欄。
 #   pick-image-variation.py <slug> の時点では空欄で追記され、AIが型を選定した後に
 #   pick-image-variation.py --set-style <slug> pin1=... pin2=... pin3=... で埋める。
-# 保持件数の上限は8記事分（32行）。超えた分は同スクリプトが古い記事から自動で削除する（CLAUDE.md 10節・D-0031の肥大化防止原則）。
+# 保持件数の上限は8記事分（32行）。超えた分は同スクリプトが古い記事から自動で退避する（CLAUDE.md 10節・D-0031の肥大化防止原則）。
+# 退避した行はこのファイル末尾の退避区画（「# [削除 YYYY-MM-DD] ...」形式のコメント行）に残る（D-0194）。
+# 退避区画は直近40行（10記事分）まで保持し、それを超えた古い行から捨てる。
+# コメント行のため通常の読み込み（read_ledger）の対象外であり、集計・判定には一切影響しない。
+#
+"""
+
+# --- 退避区画（D-0194） ------------------------------------------------------
+# 保持上限を超えて台帳本体から外した行は、消さずに台帳末尾のコメント行として残す。
+# 台帳はGit管理外のため、消してしまうと復元手段が無い（2026-09-04に実際に復元不能になった）。
+ARCHIVE_PREFIX = "# [削除 "  # 退避区画の行頭マーカー。read_ledger はコメント行として読み飛ばす
+MAX_ARCHIVE_LINES = 40       # 退避区画の保持上限（行）。10記事分。記事数に比例して伸びない定数上限
+ARCHIVE_SECTION_HEADER = """#
+# --- 退避区画（保持上限超過で台帳本体から外した行・D-0194）-------------------
+# 参照専用。コメント行のため read_ledger は読み飛ばし、集計・判定には一切影響しない。
+# 直近%d行まで保持し、それを超えた古い行から捨てる。
 #
 """
 
@@ -216,12 +244,38 @@ def read_ledger():
     return rows
 
 
-def write_ledger(rows):
+def read_archive():
+    """台帳末尾の退避区画の行（ARCHIVE_PREFIX で始まるコメント行）を出現順に返す（D-0194）。"""
+    if not os.path.exists(LEDGER_PATH):
+        return []
+    lines = []
+    with open(LEDGER_PATH, encoding="utf-8") as f:
+        for line in f:
+            line = line.rstrip("\n")
+            if line.startswith(ARCHIVE_PREFIX):
+                lines.append(line)
+    return lines
+
+
+def archive_line(row, today):
+    """台帳1行を退避区画用のコメント行に変換する（D-0194）。削除日を先頭に付ける。"""
+    return ARCHIVE_PREFIX + today + "] " + "\t".join(row.get(c, "") for c in COLUMNS)
+
+
+def write_ledger(rows, archive=None):
+    """台帳を書き出す。archive を省略した場合は既存の退避区画をそのまま引き継ぐ（D-0194）。"""
+    if archive is None:
+        archive = read_archive()
+    archive = archive[-MAX_ARCHIVE_LINES:]
     with open(LEDGER_PATH, "w", encoding="utf-8", newline="\n") as f:
         f.write(HEADER_COMMENT)
         f.write("\t".join(COLUMNS) + "\n")
         for r in rows:
             f.write("\t".join(r.get(c, "") for c in COLUMNS) + "\n")
+        if archive:
+            f.write(ARCHIVE_SECTION_HEADER % MAX_ARCHIVE_LINES)
+            for line in archive:
+                f.write(line + "\n")
 
 
 def group_by_article(rows, exclude_slug=None):
@@ -416,6 +470,9 @@ def cmd_set_style(argv):
 def main():
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
+    # 重複エラー等の日本語メッセージがcp932コンソールで文字化けするのを防ぐ（D-0194）
+    if hasattr(sys.stderr, "reconfigure"):
+        sys.stderr.reconfigure(encoding="utf-8")
 
     if len(sys.argv) >= 2 and sys.argv[1] == "--set-style":
         cmd_set_style(sys.argv[2:])
@@ -430,14 +487,28 @@ def main():
 
     rows = read_ledger()
 
-    # 直前の実行が同じslugの4行であれば、再消費せずそのまま再表示する
-    last4 = rows[-4:]
-    if len(last4) == 4 and all(r["slug"] == slug for r in last4) and {r["image_type"] for r in last4} == set(IMAGE_SLOTS):
-        print(f"（台帳の末尾が既に {slug} の4行のため、再消費せず再表示します）")
-        condition, cta = conditions_for_seq(last4[0]["article_seq"])
-        print_result(slug, last4, *available_styles(rows, exclude_slug=slug, condition=condition),
-                     condition=condition, cta=cta)
-        return
+    # 同一slugの重複追記は禁止（D-0194）。
+    # 重複すると make-image-prompt.py が同じslugの行を複数拾ってエラー終了するうえ、
+    # 4行の追記で保持上限を押し出し、他の記事の行が台帳本体から外れる。
+    # 正常系で同じslugを2回採番する用途は存在しないため、無条件でエラー終了する。
+    existing_seq = seq_for_slug(slug, rows)
+    if existing_seq is not None:
+        sys.stderr.write(
+            f"エラー: {slug} は既に台帳に登録されています（article_seq={existing_seq}）。\n"
+            "このスクリプトは台帳を書き換える破壊的コマンドのため、追記せず終了します（D-0194）。\n"
+            "\n"
+            "  ・既に選定済みの4軸・型をそのまま使って依頼文を作る場合:\n"
+            f"      python site/scripts/make-image-prompt.py {slug} ...\n"
+            "    （台帳は既に埋まっているので、このスクリプトの再実行は不要です）\n"
+            "  ・登録内容を確認したいだけの場合:\n"
+            f"      grep {slug} data/image-variation.tsv\n"
+            "  ・型（image_style）だけを記録し直す場合:\n"
+            f'      python site/scripts/pick-image-variation.py --set-style {slug} "pin1=<型名>" ...\n'
+            "  ・4軸そのものを意図的に振り直したい場合:\n"
+            "      専用の手順はありません。data/image-variation.tsv を手で編集する必要があります\n"
+            "      （article_seq を変えるとローテーションと条件群の割り当てが変わる点に注意）。\n"
+        )
+        sys.exit(1)
 
     prev_seq = int(rows[-1]["article_seq"]) if rows else -1
     article_seq = prev_seq + 1
@@ -466,11 +537,31 @@ def main():
         })
 
     rows.extend(new_rows)
-    # 保持上限を超えた分は古い記事から削除（4行単位＝記事単位で揃える）
+    # 保持上限を超えた分は古い記事から台帳本体の外へ出す（4行単位＝記事単位で揃える）。
+    # 消さずに退避区画へ移し、対象を処理前に告知する（D-0194）。
+    # 対話的な確認プロンプトは設けない（自動化を妨げるため・告知のみ）。
+    archive = read_archive()
+    evicted = []
     while len(rows) > MAX_ROWS:
+        evicted.extend(rows[0:4])
         del rows[0:4]
 
-    write_ledger(rows)
+    if evicted:
+        print(f"※保持上限（{MAX_ARTICLES}記事・{MAX_ROWS}行）を超えるため、"
+              f"次の{len(evicted)}行を台帳本体から外します（D-0194）:")
+        seen = []
+        for r in evicted:
+            key = (r["article_seq"], r["slug"])
+            if key not in seen:
+                seen.append(key)
+        for seq, old_slug in seen:
+            print(f"  - article_seq={seq} / {old_slug}")
+        print(f"  外した行は台帳末尾の退避区画（直近{MAX_ARCHIVE_LINES}行まで）へ移します。"
+              "集計・判定の対象からは外れます。")
+        print()
+        archive.extend(archive_line(r, today) for r in evicted)
+
+    write_ledger(rows, archive)
     print_result(slug, new_rows, *styles_info, condition=condition, cta=cta)
 
 
