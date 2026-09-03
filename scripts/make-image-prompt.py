@@ -88,6 +88,7 @@ hero画像に焼き込む見出し文言の必須指定（D-0173）:
 """
 
 import importlib.util
+import json
 import os
 import re
 import sys
@@ -668,6 +669,79 @@ def assert_no_ascii(blocks):
     sys.exit(1)
 
 
+# --- ChatGPT入力欄への投入用JavaScript（D-0193） ---
+# 合成イベント（computer:type / left_click）の不達が常態化しているため、入力と送信は
+# javascript_tool 経由を標準手順とする（rules/image-generation-flow.md 2-0の1項）。
+# JSコードはAIが書き起こさず、この出力に同梱したものをそのまま使わせる（セレクタ取り違え防止）。
+# プロンプト文字列は json.dumps でJSの文字列リテラルへ埋め込む（引用符・バックスラッシュ・
+# 改行を安全にエスケープするため。手書きの文字列連結はしない）。
+# なおこのJSゾーンは指示ゾーンではない（ChatGPTへ渡す文章ではなくツール呼び出し用）ため、
+# assert_no_ascii の検査対象には含めない。
+
+JS_INSERT_TMPL = (
+    "(function()"
+    + "{"
+    + "var e=document.querySelector('#prompt-textarea')"
+    "||document.querySelector('div.ProseMirror[contenteditable=\"true\"]')"
+    "||document.querySelector('textarea');"
+    "if(!e)return 'ERROR:editor-not-found';"
+    "e.focus();var r=document.createRange();r.selectNodeContents(e);"
+    "var s=getSelection();s.removeAllRanges();s.addRange(r);"
+    "document.execCommand('delete');"
+    "document.execCommand('insertText',false,%s);"
+    "return 'OK len='+((e.innerText||e.value||'').length);"
+    + "}"
+    + ")()"
+)
+
+JS_SEND = (
+    "(function()"
+    + "{"
+    + "var b=document.querySelector('[data-testid=send-button]')"
+    "||Array.from(document.querySelectorAll('button')).find(function(x)"
+    + "{"
+    + "var a=x.getAttribute('aria-label')||'';return /\u9001\u4fe1|Send/.test(a);"
+    + "}"
+    + ");"
+    "if(!b)return 'ERROR:send-button-not-found';"
+    "if(b.disabled)return 'WAIT:send-button-disabled';"
+    "b.click();return 'CLICKED path='+location.pathname;"
+    + "}"
+    + ")()"
+)
+
+JS_CONFIRM = (
+    "(function()"
+    + "{"
+    + "var e=document.querySelector('#prompt-textarea')"
+    "||document.querySelector('div.ProseMirror[contenteditable=\"true\"]')"
+    "||document.querySelector('textarea');"
+    "return 'path='+location.pathname+' len='+(((e&&(e.innerText||e.value))||'').length);"
+    + "}"
+    + ")()"
+)
+
+
+def print_js_section(blocks):
+    """プロンプト本文の後ろに、javascript_tool 用の呼び出しコードを出力する（D-0193）。"""
+    print("=== javascript_tool 用（ツール名は mcp__claude-in-chrome__javascript_tool を使うこと） ===")
+    print("判定基準: JS-3 の len が 0 かつ path が /c/ で始まっていれば送信成功。"
+          "JS-2 が WAIT を返した場合は2秒待って JS-2 を再実行（最大2回まで）。")
+    print("このゾーンはツール呼び出し用であり、ChatGPTの入力欄へ貼る文章ではない。"
+          "ピンファイルのプロンプト全文にも記録しない。")
+    print()
+    for name, body in blocks:
+        print("[JS-1 入力] %s" % name)
+        print(JS_INSERT_TMPL % json.dumps(body, ensure_ascii=False))
+        print()
+    print("[JS-2 送信]（JS-1の約2秒後に実行する）")
+    print(JS_SEND)
+    print()
+    print("[JS-3 送信確認]（JS-2の約3秒後に実行する）")
+    print(JS_CONFIRM)
+    print()
+
+
 def main():
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
@@ -769,6 +843,8 @@ def main():
         print("--- %s ---" % name)
         print(body)
         print()
+
+    print_js_section(blocks)
 
 
 if __name__ == "__main__":
