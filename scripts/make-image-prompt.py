@@ -34,10 +34,10 @@
         よう「横二に対して縦三」の語順で書く（D-0172以前は「三対二」と書いており、縦長指示と
         矛盾して横長Pinが生成される原因になっていた）。
 
-指示ゾーン（固定文・型ガイダンス・台帳由来の値）はASCII文字を含めない規約
-（rules/image-generation-flow.md 2節3）があるため、寸法・比率の数値は漢数字で表記する
-（本スクリプト内でアラビア数字→漢数字に変換する）。描き込み文言（--hero-text /
---pinN-text の値）はこの規約の対象外で、半角英数字をそのまま画像へ描かせる（D-0180）。
+半角ASCII・算用数字は依頼文にそのまま書いてよい（D-0195）。javascript_tool 経由の入力
+（D-0193）で半角がプロンプトへ保持されることを実機で確認したため、D-0149由来の漢数字変換と
+出力直前のASCII検査は撤去した。唯一の例外は【画像に描く文字】節の文言連番で、ここだけは
+analyze-pin-metrics.py の解析対象のため漢数字を維持する（to_kanji の注記を参照）。
 
 型ごとの指示方針（TYPE_GUIDANCE）は rules/image-generation-flow.md 1-3節の表と重複させず、
 このスクリプトを正本とする（rules側は表の型名一覧のみ残し、指示文言はここを参照する形にした。
@@ -102,12 +102,18 @@ piv = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(piv)
 
 
-# --- 漢数字変換（プロンプト内でASCII数字を使わないための表記。D-0126） ---
+# --- 文言連番の漢数字表記（analyze-pin-metrics.py の解析対象・D-0195） ---
 _KANJI_DIGITS = "〇一二三四五六七八九"
 
 
 def to_kanji(n):
-    """0〜9999の整数を漢数字表記に変換する（十/百/千の頭の「一」は省略する標準表記）。"""
+    """0〜9999の整数を漢数字表記に変換する（十/百/千の頭の「一」は省略する標準表記）。
+
+    この関数は make-image-prompt.py:278/290 の文言連番専用として残している。
+    出力された「文言その[漢数字]」は analyze-pin-metrics.py が解析し、
+    D-0152 の文言件数の集計に使用される。D-0149 の回避策の名残ではないため、
+    analyze-pin-metrics.py 側の対応なしに削除してはならない。
+    """
     if n < 0 or n > 9999:
         raise ValueError("to_kanjiは0〜9999のみ対応: %r" % (n,))
     if n == 0:
@@ -122,40 +128,9 @@ def to_kanji(n):
     return s
 
 
-_ASCII_DIGITS = "0123456789"
-
-
-def _digits_to_kanji(digits):
-    n = int(digits)
-    if n <= 9999:
-        return to_kanji(n)
-    return "".join(_KANJI_DIGITS[int(d)] for d in digits)
-
-
-def kanjify_digits(text):
-    """文字列中の半角アラビア数字の並びを漢数字へ変換する（台帳由来の値の全角化・D-0149）。
-
-    台帳ファイル自体は書き換えず、依頼文へ埋め込む直前にのみ適用する。
-    例:「斜め45度」→「斜め四十五度」。
-    """
-    out = []
-    buf = ""
-    for ch in text:
-        if ch in _ASCII_DIGITS:
-            buf += ch
-        else:
-            if buf:
-                out.append(_digits_to_kanji(buf))
-                buf = ""
-            out.append(ch)
-    if buf:
-        out.append(_digits_to_kanji(buf))
-    return "".join(out)
-
-
 # --- 節構成（hero・Pin共通・D-0172） ---
 # 依頼文は【比率】【用途】【構図】【画像に描く文字】（【誘導の帯】）【描かない要素】【仕上げ】の
-# 順に組み立てる。節の区切りは全角の【】のみを使う（ASCII検査に通す必要があるため・D-0149）。
+# 順に組み立てる。節の区切りは全角の【】のみを使う（節見出しの表記を機械的に揃えるため）。
 SEC_RATIO = "比率"
 SEC_PURPOSE = "用途"
 SEC_COMPOSITION = "構図"
@@ -175,7 +150,7 @@ def section(title, bodies):
 #       出力寸法（1400x735・約1.90）は生成時には達成できない。達成不可能な実寸を指示すると
 #       他の指示への追従も弱まるため、比率表記（およそ一・八倍）で指示する。一・八倍あれば
 #       hero-to-webp.py の縦長ガード下限（横縦比1.4）を確実に上回る。
-HERO_RATIO_APPROX = "一・八"
+HERO_RATIO_APPROX = "1.8"
 
 # pin: 実測（pin108〜119・12枚で一貫）した1024x1536＝2:3。縦長であることが要件のため、
 #      横（PIN_RATIO_W）を先に、縦（PIN_RATIO_H）を後に置いて「二に対して三」と読ませる。
@@ -195,13 +170,13 @@ def hero_ratio_tail():
 def pin_ratio_head():
     return (
         "この画像は縦長で作る。横の長さ{w}に対して縦の長さ{h}の比率にする。"
-    ).format(w=to_kanji(PIN_RATIO_W), h=to_kanji(PIN_RATIO_H))
+    ).format(w=PIN_RATIO_W, h=PIN_RATIO_H)
 
 
 def pin_ratio_tail():
     return (
         "縦長で、横の長さ{w}に対して縦の長さ{h}の比率で出力する。"
-    ).format(w=to_kanji(PIN_RATIO_W), h=to_kanji(PIN_RATIO_H))
+    ).format(w=PIN_RATIO_W, h=PIN_RATIO_H)
 
 
 # --- rules/image-generation-flow.md にある既存の固定要素（正本はこのファイル・D-0126） ---
@@ -226,7 +201,6 @@ HERO_MARGIN_RULE = (
 
 # CTA帯の意匠・文言指示（D-0152）。CTAありの群のPin依頼文にだけ足す。
 # 生成AIが制御できない微細指定（余白の割合・外周の枠線の太さ）は置かない（D-0172）。
-# 全角のみで組み立てる（出力直前のASCII検査に通す必要があるため・D-0149）。
 CTA_BAND_RULES = [
     "画像の下部に、角丸の帯を一つだけ置く。",
     "帯の地の色は濃い茶色系にし、帯の中の文字の色は白にする。",
@@ -246,7 +220,7 @@ TEXT_POSITION_LABEL = {"上部帯": "画像上部", "下部帯": "画像下部",
 def text_position_line(text_position, ranking):
     if ranking:
         return "各順位の枠内に、白抜き等の読みやすい文字で配置する。"
-    pos = kanjify_digits(TEXT_POSITION_LABEL.get(text_position, text_position))
+    pos = TEXT_POSITION_LABEL.get(text_position, text_position)
     return "{pos}に、白抜き等の読みやすい文字で配置する。".format(pos=pos)
 
 
@@ -255,7 +229,7 @@ def text_whitelist_head(count, has_cta):
 
     「文字を入れない仕上げは不可」という否定文は「必ず描き込む」が同じ役割を果たすため置かない。
     """
-    n = to_kanji(count)
+    n = count
     only = "この{n}件".format(n=n)
     if has_cta:
         only += "と、後述の【%s】に指定する文言" % SEC_CTA
@@ -275,6 +249,7 @@ def hero_text_section(text_position, texts):
         text_position_line(text_position, False),
     ]
     for i, t in enumerate(texts, 1):
+        # 連番の漢数字は analyze-pin-metrics.py が解析する（D-0152の文言件数の分母）。算用数字にしない。
         lines.append("文言その{n}：「{t}」".format(n=to_kanji(i), t=t))
     lines.append(HERO_MARGIN_RULE)
     return section(SEC_TEXT, lines)
@@ -287,6 +262,7 @@ def pin_text_section(text_position, texts, ranking, has_cta):
         text_position_line(text_position, ranking),
     ]
     for i, t in enumerate(texts, 1):
+        # 連番の漢数字は analyze-pin-metrics.py が解析する（D-0152の文言件数の分母）。算用数字にしない。
         lines.append("文言その{n}：「{t}」".format(n=to_kanji(i), t=t))
     return section(SEC_TEXT, lines)
 
@@ -304,9 +280,9 @@ AXIS_LABEL = {"angle": "アングル", "framing": "フレーミング", "text_po
 
 def axis_summary(row):
     return "アングル＝{angle}／フレーミング＝{framing}／背景小物＝{background}".format(
-        angle=kanjify_digits(row["angle"]),
-        framing=kanjify_digits(row["framing"]),
-        background=kanjify_digits(background_phrase(row["background"])),
+        angle=row["angle"],
+        framing=row["framing"],
+        background=background_phrase(row["background"]),
     )
 
 
@@ -545,12 +521,12 @@ TYPE_GUIDANCE = {
 
 
 # 台帳・pick-image-variation.py 側の型名は変更せず、依頼文へ埋め込む時だけ表記を差し替える
-# （型名を変えると check-pin-image-style.py の重複判定と台帳の既存値が壊れるため・D-0149）。
+# （型名を変えると check-pin-image-style.py の重複判定と台帳の既存値が壊れるため）。
 STYLE_DISPLAY_NAME = {"Q&A形式": "一問一答形式"}
 
 
 def display_style(style):
-    return kanjify_digits(STYLE_DISPLAY_NAME.get(style, style))
+    return STYLE_DISPLAY_NAME.get(style, style)
 
 
 def build_hero_prompt(row, texts):
@@ -605,78 +581,12 @@ def build_pin_prompt(row, style, texts, cta_text=None):
     return "\n".join(parts)
 
 
-# --- 指示ゾーンに半角ASCIIが混入していないかの自己チェック（D-0149・範囲はD-0180で変更） ---
-# 区切り行（--- hero --- 等）は main() 側で組み立てて出力するため、この検査の対象外。
-ASCII_RE = re.compile(r"[\x20-\x7e]")
-
-# 描き込み文言（--hero-text / --pinN-text の値）が実際に埋め込まれる行は次の2種のみ。
-# この2種に限り文言部分を除いてからASCII検査し、それ以外の行は全文を検査する（D-0180・2026-08-31）。
-# 行の特定は文字列一致ではなく書式（下記の正規表現）で行う。文字列一致で判定すると、同一の
-# 文字列がたまたま指示ゾーンの行にあった場合にその行の半角も一緒に除かれ、検査をすり抜けるため。
-#   (1) 【画像に描く文字】節の「文言その{n}：「{t}」」行（hero_text_section / pin_text_section）
-#   (2) ランキング型ガイダンス行（ranking_guidance が TYPE_GUIDANCE["ランキング"] から組み立てる行）
-_DRAWN_TEXT_LINE_RE = re.compile(r"^文言その[〇一二三四五六七八九十]+：「(.*)」$")
-_RANKING_GUIDANCE_RE = re.compile(
-    "^" + "(.*)".join(re.escape(p) for p in re.split(r"\{label[123]\}", TYPE_GUIDANCE[RANKING_KEY])) + "$"
-)
-
-
-def strip_drawn_texts(line):
-    """描き込み文言が埋め込まれた行に限り、文言部分だけを取り除いて返す（D-0180・2026-08-31）。
-
-    対象は _DRAWN_TEXT_LINE_RE（「文言その{n}：「{t}」」行）と _RANKING_GUIDANCE_RE
-    （ランキング型ガイダンス行）にマッチする行のみ。マッチした行はキャプチャした文言位置
-    だけを空にして返し、それ以外の行はそのまま返す（全文がASCII検査の対象になる）。
-    行の特定は書式で行うため、同一文字列が指示ゾーンの他の行にあっても影響しない。
-    """
-    m = _DRAWN_TEXT_LINE_RE.match(line)
-    if not m:
-        m = _RANKING_GUIDANCE_RE.match(line)
-    if not m:
-        return line
-    out = line
-    for gi in range(m.lastindex, 0, -1):
-        out = out[:m.start(gi)] + out[m.end(gi):]
-    return out
-
-
-def assert_no_ascii(blocks):
-    """指示ゾーンに半角ASCIIが1文字でもあれば、何も出力せず exit 1。
-
-    描き込み文言（--hero-text / --pinN-text の値）は検査対象外（D-0180）。
-    固定文・型ガイダンス・台帳由来の値に半角が紛れ込むのを検知する役割は維持する。
-    """
-    bad = []
-    for name, body in blocks:
-        for i, line in enumerate(body.split("\n"), 1):
-            hits = ASCII_RE.findall(strip_drawn_texts(line))
-            if hits:
-                bad.append((name, i, line, sorted(set(hits))))
-    if not bad:
-        return
-    lines = [
-        "【エラー】依頼文の本文に半角ASCII文字が含まれています"
-        "（ChatGPTの入力欄へ送信する時点で脱落するため出力を中止しました）。",
-    ]
-    for name, i, line, hits in bad:
-        lines.append(
-            "%s の%d行目: 混入文字 %s ／ 該当行: %s"
-            % (name, i, "・".join("「%s」" % c for c in hits), line)
-        )
-    lines.append("固定文・型ガイダンス・台帳由来の値のいずれかに半角文字が入っています"
-                 "（描き込み文言は検査対象外です）。全角または日本語へ置き換えてください。")
-    sys.stderr.write("\n".join(lines) + "\n")
-    sys.exit(1)
-
-
 # --- ChatGPT入力欄への投入用JavaScript（D-0193） ---
 # 合成イベント（computer:type / left_click）の不達が常態化しているため、入力と送信は
 # javascript_tool 経由を標準手順とする（rules/image-generation-flow.md 2-0の1項）。
 # JSコードはAIが書き起こさず、この出力に同梱したものをそのまま使わせる（セレクタ取り違え防止）。
 # プロンプト文字列は json.dumps でJSの文字列リテラルへ埋め込む（引用符・バックスラッシュ・
 # 改行を安全にエスケープするため。手書きの文字列連結はしない）。
-# なおこのJSゾーンは指示ゾーンではない（ChatGPTへ渡す文章ではなくツール呼び出し用）ため、
-# assert_no_ascii の検査対象には含めない。
 
 JS_INSERT_TMPL = (
     "(function()"
@@ -827,8 +737,6 @@ def main():
     blocks = [("hero", build_hero_prompt(by_type["hero"], hero_texts))]
     for slot in piv.PIN_SLOTS:
         blocks.append((slot, build_pin_prompt(by_type[slot], styles[slot], texts[slot], cta_texts[slot])))
-
-    assert_no_ascii(blocks)
 
     if conditions:
         print("■ 条件: %s／%s（D-0152・この行はChatGPTへ貼らない）" % (info_condition, cta_condition))
