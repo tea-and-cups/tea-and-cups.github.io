@@ -36,7 +36,7 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, "..", ".."))
 SOURCE_DIR = os.path.join(PROJECT_ROOT, "output", "Pin-images")
 OUTPUT_DIR = os.path.join(PROJECT_ROOT, "site", "public", "pin-images")
-PUBLIC_URL_BASE = "https://tea-and-cups.github.io/pin-images"
+PUBLIC_URL_BASE = "https://kohaku-jikan.com/pin-images"
 
 # 正本に期待する比率（幅÷高さ）と許容誤差。
 SOURCE_ASPECT = 2.0 / 3.0

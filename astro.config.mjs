@@ -7,7 +7,7 @@ import rehypeTableLabels from './src/plugins/rehype-table-labels.mjs';
 
 // 将来カスタムドメイン導入時はここを変えるだけ（記事側のURL・画像パスは変更不要）。
 export default defineConfig({
-  site: 'https://tea-and-cups.github.io',
+  site: 'https://kohaku-jikan.com',
   trailingSlash: 'always',
   integrations: [sitemap()],
   markdown: {

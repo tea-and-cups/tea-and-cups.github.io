@@ -45,7 +45,7 @@ CREDENTIALS_PATH = os.path.join(DATA_DIR, "google-credentials.json")
 TOKEN_PATH = os.path.join(DATA_DIR, "google-token.json")
 
 # GSCプロパティの登録文字列（URLプレフィックス型・末尾スラッシュあり）
-SITE_URL = "https://tea-and-cups.github.io/"
+SITE_URL = "https://kohaku-jikan.com/"
 
 # 読み取り専用スコープのみ。sync-to-gdrive.py の SCOPES と同一の集合を渡さないと
 # 既存トークンの再利用時にスコープ不一致で弾かれるため、同じ並びを使う。
@@ -161,10 +161,10 @@ def show_inspections(service, targets):
 
 
 HEADERS_URLS = [
-    "https://tea-and-cups.github.io/sitemap-index.xml",
-    "https://tea-and-cups.github.io/sitemap-0.xml",
-    "https://tea-and-cups.github.io/sitemap-alt.xml",
-    "https://tea-and-cups.github.io/robots.txt",
+    "https://kohaku-jikan.com/sitemap-index.xml",
+    "https://kohaku-jikan.com/sitemap-0.xml",
+    "https://kohaku-jikan.com/sitemap-alt.xml",
+    "https://kohaku-jikan.com/robots.txt",
 ]
 
 HEADERS_USER_AGENTS = [

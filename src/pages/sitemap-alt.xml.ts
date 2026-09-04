@@ -10,7 +10,7 @@ export const GET: APIRoute = async ({ site }) => {
   const posts = [...(await getCollection('posts', (p) => p.data.status === 'published'))]
     .sort(compareByDateDescThenSlugAsc);
 
-  const siteUrl = site ?? new URL('https://tea-and-cups.github.io');
+  const siteUrl = site ?? new URL('https://kohaku-jikan.com');
   const urls = posts.map((post) => {
     const loc = new URL(`/posts/${post.data.slug}/`, siteUrl).toString();
     const lastmod = new Date(post.data.updated).toISOString();

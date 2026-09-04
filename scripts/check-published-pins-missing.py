@@ -16,8 +16,8 @@ r"""公開済み（status: published）記事のうち、ピンが1枚も作ら�
     ここで全公開済み記事にピンが見つかれば、第2段は実行せず終了する。
   - 第2段（高い処理・第1段で取りこぼしがあったときだけ実行）: 第1段で
     ピンが見つからなかった記事が1本でもある場合に限り、対象を絞って
-    output/pins/ の各ピンファイルの先頭80行を読み、"https://tea-and-cups.
-    github.io/posts/<slug>/" 形式の誘導先URLからslugを抽出する（パス
+    output/pins/ の各ピンファイルの先頭80行を読み、"https://<任意のホスト>
+    /posts/<slug>/" 形式の誘導先URLからslugを抽出する（パス
     /posts/ の直後から1階層）。ここで見つかったslugは「ピンあり」として
     扱い、取りこぼした記事と再照合する。
     対象の絞り込み（D-0122）: 第1段でファイル名から抽出したslugが
@@ -62,7 +62,9 @@ PIN_BODY_HEAD_LINES = 80
 
 STATUS_RE = re.compile(r"^status:\s*(\S+)\s*$")
 PIN_FILENAME_RE = re.compile(r"^\d{4}-\d{2}-\d{2}-pin-\d+(?:-\d+)?-(.+)-\d{2}\.md$")
-PIN_BODY_URL_RE = re.compile(r"https://tea-and-cups\.github\.io/posts/([^/\s]+)/")
+# ホスト部は固定しない。既存ピンは旧ドメイン、移行後の新規ピンは新ドメインのURLを持つため、
+# どちらも同じ正規表現で拾えるようにする（D-0198）。
+PIN_BODY_URL_RE = re.compile(r"https?://[^/\s]+/posts/([^/\s]+)/")
 
 
 def get_published_slugs():

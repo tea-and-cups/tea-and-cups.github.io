@@ -44,7 +44,7 @@ STATE_PATH = os.path.join(TMP_DIR, "pinterest-oauth-state.tmp")
 
 AUTH_BASE_URL = "https://www.pinterest.com/oauth/"
 TOKEN_URL = "https://api.pinterest.com/v5/oauth/token"
-REDIRECT_URI = "https://tea-and-cups.github.io/"
+REDIRECT_URI = "https://kohaku-jikan.com/"
 SCOPES = "pins:read,pins:write,boards:read,boards:write,user_accounts:read"
 
 ENV_KEYS_ORDER = [
@@ -81,7 +81,7 @@ def mode_generate_url():
     print("以下のURLをブラウザで開いて許可してください:")
     print(auth_url)
     print("")
-    print("許可すると https://tea-and-cups.github.io/ にリダイレクトされます。")
+    print("許可すると https://kohaku-jikan.com/ にリダイレクトされます。")
     print("ページの表示内容は気にせず、アドレスバーのURL全体をコピーしてください。")
     print("認可コードは数分で失効し1回しか使えないため、すぐに貼ってください。")
 

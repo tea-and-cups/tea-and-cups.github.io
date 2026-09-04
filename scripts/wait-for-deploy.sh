@@ -30,7 +30,7 @@
 #       <slug>やHTTP 200チェックでは検知できないため --file を使うこと。
 set -uo pipefail
 
-BASE="https://tea-and-cups.github.io"
+BASE="https://kohaku-jikan.com"
 POSTS_DIR="C:/Claude/Tea_TeaCut/site/src/content/posts"
 MAX_WAIT_SEC=900   # 待機モードの上限（15分）。超えたら異常としてエラー終了する
 INTERVAL_SEC=15
