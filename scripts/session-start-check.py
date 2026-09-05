@@ -46,6 +46,9 @@ CHILD_SCRIPTS = [
     ("rotate-today-tasks.py", {0}),
     ("check-doc-governance.py", {0, 1}),
     ("check-routine-due.py", {0}),
+    # check-scheduled-items.py: 通知は常に終了コード0（add/done の失敗時のみ非ゼロだが
+    # フック経由では引数なしの通知しか行わないため 0 のみを正常とする）。
+    ("check-scheduled-items.py", {0}),
     ("check-image-gen-needed-today.py", {0}),
     ("list-latest-reports.py", {0}),
     ("check-pin-posting-status.py", {0}),
@@ -71,7 +74,7 @@ HEADER = (
     "=== セッション開始時チェック（SessionStartフック・自動実行） ===\n"
     "以下は自動実行された開始時チェックの結果です。CLAUDE.md 10節のセッション開始時チェックは"
     "ここで実行済みのため、AIが同じものを改めて手動実行しないでください（二重報告防止）。\n"
-    "【警告】【エラー】ROUTINE_NONE以外の出力・NEEDED判定のいずれかが含まれる場合は、"
+    "【警告】【エラー】ROUTINE_NONE・SCHEDULED_NONE以外の出力・NEEDED判定のいずれかが含まれる場合は、"
     "その内容を通常の作業に入る前に最初にオーナーへ報告してください。"
     "NEEDEDの場合の対応はCLAUDE.md 10節の記載に従ってください。"
 )
