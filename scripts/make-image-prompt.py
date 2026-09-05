@@ -307,6 +307,10 @@ PIN_TEXT_EXAMPLE = (
 # --- hero画像に焼き込む見出し文言（--hero-text・D-0173） ---
 # 受け取り方・検査は --pinN-text と同一に揃える（上限件数だけが異なる。見出しは一行または二行）。
 HERO_TEXT_OPT = "--hero-text"
+
+# Codex経路（codex-gateway.py）へ渡すため、1スロットのプロンプト本文だけを出すオプション（D-0199）。
+# 未指定時の出力は従来と1文字も変えない（Claude for Chrome 経路を代替手順として温存するため）。
+PROMPT_ONLY_OPT = "--prompt-only"
 HERO_TEXT_MIN_COUNT = 1
 HERO_TEXT_MAX_COUNT = 2
 HERO_TEXT_MAX_LEN = 30
@@ -660,6 +664,22 @@ def main():
         sys.stderr.reconfigure(encoding="utf-8")
 
     argv = sys.argv[1:]
+
+    prompt_only = None
+    if PROMPT_ONLY_OPT in argv:
+        i = argv.index(PROMPT_ONLY_OPT)
+        if i + 1 >= len(argv):
+            sys.stderr.write("%s の値（スロット名）が指定されていません。\n" % PROMPT_ONLY_OPT)
+            sys.exit(1)
+        prompt_only = argv[i + 1]
+        del argv[i:i + 2]
+        if prompt_only not in piv.IMAGE_SLOTS:
+            sys.stderr.write(
+                "%s に指定できるのは %s のいずれかです（指定値: %s）。\n"
+                % (PROMPT_ONLY_OPT, "／".join(piv.IMAGE_SLOTS), prompt_only)
+            )
+            sys.exit(1)
+
     raw_hero_text = None
     if HERO_TEXT_OPT in argv:
         i = argv.index(HERO_TEXT_OPT)
@@ -737,6 +757,11 @@ def main():
     blocks = [("hero", build_hero_prompt(by_type["hero"], hero_texts))]
     for slot in piv.PIN_SLOTS:
         blocks.append((slot, build_pin_prompt(by_type[slot], styles[slot], texts[slot], cta_texts[slot])))
+
+    if prompt_only is not None:
+        # 区切り行・条件メタ行・JS注入コード・操作手順は一切出さない（D-0199）。
+        print(dict(blocks)[prompt_only])
+        return
 
     if conditions:
         print("■ 条件: %s／%s（D-0152・この行はChatGPTへ貼らない）" % (info_condition, cta_condition))
