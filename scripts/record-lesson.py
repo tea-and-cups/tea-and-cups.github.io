@@ -84,6 +84,7 @@ BUMP_LIMIT = 5                 # 1セッションで実行できる bump の件�
 ACTIVE_STALE_DAYS = 30         # active かつ count=1 をこの日数で自動削除する
 FIXED_KEEP_DAYS = 50           # fixed をこの日数で自動削除する
 ACCEPTED_KEEP_DAYS = 180       # accepted を last_seen からこの日数で自動削除する
+PENDING_AUTOFIX_DAYS = 30      # pending が last_seen からこの日数再発しなければ fixed にする
 ACTIVE_MAX = 40                # active の保持上限（超過分は count=1 の古い順に削除）
 RESOLVED_WARN = 40             # fixed+accepted がこの件数を超えたら stderr で通知
 OTHER_CATEGORY_WARN = 5        # category=other の active がこの件数を超えたら通知
@@ -159,10 +160,33 @@ def elapsed_days(value):
 
 def run_maintenance(rows):
     """古びた項目を自動的に整理する。count>=2 の active は絶対に削除しない。
-    pending（処遇待ち）はどの削除対象にもしない（処遇されるまで消えない）。
+    pending（処遇待ち）はどの削除対象にもしない（PENDING_AUTOFIX_DAYS 経過で
+    fixed へ書き換えることはあるが、行は削除しない）。
     accepted は180日再発していなければ削除する（事象が消滅しているため）。
     """
     today = date.today()
+    autoclosed = []
+    for row in rows:
+        # 対策が効いて再発が止まった項目を、窓口の明示的な指示なしにリストから外す。
+        # 再発した場合は bump によって status=active・[対策失敗] 付きで戻り、
+        # count に関係なく次の週次で浮上するため、誤ってクローズしても検知は失われない。
+        if row.get("status") == "pending":
+            last_seen = parse_date(row.get("last_seen"))
+            if last_seen is None:
+                continue  # last_seen が空・不正な行はそのまま pending で残す
+            days = (today - last_seen).days
+            if days >= PENDING_AUTOFIX_DAYS:
+                row["status"] = "fixed"
+                row["resolved_at"] = today.isoformat()
+                autoclosed.append((row, days))
+    if autoclosed:
+        print("自動クローズ（%d日間再発なしのため処遇待ちから外しました・%d件）"
+              % (PENDING_AUTOFIX_DAYS, len(autoclosed)))
+        for row, days in autoclosed:
+            print("- %s %s（last_seen=%s・%d日間再発なし）" % (
+                row.get("id", ""), row.get("summary", ""),
+                row.get("last_seen", ""), days))
+
     kept = []
     for row in rows:
         status = row.get("status", "")
