@@ -24,7 +24,9 @@ r"""docs/ideas.md の「## ストック」節から記事化済み行を「## �
 
 件数上限:
   「## 使用済み・見送り」節は最新10件のみを保持する（定数上限型）。既存の使用済み
-  行 + 新規移動行を結合し、超過分は古い方（リストの先頭側）から削除する。
+  行 + 新規移動行を結合し、超過分は行が持つ日付（4番目のフィールド）の古い方から
+  削除する。行の位置では判定しない（手動退避が先頭へ挿入されるため、位置で判定すると
+  最新行から消えてしまう・D-0203）。日付が読めない行は削除対象にせず残す。
 
 使い方:
   python site/scripts/prune-used-ideas.py [--dry-run]
@@ -82,7 +84,13 @@ def find_own_slug(line, slugs):
 def build_used_line(line, slug):
     """ストック行を使用済み行へ変換する。一言メモフィールド（4番目）は削除し、
     行末に「| 記事化済み（slug）」を追記する。
+
+    冪等性: 既に「記事化済み（<slug>）」で終わっている行（＝退避済みの行）は
+    変換せずそのまま返す。再処理すると4番目のフィールド（退避済み行では日付欄）を
+    削ってしまい、日付を失うため（実際に meissen 行で発生した・D-0203）。
     """
+    if line.rstrip().endswith(u"）") and u"| 記事化済み（" in line:
+        return line.rstrip()
     parts = [p.strip() for p in line.split(" | ")]
     if len(parts) >= 5:
         del parts[3]
@@ -90,6 +98,43 @@ def build_used_line(line, slug):
     else:
         rebuilt = line.rstrip()
     return rebuilt + u" | 記事化済み（%s）" % slug
+
+
+def used_line_date(line):
+    """使用済み行の4番目のフィールド（YYYY-MM-DD）を返す。日付でなければNone。"""
+    parts = [p.strip() for p in line.split(" | ")]
+    if len(parts) < 4:
+        return None
+    value = parts[3]
+    if len(value) == 10 and value[4] == "-" and value[7] == "-":
+        head = value[:4] + value[5:7] + value[8:]
+        if head.isdigit():
+            return value
+    return None
+
+
+def select_drop_indexes(used_lines):
+    """USED_KEEP を超えた分の削除対象を、行の位置ではなく行が持つ日付で選ぶ。
+
+    背景: 従来は先頭側（combined_used[:overflow]）を捨てていたが、手動退避は
+    「## 使用済み・見送り」見出しの直後（＝先頭）へ挿入されてきたため、
+    最新の退避行から消える挙動になっていた（実測確定・D-0203）。
+
+    日付が同着の場合はファイル内の出現順で先に現れる方を先に削除する。
+    sorted() は安定ソートであり、ここでは日付のみをキーにしているため、
+    同着行の相対順序＝元の出現順が保たれることでこの要件を満たす。
+
+    日付がパースできない行は削除対象に含めない（残す）。その結果として
+    保持件数が USED_KEEP を超えることは許容する（上限超過は無害だが、
+    判定不能な行を消すとデータが失われるため）。
+    """
+    overflow = len(used_lines) - USED_KEEP
+    if overflow <= 0:
+        return set()
+    datable = [(i, used_line_date(l)) for i, l in enumerate(used_lines)]
+    datable = [(i, d) for i, d in datable if d is not None]
+    datable.sort(key=lambda pair: pair[1])
+    return set(i for i, _ in datable[:overflow])
 
 
 def split_sections(lines):
@@ -163,11 +208,12 @@ def main():
 
     new_used_entries = [build_used_line(line, slug) for line, slug in to_move]
     combined_used = existing_used_lines + new_used_entries
-    dropped = []
-    if len(combined_used) > USED_KEEP:
-        overflow = len(combined_used) - USED_KEEP
-        dropped = combined_used[:overflow]
-        combined_used = combined_used[overflow:]
+    drop_indexes = select_drop_indexes(combined_used)
+    dropped = [(combined_used[i], used_line_date(combined_used[i])) for i in drop_indexes]
+    if drop_indexes:
+        combined_used = [
+            l for i, l in enumerate(combined_used) if i not in drop_indexes
+        ]
 
     if dry_run:
         print(u"=== 移動対象（ストック → 使用済み・見送り）: %d件 ===" % len(to_move))
@@ -175,8 +221,8 @@ def main():
             print(u"  slug=%s : %s" % (slug, line.strip()))
         if dropped:
             print(u"=== 使用済み節から10件超過のため削除される行: %d件 ===" % len(dropped))
-            for line in dropped:
-                print(u"  %s" % line.strip())
+            for line, day in dropped:
+                print(u"  日付=%s : %s" % (day, line.strip()))
         else:
             print(u"使用済み節からの削除: なし（移動後 %d件で%d件以内）" % (len(combined_used), USED_KEEP))
         return
