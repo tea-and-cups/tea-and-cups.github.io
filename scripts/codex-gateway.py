@@ -20,7 +20,9 @@
   codex exec 全体は 0 を返すことが実測されているため（設計調査 第2便 D-1-3）。
   成功判定は「~/Downloads に --out-name のファイルが実在すること」で行う。
 
-標準出力には1行のJSONのみを出す。進捗・説明はすべて標準エラー出力へ出す。
+標準出力には1行のJSONを出す。進捗・説明はすべて標準エラー出力へ出す。
+唯一の例外として、実行前のキャッシュ正規化（ensure_models_cache_consistent）が
+実際に動いたときだけ、JSONとは別行の告知を標準出力へ出す（D-0204）。
 """
 import argparse
 import json
@@ -152,6 +154,106 @@ def prune_old_dirs():
     return removed
 
 
+MODELS_CACHE_PATH = HOME / ".codex" / "models_cache.json"
+DEBUG_MODELS_TIMEOUT_SEC = 60
+
+
+def _codex_cli_version():
+    """`codex --version` の出力からバージョン文字列を取り出す。取れなければ None。
+
+    出力例: "codex-cli 0.145.0" → "0.145.0"
+    """
+    try:
+        proc = subprocess.run(
+            ["codex", "--version"],
+            stdin=subprocess.DEVNULL,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=30,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    text = ((proc.stdout or "") + " " + (proc.stderr or "")).strip()
+    for token in text.split():
+        if token and token[0].isdigit():
+            return token
+    return None
+
+
+def ensure_models_cache_consistent():
+    """codex 実行前に models_cache.json の client_version を CLI と照合し、必要時のみ正規化する（D-0204）。
+
+    新旧2つのCodexクライアントが同一の ~/.codex を共有すると、新側が書いた
+    models_cache.json を旧側（0.145.0）が読めず exit 5 になる（L040・2026-09-06 実測）。
+    一致していればネットワークを一切叩かずに戻る。不一致・欠損・破損・キー無しの
+    いずれかなら `codex debug models` を1回だけ実行してキャッシュを再生成させる。
+
+    この関数は新たな停止条件を増やさない。正規化に失敗しても告知だけして戻る。
+    戻り値は「正規化を実行したか」の bool。
+    """
+    cli_version = _codex_cli_version()
+
+    cached_version = None
+    reason = None
+    if cli_version is None:
+        reason = "`codex --version` からバージョンを取得できなかった"
+    elif not MODELS_CACHE_PATH.is_file():
+        reason = "models_cache.json が存在しない"
+    else:
+        try:
+            data = json.loads(MODELS_CACHE_PATH.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            reason = "models_cache.json をJSONとして読めない"
+        else:
+            if not isinstance(data, dict) or "client_version" not in data:
+                reason = "models_cache.json に client_version キーが無い"
+            else:
+                cached_version = data.get("client_version")
+                if cached_version != cli_version:
+                    reason = ("client_version 不一致（キャッシュ=%s／CLI=%s）"
+                              % (cached_version, cli_version))
+
+    if reason is None:
+        # 一致。ネットワークを叩かず、標準出力にも何も足さない。
+        eprint("models_cache.json の client_version は CLI と一致（%s）。正規化は不要。" % cli_version)
+        return False
+
+    print("[codex-gateway] models_cache.json を正規化します（理由: %s）。"
+          "`codex debug models` を1回実行します。" % reason)
+    sys.stdout.flush()
+    try:
+        proc = subprocess.run(
+            ["codex", "debug", "models"],
+            stdin=subprocess.DEVNULL,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=DEBUG_MODELS_TIMEOUT_SEC,
+        )
+    except subprocess.TimeoutExpired:
+        print("[codex-gateway] `codex debug models` が %d秒でタイムアウトしました。"
+              "正規化せずに本実行へ進みます。" % DEBUG_MODELS_TIMEOUT_SEC)
+        sys.stdout.flush()
+        return True
+    except (OSError, subprocess.SubprocessError) as exc:
+        print("[codex-gateway] `codex debug models` の実行に失敗しました（%s）。"
+              "正規化せずに本実行へ進みます。" % exc)
+        sys.stdout.flush()
+        return True
+
+    if proc.returncode != 0:
+        print("[codex-gateway] `codex debug models` が rc=%d で終了しました。"
+              "正規化できていない可能性がありますが本実行へ進みます。" % proc.returncode)
+        sys.stdout.flush()
+    else:
+        print("[codex-gateway] `codex debug models` を実行しました（rc=0）。")
+        sys.stdout.flush()
+    return True
+
+
 def run_exec(purpose, prompt_file, out_name):
     method = "exec"
 
@@ -177,6 +279,9 @@ def run_exec(purpose, prompt_file, out_name):
     stamp = datetime.fromtimestamp(started_at).strftime("%Y%m%d-%H%M%S")
     LOG_DIR.mkdir(parents=True, exist_ok=True)
     log_path = LOG_DIR / ("%s-%s.jsonl" % (stamp, purpose))
+
+    # (1-2) codex 実行前のキャッシュ正規化（D-0204・失敗しても止めない）
+    ensure_models_cache_consistent()
 
     # (2) codex exec を非対話実行する
     # --skip-git-repo-check: このプロジェクトのルート直下は非Git管理（D-0043）のため、
