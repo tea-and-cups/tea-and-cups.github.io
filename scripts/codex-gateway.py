@@ -20,12 +20,21 @@
   codex exec 全体は 0 を返すことが実測されているため（設計調査 第2便 D-1-3）。
   成功判定は「~/Downloads に --out-name のファイルが実在すること」で行う。
 
+タイムアウトと救済について（L043・2026-09-08）:
+  codex exec の本実行に EXEC_TIMEOUT_SEC（既定 300 秒）を設ける。子プロセスの
+  PATH 先頭に codex-resources を足す根治（_codex_child_env）を入れているため
+  正常時は数分以内に終わる。打ち切った場合でも generated_images 配下に成果物
+  .png が既にあれば通常時と同じ経路でコピーし、status ok / 終了コード 0 で返す。
+  そのとき標準出力の1行JSONに timeout_rescued: true を含める。成果物が無ければ
+  従来どおり終了コード 5。終了コードの意味は追加も変更もしない。
+
 標準出力には1行のJSONを出す。進捗・説明はすべて標準エラー出力へ出す。
 唯一の例外として、実行前のキャッシュ正規化（ensure_models_cache_consistent）が
 実際に動いたときだけ、JSONとは別行の告知を標準出力へ出す（D-0204）。
 """
 import argparse
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -55,13 +64,25 @@ EXIT_NOT_IMPLEMENTED = 3
 EXIT_LAUNCH_FAILED = 4
 EXIT_ARTIFACT_MISSING = 5
 
+# codex exec の本実行タイムアウト（秒）。L043 の根治（子プロセス PATH に
+# codex-resources を追加）が入っているため正常時は数分以内に終わる。打ち切っても
+# 成果物 .png が既にあれば成功扱いで拾う（run_exec の TimeoutExpired 捕捉部）。
+# 検証時のみ環境変数 CODEX_EXEC_TIMEOUT_SEC で上書きする（運用では設定しない）。
+EXEC_TIMEOUT_SEC = 300
+_env_timeout = os.environ.get("CODEX_EXEC_TIMEOUT_SEC")
+if _env_timeout is not None and _env_timeout.strip():
+    try:
+        EXEC_TIMEOUT_SEC = int(_env_timeout)
+    except ValueError:
+        pass
+
 
 def eprint(msg):
     sys.stderr.write(str(msg) + "\n")
     sys.stderr.flush()
 
 
-def emit(status, purpose, method, artifact, source, message):
+def emit(status, purpose, method, artifact, source, message, extra=None):
     payload = {
         "status": status,
         "purpose": purpose,
@@ -70,6 +91,8 @@ def emit(status, purpose, method, artifact, source, message):
         "source": source,
         "message": message,
     }
+    if extra:
+        payload.update(extra)
     sys.stdout.write(json.dumps(payload, ensure_ascii=False) + "\n")
     sys.stdout.flush()
 
@@ -254,6 +277,77 @@ def ensure_models_cache_consistent():
     return True
 
 
+def _codex_child_env():
+    """codex exec の子プロセスへ渡す環境を作る。PATH 先頭に codex-resources を足す（L043）。
+
+    CLI 0.145.0 は Windows サンドボックスのセットアップヘルパ
+    (codex-windows-sandbox-setup.exe) をファイル名だけで探し、見つからないと
+    codex exec がリトライで無限にぶら下がる（2026-09-08 の対照実験で確認）。
+    codex 実体と同じリリース配下の codex-resources を PATH に足すと正常終了する。
+    実体解決や codex-resources が確認できなければ None を返し、既定の環境で動かす。
+    システム・ユーザーの PATH は変更しない（親プロセス内の env コピーだけを書き換える）。
+    """
+    exe = shutil.which("codex")
+    if not exe:
+        return None
+    try:
+        real = Path(os.path.realpath(exe))
+    except OSError:
+        return None
+    # <release>/bin/codex.exe → <release>/codex-resources
+    resources = real.parent.parent / "codex-resources"
+    if not resources.is_dir():
+        return None
+    env = os.environ.copy()
+    env["PATH"] = str(resources) + os.pathsep + env.get("PATH", "")
+    return env
+
+
+def _kill_codex_tree(pid):
+    """gateway が spawn した codex の PID ツリーだけを終了させる。
+
+    プロセス名指定（taskkill /IM）は使わない。稼働中の常駐デスクトップ版
+    codex.exe には介入しないため、必ず PID 指定 + /T でツリーを畳む。
+    """
+    try:
+        subprocess.run(
+            ["taskkill", "/PID", str(pid), "/T", "/F"],
+            stdin=subprocess.DEVNULL, capture_output=True, text=True,
+            encoding="utf-8", errors="replace", timeout=30,
+        )
+    except (OSError, subprocess.SubprocessError):
+        pass
+
+
+def _run_codex_exec(cmd, env):
+    """codex exec を実行し (stdout, stderr, returncode, timed_out) を返す。
+
+    EXEC_TIMEOUT_SEC を超えたら gateway が起動した PID ツリーのみ終了させ、
+    timed_out=True で戻る（成否は呼び出し側が成果物 .png の実在で判定する）。
+    起動自体の失敗（OSError）はそのまま送出する。
+    """
+    proc = subprocess.Popen(
+        cmd,
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        env=env,
+    )
+    try:
+        out, err = proc.communicate(timeout=EXEC_TIMEOUT_SEC)
+        return out or "", err or "", proc.returncode, False
+    except subprocess.TimeoutExpired:
+        _kill_codex_tree(proc.pid)
+        try:
+            out, err = proc.communicate(timeout=20)
+        except subprocess.TimeoutExpired:
+            out, err = "", ""
+        return out or "", err or "", proc.returncode, True
+
+
 def run_exec(purpose, prompt_file, out_name):
     method = "exec"
 
@@ -287,27 +381,28 @@ def run_exec(purpose, prompt_file, out_name):
     # --skip-git-repo-check: このプロジェクトのルート直下は非Git管理（D-0043）のため、
     # これを付けないと codex exec が "Not inside a trusted directory" で即座に失敗する。
     cmd = ["codex", "exec", "--json", "-s", "read-only", "--skip-git-repo-check", prompt]
-    eprint("codex exec を開始します（-s read-only / --json）: prompt %d 文字" % len(prompt))
+    child_env = _codex_child_env()
+    if child_env is not None:
+        eprint("codex exec の子プロセス PATH 先頭に codex-resources を追加します（L043 対策）。")
+    else:
+        eprint("codex-resources を解決できず。既定の環境で codex exec を実行します。")
+    eprint("codex exec を開始します（-s read-only / --json / timeout=%d秒）: prompt %d 文字"
+           % (EXEC_TIMEOUT_SEC, len(prompt)))
     try:
-        proc = subprocess.run(
-            cmd,
-            stdin=subprocess.DEVNULL,
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-        )
+        stdout, stderr_text, returncode, timed_out = _run_codex_exec(cmd, child_env)
     except OSError as exc:
         return fail(EXIT_LAUNCH_FAILED, purpose, method,
                     "codex exec の起動に失敗しました: %s" % exc)
 
     # (3) --json の出力を全行ファイルへ保存し、thread.started 行からスレッドIDを取り出す
-    stdout = proc.stdout or ""
-    stderr_text = proc.stderr or ""
     log_path.write_text(stdout, encoding="utf-8")
     lines = stdout.splitlines()
     thread_id = extract_thread_id(lines)
-    eprint("codex exec 終了（rc=%d・成功判定には使わない）。ログ: %s" % (proc.returncode, log_path))
+    if timed_out:
+        eprint("codex exec を %d秒で打ち切り、起動した PID ツリーを終了しました"
+               "（rc=%s・成功判定には使わない）。ログ: %s" % (EXEC_TIMEOUT_SEC, returncode, log_path))
+    else:
+        eprint("codex exec 終了（rc=%s・成功判定には使わない）。ログ: %s" % (returncode, log_path))
     eprint("thread.started のID: %s" % (thread_id or "取得できず"))
 
     if not GENERATED_IMAGES_DIR.is_dir():
@@ -321,9 +416,10 @@ def run_exec(purpose, prompt_file, out_name):
                     % (log_path, thread_id or "取得できず", how))
     if source is None:
         prune_old_dirs()
+        to_note = "（timeout %d秒で打ち切り後）" % EXEC_TIMEOUT_SEC if timed_out else ""
         return fail(EXIT_ARTIFACT_MISSING, purpose, method,
-                    "成果物の .png を検出できませんでした。%s ／ codex rc=%d ／ stderr: %s"
-                    % (base_message, proc.returncode, stderr_text.strip()[:400]))
+                    "成果物の .png を検出できませんでした%s。%s ／ codex rc=%s ／ stderr: %s"
+                    % (to_note, base_message, returncode, stderr_text.strip()[:400]))
 
     # (5) ~/Downloads へコピー
     dest = DOWNLOADS_DIR / out_name
@@ -343,8 +439,11 @@ def run_exec(purpose, prompt_file, out_name):
     removed = prune_old_dirs()
 
     # (6) 結果を出力する
+    extra = {"timeout_rescued": True} if timed_out else None
+    tail = " ／ timeout %d秒で打ち切り後に成果物を救済" % EXEC_TIMEOUT_SEC if timed_out else ""
     emit("ok", purpose, method, str(dest), str(source),
-         "%s ／ 古いディレクトリ削除: %d件" % (base_message, removed))
+         "%s ／ 古いディレクトリ削除: %d件%s" % (base_message, removed, tail),
+         extra=extra)
     return EXIT_OK
 
 
