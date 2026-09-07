@@ -31,16 +31,16 @@ const description = isFirst
 // 1ページ目だけに出す固定スロット。
 // slugだけを持ち、タイトル・説明文・サムネイルはコレクション側から引く（テンプレートにべた書きしない）。
 const STARTER_SLUGS = [
-  'mizudashi-koucha-chaba-erabikata',
-  'mizudashi-koucha-hozon-eisei-qa',
-  'hot-brew-mizudashi-icetea-hikaku',
-  'koucha-shomikigen-kireta-fuumi-mikiwame',
+  'aki-moyougae-hitoribun-tea-space',
+  'kokyu-koucha-brand-guide',
+  '5000en-ika-brand-teacup-hikaku',
+  'ouchi-afternoon-tea-hajimekata',
 ];
 const PICKUP_SLUGS = [
-  'earl-grey-koucha-brand-kaori-hikaku',
-  'wakoucha-nyumon',
-  'honey-koucha-erabikata',
-  'mizudashi-tea-leaves',
+  'sekai-sandai-koucha-towa',
+  'chaba-grade-op-bop-ctc-yomikata',
+  'koucha-kihon-no-irekata',
+  'koucha-shomikigen-kireta-fuumi-mikiwame',
 ];
 const publishedPosts = isFirst
   ? await getCollection('posts', (p) => p.data.status === 'published')
@@ -92,7 +92,7 @@ const recentMore = isFirst ? page.data.slice(6) : [];
   {isFirst && (
     <section class="home-starter" aria-labelledby="home-starter-heading">
       <h2 id="home-starter-heading" class="home-block-title">はじめての方へ</h2>
-      <p class="home-lead">まず読んでほしい4記事です。</p>
+      <p class="home-lead">一日のどこかに、湯気の立つ一杯を置く。特別な道具がなくても、紅茶のある時間はここから始められます。</p>
       <ul class="post-list">
         {starterPosts.map((post) => <PostCard post={post} />)}
       </ul>
@@ -112,7 +112,8 @@ const recentMore = isFirst ? page.data.slice(6) : [];
   )}
   {isFirst && (
     <section class="home-pickup" aria-labelledby="home-pickup-heading">
-      <h2 id="home-pickup-heading" class="home-block-title">おすすめの記事</h2>
+      <h2 id="home-pickup-heading" class="home-block-title">紅茶の基礎知識</h2>
+      <p class="home-lead">知る・選ぶ・淹れる・保つ。この4本を順に読むと、紅茶の基本がひととおりつながります。</p>
       <ul class="post-list">
         {pickupPosts.map((post) => <PostCard post={post} />)}
       </ul>
