@@ -42,7 +42,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 CREDENTIALS_PATH = os.path.join(ROOT, "data", ".rakuten-credentials")
 
 ENDPOINT = "https://openapi.rakuten.co.jp/ichibams/api/IchibaItem/Search/20260701"
-APP_REFERER = "https://tea-and-cups.github.io/"  # 楽天アプリ登録画面の「アプリケーションURL」と一致させる
+APP_REFERER = "https://kohaku-jikan.com/"  # 楽天アプリ登録画面の「アプリケーションURL」と一致させる
 
 MAX_RETRIES = 4
 BACKOFF_BASE_SECONDS = 2
