@@ -61,6 +61,17 @@ LOOKBACK_MIN, LOOKBACK_MAX = 1, 90
 LIMIT_MIN, LIMIT_MAX = 1, 100
 DEFAULT_LOOKBACK_DAYS = 7
 
+# GA4 / GSC の HTTP リクエスト先（固定文字列）。可変部は既存の property_id / siteUrl のみ。
+# 旧実装は googleapiclient(httplib2) 経由だったが、httplib2 は PySocks 未導入時に
+# HTTPS の proxy 設定を黙って無視し直結してしまう（Codex managed proxy 配下で
+# GA4/GSC だけが到達してしまう不整合の原因）。google-auth の requests transport
+# （AuthorizedSession）へ寄せ、proxy 環境変数を尊重させる。
+GA4_RUNREPORT_URL = "https://analyticsdata.googleapis.com/v1beta/%s:runReport" % GA4_ENTITY_ID
+GSC_SEARCHANALYTICS_URL_TEMPLATE = (
+    "https://searchconsole.googleapis.com/webmasters/v3/sites/%s/searchAnalytics/query"
+)
+HTTP_TIMEOUT_SECONDS = 30
+
 # observe_buffer_readonly.py の ACCOUNT_QUERY と同一（読み取り専用・変数なし・1コール）。
 BUFFER_ACCOUNT_QUERY = """
 query BufferObservationAccount {
@@ -239,10 +250,8 @@ def _format_ga4_date(raw) -> str | None:
 
 
 def run_ga4_daily_traffic(params: dict) -> dict:
-    from google.auth.transport.requests import Request
+    from google.auth.transport.requests import AuthorizedSession, Request
     from google.oauth2.credentials import Credentials
-    from googleapiclient.discovery import build
-    from googleapiclient.errors import HttpError
 
     lookback_days = params["lookback_days"]
     limit = params["limit"]
@@ -277,12 +286,26 @@ def run_ga4_daily_traffic(params: dict) -> dict:
         "limit": str(limit),
     }
 
+    session = AuthorizedSession(creds)
     try:
-        service = build("analyticsdata", "v1beta", credentials=creds, cache_discovery=False)
-        response = service.properties().runReport(property=GA4_ENTITY_ID, body=body).execute()
-    except HttpError as exc:
-        raise BrokerError("ga4_api_error", "GA4 runReport failed: HTTP %s" % getattr(exc, "status_code", "?"))
-    except Exception as exc:  # noqa: BLE001
+        http_response = session.post(
+            GA4_RUNREPORT_URL,
+            params={"alt": "json"},
+            json=body,
+            timeout=HTTP_TIMEOUT_SECONDS,
+        )
+    except Exception as exc:  # noqa: BLE001 - connect / proxy / timeout failures
+        raise BrokerError("ga4_transport_error", "GA4 request failed: %s" % type(exc).__name__)
+    finally:
+        session.close()
+
+    if http_response.status_code >= 400:
+        # レスポンス本文は出力しない（secret ガードを通す前提を崩さない）。
+        raise BrokerError("ga4_api_error", "GA4 runReport failed: HTTP %s" % http_response.status_code)
+
+    try:
+        response = http_response.json()
+    except ValueError as exc:
         raise BrokerError("ga4_transport_error", "GA4 request failed: %s" % type(exc).__name__)
 
     fetched_at = iso_now()
@@ -354,10 +377,10 @@ def run_ga4_daily_traffic(params: dict) -> dict:
 
 
 def run_gsc_search_analytics(params: dict) -> dict:
-    from google.auth.transport.requests import Request
+    from urllib.parse import quote
+
+    from google.auth.transport.requests import AuthorizedSession, Request
     from google.oauth2.credentials import Credentials
-    from googleapiclient.discovery import build
-    from googleapiclient.errors import HttpError
 
     lookback_days = params["lookback_days"]
     limit = params["limit"]
@@ -391,19 +414,30 @@ def run_gsc_search_analytics(params: dict) -> dict:
         "dataState": "all",
     }
 
+    url = GSC_SEARCHANALYTICS_URL_TEMPLATE % quote(GSC_SITE_URL, safe="")
+    session = AuthorizedSession(creds)
     try:
-        service = build("searchconsole", "v1", credentials=creds, cache_discovery=False)
-        response = (
-            service.searchanalytics()
-            .query(siteUrl=GSC_SITE_URL, body=body)
-            .execute()
+        http_response = session.post(
+            url,
+            params={"alt": "json"},
+            json=body,
+            timeout=HTTP_TIMEOUT_SECONDS,
         )
-    except HttpError as exc:
+    except Exception as exc:  # noqa: BLE001 - connect / proxy / timeout failures
+        raise BrokerError("gsc_transport_error", "GSC request failed: %s" % type(exc).__name__)
+    finally:
+        session.close()
+
+    if http_response.status_code >= 400:
+        # レスポンス本文は出力しない（secret ガードを通す前提を崩さない）。
         raise BrokerError(
             "gsc_api_error",
-            "GSC searchanalytics.query failed: HTTP %s" % getattr(exc, "status_code", "?"),
+            "GSC searchanalytics.query failed: HTTP %s" % http_response.status_code,
         )
-    except Exception as exc:  # noqa: BLE001
+
+    try:
+        response = http_response.json()
+    except ValueError as exc:
         raise BrokerError("gsc_transport_error", "GSC request failed: %s" % type(exc).__name__)
 
     fetched_at = iso_now()
