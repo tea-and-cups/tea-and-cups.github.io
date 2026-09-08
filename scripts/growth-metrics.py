@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-r"""Growth Agent 用の外部数値 read-only ブローカー（GA4 / Buffer の参照のみ・親スクリプト非変更）。
+r"""Growth Agent 用の外部数値 read-only ブローカー（GA4 / GSC / Buffer の参照のみ・親スクリプト非変更）。
 
 Growth Agent（別セッションのサブ運用）が外部の数値を取得するときの唯一の入口。
 Codex からシェル実行される前提で、標準出力に契約JSONを1個だけ出す。
@@ -16,6 +16,7 @@ Codex からシェル実行される前提で、標準出力に契約JSONを1個
 
 使い方:
   python site/scripts/growth-metrics.py ga4 --operation ga4.daily_traffic --lookback-days 7
+  python site/scripts/growth-metrics.py gsc --operation gsc.search_analytics --lookback-days 28 --limit 28
   python site/scripts/growth-metrics.py buffer --operation buffer.account
 
 終了コード: 0=正常（status ok）/ 1=エラー（status error・許可外・範囲外・secretガード作動）
@@ -43,6 +44,16 @@ GA4_PROPERTY_ID = "547119508"  # 「琥珀時間」・親スクリプト fetch-g
 GA4_SOURCE = "google_analytics_data_api_v1beta"
 GA4_ENTITY_ID = "properties/%s" % GA4_PROPERTY_ID
 GA4_METRICS = ("sessions", "activeUsers", "screenPageViews")
+
+# GSC（Search Console）・親スクリプト check-gsc-status.py の SITE_URL と同一。
+# URLプレフィックス型プロパティの登録文字列（末尾スラッシュあり）。
+GSC_SITE_URL = "https://kohaku-jikan.com/"
+GSC_SOURCE = "google_search_console_searchanalytics_v1"
+GSC_ENTITY_ID = GSC_SITE_URL
+# searchanalytics.query が date 次元で返す指標。clicks/impressions は整数、
+# ctr/position は小数として格納する。
+GSC_INT_METRICS = ("clicks", "impressions")
+GSC_FLOAT_METRICS = ("ctr", "position")
 
 BUFFER_SOURCE = "buffer_graphql"
 
@@ -339,6 +350,132 @@ def run_ga4_daily_traffic(params: dict) -> dict:
     return payload
 
 
+# --- GSC (Search Console) --------------------------------------------------
+
+
+def run_gsc_search_analytics(params: dict) -> dict:
+    from google.auth.transport.requests import Request
+    from google.oauth2.credentials import Credentials
+    from googleapiclient.discovery import build
+    from googleapiclient.errors import HttpError
+
+    lookback_days = params["lookback_days"]
+    limit = params["limit"]
+
+    end_date = dt.date.today()
+    start_date = end_date - dt.timedelta(days=lookback_days - 1)
+    params["period"] = {"start_date": start_date.isoformat(), "end_date": end_date.isoformat()}
+
+    if not os.path.exists(TOKEN_PATH):
+        raise BrokerError("token_missing", "data/google-token.json not found")
+
+    try:
+        creds = Credentials.from_authorized_user_file(TOKEN_PATH)
+    except (OSError, ValueError) as exc:
+        raise BrokerError("token_unreadable", "could not load google-token.json: %s" % exc)
+
+    if not creds.valid:
+        if creds.expired and creds.refresh_token:
+            try:
+                creds.refresh(Request())  # メモリ内のみ。ファイルへ書き戻さない。
+            except Exception as exc:  # noqa: BLE001 - refresh 失敗は人手対応が必要
+                raise BrokerError("token_refresh_failed", "OAuth refresh failed: %s" % exc)
+        else:
+            raise BrokerError("token_invalid", "stored credential is not usable and cannot be refreshed")
+
+    body = {
+        "startDate": params["period"]["start_date"],
+        "endDate": params["period"]["end_date"],
+        "dimensions": ["date"],
+        "rowLimit": limit,
+        "dataState": "all",
+    }
+
+    try:
+        service = build("searchconsole", "v1", credentials=creds, cache_discovery=False)
+        response = (
+            service.searchanalytics()
+            .query(siteUrl=GSC_SITE_URL, body=body)
+            .execute()
+        )
+    except HttpError as exc:
+        raise BrokerError(
+            "gsc_api_error",
+            "GSC searchanalytics.query failed: HTTP %s" % getattr(exc, "status_code", "?"),
+        )
+    except Exception as exc:  # noqa: BLE001
+        raise BrokerError("gsc_transport_error", "GSC request failed: %s" % type(exc).__name__)
+
+    fetched_at = iso_now()
+    rows = response.get("rows") or []
+    series: list[dict] = []
+    returned_dates: set[str] = set()
+
+    for row in rows:
+        keys = row.get("keys") or []
+        date_str = str(keys[0]) if keys and keys[0] else None
+        # date 次元は "YYYY-MM-DD" 文字列。書式が違えば日付なし扱い。
+        if date_str and not _ISO_DATETIME_RE.match(date_str):
+            date_str = None
+        reasons: list[str] = []
+        record = {
+            "source": GSC_SOURCE,
+            "fetched_at": fetched_at,
+            "entity_id": GSC_ENTITY_ID,
+        }
+        if date_str:
+            record["date"] = date_str
+            record["observed_at"] = date_str + "T00:00:00+00:00"
+            returned_dates.add(date_str)
+        else:
+            record["observed_at"] = fetched_at
+            reasons.append("GSC row had a missing or invalid date key")
+        for name in GSC_INT_METRICS:
+            raw = row.get(name)
+            try:
+                record[name] = int(round(float(raw)))
+            except (TypeError, ValueError):
+                reasons.append("%s was missing or not numeric" % name)
+        for name in GSC_FLOAT_METRICS:
+            raw = row.get(name)
+            try:
+                record[name] = float(raw)
+            except (TypeError, ValueError):
+                reasons.append("%s was missing or not numeric" % name)
+        record["unknown_reason"] = "; ".join(reasons) if reasons else None
+        series.append(record)
+
+    warnings: list[str] = []
+    expected_dates = {
+        (start_date + dt.timedelta(days=offset)).isoformat()
+        for offset in range(lookback_days)
+    }
+    missing_dates = sorted(expected_dates - returned_dates)
+    if missing_dates:
+        warnings.append(
+            "%d of %d requested dates were absent from the response (e.g. %s); "
+            "GSC omits zero-traffic days and lags the most recent 2-3 days"
+            % (len(missing_dates), lookback_days, ", ".join(missing_dates[:3]))
+        )
+    if limit < lookback_days:
+        warnings.append(
+            "limit=%d is below the %d-day window; the series is truncated by rowLimit"
+            % (limit, lookback_days)
+        )
+
+    payload = _base_payload("gsc", "gsc.search_analytics", params)
+    payload["generated_at"] = fetched_at
+    payload["warnings"] = warnings
+    payload["coverage"]["reason"] = (
+        "Search Console reporting is delayed by a few days and searchanalytics.query "
+        "exposes no per-row finality flag; whether a given day is fully settled cannot "
+        "be determined from the API (反映遅延の有無をAPIから判定できない)"
+    )
+    payload["data"]["series"] = series
+    payload["data"]["snapshot"] = {}
+    return payload
+
+
 # --- Buffer ------------------------------------------------------------------
 
 
@@ -418,6 +555,12 @@ ALLOWED_OPERATIONS = {
         "accepts": frozenset(["lookback_days", "limit"]),
         "handler": run_ga4_daily_traffic,
     },
+    "gsc.search_analytics": {
+        "service": "gsc",
+        "description": "GSC daily clicks / impressions / ctr / position over a trailing window",
+        "accepts": frozenset(["lookback_days", "limit"]),
+        "handler": run_gsc_search_analytics,
+    },
     "buffer.account": {
         "service": "buffer",
         "description": "Buffer account id and organizations via one read-only GraphQL call",
@@ -429,9 +572,9 @@ ALLOWED_OPERATIONS = {
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Read-only broker for Growth Agent external metrics (GA4 / Buffer)."
+        description="Read-only broker for Growth Agent external metrics (GA4 / GSC / Buffer)."
     )
-    parser.add_argument("service", help="ga4 or buffer")
+    parser.add_argument("service", help="ga4, gsc or buffer")
     parser.add_argument("--operation", required=True, help="one of ALLOWED_OPERATIONS")
     parser.add_argument("--lookback-days", type=str, default=None, help="integer 1..90")
     parser.add_argument("--limit", type=str, default=None, help="integer 1..100")
@@ -447,8 +590,8 @@ def main() -> None:
     operation = args.operation
 
     try:
-        if service not in ("ga4", "buffer"):
-            raise BrokerError("unknown_service", "service must be 'ga4' or 'buffer'")
+        if service not in ("ga4", "gsc", "buffer"):
+            raise BrokerError("unknown_service", "service must be 'ga4', 'gsc' or 'buffer'")
 
         spec = ALLOWED_OPERATIONS.get(operation)
         if spec is None:
