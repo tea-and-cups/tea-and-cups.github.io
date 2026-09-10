@@ -27,6 +27,8 @@ CLAUDE.md 3節1「rules/配下のファイルの新設・削除はオーナー�
  10. CLAUDE.md・rules/配下・docs/配下（decisions-archive.md除く）・.claude/agents/配下の
      本文中のD番号参照が、decisions.md または decisions-archive.md に見出しとして実在するか
      （D-0113） → 【警告】。site/scripts/配下・.claude/hooks/配下は対象外。
+     .claude/agents/配下は node_modules / .pnpm-store 等のベンダー・ビルド生成ディレクトリ
+     （AGENTS_WALK_SKIP_DIRS）を走査から除外する。走査中に消えたファイルはスキップして続行する。
  11. docs/status.md 全文に、Pin投稿の未完了状態を示す禁止語（固定リスト）が含まれていないか
      （D-0114） → 【警告】。Pinの投稿状況の正本は data/pin-posted.md と
      check-pin-posting-status.py であり、status.md はその写しにしない。
@@ -100,6 +102,20 @@ TASKS_MD = os.path.join(ROOT, "docs", "tasks.md")
 IDEAS_MD = os.path.join(ROOT, "docs", "ideas.md")
 DOCS_DIR = os.path.join(ROOT, "docs")
 AGENTS_DIR = os.path.join(ROOT, ".claude", "agents")
+# .claude/agents/ 配下を os.walk する際に踏み込まないディレクトリ名（セグメント一致）。
+# growth-agent が抱える node_modules / .pnpm-store 等のベンダー・ビルド生成ツリーは
+# 数万ファイル規模で、消失ファイルの read_text が FileNotFoundError を起こして
+# スクリプト全体を停止させていたため（走査コストと例外発生源を同時に断つ）。
+# エージェント定義ファイル（quality-reviewer.md・researcher.md・growth-agent/AGENTS.md 等）は
+# これらのセグメントを含まないため従来どおり検証対象に残る。
+AGENTS_WALK_SKIP_DIRS = {
+    "node_modules",
+    ".pnpm-store",
+    ".pnpm",
+    ".build",
+    ".tools",
+    ".git",
+}
 POSTS_DIR = os.path.join(ROOT, "site", "src", "content", "posts")
 STATE_TSV = os.path.join(ROOT, "data", "doc-state.tsv")
 # site/scripts/ の健全性チェック（検出項目12）
@@ -572,11 +588,30 @@ def check_archive_boundary():
     return warnings
 
 
+def walk_agents_md_files():
+    """.claude/agents/ 配下の *.md を、ベンダー/ビルド生成ディレクトリを除いて列挙する。
+
+    os.walk の dirnames を in-place で絞り、AGENTS_WALK_SKIP_DIRS のセグメント
+    （node_modules / .pnpm-store / .pnpm / .build / .tools / .git）を含むディレクトリへ
+    そもそも踏み込まない。将来 AGENTS_DIR を走査する箇所が増えても同じ地雷を踏まないよう、
+    枝刈りロジックをこのヘルパー1箇所に集約する。
+    """
+    if not os.path.isdir(AGENTS_DIR):
+        return
+    for dirpath, dirnames, filenames in os.walk(AGENTS_DIR):
+        dirnames[:] = [d for d in dirnames if d not in AGENTS_WALK_SKIP_DIRS]
+        for name in sorted(filenames):
+            if name.endswith(".md"):
+                yield os.path.join(dirpath, name)
+
+
 def collect_d_reference_target_files():
     """D番号参照の実在性検査（D-0113）の対象ファイル一覧を返す。
     対象: CLAUDE.md本体・rules/配下の全.md・docs/配下の全.md（decisions-archive.md除く）・
     .claude/agents/配下の全.md。site/scripts/配下・.claude/hooks/配下は対象外（コード内
     コメントであり実害が無いため）。
+    .claude/agents/配下の走査からは、node_modules / .pnpm-store 等のベンダー・ビルド生成
+    ディレクトリ（AGENTS_WALK_SKIP_DIRS）を除く（walk_agents_md_files() 経由）。
     """
     paths = []
     if os.path.isfile(CLAUDE_MD):
@@ -594,11 +629,7 @@ def collect_d_reference_target_files():
                 if os.path.normpath(full) == os.path.normpath(ARCHIVE_MD):
                     continue
                 paths.append(full)
-    if os.path.isdir(AGENTS_DIR):
-        for dirpath, _dirnames, filenames in os.walk(AGENTS_DIR):
-            for name in sorted(filenames):
-                if name.endswith(".md"):
-                    paths.append(os.path.join(dirpath, name))
+    paths.extend(walk_agents_md_files())
     return paths
 
 
@@ -621,7 +652,12 @@ def check_d_number_references():
     warnings = []
     for path in collect_d_reference_target_files():
         rel = os.path.relpath(path, ROOT).replace("\\", "/")
-        for i, line in enumerate(read_text(path).split("\n"), start=1):
+        try:
+            text = read_text(path)
+        except FileNotFoundError:
+            # 走査中に消えたファイル（生成物の入れ替わり等）はスキップして続行する。
+            continue
+        for i, line in enumerate(text.split("\n"), start=1):
             for matched in D_NUMBER_REF_RE.finditer(line):
                 num = int(matched.group(1))
                 if num not in valid_numbers:
