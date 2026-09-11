@@ -51,6 +51,7 @@ r"""投稿済みPinの「型 × 実成果」を集計する（読み取り専用
 使い方:
   python site/scripts/analyze-pin-metrics.py
   python site/scripts/analyze-pin-metrics.py --verify-saves
+  python site/scripts/analyze-pin-metrics.py --max-pins 300
 """
 
 import datetime
@@ -85,6 +86,11 @@ OUTPUT_TSV = os.path.join(ROOT, "data", "pin-metrics.tsv")
 # --- 処理量の上限（記事数の増加に比例して処理が増えないよう1箇所に固定する） ---
 MAX_PINS = 200        # 対象がこれを超えたら集計せず件数のみ報告して終了
 WINDOW_DAYS = 90      # created_at がこの日数以内のピンだけを対象にする
+
+# --max-pins <整数>: 1回限りの判定等でMAX_PINSを一時的に上書きするための任意引数。
+# 未指定時は MAX_PINS をそのまま使う（既定の挙動は変えない）。恒久的な上限変更は
+# スクリプト冒頭の MAX_PINS を直接変更すること（この引数はその場限りの上書き用）。
+MAX_PINS_FLAG = "--max-pins"
 
 # analytics を個別に呼ぶ場合の呼び出し間隔（秒）。
 # Standardのレート制限は1分100リクエスト。0.7秒間隔なら1分あたり約85件で余裕がある。
@@ -709,6 +715,19 @@ def main():
 
     verify_saves = VERIFY_SAVES_FLAG in sys.argv[1:]
 
+    max_pins = MAX_PINS
+    argv = sys.argv[1:]
+    if MAX_PINS_FLAG in argv:
+        idx = argv.index(MAX_PINS_FLAG)
+        if idx + 1 >= len(argv):
+            print("エラー: %s には整数値を指定してください。" % MAX_PINS_FLAG)
+            sys.exit(1)
+        try:
+            max_pins = int(argv[idx + 1])
+        except ValueError:
+            print("エラー: %s の値が整数ではありません: %s" % (MAX_PINS_FLAG, argv[idx + 1]))
+            sys.exit(1)
+
     try:
         access_token = require_env("PINTEREST_ACCESS_TOKEN")
     except EnvLoaderError as e:
@@ -720,7 +739,11 @@ def main():
     board_names = load_board_names()
 
     print("=== Pin 型×成果 集計（読み取り専用・GET系のみ） ===")
-    print("上限設定: MAX_PINS=%d / WINDOW_DAYS=%d" % (MAX_PINS, WINDOW_DAYS))
+    if max_pins != MAX_PINS:
+        print("上限設定: MAX_PINS=%d（既定%d件を --max-pins で上書き）/ WINDOW_DAYS=%d"
+              % (max_pins, MAX_PINS, WINDOW_DAYS))
+    else:
+        print("上限設定: MAX_PINS=%d / WINDOW_DAYS=%d" % (MAX_PINS, WINDOW_DAYS))
 
     # --- 1. GET /v5/pins 全件取得 ---
     try:
@@ -749,11 +772,15 @@ def main():
     if no_created_at:
         print("【注意】created_at を解釈できなかったピン: %d件（対象外）" % no_created_at)
 
-    if len(in_window) > MAX_PINS:
+    if len(in_window) > max_pins:
         print("")
         print("対象が上限 MAX_PINS=%d を超えました（%d件）。集計は行いません。"
-              % (MAX_PINS, len(in_window)))
-        print("上限を変えるにはスクリプト冒頭の MAX_PINS / WINDOW_DAYS を調整してください。")
+              % (max_pins, len(in_window)))
+        if max_pins == MAX_PINS:
+            print("上限を変えるにはスクリプト冒頭の MAX_PINS / WINDOW_DAYS を調整してください。")
+        else:
+            print("上限を変えるにはスクリプト冒頭の MAX_PINS / WINDOW_DAYS を調整するか、"
+                  "--max-pins <整数> を指定してください。")
         sys.exit(0)
 
     # --- 2. Pin番号・slug の特定 ---
