@@ -44,6 +44,11 @@ CLAUDE.md 3節1「rules/配下のファイルの新設・削除はオーナー�
      最古の最終確認日が一巡見込みの LINK_HEALTH_STALE_FACTOR 倍を超える場合と、
      一巡見込みが LINK_HEALTH_MAX_CYCLE_DAYS を超える場合に【警告】。台帳は読み取りのみ。
 
+ 14. 公開済み記事の実数（D-0213） → site/src/content/posts/ 配下の frontmatter の
+     status: published を数え、通常行1行で常時表示する。docs/status.md 中の
+     「記事N本」表記を全件抽出し、実数と異なるものが1件でもあれば【警告】。
+     status.mdが数字を書いていない（表記0件）場合は警告しない。
+
 状態は data/doc-state.tsv に保存する。プロジェクトルートはD-0043によりGit管理外のため、
 この状態ファイルがsite/リポジトリへ混入することは構造的に起こらない。
 
@@ -148,6 +153,17 @@ LINK_HEALTH_MAX_CYCLE_DAYS = 180
 LINK_HEALTH_DATE_COLUMN = "最終確認日"
 LINK_HEALTH_DATE_RE = re.compile(r"^\d\d\d\d-\d\d-\d\d$")
 LINK_HEALTH_SEPARATOR_CELL_RE = re.compile(r"^:?-\-*:?$")
+
+# 公開済み記事の実数とdocs/status.mdの手打ち表記の突き合わせに使う（D-0213）。
+# frontmatterの判定は前回調査（88件）と同じく「status: published」の行が
+# そのまま存在するかで行う（値の前後の空白は許容・引用符付き等の特殊表記は無い前提）。
+ARTICLE_STATUS_PUBLISHED_RE = re.compile(r"^status:\s*published\s*$", re.MULTILINE)
+# docs/status.md 中の「記事N本」表記を全件抽出する。status.md内には「記事86本目」
+# （Nth articleのordinal表記）や「関連記事4本」（本文中の内部リンク本数）のように
+# 総数を意味しない「記事N本」の部分文字列も多数出現するため、直後に「目」が続く
+# ものと直前が「関連」のものは除外する（実測: 素朴な抽出では記事目次由来の
+# ordinal表記が誤って不一致判定に混入し、実数側に修正しても警告が消えなかった）。
+ARTICLE_COUNT_LABEL_RE = re.compile(r"(?<!関連)記事(\d+)本(?!目)")
 
 # docs/tasks.md「## 今日」節直下の日付マーカー（rotate-today-tasks.pyが更新する・D-0097）が
 # 今日の日付と一致するかの検知に使う（rotate-today-tasks.py実行漏れの機械検知・D-0102）。
@@ -922,6 +938,39 @@ def check_link_health(today):
     return info, warnings
 
 
+def count_published_articles():
+    """site/src/content/posts/ 配下でfrontmatterが status: published の記事数を返す
+    （D-0213。collect_post_slugs()と同じ *.md 列挙に対し、各ファイルへ
+    ARTICLE_STATUS_PUBLISHED_RE をあてる）。"""
+    count = 0
+    for path in glob.glob(os.path.join(POSTS_DIR, "*.md")):
+        if ARTICLE_STATUS_PUBLISHED_RE.search(read_text(path)):
+            count += 1
+    return count
+
+
+def check_status_article_count(actual_count):
+    """docs/status.md 中の「記事N本」表記を全件抽出し、実数と異なるものが
+    1件でもあれば【警告】を返す（D-0213）。表記が1件も無ければ警告しない
+    （数字を書かない運用も許容するため）。
+
+    本数という1つの事実に frontmatter と status.md の手打ち文言という2つの出所が
+    あった状態を解消する目的のため、実数そのものは呼び出し側で常に通常行として
+    表示し、ここでは不一致の検知のみを行う。
+    """
+    if not os.path.isfile(STATUS_MD):
+        return []
+    labels = sorted(set(int(m.group(1)) for m in ARTICLE_COUNT_LABEL_RE.finditer(read_text(STATUS_MD))))
+    mismatched = [n for n in labels if n != actual_count]
+    if not mismatched:
+        return []
+    return [
+        "【警告】docs/status.mdの「記事N本」表記（%s）が実数の%d本と一致しません。"
+        "status.md側の表記を実数へ修正してください（D-0213）。"
+        % ("、".join("記事%d本" % n for n in mismatched), actual_count)
+    ]
+
+
 def main():
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
@@ -977,6 +1026,10 @@ def main():
     warnings += link_warnings
     if link_info:
         print(link_info)
+
+    article_count = count_published_articles()
+    print("公開済み記事 %d本（site/src/content/posts/）" % article_count)
+    warnings += check_status_article_count(article_count)
 
     state = load_state()
 
