@@ -154,23 +154,21 @@ def is_checked_line(line):
     return stripped.startswith("- [x]") or stripped.startswith("- [X]")
 
 
-def find_today_section(lines):
-    """「## 今日」見出しの開始行indexと、次の「## 」見出し直前までの終了indexを返す。
-    見出しが見つからなければ (None, None)。
+def find_today_sections(lines):
+    """「## 今日」で始まる（前方一致・サフィックス付き見出しを含む）節をすべて返す。
+    各要素は (start, end)。start は見出し行のindex、end は次の「## 」見出し直前
+    （無ければファイル末尾）のindex。見出しが1つも無ければ空リスト。
     """
-    start = None
-    for i, line in enumerate(lines):
-        if line.strip() == TODAY_HEADING:
-            start = i
-            break
-    if start is None:
-        return None, None
-    end = len(lines)
-    for i in range(start + 1, len(lines)):
-        if lines[i].startswith("## "):
-            end = i
-            break
-    return start, end
+    starts = [i for i, line in enumerate(lines) if line.strip().startswith(TODAY_HEADING)]
+    sections = []
+    for start in starts:
+        end = len(lines)
+        for i in range(start + 1, len(lines)):
+            if lines[i].startswith("## "):
+                end = i
+                break
+        sections.append((start, end))
+    return sections
 
 
 def main():
@@ -193,63 +191,80 @@ def main():
     text = read_text(target)
     lines = text.split("\n")
 
-    heading_idx, section_end = find_today_section(lines)
-    if heading_idx is None:
+    sections = find_today_sections(lines)
+    if not sections:
         print("「## 今日」節が見つかりません。何も書き込みません。")
-        sys.exit(0)
-
-    # 「## 今日」見出しの直後の行が日付マーカーかどうかを見る
-    marker_idx = heading_idx + 1
-    marker_date = None
-    has_marker = marker_idx < section_end and DATE_MARKER_RE.match(lines[marker_idx])
-    if has_marker:
-        marker_date = DATE_MARKER_RE.match(lines[marker_idx]).group(1)
-
-    if has_marker and marker_date == today:
-        print("NO_ROTATE")
         sys.exit(0)
 
     new_marker_line = "<!-- date: %s -->" % today
 
-    if not has_marker:
-        # マーカーが存在しない → 削除は一切行わず、マーカーを新規挿入するだけ
-        new_lines = lines[: heading_idx + 1] + [new_marker_line] + lines[heading_idx + 1 :]
-        print("日付マーカーが見つからないため削除は行わず、マーカーのみ新規挿入します（%s）。" % new_marker_line)
-        if not dry_run:
-            write_text(target, "\n".join(new_lines))
+    # 節ごとに独立して判定する。lines への削除・置換は、後ろの節から適用すれば
+    # 前の節のindexに影響しないため、開始indexの降順で処理する。
+    unreadable_headings = []
+    touched_reports = []  # (heading_text, old_date, new_today_or_None, removed_count, deleted_section)
+    pending_archives = []  # (marker_date, removed_lines) を書き込み前に集めておく
+
+    for start, end in sorted(sections, key=lambda s: s[0], reverse=True):
+        heading_text = lines[start].strip()
+        marker_idx = start + 1
+        has_marker = marker_idx < end and DATE_MARKER_RE.match(lines[marker_idx])
+        marker_date = DATE_MARKER_RE.match(lines[marker_idx]).group(1) if has_marker else None
+
+        if not has_marker:
+            unreadable_headings.append(heading_text)
+            continue
+
+        if marker_date == today:
+            continue
+
+        section_content = lines[marker_idx + 1 : end]
+        kept = []
+        removed = []
+        for line in section_content:
+            if is_checked_line(line):
+                removed.append(line)
+            else:
+                kept.append(line)
+
+        if removed:
+            pending_archives.append((marker_date, list(removed)))
+
+        remains = any(l.strip().startswith("- [") for l in kept)
+
+        if remains:
+            new_section = [lines[start], new_marker_line] + kept
+            lines[start:end] = new_section
+            touched_reports.append((heading_text, marker_date, today, len(removed), False, removed))
+        else:
+            # 未完了行が1つも残らない → 見出しごと節を削除する
+            lines[start:end] = []
+            touched_reports.append((heading_text, marker_date, today, len(removed), True, removed))
+
+    if unreadable_headings:
+        for h in unreadable_headings:
+            print("日付マーカーが読み取れないため触れません: %s" % h)
+
+    if not touched_reports:
+        print("NO_ROTATE")
         sys.exit(0)
 
-    # マーカーが過去日 → 「## 今日」節の完了行を削除し、マーカーを更新する
-    section_lines = lines[marker_idx + 1 : section_end]
-    kept = []
-    removed = []
-    for line in section_lines:
-        if is_checked_line(line):
-            removed.append(line)
-        else:
-            kept.append(line)
-
-    new_lines = (
-        lines[:heading_idx]
-        + [lines[heading_idx], new_marker_line]
-        + kept
-        + lines[section_end:]
-    )
-
-    print("マーカー更新: %s -> %s" % (marker_date, today))
-    print("削除件数: %d件" % len(removed))
-    for line in removed:
-        print(line)
+    # 表示は元の並び順（ファイル上から下）にしたいので開始indexの降順で積んだ
+    # touched_reports を反転する。
+    for heading_text, old_date, new_date, removed_count, deleted, removed_lines in reversed(touched_reports):
+        status = "節ごと削除" if deleted else "マーカー更新: %s -> %s" % (old_date, new_date)
+        print("見出し: %s / %s / 削除件数: %d件" % (heading_text, status, removed_count))
+        for line in removed_lines:
+            print(line)
 
     if not dry_run:
-        if removed:
+        for marker_date, removed_lines in pending_archives:
             try:
-                archived_count = archive_removed_lines(marker_date, removed)
+                archived_count = archive_removed_lines(marker_date, removed_lines)
             except Exception as e:
                 print("退避に失敗したため tasks.md への書き込みを中止します: %s" % e)
                 sys.exit(1)
-            print("退避先: %s（%d件）" % (ARCHIVE_MD, archived_count))
-        write_text(target, "\n".join(new_lines))
+            print("退避先: %s（%s・%d件）" % (ARCHIVE_MD, marker_date, archived_count))
+        write_text(target, "\n".join(lines))
 
     sys.exit(0)
 
