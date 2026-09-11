@@ -115,6 +115,7 @@ AGENTS_WALK_SKIP_DIRS = {
     ".build",
     ".tools",
     ".git",
+    "growth-agent",
 }
 POSTS_DIR = os.path.join(ROOT, "site", "src", "content", "posts")
 STATE_TSV = os.path.join(ROOT, "data", "doc-state.tsv")
