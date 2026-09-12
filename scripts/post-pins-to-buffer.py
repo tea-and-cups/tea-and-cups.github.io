@@ -538,21 +538,85 @@ def split_description(description):
     return description[:idx].strip(), description[idx + 1:].strip()
 
 
+def extract_topic(tags):
+    """ハッシュタグ部分（split_description の第2要素）から先頭の1語を
+    「#」を外した状態で取り出す。Threads/Instagramのチャネル固有の一言を
+    組み立てる材料にする（説明文に元から含まれる語で、新しい事実は加えない）。
+    tags が無い／空なら None。
+    """
+    if not tags:
+        return None
+    first = tags.split()[0] if tags.split() else ""
+    return first.lstrip("#") or None
+
+
+# Threads冒頭のフック（読者の状況・疑問を置く一文）。ピン番号を3で割った余りで
+# 機械的に選ぶ（CTA_LINESと同じ考え方・自由入力は受け付けない）。
+# {topic} はハッシュタグ先頭語（説明文に元からある語）で埋める。
+THREADS_HOOK_TEMPLATES = (
+    "「{topic}」、実はちゃんと知っていますか？",
+    "{topic}について、こんな疑問はありませんか？",
+    "{topic}のこと、知っておくと選び方が変わります。",
+)
+# ハッシュタグが無い（topicが取れない）ときの代替。同じ順で選ぶ。
+THREADS_HOOK_FALLBACK = (
+    "こんな疑問はありませんか？",
+    "気になっていたことはありませんか？",
+    "知っておくと役立つ話があります。",
+)
+
+# Threads末尾の誘導文。{topic}で記事に固有の行動動機を持たせる。
+# topicが取れないピンは既存のCTA_LINES（誘導先を明示しない汎用文）を使う。
+THREADS_CTA_TEMPLATES = (
+    "👇{topic}の続きはブログでまとめています☕️",
+    "👇{topic}について詳しくはブログへ☕️",
+    "👇{topic}の続きはブログでどうぞ☕️",
+)
+
+
+def pick_threads_hook(pin_num, topic):
+    idx = pin_num % 3
+    if topic:
+        return THREADS_HOOK_TEMPLATES[idx].format(topic=topic)
+    return THREADS_HOOK_FALLBACK[idx]
+
+
+def pick_threads_cta(pin_num, topic):
+    idx = pin_num % 3
+    if topic:
+        return THREADS_CTA_TEMPLATES[idx].format(topic=topic)
+    return CTA_LINES[idx]
+
+
+# Instagram向けの「保存してあとで読む」動機の一言。{topic}で記事に固有の言葉にする。
+# プロフィール導線行（INSTAGRAM_CTA_LINE）とは別の行で、その手前に置く。
+INSTAGRAM_SAVE_CTA_TEMPLATE = "📌 {topic}は保存してあとで読み返すのがおすすめです"
+INSTAGRAM_SAVE_CTA_FALLBACK = "📌 あとで読み返したい方は保存がおすすめです"
+
+
 def build_instagram_text(description):
     """Instagram向け本文。誘導先URLは含めない。
 
       <説明文（ハッシュタグを除いた部分）>
       <ハッシュタグ部分>
       （空行）
-      <固定の誘導文>
+      <「保存してあとで読む」動機の一言（記事のハッシュタグ先頭語を使う）>
+      （空行）
+      <固定の誘導文（プロフィール導線・文言・位置は従来どおり最終行）>
 
     URLを載せないのは、Instagramではキャプション内のリンクがクリックできず
     載せる意味がないため。代わりにプロフィールのリンクへ誘導する。
     """
     body, tags = split_description(description)
+    topic = extract_topic(tags)
+    save_line = (
+        INSTAGRAM_SAVE_CTA_TEMPLATE.format(topic=topic) if topic else INSTAGRAM_SAVE_CTA_FALLBACK
+    )
     lines = [body]
     if tags:
         lines.append(tags)
+    lines.append("")
+    lines.append(save_line)
     lines.append("")
     lines.append(INSTAGRAM_CTA_LINE)
     return "\n".join(lines)
@@ -561,9 +625,10 @@ def build_instagram_text(description):
 def build_text(pin_num, fields, service):
     """投稿本文を組み立てる。戻り値: (本文, 差し替え後のURL) または (None, 理由)
 
-    Instagram   … 説明文 ＋ ハッシュタグ ＋ 空行 ＋ 固定の誘導文（URLを載せない）
-                  URLが無いので utm_source の置換も行わない。第2要素は None。
-    Threads     … 説明文 ＋ 空行 ＋ 誘導文 ＋ 改行 ＋ 誘導先URL（従来どおり）
+    Instagram   … build_instagram_text() に委譲（URLが無いので utm_source の
+                  置換も行わない。第2要素は None）。
+    Threads     … チャネル固有のフック ＋ 空行 ＋ 説明文（ハッシュタグを除いた部分）
+                  ＋ ハッシュタグ ＋ 空行 ＋ 記事に紐づく誘導文 ＋ 改行 ＋ 誘導先URL
     X（twitter）… X用説明文 ＋ 改行 ＋ 誘導先URL（誘導文は付けない）
 
     X に誘導文を付けないのは、280という上限に対して誘導文が固定で
@@ -577,8 +642,17 @@ def build_text(pin_num, fields, service):
             return None, fields.get("x_reason") or "X用説明文がありません"
         xcheck = _load_check_x_post_length()
         return xcheck.build_x_text(fields["x_description"], url), url
-    body = "%s\n\n%s\n%s" % (fields["description"], pick_cta(pin_num), url)
-    return body, url
+    body, tags = split_description(fields["description"])
+    topic = extract_topic(tags)
+    hook = pick_threads_hook(pin_num, topic)
+    cta = pick_threads_cta(pin_num, topic)
+    parts = [hook, "", body]
+    if tags:
+        parts.append(tags)
+    parts.append("")
+    parts.append(cta)
+    parts.append(url)
+    return "\n".join(parts), url
 
 
 # --- (6) Xの文字数判定（数え方の正本は check-x-post-length.py） -----------------
