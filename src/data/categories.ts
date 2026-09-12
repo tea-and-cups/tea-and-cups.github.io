@@ -12,19 +12,19 @@ export const SHOW_CATEGORY_COUNT = false;
 export const CATEGORIES = [
   {
     slug: 'how-to',
-    name: '淹れ方・楽しみ方',
+    name: '淹れる・楽しむ',
     description:
       '紅茶をおいしくいれるコツと、茶葉の扱い方や保存など、日々のティータイムを整える基本をまとめました。',
   },
   {
     slug: 'tea-leaves',
-    name: '茶葉を選ぶ',
+    name: '茶葉を知る',
     description:
       '産地やフレーバーごとの特徴をふまえて、目的や気分に合う茶葉の選び方をご紹介します。',
   },
   {
     slug: 'teaware',
-    name: '茶器・道具',
+    name: '器・道具',
     description:
       'ティーカップ・グラス・ポットなど、紅茶の時間を支える器と道具の選び方をまとめました。',
   },

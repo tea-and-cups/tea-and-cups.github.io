@@ -7,7 +7,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import PostCard from '../components/PostCard.astro';
 import Pagination from '../components/Pagination.astro';
 import { POSTS_PER_PAGE, compareByDateDescThenSlugAsc } from '../data/pagination';
-import { CATEGORIES, categoryPath } from '../data/categories';
+import { getCategory, categoryPath } from '../data/categories';
 
 export async function getStaticPaths({ paginate }) {
   const posts = [...(await getCollection('posts', (p) => p.data.status === 'published'))]
@@ -57,6 +57,29 @@ if (isFirst && (starterPosts.length !== STARTER_SLUGS.length || pickupPosts.leng
   throw new Error('[home] 固定記事のslugが解決できません。STARTER_SLUGS / PICKUP_SLUGS を確認してください。');
 }
 
+// トップの主構造「Three Doors」。入口は3つで固定し、4つ目以降のテーマは下段の切り口セクションへ置く。
+// 表示名は categories.ts を正本とし、ここには持たない（トップとカテゴリページで名前が食い違わないようにするため）。
+const DOORS = [
+  { slug: 'tea-leaves', mark: '葉', note: '産地と等級で、味はここまで変わる。', starter: 'chaba-grade-op-bop-ctc-yomikata' },
+  { slug: 'how-to', mark: '淹', note: '同じ茶葉でも、淹れ方で別の一杯に。', starter: 'koucha-mizu-nansui-kousui' },
+  { slug: 'teaware', mark: '器', note: '器が変わると、紅茶の時間が変わる。', starter: 'teacup-coffee-cup-chigai' },
+];
+const doors = isFirst
+  ? DOORS.map((d) => ({
+      ...d,
+      category: getCategory(d.slug),
+      post: publishedPosts.find((p) => p.data.slug === d.starter),
+    }))
+  : [];
+
+// カテゴリ定義や記事slugの変更で、扉のリンクが切れたまま公開されるのを防ぐ
+if (isFirst && doors.some((d) => !d.category || !d.post)) {
+  throw new Error('[home] 扉のカテゴリslugまたは代表記事slugが解決できません。DOORS を確認してください。');
+}
+
+// 長いタイトルがカード内で3行に折り返すのを避けるため、「｜」より前だけをリンク文言にする
+const doorLinkLabel = (title) => title.split('｜')[0];
+
 // 1ページ目の「新着記事」は先頭6件をカード、残りをテキストリストにする（件数・並び順は変えない）
 const recentCards = isFirst ? page.data.slice(0, 6) : page.data;
 const recentMore = isFirst ? page.data.slice(6) : [];
@@ -99,14 +122,38 @@ const recentMore = isFirst ? page.data.slice(6) : [];
     </section>
   )}
   {isFirst && (
-    <nav class="home-themes" aria-labelledby="home-themes-heading">
-      <h2 id="home-themes-heading" class="home-block-title">テーマから探す</h2>
-      <ul class="home-theme-list">
-        {CATEGORIES.map((c) => (
-          <li>
-            <a class="home-theme-tile" href={categoryPath(c.slug)}>{c.name}</a>
+    <nav class="home-doors" aria-labelledby="home-doors-heading">
+      <p class="home-section-label">テーマから探す / Three Doors</p>
+      <h2 id="home-doors-heading" class="home-block-title">入口は、三つ。</h2>
+      <p class="home-lead">茶葉、淹れ方、器。どこから読んでも、自分の一杯に近づけます。</p>
+      <ul class="home-door-list">
+        {doors.map((d) => (
+          <li class="home-door">
+            <span class="home-door-mark" aria-hidden="true">{d.mark}</span>
+            <span class="home-door-name">{d.category.name}</span>
+            <span class="home-door-note">{d.note}</span>
+            <span class="home-door-starter">
+              <span class="home-door-starter-label">まず読むなら</span>
+              <a href={`/posts/${d.post.data.slug}/`}>{doorLinkLabel(d.post.data.title)}</a>
+            </span>
+            <a class="home-door-all" href={categoryPath(d.slug)}>{d.category.name}の記事をすべて見る →</a>
           </li>
         ))}
+      </ul>
+    </nav>
+  )}
+  {isFirst && (
+    <nav class="home-selected" aria-labelledby="home-selected-heading">
+      <p class="home-section-label">切り口から探す / Selected Themes</p>
+      <h2 id="home-selected-heading" class="home-block-title">気になるテーマから探す</h2>
+      <ul class="home-selected-list">
+        {/* 今後カテゴリを追加する場合はこの一覧へ足す（Three Doors の3つは固定構造のため） */}
+        <li>
+          <a class="home-selected-item" href={categoryPath('gift')}>
+            <span class="home-selected-name">Gift / 手土産</span>
+            <span class="home-selected-note">贈りものを選ぶ</span>
+          </a>
+        </li>
       </ul>
     </nav>
   )}
@@ -149,42 +196,118 @@ const recentMore = isFirst ? page.data.slice(6) : [];
     padding-bottom: 0.3rem;
     border-bottom: 1px solid var(--line);
   }
-  .home-themes { margin: 0 0 2.5rem; }
-  .home-theme-list {
+  /* Three Doors（主構造3つ）と、その下の切り口セクション。
+     色・書体は :root のトークンのみを使う。 */
+  .home-doors { margin: 0 0 2.5rem; }
+  .home-section-label {
+    font-family: var(--font-mincho);
+    font-size: var(--fs-small);
+    letter-spacing: 0.08em;
+    color: var(--ink-soft);
+    margin: 0 0 0.35rem;
+  }
+  .home-door-list {
     list-style: none;
     margin: 0;
     padding: 0;
     display: grid;
-    grid-template-columns: 1fr 1fr;   /* スマホは2列 */
-    gap: 0.65rem;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
   }
-  .home-theme-tile {
+  .home-door {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    padding: 1.1rem 1rem 1rem;
+    background: var(--color-ivory);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+  }
+  .home-door-mark {
     display: flex;
     align-items: center;
     justify-content: center;
-    text-align: center;
-    min-height: 56px;
-    padding: 0.7rem 0.6rem;
-    background: #fff;
+    width: 2.4rem;
+    height: 2.4rem;
+    border: 1px solid var(--color-line-strong);
+    border-radius: 50%;
+    font-family: var(--font-mincho);
+    font-size: 1.15rem;
+    line-height: 1;
+    color: var(--accent);
+  }
+  .home-door-name {
+    font-family: var(--font-mincho);
+    font-size: 1.1rem;
+    line-height: 1.4;
+    color: var(--ink);
+  }
+  .home-door-note {
+    font-size: 0.9rem;
+    line-height: 1.7;
+    color: var(--ink-soft);
+  }
+  .home-door-starter {
+    display: block;
+    font-size: 0.9rem;
+    line-height: 1.7;
+    padding-top: 0.45rem;
+    border-top: 1px solid var(--line);
+  }
+  .home-door-starter-label {
+    display: block;
+    font-size: var(--fs-small);
+    letter-spacing: 0.06em;
+    color: var(--ink-soft);
+  }
+  .home-door-all {
+    margin-top: auto;
+    padding-top: 0.35rem;
+    font-size: 0.9rem;
+    color: var(--accent);
+  }
+  .home-selected { margin: 0 0 2.5rem; }
+  .home-selected-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
+  }
+  .home-selected-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    padding: 0.8rem 0.9rem;
     border: 1px solid var(--line);
     border-radius: 6px;
-    color: var(--accent);
-    font-family: "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif;
-    font-size: 0.95rem;
-    line-height: 1.4;
     text-decoration: none;
-    transition: border-color 0.15s ease, box-shadow 0.15s ease;
   }
-  .home-theme-tile:hover {
-    border-color: #d8cec0;
-    box-shadow: 0 3px 10px rgba(58, 53, 50, 0.08);
+  .home-selected-name {
+    font-family: var(--font-mincho);
+    font-size: 0.95rem;
+    color: var(--accent);
   }
-  .home-theme-tile:focus-visible {
+  .home-selected-note {
+    font-size: var(--fs-small);
+    line-height: 1.6;
+    color: var(--ink-soft);
+  }
+  .home-door-all:focus-visible,
+  .home-selected-item:focus-visible {
     outline: 2px solid var(--accent);
     outline-offset: 2px;
   }
-  @media (min-width: 40rem) {
-    .home-theme-list { grid-template-columns: repeat(4, 1fr); }   /* PCは4列 */
+  .home-selected-item:hover { border-color: var(--color-line-strong); }
+  @media (max-width: 1023px) {
+    .home-door-list { gap: 0.75rem; }
+    .home-door { padding: 0.9rem 0.8rem; }
+    .home-selected-list { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 767px) {
+    .home-door-list { grid-template-columns: 1fr; }   /* スマホは1列 */
+    .home-selected-list { grid-template-columns: 1fr; }
   }
   .home-starter { margin: 0 0 2.5rem; }
 </style>
