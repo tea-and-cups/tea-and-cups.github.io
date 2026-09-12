@@ -18,6 +18,7 @@ Codex からシェル実行される前提で、標準出力に契約JSONを1個
   python site/scripts/growth-metrics.py ga4 --operation ga4.daily_traffic --lookback-days 7
   python site/scripts/growth-metrics.py gsc --operation gsc.search_analytics --lookback-days 28 --limit 28
   python site/scripts/growth-metrics.py buffer --operation buffer.account
+  python site/scripts/growth-metrics.py pins --operation pins.daily_metrics --lookback-days 30
 
 終了コード: 0=正常（status ok）/ 1=エラー（status error・許可外・範囲外・secretガード作動）
 """
@@ -56,6 +57,11 @@ GSC_INT_METRICS = ("clicks", "impressions")
 GSC_FLOAT_METRICS = ("ctr", "position")
 
 BUFFER_SOURCE = "buffer_graphql"
+
+# pins.daily_metrics（D-0218）: data/pin-daily-metrics.tsv（D-0217・fetch-pin-daily-metrics.py が
+# 差分保存する唯一の正本）を読むだけ。外部APIは一切呼ばない。
+PIN_DAILY_METRICS_TSV = os.path.join(PROJECT_ROOT, "data", "pin-daily-metrics.tsv")
+PIN_EXCLUSION_REASONS = ("identity_unavailable", "aspect_ratio_not_2_3", "duplicate_detected")
 
 LOOKBACK_MIN, LOOKBACK_MAX = 1, 90
 LIMIT_MIN, LIMIT_MAX = 1, 100
@@ -580,6 +586,87 @@ def run_buffer_account(params: dict) -> dict:
     return payload
 
 
+# --- pins.daily_metrics（TSV参照のみ）----------------------------------------
+
+
+def _read_pin_daily_metrics_tsv() -> tuple[list, list[str]]:
+    """data/pin-daily-metrics.tsv をそのまま読む。無ければ空リストを返す（推測で埋めない）。
+
+    戻り値: (行のリスト（列名→文字列の辞書のまま）, 列名の順序)
+    """
+    if not os.path.exists(PIN_DAILY_METRICS_TSV):
+        return [], []
+    with open(PIN_DAILY_METRICS_TSV, "r", encoding="utf-8") as handle:
+        header = None
+        rows = []
+        for line in handle:
+            line = line.rstrip("\n")
+            if not line.strip() or line.lstrip().startswith("#"):
+                continue
+            cells = line.split("\t")
+            if header is None:
+                header = cells
+                continue
+            rows.append(dict(zip(header, cells)))
+    return rows, (header or [])
+
+
+def run_pins_daily_metrics(params: dict) -> dict:
+    lookback_days = params["lookback_days"]
+    end_date = dt.date.today()
+    start_date = end_date - dt.timedelta(days=lookback_days - 1)
+    params["period"] = {"start_date": start_date.isoformat(), "end_date": end_date.isoformat()}
+
+    all_rows, columns = _read_pin_daily_metrics_tsv()
+    fetched_at = iso_now()
+
+    # coverage はTSV全体（lookbackの範囲外も含む）から数える。件数の正本はTSVそのもの。
+    total_pins = len(set(r.get("pin_number", "") for r in all_rows if r.get("pin_number")))
+    identity_available_pins = len(set(
+        r.get("pin_number", "") for r in all_rows
+        if r.get("pin_number") and r.get("group_info_density") and r.get("group_cta")
+    ))
+    excluded: dict[str, int] = {}
+    for reason in PIN_EXCLUSION_REASONS:
+        pins_with_reason = set()
+        for r in all_rows:
+            pin_number = r.get("pin_number", "")
+            if not pin_number:
+                continue
+            reasons = [x for x in (r.get("exclusion_reason") or "").split(";") if x]
+            if reason in reasons:
+                pins_with_reason.add(pin_number)
+        excluded[reason] = len(pins_with_reason)
+
+    in_window = [r for r in all_rows if start_date.isoformat() <= (r.get("date") or "") <= end_date.isoformat()]
+
+    payload = _base_payload("pins", "pins.daily_metrics", params)
+    payload["generated_at"] = fetched_at
+    payload["warnings"] = [] if all_rows else [
+        "data/pin-daily-metrics.tsv was not found or is empty; run "
+        "site/scripts/fetch-pin-daily-metrics.py first"
+    ]
+    payload["coverage"]["reason"] = (
+        "counts are read directly from data/pin-daily-metrics.tsv (fetch-pin-daily-metrics.py's "
+        "own output); this operation performs no external API call and does not recompute them"
+    )
+    payload["coverage"]["state"] = "as_of_last_fetch"
+    payload["coverage"]["total_pins"] = total_pins
+    payload["coverage"]["identity_available"] = identity_available_pins
+    payload["coverage"]["excluded"] = excluded
+    payload["coverage"]["known_undercount"] = (
+        "total_pins above is known to be an undercount: GET /v5/pins list pagination misses at "
+        "least some pins that individually still exist on Pinterest (confirmed for pin120/128/161, "
+        "all HTTP 200); the local image-based actual pin count is 264; see reports/2026-09-12-6.md "
+        "and reports/2026-09-12-7.md for details. Root cause and the fetch method are not fixed yet."
+    )
+    payload["data"]["series"] = []
+    payload["data"]["snapshot"] = {}
+    payload["data"]["rows"] = in_window
+    payload["data"]["columns"] = columns
+    return payload
+
+
 # --- 操作テーブル ---------------------------------------------------------
 
 ALLOWED_OPERATIONS = {
@@ -601,6 +688,15 @@ ALLOWED_OPERATIONS = {
         "accepts": frozenset(),
         "handler": run_buffer_account,
     },
+    "pins.daily_metrics": {
+        "service": "pins",
+        "description": (
+            "Pin x day rows read verbatim from data/pin-daily-metrics.tsv "
+            "(D-0217/D-0218; no external API call)"
+        ),
+        "accepts": frozenset(["lookback_days"]),
+        "handler": run_pins_daily_metrics,
+    },
 }
 
 
@@ -608,7 +704,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Read-only broker for Growth Agent external metrics (GA4 / GSC / Buffer)."
     )
-    parser.add_argument("service", help="ga4, gsc or buffer")
+    parser.add_argument("service", help="ga4, gsc, buffer or pins")
     parser.add_argument("--operation", required=True, help="one of ALLOWED_OPERATIONS")
     parser.add_argument("--lookback-days", type=str, default=None, help="integer 1..90")
     parser.add_argument("--limit", type=str, default=None, help="integer 1..100")
@@ -624,8 +720,8 @@ def main() -> None:
     operation = args.operation
 
     try:
-        if service not in ("ga4", "gsc", "buffer"):
-            raise BrokerError("unknown_service", "service must be 'ga4', 'gsc' or 'buffer'")
+        if service not in ("ga4", "gsc", "buffer", "pins"):
+            raise BrokerError("unknown_service", "service must be 'ga4', 'gsc', 'buffer' or 'pins'")
 
         spec = ALLOWED_OPERATIONS.get(operation)
         if spec is None:
