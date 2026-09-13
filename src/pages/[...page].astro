@@ -19,6 +19,8 @@ const firstSteps = isFirst ? HOME_FIRST_STEPS.map((item) => ({ ...item, post: re
 const doors = isFirst ? HOME_DOORS.map((item) => ({ ...item, categoryData: getCategory(item.category), post: resolve(item.featured) })) : [];
 if (isFirst && (firstSteps.some((x) => !x.post) || doors.some((x) => !x.categoryData || !x.post))) throw new Error('[home] editorial slug mapping failed');
 const recent = isFirst ? allPosts.slice(0, 8) : page.data;
+// 記事一覧の1ページ目は /articles/。/2/ の「前へ」だけ / ではなく /articles/ へ繋ぐ。
+const pagination = page.currentPage === 2 ? { ...page, url: { ...page.url, prev: '/articles/' } } : page;
 // Pinterest帯: public/pin-images/ をビルド時に走査し、番号の大きい順に最大3枚を選ぶ（ファイル名は直書きしない）。
 // 日次pruneの途中で3枚未満でもビルドを落とさず、ある枚数だけ出す。番号は数値比較（辞書順だと2桁が3桁より後ろに並ぶため）。
 const pinImages = isFirst
@@ -52,7 +54,7 @@ const description = isFirst ? '紅茶を「なんとなく」から「自分で�
     <section class="section"><div class="container pinterest-grid"><div><p class="eyebrow">Pinterest</p><h2 class="section-title">毎日の一杯を、Pinterestでも。</h2><p class="section-lead">季節のティータイムや器の選び方を、写真でも紹介しています。</p><a class="btn btn--ghost" href="https://jp.pinterest.com/kohakujikan/" target="_blank" rel="noopener">Pinterestを見る ↗<span class="visually-hidden">（新しいタブで開きます）</span></a></div><div class="pin-strip">{pinImages.map((src) => <img src={src} alt="" loading="lazy" />)}</div></div></section>
 
     <section class="final-cta"><img src={`/images/${firstSteps[0].post.data.slug}/hero.webp`} alt="紅茶を淹れる手元" width="1200" height="630" loading="lazy" /><div class="final-cta__copy"><p class="eyebrow">最初の一杯</p><h2>さあ、最初の一杯を。</h2><p>どこから始めればいいか迷ったら、淹れ方の基本から。</p><a class="btn btn--primary" href={`/posts/${firstSteps[0].post.data.slug}/`}>淹れ方の基本から読む →</a></div></section>
-  </Fragment> : <section class="archive-page"><div class="container"><p class="eyebrow">記事一覧 <em>Stories</em></p><h1>記事一覧（{page.currentPage}ページ目）</h1><ul class="post-list">{recent.map((post) => <PostCard post={post} />)}</ul><Pagination page={page} /></div></section>}
+  </Fragment> : <section class="archive-page"><div class="container"><p class="eyebrow">記事一覧 <em>Stories</em></p><h1>記事一覧（{page.currentPage}ページ目）</h1><ul class="post-list">{recent.map((post) => <PostCard post={post} />)}</ul><Pagination page={pagination} /></div></section>}
 
   {isFirst && <script is:inline>
     (() => {

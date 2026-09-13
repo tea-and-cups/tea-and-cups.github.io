@@ -5,14 +5,16 @@ import PostCard from '../../components/PostCard.astro';
 import Pagination from '../../components/Pagination.astro';
 import { CATEGORIES } from '../../data/categories';
 import { POSTS_PER_PAGE, compareByDateDescThenSlugAsc } from '../../data/pagination';
-export async function getStaticPaths({ paginate }) {
+// /articles/ は記事一覧の1ページ目専用。2ページ目以降は既存URLの /2/ /3/ … が担う（[...page].astro）。
+export async function getStaticPaths() {
   const posts = [...(await getCollection('posts', (p) => p.data.status === 'published'))].sort(compareByDateDescThenSlugAsc);
-  return paginate(posts, { pageSize: POSTS_PER_PAGE });
+  const lastPage = Math.max(1, Math.ceil(posts.length / POSTS_PER_PAGE));
+  const page = { data: posts.slice(0, POSTS_PER_PAGE), currentPage: 1, lastPage, url: { prev: undefined, next: lastPage > 1 ? '/2/' : undefined } };
+  return [{ params: { page: undefined }, props: { page } }];
 }
 const { page } = Astro.props;
-const suffix = page.currentPage === 1 ? '' : `（${page.currentPage}ページ目）`;
-const breadcrumbs = [{ label: 'ホーム', href: '/' }, { label: `すべての記事${suffix}` }];
+const breadcrumbs = [{ label: 'ホーム', href: '/' }, { label: 'すべての記事' }];
 ---
-<BaseLayout title={`すべての記事${suffix}`} description={`琥珀時間の公開記事を新しい順に掲載しています${suffix}。`} breadcrumbs={breadcrumbs} showRecentPosts={false}>
-  <section class="archive-page"><div class="container"><p class="eyebrow">記事一覧 <em>All Stories</em></p><h1>すべての記事{suffix}</h1><nav class="category-filter" aria-label="カテゴリから絞り込む">{CATEGORIES.map((c) => <a href={`/category/${c.slug}/`}>{c.name}</a>)}</nav><ul class="post-list" style="margin-top:2rem">{page.data.map((post, i) => <PostCard post={post} eager={i < 3} />)}</ul><Pagination page={page} /></div></section>
+<BaseLayout title="すべての記事" description="琥珀時間の公開記事を新しい順に掲載しています。" breadcrumbs={breadcrumbs} showRecentPosts={false}>
+  <section class="archive-page"><div class="container"><p class="eyebrow">記事一覧 <em>All Stories</em></p><h1>すべての記事</h1><nav class="category-filter" aria-label="カテゴリから絞り込む">{CATEGORIES.map((c) => <a href={`/category/${c.slug}/`}>{c.name}</a>)}</nav><ul class="post-list" style="margin-top:2rem">{page.data.map((post, i) => <PostCard post={post} eager={i < 3} />)}</ul><Pagination page={page} /></div></section>
 </BaseLayout>
