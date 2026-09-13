@@ -1,313 +1,77 @@
 ---
-// トップの記事一覧。1ページ12件で、13件目以降は /2/ /3/ … に分割する。
-// （旧 index.astro を paginate 化したもの。1ページ目のURLは従来どおり / のまま）
-// 1ページ目だけランディング構成（ヒーロー→はじめての方へ→テーマ→おすすめ→新着）にする。
 import { getCollection } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import PostCard from '../components/PostCard.astro';
 import Pagination from '../components/Pagination.astro';
 import { POSTS_PER_PAGE, compareByDateDescThenSlugAsc } from '../data/pagination';
 import { getCategory, categoryPath } from '../data/categories';
+import { HOME_FIRST_STEPS, HOME_DOORS } from '../data/editorial';
 
 export async function getStaticPaths({ paginate }) {
-  const posts = [...(await getCollection('posts', (p) => p.data.status === 'published'))]
-    .sort(compareByDateDescThenSlugAsc);
+  const posts = [...(await getCollection('posts', (p) => p.data.status === 'published'))].sort(compareByDateDescThenSlugAsc);
   return paginate(posts, { pageSize: POSTS_PER_PAGE });
 }
-
 const { page } = Astro.props;
-const siteName = '琥珀時間'; // D-0008
 const isFirst = page.currentPage === 1;
-const baseDescription =
-  '紅茶とティーカップの静かな時間。茶葉の選び方からカップの楽しみまで、丁寧にご紹介するメディア「琥珀時間」です。';
-
-// 2ページ目以降はタイトル・descriptionを変えて重複を避ける（canonicalはBaseLayoutが自ページを指す）
-// 1ページ目は siteName と異なる文字列にすることで <title> を「〜｜琥珀時間」にする（BaseLayout側は変更しない）
+const allPosts = isFirst ? [...(await getCollection('posts', (p) => p.data.status === 'published'))].sort(compareByDateDescThenSlugAsc) : [];
+const resolve = (slug) => allPosts.find((p) => p.data.slug === slug);
+const firstSteps = isFirst ? HOME_FIRST_STEPS.map((item) => ({ ...item, post: resolve(item.slug) })) : [];
+const doors = isFirst ? HOME_DOORS.map((item) => ({ ...item, categoryData: getCategory(item.category), post: resolve(item.featured) })) : [];
+if (isFirst && (firstSteps.some((x) => !x.post) || doors.some((x) => !x.categoryData || !x.post))) throw new Error('[home] editorial slug mapping failed');
+const recent = isFirst ? allPosts.slice(0, 8) : page.data;
+// Pinterest帯: public/pin-images/ をビルド時に走査し、番号の大きい順に最大3枚を選ぶ（ファイル名は直書きしない）。
+// 日次pruneの途中で3枚未満でもビルドを落とさず、ある枚数だけ出す。番号は数値比較（辞書順だと2桁が3桁より後ろに並ぶため）。
+const pinImages = isFirst
+  ? Object.keys(import.meta.glob('/public/pin-images/*.{jpg,jpeg,png,webp}'))
+      .map((file) => ({ file: file.split('/').pop(), num: Number(file.match(/(\d+)\.\w+$/)?.[1]) }))
+      .filter((p) => Number.isFinite(p.num))
+      .sort((a, b) => b.num - a.num)
+      .slice(0, 3)
+      .map((p) => `/pin-images/${p.file}`)
+  : [];
 const title = isFirst ? '紅茶とティーカップの静かな時間' : `記事一覧（${page.currentPage}ページ目）`;
-const description = isFirst
-  ? baseDescription
-  : `${baseDescription}（記事一覧 ${page.currentPage}ページ目）`;
-
-// 1ページ目だけに出す固定スロット。
-// slugだけを持ち、タイトル・説明文・サムネイルはコレクション側から引く（テンプレートにべた書きしない）。
-const STARTER_SLUGS = [
-  'aki-moyougae-hitoribun-tea-space',
-  'kokyu-koucha-brand-guide',
-  '5000en-ika-brand-teacup-hikaku',
-  'ouchi-afternoon-tea-hajimekata',
-];
-const PICKUP_SLUGS = [
-  'sekai-sandai-koucha-towa',
-  'chaba-grade-op-bop-ctc-yomikata',
-  'koucha-kihon-no-irekata',
-  'koucha-shomikigen-kireta-fuumi-mikiwame',
-];
-const publishedPosts = isFirst
-  ? await getCollection('posts', (p) => p.data.status === 'published')
-  : [];
-const starterPosts = STARTER_SLUGS.map((slug) =>
-  publishedPosts.find((p) => p.data.slug === slug)
-).filter(Boolean);
-const pickupPosts = PICKUP_SLUGS.map((slug) =>
-  publishedPosts.find((p) => p.data.slug === slug)
-).filter(Boolean);
-
-// 固定スロットのslugが解決できないまま公開されるのを防ぐ（.filter(Boolean) は静かに欠落させるため）
-if (isFirst && (starterPosts.length !== STARTER_SLUGS.length || pickupPosts.length !== PICKUP_SLUGS.length)) {
-  throw new Error('[home] 固定記事のslugが解決できません。STARTER_SLUGS / PICKUP_SLUGS を確認してください。');
-}
-
-// トップの主構造「Three Doors」。入口は3つで固定し、4つ目以降のテーマは下段の切り口セクションへ置く。
-// 表示名は categories.ts を正本とし、ここには持たない（トップとカテゴリページで名前が食い違わないようにするため）。
-const DOORS = [
-  { slug: 'tea-leaves', mark: '葉', note: '産地と等級で、味はここまで変わる。', starter: 'chaba-grade-op-bop-ctc-yomikata' },
-  { slug: 'how-to', mark: '淹', note: '同じ茶葉でも、淹れ方で別の一杯に。', starter: 'koucha-mizu-nansui-kousui' },
-  { slug: 'teaware', mark: '器', note: '器が変わると、紅茶の時間が変わる。', starter: 'teacup-coffee-cup-chigai' },
-];
-const doors = isFirst
-  ? DOORS.map((d) => ({
-      ...d,
-      category: getCategory(d.slug),
-      post: publishedPosts.find((p) => p.data.slug === d.starter),
-    }))
-  : [];
-
-// カテゴリ定義や記事slugの変更で、扉のリンクが切れたまま公開されるのを防ぐ
-if (isFirst && doors.some((d) => !d.category || !d.post)) {
-  throw new Error('[home] 扉のカテゴリslugまたは代表記事slugが解決できません。DOORS を確認してください。');
-}
-
-// 長いタイトルがカード内で3行に折り返すのを避けるため、「｜」より前だけをリンク文言にする
-const doorLinkLabel = (title) => title.split('｜')[0];
-
-// 1ページ目の「新着記事」は先頭6件をカード、残りをテキストリストにする（件数・並び順は変えない）
-const recentCards = isFirst ? page.data.slice(0, 6) : page.data;
-const recentMore = isFirst ? page.data.slice(6) : [];
+const description = isFirst ? '紅茶を「なんとなく」から「自分で選べる一杯」へ。産地・淹れ方・器の違いを、はじめての人にもわかる順番で紹介します。' : `琥珀時間の記事一覧 ${page.currentPage}ページ目。`;
 ---
-<BaseLayout
-  title={title}
-  description={description}
-  showRecentPosts={false}
->
-  {isFirst ? (
-    <section class="home-hero">
-      <h1>琥珀時間</h1>
-      <p class="site-tagline">紅茶とティーカップの静かな時間</p>
-      <p class="site-intro">
-        「琥珀時間」は、紅茶とティーカップのある時間を少しだけ丁寧にするための小さなメディアです。茶葉の選び方から淹れ方、器や道具、贈りものまで、暮らしの中で試せることをひとつずつご紹介しています。
-      </p>
-      <img
-        class="home-hero-image"
-        src="/images/home/hero.webp"
-        width="1400"
-        height="735"
-        loading="eager"
-        decoding="async"
-        alt="窓辺のテーブルに置かれた紅茶のティーカップとガラスのティーポット"
-      />
+<BaseLayout title={title} description={description} showRecentPosts={false} pageClass={isFirst ? 'home-page' : 'archive-page-body'}>
+  {isFirst ? <Fragment>
+    <section class="home-hero hero" aria-labelledby="hero-title">
+      <div class="hero__media"><picture><source media="(max-width:767px)" srcset="/hero/portrait/frame_01.webp" /><img class="hero__img" src="/hero/landscape/frame_01.webp" width="1600" height="900" alt="白磁のカップに、ポットから琥珀色の紅茶が注がれている" fetchpriority="high" /></picture><canvas class="hero__canvas" aria-hidden="true"></canvas></div><div class="hero__scrim" aria-hidden="true"></div>
+      <div class="hero__inner"><div class="hero__titleblock"><h1 class="hero__title" id="hero-title">琥珀時間<span class="visually-hidden"> 紅茶とティーカップの読みもの</span></h1><p class="hero__eyebrow" aria-hidden="true">紅茶とティーカップの読みもの</p></div><div class="hero__copy"><p class="hero__kicker">なんとなく、で飲んでいた紅茶に。<br />産地と、淹れ方と、器のはなしを。</p><p class="hero__lead">自分の一杯を、<br />自分で選べるように。</p><div class="hero__cta"><a class="btn btn--primary" href="#first-steps">はじめての一杯を選ぶ →</a><a class="text-arrow" href="#recent">最近の記事を読む</a></div></div></div>
     </section>
-  ) : (
-    <Fragment>
-      <p class="site-tagline">紅茶とティーカップの静かな時間</p>
-      <h1>記事一覧{!isFirst && `（${page.currentPage}ページ目）`}</h1>
-    </Fragment>
-  )}
-  {isFirst && (
-    <section class="home-starter" aria-labelledby="home-starter-heading">
-      <h2 id="home-starter-heading" class="home-block-title">はじめての方へ</h2>
-      <p class="home-lead">一日のどこかに、湯気の立つ一杯を置く。特別な道具がなくても、紅茶のある時間はここから始められます。</p>
-      <ul class="post-list">
-        {starterPosts.map((post) => <PostCard post={post} />)}
-      </ul>
-    </section>
-  )}
-  {isFirst && (
-    <nav class="home-doors" aria-labelledby="home-doors-heading">
-      <p class="home-section-label">テーマから探す / Three Doors</p>
-      <h2 id="home-doors-heading" class="home-block-title">入口は、三つ。</h2>
-      <p class="home-lead">茶葉、淹れ方、器。どこから読んでも、自分の一杯に近づけます。</p>
-      <ul class="home-door-list">
-        {doors.map((d) => (
-          <li class="home-door">
-            <span class="home-door-mark" aria-hidden="true">{d.mark}</span>
-            <span class="home-door-name">{d.category.name}</span>
-            <span class="home-door-note">{d.note}</span>
-            <span class="home-door-starter">
-              <span class="home-door-starter-label">まず読むなら</span>
-              <a href={`/posts/${d.post.data.slug}/`}>{doorLinkLabel(d.post.data.title)}</a>
-            </span>
-            <a class="home-door-all" href={categoryPath(d.slug)}>{d.category.name}の記事をすべて見る →</a>
-          </li>
-        ))}
-      </ul>
-    </nav>
-  )}
-  {isFirst && (
-    <nav class="home-selected" aria-labelledby="home-selected-heading">
-      <p class="home-section-label">切り口から探す / Selected Themes</p>
-      <h2 id="home-selected-heading" class="home-block-title">気になるテーマから探す</h2>
-      <ul class="home-selected-list">
-        {/* 今後カテゴリを追加する場合はこの一覧へ足す（Three Doors の3つは固定構造のため） */}
-        <li>
-          <a class="home-selected-item" href={categoryPath('gift')}>
-            <span class="home-selected-name">Gift / 手土産</span>
-            <span class="home-selected-note">贈りものを選ぶ</span>
-          </a>
-        </li>
-      </ul>
-    </nav>
-  )}
-  {isFirst && (
-    <section class="home-pickup" aria-labelledby="home-pickup-heading">
-      <h2 id="home-pickup-heading" class="home-block-title">紅茶の基礎知識</h2>
-      <p class="home-lead">知る・選ぶ・淹れる・保つ。この4本を順に読むと、紅茶の基本がひととおりつながります。</p>
-      <ul class="post-list">
-        {pickupPosts.map((post) => <PostCard post={post} />)}
-      </ul>
-    </section>
-  )}
-  {isFirst && <h2 class="home-block-title">新着記事</h2>}
-  {page.data.length === 0 && <p>記事は準備中です。どうぞ楽しみにお待ちください。</p>}
-  <ul class="post-list">
-    {recentCards.map((post) => <PostCard post={post} />)}
-  </ul>
-  {recentMore.length > 0 && (
-    <ul class="home-recent-more">
-      {recentMore.map((post) => (
-        <li><a href={`/posts/${post.data.slug}/`}>{post.data.title}</a></li>
-      ))}
-    </ul>
-  )}
-  <Pagination page={page} />
-  {isFirst && (
-    <p class="home-more"><a href="/category/">テーマ一覧をすべて見る →</a></p>
-  )}
+
+    <section class="section" id="first-steps"><div class="container"><div class="section-head"><div><p class="eyebrow">はじめての方へ <em>First Steps</em></p><h2 class="section-title">はじめての人は、この順番で。</h2></div><p class="section-lead">最初に読んでほしい3本です。上から順に読むと、紅茶の選び方の全体像がつかめます。</p></div><ol class="steps">{firstSteps.map((item, i) => <li class="step"><a href={`/posts/${item.post.data.slug}/`}><img src={`/images/${item.post.data.slug}/thumb.webp`} alt="" width="480" height="252" loading={i === 0 ? 'eager' : 'lazy'} /><span><p class="step__num">STEP {i + 1}　{item.verb}</p><h3>{item.post.data.title}</h3><p class="step__why">{item.post.data.description}</p></span></a></li>)}</ol></div></section>
+
+    <section class="section" aria-labelledby="doors-title"><div class="container"><div class="section-head"><div><p class="eyebrow">テーマから探す <em>Three Doors</em></p><h2 class="section-title" id="doors-title">入口は、三つ。</h2></div><p class="section-lead">茶葉、淹れ方、器。どこから読んでも、自分の一杯に近づけます。</p></div><div class="doors-grid">{doors.map((d) => <section class="door"><span class="door__mark" aria-hidden="true">{d.mark}</span><div><h3>{d.categoryData.name}</h3><p class="door__note">{d.note}</p><a class="door__pick" href={`/posts/${d.post.data.slug}/`}><small>まず読むなら</small>{d.post.data.title.split('｜')[0]}</a><a class="text-arrow" href={categoryPath(d.category)}>{d.categoryData.name}の記事を見る</a></div></section>)}</div></div></section>
+
+    <section class="section section--deep" id="themes"><div class="container theme-row"><div><p class="eyebrow">切り口から探す <em>Selected Themes</em></p><h2 class="section-title">気になるテーマから探す</h2></div><div><a class="theme-card" href="/category/gift/"><span><small>Gift / 手土産</small>贈りものを選ぶ</span><span aria-hidden="true">→</span></a></div></div></section>
+
+    <section class="section" id="recent"><div class="container"><div class="section-head"><div><p class="eyebrow">新着 <em>Recent Articles</em></p><h2 class="section-title">最近の読みもの</h2></div><a class="text-arrow" href="/articles/">すべての記事（{allPosts.length}本）</a></div><ul class="post-list recent-grid">{recent.map((post, i) => <PostCard post={post} eager={i < 4} />)}</ul><div class="section-actions"><a class="btn btn--ghost" href="/articles/">すべての記事を見る →</a></div></div></section>
+
+    <section class="section section--deep"><div class="container about-grid"><img src="/images/home/hero.webp" alt="紅茶のある静かな時間" width="1400" height="735" loading="lazy" /><div class="about-copy"><p class="eyebrow">琥珀時間について <em>About</em></p><h2>調べた結果ではなく、<br />選び方を書いています。</h2><p>紅茶の入口には、専門用語や、調べるほど迷い込む情報がたくさんあります。琥珀時間は、はじめての人が選びやすい順番を編む読みものです。</p><ol class="promises"><li>分かる言葉に置き換えます。</li><li>産地や器の違いを、ていねいに整理します。</li><li>誰かの一杯を紹介するときは、根拠を示します。</li></ol><p><span class="article-count">{allPosts.length}</span> 本の記事を公開中</p><a class="text-arrow" href="/about/">運営者について</a></div></div></section>
+
+    <section class="section"><div class="container pinterest-grid"><div><p class="eyebrow">Pinterest</p><h2 class="section-title">毎日の一杯を、Pinterestでも。</h2><p class="section-lead">季節のティータイムや器の選び方を、写真でも紹介しています。</p><a class="btn btn--ghost" href="https://jp.pinterest.com/kohakujikan/" target="_blank" rel="noopener">Pinterestを見る ↗<span class="visually-hidden">（新しいタブで開きます）</span></a></div><div class="pin-strip">{pinImages.map((src) => <img src={src} alt="" loading="lazy" />)}</div></div></section>
+
+    <section class="final-cta"><img src={`/images/${firstSteps[0].post.data.slug}/hero.webp`} alt="紅茶を淹れる手元" width="1200" height="630" loading="lazy" /><div class="final-cta__copy"><p class="eyebrow">最初の一杯</p><h2>さあ、最初の一杯を。</h2><p>どこから始めればいいか迷ったら、淹れ方の基本から。</p><a class="btn btn--primary" href={`/posts/${firstSteps[0].post.data.slug}/`}>淹れ方の基本から読む →</a></div></section>
+  </Fragment> : <section class="archive-page"><div class="container"><p class="eyebrow">記事一覧 <em>Stories</em></p><h1>記事一覧（{page.currentPage}ページ目）</h1><ul class="post-list">{recent.map((post) => <PostCard post={post} />)}</ul><Pagination page={page} /></div></section>}
+
+  {isFirst && <script is:inline>
+    (() => {
+      const hero=document.querySelector('.hero'),canvas=hero?.querySelector('.hero__canvas'),img=hero?.querySelector('.hero__img'); if(!hero||!canvas||!img||!canvas.getContext)return;
+      const reduced=matchMedia('(prefers-reduced-motion:reduce)').matches,navigatorConnection=navigator.connection||{}; if(reduced||navigatorConnection.saveData)return;
+      const portrait=matchMedia('(max-width:767px)'),dir=portrait.matches?'portrait':'landscape',ctx=canvas.getContext('2d');
+      const total=150,frameMs=1000/24,lookAhead=6,pending=new Map(); let last=null,stopped=false;
+      const src=(n)=>`/hero/full/${dir}/frame_${String(n).padStart(4,'0')}.webp`;
+      const load=(n)=>{if(!pending.has(n)){pending.set(n,new Promise((ok,no)=>{const x=new Image();x.decoding='async';x.onload=()=>ok(x);x.onerror=no;x.src=src(n)}))}return pending.get(n)};
+      const resize=()=>{const d=Math.min(devicePixelRatio||1,2),w=Math.round(canvas.clientWidth*d),h=Math.round(canvas.clientHeight*d);if(w===canvas.width&&h===canvas.height)return;canvas.width=w;canvas.height=h};
+      const paint=(x)=>{resize();const s=Math.max(canvas.width/x.naturalWidth,canvas.height/x.naturalHeight),w=x.naturalWidth*s,h=x.naturalHeight*s;ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(x,(canvas.width-w)/2,(canvas.height-h)/2,w,h);last=x};
+      const wait=(ms)=>new Promise((ok)=>setTimeout(ok,ms));
+      const play=async()=>{for(let n=1;n<=total&&!stopped;n++){for(let i=n;i<=Math.min(total,n+lookAhead-1);i++)load(i);const started=performance.now(),frame=await load(n);if(stopped)return;paint(frame);hero.classList.add('is-poured');pending.delete(n);await wait(Math.max(0,frameMs-(performance.now()-started)))}pending.clear()};
+      const start=()=>{if(document.hidden||scrollY>hero.offsetHeight)return;const idle=window.requestIdleCallback||((cb)=>setTimeout(cb,250));idle(()=>play().catch(()=>{hero.classList.remove('is-poured');pending.clear()}),{timeout:1200})};
+      if(document.readyState==='complete')start();else addEventListener('load',start,{once:true});
+      addEventListener('pagehide',()=>{stopped=true;pending.clear()},{once:true});
+      addEventListener('resize',()=>requestAnimationFrame(()=>{if(portrait.matches!==(dir==='portrait')){stopped=true;hero.classList.remove('is-poured');pending.clear();return}if(last)paint(last)}));
+    })();
+  </script>}
 </BaseLayout>
 
-<style>
-  /* トップ1ページ目だけの導線ブロック（/2/ 以降には出さないためページ側に置く）。
-     記事カードそのものは共通の .post-list / PostCard をそのまま使う。 */
-  .home-block-title {
-    font-family: "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif;
-    font-weight: 600;
-    font-size: 1.15rem;
-    line-height: 1.5;
-    margin: 0 0 0.9rem;
-    padding-bottom: 0.3rem;
-    border-bottom: 1px solid var(--line);
-  }
-  /* Three Doors（主構造3つ）と、その下の切り口セクション。
-     色・書体は :root のトークンのみを使う。 */
-  .home-doors { margin: 0 0 2.5rem; }
-  .home-section-label {
-    font-family: var(--font-mincho);
-    font-size: var(--fs-small);
-    letter-spacing: 0.08em;
-    color: var(--ink-soft);
-    margin: 0 0 0.35rem;
-  }
-  .home-door-list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1rem;
-  }
-  .home-door {
-    display: flex;
-    flex-direction: column;
-    gap: 0.45rem;
-    padding: 1.1rem 1rem 1rem;
-    background: var(--color-ivory);
-    border: 1px solid var(--line);
-    border-radius: 6px;
-  }
-  .home-door-mark {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 2.4rem;
-    height: 2.4rem;
-    border: 1px solid var(--color-line-strong);
-    border-radius: 50%;
-    font-family: var(--font-mincho);
-    font-size: 1.15rem;
-    line-height: 1;
-    color: var(--accent);
-  }
-  .home-door-name {
-    font-family: var(--font-mincho);
-    font-size: 1.1rem;
-    line-height: 1.4;
-    color: var(--ink);
-  }
-  .home-door-note {
-    font-size: 0.9rem;
-    line-height: 1.7;
-    color: var(--ink-soft);
-  }
-  .home-door-starter {
-    display: block;
-    font-size: 0.9rem;
-    line-height: 1.7;
-    padding-top: 0.45rem;
-    border-top: 1px solid var(--line);
-  }
-  .home-door-starter-label {
-    display: block;
-    font-size: var(--fs-small);
-    letter-spacing: 0.06em;
-    color: var(--ink-soft);
-  }
-  .home-door-all {
-    margin-top: auto;
-    padding-top: 0.35rem;
-    font-size: 0.9rem;
-    color: var(--accent);
-  }
-  .home-selected { margin: 0 0 2.5rem; }
-  .home-selected-list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 0.75rem;
-  }
-  .home-selected-item {
-    display: flex;
-    flex-direction: column;
-    gap: 0.2rem;
-    padding: 0.8rem 0.9rem;
-    border: 1px solid var(--line);
-    border-radius: 6px;
-    text-decoration: none;
-  }
-  .home-selected-name {
-    font-family: var(--font-mincho);
-    font-size: 0.95rem;
-    color: var(--accent);
-  }
-  .home-selected-note {
-    font-size: var(--fs-small);
-    line-height: 1.6;
-    color: var(--ink-soft);
-  }
-  .home-door-all:focus-visible,
-  .home-selected-item:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
-  }
-  .home-selected-item:hover { border-color: var(--color-line-strong); }
-  @media (max-width: 1023px) {
-    .home-door-list { gap: 0.75rem; }
-    .home-door { padding: 0.9rem 0.8rem; }
-    .home-selected-list { grid-template-columns: repeat(2, 1fr); }
-  }
-  @media (max-width: 767px) {
-    .home-door-list { grid-template-columns: 1fr; }   /* スマホは1列 */
-    .home-selected-list { grid-template-columns: 1fr; }
-  }
-  .home-starter { margin: 0 0 2.5rem; }
-</style>
+

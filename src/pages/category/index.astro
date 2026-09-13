@@ -38,11 +38,6 @@ const jsonLd = [
   breadcrumbs={breadcrumbs}
   jsonLd={jsonLd}
 >
-  <h1>テーマから探す</h1>
-  <p class="site-tagline">気になるテーマからお読みください。</p>
-  <ul class="category-cards">
-    {themes.map((t, i) => (
-      <CategoryCard category={t.category} count={t.count} eager={i === 0} />
-    ))}
-  </ul>
+  <header class="category-hero"><div class="container"><p class="eyebrow">カテゴリ <em>Topics</em></p><h1>テーマから探す</h1><p>気になるテーマからお読みください。既存の4カテゴリから、今の一杯に近い入口を選べます。</p></div></header>
+  <section class="section"><div class="container"><ul class="category-cards">{themes.map((t, i) => <CategoryCard category={t.category} count={t.count} eager={i === 0} />)}</ul></div></section>
 </BaseLayout>

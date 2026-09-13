@@ -51,6 +51,9 @@ const related = posts
 
 // --- 構造化データ -----------------------------------------------------------
 const category = getCategory(post.data.category);
+const isComparison = /(hikaku|erabikata)/.test(post.data.slug);
+const [titleMain, ...titleRest] = post.data.title.split('｜');
+const titleDetail = titleRest.join('｜');
 const breadcrumbs = [
   { label: 'ホーム', href: '/' },
   { label: category.name, href: `/category/${category.slug}/` },
@@ -96,24 +99,23 @@ const jsonLd = [
   updatedDate={post.data.updated}
   breadcrumbs={breadcrumbs}
   jsonLd={jsonLd}
+  pageClass={isComparison ? 'comparison-page' : 'standard-article-page'}
 >
-  <article>
-    <a class="post-category" href={`/category/${category.slug}/`}>{category.name}</a>
-    <h1>{post.data.title}</h1>
-    <p class="post-meta">
-      公開: {fmt(post.data.date)}
-      {post.data.updated.valueOf() !== post.data.date.valueOf() && ` ／ 更新: ${fmt(post.data.updated)}`}
-    </p>
-    <img
-      src={post.data.hero}
-      alt={post.data.title}
-      class="hero-image"
-      width="1200"
-      height="630"
-      fetchpriority="high"
-      decoding="async"
-    />
-    <Content />
+  <article class="article-shell container">
+    <header class="article-header">
+      <a class="post-category category-label" href={`/category/${category.slug}/`}>{category.name}</a>
+      <h1>{isComparison || !titleDetail ? post.data.title : <Fragment>{titleMain}<span class="article-title-detail"><span aria-hidden="true">｜</span>{titleDetail}</span></Fragment>}</h1>
+      <p class="article-lead">{post.data.description}</p>
+      <p class="post-meta"><time datetime={post.data.date.toISOString()}>公開 {fmt(post.data.date)}</time>{post.data.updated.valueOf() !== post.data.date.valueOf() && <Fragment>　<time datetime={post.data.updated.toISOString()}>更新 {fmt(post.data.updated)}</time></Fragment>}</p>
+      <img src={post.data.hero} alt={post.data.title} class="hero-image" width="1200" height="630" fetchpriority="high" decoding="async" />
+    </header>
+    <div class="article-content"><Content /></div>
+    <aside class="article-end-cta">
+      <p class="eyebrow">次に読む</p>
+      <h2>自分に合う一杯を、もう少し探す</h2>
+      <p>「{category.name}」の記事から、今日の気分に合う読みものを選べます。</p>
+      <a class="btn btn--primary" href={`/category/${category.slug}/`}>{category.name}の記事を見る →</a>
+    </aside>
   </article>
 
   <aside class="site-operator">
@@ -124,14 +126,7 @@ const jsonLd = [
 
   {related.length > 0 && (
     <aside class="related">
-      <h2>あわせて読みたい</h2>
-      <ul class="post-list">
-        {related.map((p) => <PostCard post={p} />)}
-      </ul>
-      <p class="back-to-list">
-        <a href={`/category/${category.slug}/`}>「{category.name}」の記事をもっと見る →</a><br />
-        <a href="/">記事一覧をすべて見る →</a>
-      </p>
+      <div class="container"><p class="eyebrow">関連記事 <em>Continue Reading</em></p><h2>もう少し、読み進める</h2><ul class="post-list">{related.map((p) => <PostCard post={p} />)}</ul><p class="back-to-list"><a class="text-arrow" href="/articles/">記事一覧をすべて見る</a></p></div>
     </aside>
   )}
 </BaseLayout>

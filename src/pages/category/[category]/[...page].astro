@@ -5,6 +5,7 @@ import BaseLayout from '../../../layouts/BaseLayout.astro';
 import PostCard from '../../../components/PostCard.astro';
 import Pagination from '../../../components/Pagination.astro';
 import { CATEGORIES } from '../../../data/categories';
+import { CATEGORY_EDITORIAL } from '../../../data/editorial';
 import { POSTS_PER_PAGE, compareByDateDescThenSlugAsc } from '../../../data/pagination';
 
 export async function getStaticPaths({ paginate }) {
@@ -33,6 +34,10 @@ const breadcrumbs = [
   { label: `${category.name}${pageSuffix}` },
 ];
 const pageUrl = new URL(Astro.url.pathname, Astro.site).href;
+const allPosts = isFirst ? await getCollection('posts', (p) => p.data.status === 'published') : [];
+const editorial = CATEGORY_EDITORIAL[category.slug];
+const beginners = isFirst ? editorial.beginners.map((slug) => allPosts.find((p) => p.data.slug === slug)).filter(Boolean) : [];
+if (isFirst && beginners.length !== 3) throw new Error(`[category] editorial selection failed: ${category.slug}`);
 
 const jsonLd = [
   {
@@ -63,11 +68,7 @@ const jsonLd = [
   breadcrumbs={breadcrumbs}
   jsonLd={jsonLd}
 >
-  <h1>{category.name}{pageSuffix}</h1>
-  <p class="site-tagline">{category.description}</p>
-  <ul class="post-list">
-    {page.data.map((post, i) => <PostCard post={post} eager={isFirst && i === 0} />)}
-  </ul>
-  <Pagination page={page} />
-  <p class="back-to-list"><a href="/category/">ほかのテーマを見る →</a></p>
+  <header class="category-hero"><div class="container"><p class="eyebrow">カテゴリ <em>{category.slug === 'tea-leaves' ? 'Tea Leaves' : category.name}</em></p><h1>{category.name}{pageSuffix}</h1><p>{category.description}</p></div></header>
+  {isFirst && <section class="category-beginner"><div class="container"><div class="category-beginner__head"><p class="eyebrow">初心者向け <em>Start Here</em></p><h2 class="section-title">最初は、この3本から。</h2></div><ol class="beginner-list">{beginners.map((post, i) => <li><a href={`/posts/${post.data.slug}/`}><span class="beginner-no">0{i + 1}</span><span><small>{i === 0 ? '基本を知る' : i === 1 ? '地図をつくる' : '好みで比べる'}</small><span class="beginner-title">{post.data.title}</span></span></a></li>)}</ol></div></section>}
+  <section class="category-stories"><div class="container"><div class="category-stories__head"><div><p class="eyebrow">記事一覧 <em>All Stories</em></p><h2>{category.name}の記事</h2></div></div><ul class="post-list">{page.data.map((post, i) => <PostCard post={post} eager={isFirst && i < 3} />)}</ul><Pagination page={page} /><p class="back-to-list"><a class="text-arrow" href="/category/">ほかのテーマを見る</a></p></div></section>
 </BaseLayout>
