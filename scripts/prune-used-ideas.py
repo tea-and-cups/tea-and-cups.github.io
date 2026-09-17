@@ -8,15 +8,30 @@ r"""docs/ideas.md の「## ストック」節から記事化済み行を「## �
 事実のみを機械的に記録することで、ideas.mdを「未着手の題材在庫リスト」に純化する。
 
 判定方法:
-  「## ストック」節の各行について、行内に site/src/content/posts/ 配下に実在する
-  slug（ファイル名から拡張子を除いたもの）が部分一致で含まれているかを判定する。
-  含まれていれば、その行は記事化済みとみなし「## 使用済み・見送り」節へ移動する。
+  「## ストック」節の各行について、以下のいずれかに一致すれば記事化済みとみなし
+  「## 使用済み・見送り」節へ移動する（OR条件・D-0218/L010）。
 
-  1行に複数のslugが部分一致することがある（例: 自分自身のslugに加えて、本文中で
-  別記事への内部リンクとして他のslugへ言及している場合）。この場合、全角/半角の
-  開き括弧に直後続くslugを自分自身のslugとして優先する。このリポジトリの記法では
-  自分自身のslugは「（slug・category: xxx）」のように括弧直後に書かれ、他記事への
-  言及は「既存記事slugへ」のように括弧を伴わずに書かれるため。
+  (a) slug一致: 行内に site/src/content/posts/ 配下に実在するslug（ファイル名
+      から拡張子を除いたもの）が部分一致で含まれている。
+
+      1行に複数のslugが部分一致することがある（例: 自分自身のslugに加えて、
+      本文中で別記事への内部リンクとして他のslugへ言及している場合）。この場合、
+      全角/半角の開き括弧に直後続くslugを自分自身のslugとして優先する。この
+      リポジトリの記法では自分自身のslugは「（slug・category: xxx）」のように
+      括弧直後に書かれ、他記事への言及は「既存記事slugへ」のように括弧を伴わずに
+      書かれるため。
+
+  (b) タイトル一致: 行の1番目のフィールド（タイトル）を正規化した文字列が、
+      公開済み記事のfrontmatter titleを正規化した文字列と完全一致する。
+      正規化はUnicode NFKC（全角/半角統一）＋空白除去のみ行い、部分一致・
+      類似度判定は行わない（誤検出でネタ帳が勝手に減る方が損害が大きいため）。
+      slugをネタ帳行に書き足さなくても検出できるようにするための経路。
+
+  (a)(b)いずれの経路も、行が「- [ ]」または「- [x]」のいずれか（チェックボックス
+      付きのストック行であること）を条件とし、チェックボックスの状態（[ ]/[x]）
+      そのものは判定に使わない（D-0219/L010再発）。公開済み記事と一致した時点で
+      その題材は消費済みであり、チェック付け忘れという人手の作業に判定を依存させ
+      ない設計にするため。一致しない行はチェック状態にかかわらず退避されない。
 
 移動時の変換:
   タイトル・種別・狙い・追加日の各フィールドは維持し、一言メモフィールド（進捗の
@@ -37,7 +52,9 @@ r"""docs/ideas.md の「## ストック」節から記事化済み行を「## �
 import glob
 import io
 import os
+import re
 import sys
+import unicodedata
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 IDEAS_MD = os.path.join(ROOT, "docs", "ideas.md")
@@ -63,6 +80,41 @@ def collect_slugs():
     for path in glob.glob(os.path.join(POSTS_DIR, "*.md")):
         slugs.append(os.path.splitext(os.path.basename(path))[0])
     return slugs
+
+
+def normalize_title(text):
+    """タイトル一致判定用の正規化。NFKC（全角/半角統一）＋空白除去のみ行う。"""
+    return "".join(unicodedata.normalize("NFKC", text).split())
+
+
+def read_frontmatter_title(path):
+    """記事ファイルのfrontmatterからtitleフィールドを読む。無ければNone。"""
+    text = read_text(path)
+    match = re.search(r'^title:\s*(.+)$', text, re.MULTILINE)
+    if not match:
+        return None
+    return match.group(1).strip().strip('"').strip("'")
+
+
+def collect_slug_titles():
+    """正規化済みtitle -> slug の辞書を返す。"""
+    titles = {}
+    for path in glob.glob(os.path.join(POSTS_DIR, "*.md")):
+        slug = os.path.splitext(os.path.basename(path))[0]
+        title = read_frontmatter_title(path)
+        if title:
+            titles[normalize_title(title)] = slug
+    return titles
+
+
+def find_own_title_slug(line, title_map):
+    """行の1番目のフィールド（タイトル）を正規化し、記事titleと完全一致すれば
+    そのslugを返す。一致が無ければNoneを返す。判定方法はモジュールdocstring参照。
+    """
+    stripped = line.strip()
+    body = stripped[5:].strip()
+    title_field = body.split(" | ", 1)[0].strip()
+    return title_map.get(normalize_title(title_field))
 
 
 def find_own_slug(line, slugs):
@@ -180,6 +232,7 @@ def main():
     dry_run = "--dry-run" in sys.argv[1:]
 
     slugs = collect_slugs()
+    title_map = collect_slug_titles()
     text = read_text(IDEAS_MD)
     lines = text.split("\n")
     stock_start, stock_end, used_start, used_end = split_sections(lines)
@@ -189,11 +242,12 @@ def main():
     kept_stock_lines = []
     for line in stock_lines:
         stripped = line.strip()
-        # [x]（着手済み）の行のみ移動対象にする。[ ]（未着手）の行は、他記事への
-        # 差別化言及としてslug文字列を含むことがあり（例: 「既存の◯◯記事(slug)とは
-        # 別に」）、それだけでは記事化済みと判定しない。
-        if stripped[:5].lower() == "- [x]":
-            slug = find_own_slug(line, slugs)
+        # チェックボックス付きのストック行（[ ]/[x]どちらでも）を対象にする。
+        # チェック状態は判定に使わない（D-0219）。slug/タイトルが一致しない限り
+        # 退避されないため、他記事への言及（例:「既存の◯◯記事(slug)とは別に」）
+        # だけでは誤って退避されない。
+        if stripped[:5].lower() in ("- [x]", "- [ ]"):
+            slug = find_own_slug(line, slugs) or find_own_title_slug(line, title_map)
             if slug:
                 to_move.append((line, slug))
                 continue
