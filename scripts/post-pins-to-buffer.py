@@ -550,42 +550,38 @@ def extract_topic(tags):
     return first.lstrip("#") or None
 
 
-# Threads冒頭のフック（読者の状況・疑問を置く一文）。ピン番号を3で割った余りで
-# 機械的に選ぶ（CTA_LINESと同じ考え方・自由入力は受け付けない）。
+# Threads向けの問いかけ（読者が短く答えられる二択・具体名詞入り）。ピン番号を
+# 3で割った余りで機械的に選ぶ（他のTHREADS_*/CTA_LINESと同じ考え方・自由入力は
+# 受け付けない）。冒頭は説明文自身の最初の文（記事に元からある具体的な事実）を
+# そのまま使うため、ここに冒頭用の定型文は持たない
+# （P9-C01-THREADS-COMPOSITION-NATIVE-FIT対応・D-0231）。
 # {topic} はハッシュタグ先頭語（説明文に元からある語）で埋める。
-THREADS_HOOK_TEMPLATES = (
-    "「{topic}」、実はちゃんと知っていますか？",
-    "{topic}について、こんな疑問はありませんか？",
-    "{topic}のこと、知っておくと選び方が変わります。",
+THREADS_QUESTION_TEMPLATES = (
+    "あなたは{topic}、ストレート派ですか、ミルクティー派ですか？",
+    "あなたは{topic}を選ぶとき、渋み重視派ですか、香り重視派ですか？",
+    "あなたは{topic}、ホット派ですか、アイス派ですか？",
 )
 # ハッシュタグが無い（topicが取れない）ときの代替。同じ順で選ぶ。
-THREADS_HOOK_FALLBACK = (
-    "こんな疑問はありませんか？",
-    "気になっていたことはありませんか？",
-    "知っておくと役立つ話があります。",
+THREADS_QUESTION_FALLBACK = (
+    "あなたは紅茶、ストレート派ですか、ミルクティー派ですか？",
+    "あなたは紅茶を選ぶとき、渋み重視派ですか、香り重視派ですか？",
+    "あなたは紅茶、ホット派ですか、アイス派ですか？",
 )
 
-# Threads末尾の誘導文。{topic}で記事に固有の行動動機を持たせる。
-# topicが取れないピンは既存のCTA_LINES（誘導先を明示しない汎用文）を使う。
-THREADS_CTA_TEMPLATES = (
-    "👇{topic}の続きはブログでまとめています☕️",
-    "👇{topic}について詳しくはブログへ☕️",
-    "👇{topic}の続きはブログでどうぞ☕️",
-)
+# Threads本文に載せるハッシュタグの上限（宣伝色を抑えるため6個から絞る）。
+THREADS_HASHTAG_LIMIT = 3
 
 
-def pick_threads_hook(pin_num, topic):
+def pick_threads_question(pin_num, topic):
     idx = pin_num % 3
     if topic:
-        return THREADS_HOOK_TEMPLATES[idx].format(topic=topic)
-    return THREADS_HOOK_FALLBACK[idx]
+        return THREADS_QUESTION_TEMPLATES[idx].format(topic=topic)
+    return THREADS_QUESTION_FALLBACK[idx]
 
 
-def pick_threads_cta(pin_num, topic):
-    idx = pin_num % 3
-    if topic:
-        return THREADS_CTA_TEMPLATES[idx].format(topic=topic)
-    return CTA_LINES[idx]
+def limit_threads_hashtags(tags, limit=THREADS_HASHTAG_LIMIT):
+    """ハッシュタグ文字列（半角スペース区切り）を先頭からlimit件に絞る。"""
+    return " ".join(tags.split()[:limit])
 
 
 # Instagram向けの「保存してあとで読む」動機の一言。{topic}で記事に固有の言葉にする。
@@ -627,8 +623,9 @@ def build_text(pin_num, fields, service):
 
     Instagram   … build_instagram_text() に委譲（URLが無いので utm_source の
                   置換も行わない。第2要素は None）。
-    Threads     … チャネル固有のフック ＋ 空行 ＋ 説明文（ハッシュタグを除いた部分）
-                  ＋ ハッシュタグ ＋ 空行 ＋ 記事に紐づく誘導文 ＋ 改行 ＋ 誘導先URL
+    Threads     … 説明文（ハッシュタグを除いた部分。記事内容そのものが書き出しになる）
+                  ＋ ハッシュタグ（最大THREADS_HASHTAG_LIMIT件）＋ 空行 ＋
+                  読者への二択の問いかけ ＋ 改行 ＋ 誘導先URL
     X（twitter）… X用説明文 ＋ 改行 ＋ 誘導先URL（誘導文は付けない）
 
     X に誘導文を付けないのは、280という上限に対して誘導文が固定で
@@ -644,13 +641,12 @@ def build_text(pin_num, fields, service):
         return xcheck.build_x_text(fields["x_description"], url), url
     body, tags = split_description(fields["description"])
     topic = extract_topic(tags)
-    hook = pick_threads_hook(pin_num, topic)
-    cta = pick_threads_cta(pin_num, topic)
-    parts = [hook, "", body]
+    question = pick_threads_question(pin_num, topic)
+    parts = [body]
     if tags:
-        parts.append(tags)
+        parts.append(limit_threads_hashtags(tags))
     parts.append("")
-    parts.append(cta)
+    parts.append(question)
     parts.append(url)
     return "\n".join(parts), url
 
