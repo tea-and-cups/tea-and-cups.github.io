@@ -839,7 +839,8 @@ COVERAGE_ALWAYS = (
 def build_handoff(root, record, close_reason, now, head_rev=None,
                   extra_unresolved=None, extra_coverage=None,
                   extra_run_evidence=None, overlap_run_ids=None,
-                  proxy_finalized=False):
+                  proxy_finalized=False, proxy_last_activity=None,
+                  unbound_overlap_sessions=None):
     """1つのrunのhandoff辞書を作る。差分もstepも無い場合は None を返す。"""
     run_id = record["run_id"]
     base_rev = record.get("site_head")
@@ -847,6 +848,11 @@ def build_handoff(root, record, close_reason, now, head_rev=None,
     steps = read_steps(root, run_id)
     unresolved = list(extra_unresolved or [])
     coverage_notes = list(COVERAGE_ALWAYS) + list(extra_coverage or [])
+    if proxy_finalized:
+        coverage_notes.append(
+            "SessionEndを観測できず、次のSessionStartで代理確定した。最終活動はtranscriptの最終更新時刻 %s"
+            % (iso(proxy_last_activity) if proxy_last_activity else "不明")
+        )
 
     git_outputs = []
     if base_rev and head_rev:
@@ -864,7 +870,8 @@ def build_handoff(root, record, close_reason, now, head_rev=None,
         return None
 
     overlap_run_ids = sorted(set(overlap_run_ids or []))
-    overlap = bool(overlap_run_ids) or proxy_finalized
+    unbound_overlap_sessions = sorted(set(unbound_overlap_sessions or []))
+    overlap = bool(overlap_run_ids) or bool(unbound_overlap_sessions)
 
     if overlap and git_outputs:
         for item in git_outputs:
@@ -886,8 +893,11 @@ def build_handoff(root, record, close_reason, now, head_rev=None,
         partial_reasons.append(
             "区間の重なるrun（%s）があるため、成果物の帰属を確定できません" % ", ".join(overlap_run_ids)
         )
-    if proxy_finalized:
-        partial_reasons.append("SessionEndを観測できず代理確定したため、runの終端が正確ではありません")
+    if unbound_overlap_sessions:
+        partial_reasons.append(
+            "区間内に他のsession（%s）の未結合step記録があるため、成果物の帰属を確定できません"
+            % ", ".join(unbound_overlap_sessions)
+        )
 
     new_slugs = article_slugs(outputs, "new")
     partial_reasons.extend(missing_pin_coverage(root, new_slugs))
@@ -991,6 +1001,61 @@ def overlapping_run_ids(root, record, now):
     return sorted(set(result))
 
 
+def zombie_overlap_run_ids(root, my_run_id, my_open, my_close, now, transcripts_dir=None):
+    """代理確定で閉じられたrun（直近48時間）のセッションが、記録した close 時刻より
+    後にも活動を続けていないか（ゾンビ化していないか）を調べる。
+
+    ゾンビが見つかった場合、その活動区間を [記録したclose時刻, transcriptの現在の
+    最終更新時刻] とみなし、自分の [my_open, my_close] と重なればそのrun_idを返す。
+    """
+    since = now - datetime.timedelta(hours=RUNS_LOOKBACK_HOURS)
+    rows = read_runs(root, since)
+    result = []
+    for row in rows:
+        if row["event"] != "close" or row["close_reason"] != "session_end_not_observed":
+            continue
+        if row["run_id"] == my_run_id:
+            continue
+        recorded_close = row["timestamp"]
+        current_mtime = transcript_mtime(row["session_id"], root, transcripts_dir)
+        if current_mtime is None or current_mtime <= recorded_close:
+            continue
+        if recorded_close < my_close and my_open < current_mtime:
+            result.append(row["run_id"])
+    return sorted(set(result))
+
+
+def unbound_overlap_sessions(root, session_id, my_open, my_close, now):
+    """自分の区間 [my_open, my_close]（直近48時間分）に入る、他のsession_idの
+    _unbound.jsonl 記録の session_id 集合を返す。"""
+    since = now - datetime.timedelta(hours=RUNS_LOOKBACK_HOURS)
+    path = unbound_steps_path(root)
+    sessions = set()
+    if not os.path.isfile(path):
+        return sessions
+    with open(path, encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                entry = json.loads(line)
+            except Exception:
+                continue
+            other_sid = entry.get("session_id")
+            if not other_sid or other_sid == session_id:
+                continue
+            try:
+                ts = datetime.datetime.fromisoformat(entry.get("ts"))
+            except (TypeError, ValueError):
+                continue
+            if ts < since:
+                continue
+            if my_open <= ts <= my_close:
+                sessions.add(other_sid)
+    return sessions
+
+
 def finalize_run(root=None, session_id=None, close_reason="session_end", now=None,
                  transcripts_dir=None):
     """自分のsession_idの開いているrunを確定する。戻り値: 書いたhandoffのpath or None"""
@@ -1004,14 +1069,30 @@ def finalize_run(root=None, session_id=None, close_reason="session_end", now=Non
     if record is None:
         return None
 
-    now = now or now_jst()
+    requested_now = now or now_jst()
     proxy = close_reason == "session_end_not_observed"
+    proxy_last_activity = transcript_mtime(session_id, base, transcripts_dir) if proxy else None
+    # 代理確定のclose時刻はtranscriptの最終更新時刻に合わせる（runの区間を実態に
+    # 合わせるため）。transcriptが解決できない場合のみ確定を実行した時刻を使う。
+    close_at = proxy_last_activity or requested_now
+
+    try:
+        my_open = datetime.datetime.fromisoformat(record["opened_at"])
+    except (KeyError, ValueError):
+        my_open = close_at
+
     path = None
     try:
-        overlap = overlapping_run_ids(base, record, now)
+        overlap = set(overlapping_run_ids(base, record, close_at))
+        overlap |= set(zombie_overlap_run_ids(
+            base, record["run_id"], my_open, close_at, requested_now, transcripts_dir
+        ))
+        unbound_sessions = unbound_overlap_sessions(base, session_id, my_open, close_at, requested_now)
         document = build_handoff(
-            base, record, close_reason, now,
-            overlap_run_ids=overlap, proxy_finalized=proxy,
+            base, record, close_reason, close_at,
+            overlap_run_ids=sorted(overlap), proxy_finalized=proxy,
+            proxy_last_activity=proxy_last_activity,
+            unbound_overlap_sessions=unbound_sessions,
         )
         if document is not None:
             path = handoff_path(base, record)
@@ -1039,7 +1120,7 @@ def finalize_run(root=None, session_id=None, close_reason="session_end", now=Non
                 "producer": {
                     "session_id": record.get("session_id"),
                     "opened_at": record.get("opened_at"),
-                    "closed_at": iso(now),
+                    "closed_at": iso(close_at),
                     "close_reason": close_reason,
                     "site_head_base": record.get("site_head"),
                     "site_head_final": None,
@@ -1048,10 +1129,10 @@ def finalize_run(root=None, session_id=None, close_reason="session_end", now=Non
             path = handoff_path(base, record)
             write_json_atomic(path, document)
         finally:
-            _close_out(base, record, now, close_reason)
+            _close_out(base, record, close_at, close_reason)
         raise
 
-    _close_out(base, record, now, close_reason)
+    _close_out(base, record, close_at, close_reason)
     return path
 
 

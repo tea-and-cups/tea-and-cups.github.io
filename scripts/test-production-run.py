@@ -15,7 +15,11 @@ r"""production-run.py の検証（T1〜T6）と、投稿文生成の不変性確
   T5: changed の記事だけのrunが completed になる。new の記事があってPinが
       未投稿のrunは partial になる
   T6: 他のsessionの開いているrunについて、transcriptが古ければ代理確定され、
-      新しければ overlap が付く
+      新しければ overlap が付く。成果物・証拠が揃った代理確定runはcompletedになり、
+      close時刻はtranscriptの最終更新時刻に合わせられる
+  T9: 代理確定されたrunのセッションが後で再開し（ゾンビ化）、区間が重なる別のrunは
+      completedにならず、Git由来のoutputはunresolvedへ回る
+  T10: runの区間中に他session_idの_unbound記録があると、そのrunはoverlap扱いになる
 
 --validate-growth <handoffのpath>:
   growth-agent/scripts/growth_routine.py の validate_production_handoff() を
@@ -394,7 +398,9 @@ def t6(tmp):
     touch_transcript(transcripts, stale_sid, t0)
     stale_run, _ = pr.open_run(root=root, session_id=stale_sid, now=t0,
                                transcripts_dir=transcripts)
-    write(os.path.join(site, "src", "content", "posts", "crashed.md"), "crashed\n")
+    # 成果物・証拠が揃っていればcompletedになることを見るため、missing_pin_coverage
+    # を誘発しない changed（既存記事の更新）を使う（newだとPin未投稿でpartialになる）。
+    write(os.path.join(site, "src", "content", "posts", "old-article.md"), "crashed work\n")
     git(root, "add", "-A")
     git(root, "commit", "-q", "-m", "crashed work")
 
@@ -407,13 +413,24 @@ def t6(tmp):
           any("代理確定" in w for w in warnings), str(warnings))
     document = load_handoff(root, stale_run["run_id"], stale_run["opened_date"])
     check("T6 代理確定でhandoffが書かれる", document is not None)
+    close_row = next((r for r in pr.read_runs(root)
+                      if r["run_id"] == stale_run["run_id"] and r["event"] == "close"), None)
     check("T6 代理確定のclose_reasonがsession_end_not_observed",
-          any(r["run_id"] == stale_run["run_id"] and r["event"] == "close"
-              and r["close_reason"] == "session_end_not_observed"
-              for r in pr.read_runs(root)))
-    check("T6 代理確定runはcompletedにならない",
-          document is not None and document["status"] != "completed",
-          str(document and document["status"]))
+          close_row is not None and close_row["close_reason"] == "session_end_not_observed")
+    check("T6 代理確定のclose時刻はtranscriptの最終更新時刻（t0）",
+          close_row is not None and close_row["timestamp"] == t0,
+          str(close_row and close_row["timestamp"]))
+    check("T6 成果物・証拠が揃った代理確定runはcompletedになる",
+          document is not None and document["status"] == "completed",
+          str(document and (document["status"], document["failure_reason"])))
+    check("T6 coverage.reasonに代理確定の旨と最終活動時刻が入る",
+          document is not None
+          and "代理確定" in document["coverage"]["reason"]
+          and pr.iso(t0) in document["coverage"]["reason"],
+          str(document and document["coverage"]["reason"]))
+    check("T6 producer.closed_atがtranscriptの最終更新時刻（t0）",
+          document is not None and document["producer"]["closed_at"] == pr.iso(t0),
+          str(document and document["producer"]["closed_at"]))
     check("T6 代理確定runの開始記録が消える",
           pr.find_open_record(root, stale_sid) is None)
 
@@ -428,6 +445,95 @@ def t6(tmp):
     other = pr.find_open_record(root, new_sid)
     check("T6 双方の開始記録にoverlap_withが入る",
           bool(other.get("overlap_with")), str(other))
+
+
+# --------------------------------------------------------------------------
+# T9
+# --------------------------------------------------------------------------
+
+def t9(tmp):
+    print("T9: 代理確定後にゾンビ化したrunとの重なりでcompletedにならない")
+    root = make_project(os.path.join(tmp, "t9"))
+    site = os.path.join(root, "site")
+    transcripts = make_transcripts(os.path.join(tmp, "t9"))
+    t0 = datetime.datetime(2026, 9, 20, 5, 0, tzinfo=JST)
+
+    sid_a = "sess-t9-a"
+    touch_transcript(transcripts, sid_a, t0)
+    run_a, _ = pr.open_run(root=root, session_id=sid_a, now=t0, transcripts_dir=transcripts)
+
+    # 30分ルールで代理確定させる（sid_aのtranscriptはt0のまま）
+    later = t0 + datetime.timedelta(minutes=45)
+    sid_b = "sess-t9-b"
+    touch_transcript(transcripts, sid_b, later)
+    run_b, warn_b = pr.open_run(root=root, session_id=sid_b, now=later,
+                                transcripts_dir=transcripts)
+    check("T9 run Aが代理確定される", any("代理確定" in w for w in warn_b), str(warn_b))
+    close_row = next((r for r in pr.read_runs(root)
+                      if r["run_id"] == run_a["run_id"] and r["event"] == "close"), None)
+    check("T9 run Aの代理確定close時刻がt0", close_row is not None and close_row["timestamp"] == t0,
+          str(close_row and close_row["timestamp"]))
+
+    # sid_aのセッションが再開し、代理確定のclose時刻より後にもtranscriptが進む（ゾンビ化）
+    zombie_mtime = later + datetime.timedelta(minutes=5)
+    touch_transcript(transcripts, sid_a, zombie_mtime)
+
+    # run Bの区間中にGit差分を作る
+    write(os.path.join(site, "src", "content", "posts", "old-article.md"), "run b work\n")
+    git(root, "add", "-A")
+    git(root, "commit", "-q", "-m", "run b work")
+
+    pr.finalize_run(root=root, session_id=sid_b, now=later + datetime.timedelta(minutes=10),
+                    transcripts_dir=transcripts)
+    document_b = load_handoff(root, run_b["run_id"], run_b["opened_date"])
+    check("T9 run Bのhandoffがある", document_b is not None)
+    if not document_b:
+        return
+    check("T9 run Bがcompletedにならない", document_b["status"] != "completed", document_b["status"])
+    check("T9 run BのoutputsにGit由来が入らない",
+          "src/content/posts/old-article.md" not in by_entity(document_b))
+    check("T9 run Bのunresolvedにold-article.mdの候補が列挙される",
+          any("old-article.md" in u for u in document_b["unresolved"]), str(document_b["unresolved"]))
+    check("T9 run Bのfailure_reasonにrun Aのrun_idが出る",
+          run_a["run_id"] in (document_b["failure_reason"] or ""), str(document_b["failure_reason"]))
+
+
+# --------------------------------------------------------------------------
+# T10
+# --------------------------------------------------------------------------
+
+def t10(tmp):
+    print("T10: 区間内の他sessionの_unbound記録でoverlapになる")
+    root = make_project(os.path.join(tmp, "t10"))
+    site = os.path.join(root, "site")
+    transcripts = make_transcripts(os.path.join(tmp, "t10"))
+    t0 = datetime.datetime(2026, 9, 20, 5, 0, tzinfo=JST)
+
+    sid_b = "sess-t10-b"
+    touch_transcript(transcripts, sid_b, t0)
+    run_b, _ = pr.open_run(root=root, session_id=sid_b, now=t0, transcripts_dir=transcripts)
+
+    write(os.path.join(site, "src", "content", "posts", "old-article.md"), "t10 work\n")
+    git(root, "add", "-A")
+    git(root, "commit", "-q", "-m", "t10 work")
+
+    # run Bの区間中に、他のsession_idの未結合step記録がある状態を再現する
+    other_sid = "sess-t10-other"
+    pr._append_unbound(root, {
+        "kind": "post", "ts": pr.iso(t0 + datetime.timedelta(minutes=5)),
+        "session_id": other_sid, "unbound_reason": "test",
+    })
+
+    pr.finalize_run(root=root, session_id=sid_b, now=t0 + datetime.timedelta(minutes=10))
+    document_b = load_handoff(root, run_b["run_id"], run_b["opened_date"])
+    check("T10 run Bのhandoffがある", document_b is not None)
+    if not document_b:
+        return
+    check("T10 run Bがcompletedにならない", document_b["status"] != "completed", document_b["status"])
+    check("T10 run Bのfailure_reasonに他sessionのidが出る",
+          other_sid in (document_b["failure_reason"] or ""), str(document_b["failure_reason"]))
+    check("T10 run BのoutputsにGit由来が入らない",
+          "src/content/posts/old-article.md" not in by_entity(document_b))
 
 
 # --------------------------------------------------------------------------
@@ -549,7 +655,7 @@ def main(argv):
     saved_hook = os.environ.pop("CLAUDE_HOOK_SESSION_ID", None)
     tmp = tempfile.mkdtemp(prefix="production-run-test-")
     try:
-        for func in (t1, t2, t3, t4, t5, t6):
+        for func in (t1, t2, t3, t4, t5, t6, t9, t10):
             func(tmp)
             print("")
     finally:
