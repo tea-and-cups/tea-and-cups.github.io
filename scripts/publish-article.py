@@ -40,8 +40,14 @@ Edit/Writeによるpublished化は .claude/hooks/check-publish-gate.py で拒否
   python site/scripts/publish-article.py <slug> --dry-run
 
 終了コード: 0=完了（または--dry-runで中断なし） / 1=中断（どの段で落ちたかを表示）
+
+【production runのstep記録（D-0235）】
+  実行のたびに publish_attempt を1件だけ data/production-handoff/_steps/ へ
+  追記する（slug・dry-runか本番か・OK/NG・NGだったチェック名）。記録の成否は
+  標準出力・終了コード・公開処理のいずれにも影響しない。
 """
 
+import importlib.util
 import os
 import re
 import shutil
@@ -90,8 +96,25 @@ def abort(message):
 # --- ステップ2: 公開前チェック群 -----------------------------------------------
 
 
-def run_checks(slug):
-    """公開前チェックを順に実行する。1本でも落ちたらFalseを返す。"""
+def record_production_step(kind, **fields):
+    """production runのstep記録（D-0235）。公開処理そのものには影響しない。
+    記録の失敗で公開を止めないため、例外はすべて握りつぶす。"""
+    try:
+        path = os.path.join(SCRIPTS_DIR, "production-run.py")
+        spec = importlib.util.spec_from_file_location("production_run", path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        module.record_step(kind, **fields)
+    except Exception:
+        pass
+
+
+def run_checks(slug, attempt=None):
+    """公開前チェックを順に実行する。1本でも落ちたらFalseを返す。
+
+    attempt は呼び出し元が渡す記録用の辞書で、落ちたチェック名を書き戻す
+    （D-0235）。標準出力・終了コードはこの引数の有無で変わらない。
+    """
     for script_name, takes_slug, extra_args in PRE_PUBLISH_CHECKS:
         script_path = os.path.join(SCRIPTS_DIR, script_name)
         cmd = [sys.executable, script_path]
@@ -110,9 +133,13 @@ def run_checks(slug):
             )
         except subprocess.TimeoutExpired:
             out("  NG  %s（タイムアウト %d秒）" % (label, CHECK_TIMEOUT))
+            if attempt is not None:
+                attempt["failed_check"] = script_name
             return False
         except Exception as e:
             out("  NG  %s（実行に失敗: %s）" % (label, e))
+            if attempt is not None:
+                attempt["failed_check"] = script_name
             return False
 
         stdout_text = result.stdout.decode("utf-8", errors="replace") if result.stdout else ""
@@ -122,6 +149,8 @@ def run_checks(slug):
             out("  OK  %s" % label)
             continue
 
+        if attempt is not None:
+            attempt["failed_check"] = script_name
         out("  NG  %s（終了コード: %d）" % (label, result.returncode))
         out("  --- %s の出力 ---" % script_name)
         for line in (stdout_text or stderr_text).rstrip("\n").splitlines():
@@ -226,6 +255,24 @@ def mark_daily_session():
 
 
 def main():
+    """本体（_run）を呼び、その結果を production run の step として1件だけ記録する。
+
+    標準出力・終了コードは _run() のものをそのまま返す（D-0235で追加した記録は
+    公開処理の挙動を変えない）。
+    """
+    attempt = {"slug": None, "dry_run": False, "failed_check": None}
+    rc = _run(attempt)
+    record_production_step(
+        "publish_attempt",
+        slug=attempt["slug"],
+        dry_run=attempt["dry_run"],
+        result="OK" if rc == 0 else "NG",
+        failed_check=attempt["failed_check"],
+    )
+    return rc
+
+
+def _run(attempt):
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
 
@@ -234,6 +281,7 @@ def main():
 
     args = [a for a in sys.argv[1:]]
     dry_run = "--dry-run" in args
+    attempt["dry_run"] = dry_run
     positional = [a for a in args if not a.startswith("-")]
     unknown = [a for a in args if a.startswith("-") and a != "--dry-run"]
 
@@ -242,6 +290,7 @@ def main():
         return 1
 
     slug = positional[0]
+    attempt["slug"] = slug
     draft_path = os.path.join(DRAFTS_DIR, "%s.md" % slug)
     published_path = os.path.join(POSTS_DIR, "%s.md" % slug)
 
@@ -255,7 +304,7 @@ def main():
 
     # 2. 公開前チェック群
     out("2. 公開前チェック群")
-    if not run_checks(slug):
+    if not run_checks(slug, attempt):
         return abort("公開前チェックに失敗したため、以降の処理（status書き換え・コピー・commit・push）は一切実行していません")
 
     # 3. status書き換え

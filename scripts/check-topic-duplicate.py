@@ -20,9 +20,11 @@ slug・タイトルが既存の公開済み記事と重複・類似していな�
   （・ | ｜ （ ） ( ) 【 】 「 」 - ー 〜 ~）を除去
 
 終了コード: DUPLICATE が1件でもあれば2、それ以外（SIMILAR/OK混在含む）は0。
-読み取り専用。いかなるファイルも書き換えない。
+判定材料（記事・ideas.md等）は一切書き換えない。実行の事実だけを
+data/lessons-session.txt（D-0163）と data/production-handoff/（D-0235）へ記録する。
 """
 
+import importlib.util
 import os
 import re
 import subprocess
@@ -169,6 +171,19 @@ def mark_daily_session():
         pass
 
 
+def record_production_step(kind, **fields):
+    """production runのstep記録（D-0235）。判定そのものには影響しない。
+    記録の失敗で本来の処理を止めないため、例外はすべて握りつぶす。"""
+    try:
+        path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "production-run.py")
+        spec = importlib.util.spec_from_file_location("production_run", path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        module.record_step(kind, **fields)
+    except Exception:
+        pass
+
+
 def main():
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
@@ -198,6 +213,7 @@ def main():
         overall = "OK"
 
     print(f"RESULT: {overall}")
+    record_production_step("topic_check", slug=candidates[0], result=overall)
     sys.exit(2 if overall == "DUPLICATE" else 0)
 
 

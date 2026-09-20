@@ -13,6 +13,11 @@ check-image-gen-needed-today.py）をAIが順に手動実行する運用だっ�
   - CHILD_SCRIPTS に並べた順序で必ず実行し、各スクリプトの標準出力をそのまま
     中継する（先頭4本の順序はD-0102の順序規定を維持する）。実行対象の正本は
     CHILD_SCRIPTS であり、この文章側に一覧を二重に持たない。
+    各要素は (スクリプト名, 正常な終了コードの集合) か、固定引数を伴う
+    (スクリプト名, 正常な終了コードの集合, 引数リスト) のどちらか（D-0235）。
+  - 子スクリプトを起動する前にフック入力JSONから session_id を読み、
+    環境変数 CLAUDE_HOOK_SESSION_ID として子へ渡す（D-0235）。子の標準入力は
+    DEVNULL に固定する（フック入力JSONを子が二重に読んで固まるのを防ぐため）。
   - 各子スクリプトは cwd をプロジェクトルートに固定して起動する（D-0084と同型の予防）。
   - 子スクリプトは .py のみ対応で、sys.executable で起動する。パスは絶対パス・
     スラッシュ区切りに統一する（rules/command-execution.md 2 の形。クォートは
@@ -29,9 +34,11 @@ check-image-gen-needed-today.py）をAIが順に手動実行する運用だっ�
   python site/scripts/session-start-check.py
 """
 
+import json
 import os
 import subprocess
 import sys
+import threading
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 SCRIPTS_DIR = os.path.join(ROOT, "site", "scripts")
@@ -66,6 +73,10 @@ CHILD_SCRIPTS = [
     # check-published-pins-missing.py: 0=正常判定（検知の有無を問わない）。
     # 検知時は【警告】を本文に含めて出力する仕様のため、フック自体は失敗扱いにしない。
     ("check-published-pins-missing.py", {0}),
+    # production-run.py open: このセッション＝1 production run の開始記録を作る
+    # （D-0235）。正常時は何も出力しない。代理確定・区間の重なりがあった時だけ
+    # 【警告】を1行出す。0=正常。
+    ("production-run.py", {0}, ["open"]),
 ]
 
 TIMEOUT_SECONDS = 30
@@ -82,11 +93,11 @@ HEADER = (
 FOOTER = "=== セッション開始時チェック ここまで ==="
 
 
-def build_argv(script_name):
+def build_argv(script_name, args=None):
     """起動コマンドを組み立てる。対応するのは .py のみ（D-0138）。
     パスは絶対パス・スラッシュ区切りに統一する（rules/command-execution.md 2）。
-    引数を渡す仕組みは意図的に持たない（現時点で必要がないため。必要になった
-    時点でCHILD_SCRIPTSの構造ごと設計する）。
+    固定の引数はCHILD_SCRIPTSの第3要素で渡す（D-0235でサブコマンド付きの
+    子スクリプトが必要になったため追加した。動的に変わる値は渡さない）。
 
     .py 以外は起動を試みず例外にする。フック起動時のPATHにbashが無いため
     .sh は WinError 2 で必ず失敗する環境であり（D-0137の実装3で発覚・D-0138で
@@ -100,17 +111,58 @@ def build_argv(script_name):
             "検査ロジックはPythonスクリプト側へ実装してください（D-0138）。" % script_name
         )
     script_path = os.path.join(SCRIPTS_DIR, script_name).replace("\\", "/")
-    return [sys.executable, script_path]
+    return [sys.executable, script_path] + list(args or [])
 
 
-def run_child(script_name, ok_codes):
+def read_hook_session_id():
+    """フック入力JSONから session_id を取り出して環境変数へ置く（D-0235）。
+
+    子スクリプト（production-run.py open）がこのセッションのrunを特定するために使う。
+    公式ドキュメント上 CLAUDE_CODE_SESSION_ID という環境変数は保証されていないため、
+    フック入力JSONを一次情報とし、環境変数は子スクリプト側のfallbackに留める。
+
+    標準入力が閉じられない環境でフック全体が固まらないよう、別スレッドで読んで
+    短くタイムアウトさせる。読めなくても何もせず先へ進む（開始時チェックを
+    止めてはいけない）。
+    """
+    try:
+        if sys.stdin is None or sys.stdin.closed or sys.stdin.isatty():
+            return
+    except Exception:
+        return
+
+    box = {}
+
+    def _read():
+        try:
+            box["raw"] = sys.stdin.buffer.read()
+        except Exception:
+            box["raw"] = b""
+
+    thread = threading.Thread(target=_read, daemon=True)
+    thread.start()
+    thread.join(2.0)
+    raw = box.get("raw")
+    if not raw:
+        return
+    try:
+        payload = json.loads(raw.decode("utf-8", "replace"))
+    except Exception:
+        return
+    session_id = payload.get("session_id") if isinstance(payload, dict) else None
+    if isinstance(session_id, str) and session_id:
+        os.environ["CLAUDE_HOOK_SESSION_ID"] = session_id
+
+
+def run_child(script_name, ok_codes, args=None):
     print("--- %s ---" % script_name)
     try:
         result = subprocess.run(
-            build_argv(script_name),
+            build_argv(script_name, args),
             cwd=ROOT,
             capture_output=True,
             timeout=TIMEOUT_SECONDS,
+            stdin=subprocess.DEVNULL,
         )
     except subprocess.TimeoutExpired:
         print("【エラー】%s が失敗しました（終了コード: タイムアウト %d秒）" % (script_name, TIMEOUT_SECONDS))
@@ -135,11 +187,16 @@ def main():
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
 
+    # 子スクリプトを起動する前に読む（起動後は標準入力を子へ渡さないため）。
+    read_hook_session_id()
+
     print(HEADER)
     print("")
 
-    for script_name, ok_codes in CHILD_SCRIPTS:
-        run_child(script_name, ok_codes)
+    for entry in CHILD_SCRIPTS:
+        script_name, ok_codes = entry[0], entry[1]
+        args = entry[2] if len(entry) > 2 else None
+        run_child(script_name, ok_codes, args)
         print("")
 
     print(FOOTER)

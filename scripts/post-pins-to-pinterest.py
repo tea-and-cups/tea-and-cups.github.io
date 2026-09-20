@@ -33,6 +33,11 @@ r"""未投稿ピンをPinterestへ実投稿する本体スクリプト（D-0120�
   - 1件の失敗が他のピンの処理を止めない。
   - APIエラーはHTTPステータスとレスポンス本文をそのまま記録する（握りつぶさない）。
 
+production runのstep記録（D-0235）:
+  (7) の成否ごとに、ピン番号・channel=pinterest・実際に送った本文payloadの
+  正規化JSONのsha256を data/production-handoff/_steps/ へ1行追記する。
+  記録の成否は投稿処理・標準出力・終了コードのいずれにも影響しない。
+
 --dry-run:
   (7)(8) のみ行わない。それ以外（停止スイッチ・未投稿導出・ファイル解析・
   ボード解決・URL200確認・重複照合）はすべて実行して結果を一覧出力する。
@@ -413,12 +418,17 @@ def describe_image(image_path):
     return "%s / %.2fMB / %s" % (image_path, size_mb, dim)
 
 
-def post_pin(access_token, fields, board_id):
+def build_pin_body(fields, board_id):
+    """POST /v5/pins へ送る本文を組み立てる。
+
+    post_pin() から切り出しただけで、組み立ての内容は一切変えていない
+    （送信せずに本文だけを取り出せるようにするため・D-0235）。
+    """
     with open(fields["image_path"], "rb") as f:
         raw = f.read()
     b64 = base64.b64encode(raw).decode("ascii")
     content_type = guess_content_type(fields["image_path"])
-    body = {
+    return {
         "board_id": board_id,
         "title": fields["title"],
         "description": fields["description"],
@@ -429,7 +439,46 @@ def post_pin(access_token, fields, board_id):
             "data": b64,
         },
     }
+
+
+def post_pin(access_token, fields, board_id, sent=None):
+    """ピンを1件投稿する。
+
+    sent に辞書を渡すと、実際に送った本文payloadを sent["body"] へ入れて返す
+    （投稿の成否によらずpayloadを記録できるようにするため・D-0235）。
+    送信する内容・戻り値・例外は sent の有無で変わらない。
+    """
+    body = build_pin_body(fields, board_id)
+    if sent is not None:
+        sent["body"] = body
     return pinterest_api.request("POST", "/pins", access_token, body=body, timeout=30)
+
+
+def _load_production_run():
+    path = os.path.join(SCRIPT_DIR, "production-run.py")
+    spec = importlib.util.spec_from_file_location("production_run", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def record_post_step(pin_num, body, ok, detail):
+    """production runのstep記録（D-0235）。投稿処理そのものには影響しない。
+    identityは「実際にAPIへ送った本文payloadの正規化JSON」のsha256とする。
+    記録の失敗で投稿を止めないため、例外はすべて握りつぶす。"""
+    try:
+        module = _load_production_run()
+        digest = module.sha256_hex(module.canonical_json(body)) if body is not None else None
+        module.record_step(
+            "post",
+            pin_num=pin_num,
+            channel="pinterest",
+            payload_sha256=digest,
+            ok=bool(ok),
+            detail=detail,
+        )
+    except Exception:
+        pass
 
 
 LEDGER_BACKUP_PATH = os.path.join(DATA_DIR, "pin-posted.md.bak")
@@ -653,18 +702,22 @@ def main():
                              "URL確認OK・重複無し・board_id=%s / 画像: %s" % (board_id, image_detail)))
             continue
 
+        sent = {}
         try:
-            resp = post_pin(access_token, fields, board_id)
+            resp = post_pin(access_token, fields, board_id, sent=sent)
         except pinterest_api.PinterestApiError as e:
+            record_post_step(pin_num, sent.get("body"), False, "HTTP %s" % e.status_code)
             results.append((pin_num, "失敗", fields["board"],
                              "HTTP %s: %s / 画像: %s" % (e.status_code, e.body, image_detail)))
             continue
         except Exception as e:
+            record_post_step(pin_num, sent.get("body"), False, "例外: %s" % e)
             results.append((pin_num, "失敗", fields["board"],
                              "例外: %s / 画像: %s" % (e, image_detail)))
             continue
 
         pin_id = resp.get("id", "")
+        record_post_step(pin_num, sent.get("body"), True, "pin_id: %s" % pin_id)
         append_ledger(pin_num, today_str)
         results.append((pin_num, "成功", fields["board"],
                          "pin_id: %s / 画像: %s" % (pin_id, image_detail)))

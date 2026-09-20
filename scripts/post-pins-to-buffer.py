@@ -56,6 +56,10 @@ r"""未投稿ピンをBuffer経由でX・Instagram・Threadsへ送る本体ス�
       shareNow（即時公開）は使わない（3チャンネルが同時刻に並ぶのを避けるため）。
       1件ごとに POST_INTERVAL_SECONDS 待つ。失敗は握りつぶさず、ピン番号・
       サービス・エラー内容を出力して次へ進む。
+  (8-2) production runのstep記録（D-0235）。service ごとに、ピン番号・channel・
+      実際に送った本文のsha256・成否を data/production-handoff/_steps/ へ
+      1行追記する。記録の成否は投稿処理・標準出力・終了コードのいずれにも
+      影響しない。
   (9) 成功のつど台帳へ1行追記する（3チャンネル分をまとめて最後に書かない。
       1つ失敗したときに再試行で二重投稿になるため）。
  (10) 公開画像の刈り込み。**投稿処理がすべて終わってから**、
@@ -792,6 +796,33 @@ def build_create_post_input(channel_id, text, image_url, service):
     return payload
 
 
+def _load_production_run():
+    path = os.path.join(SCRIPT_DIR, "production-run.py")
+    spec = importlib.util.spec_from_file_location("production_run", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def record_post_step(pin_num, service, text, ok, detail):
+    """production runのstep記録（D-0235）。投稿処理そのものには影響しない。
+    identityは「実際にAPIへ送った本文」のsha256とする（Pinterest側は画像を含む
+    payload全体を対象にしており、無理に同じidentityへまとめない）。
+    記録の失敗で投稿を止めないため、例外はすべて握りつぶす。"""
+    try:
+        module = _load_production_run()
+        module.record_step(
+            "post",
+            pin_num=pin_num,
+            channel=service,
+            payload_sha256=module.sha256_hex(text) if text is not None else None,
+            ok=bool(ok),
+            detail=detail,
+        )
+    except Exception:
+        pass
+
+
 def create_post(graphql, payload):
     """createPost を1回呼ぶ。戻り値: (成功したか, 説明文字列)
 
@@ -1169,9 +1200,11 @@ def main(argv):
             try:
                 ok, detail = create_post(graphql, payload)
             except (BufferApiError, BufferGuardError) as e:
+                record_post_step(pin_num, service, text, False, str(e))
                 out("  失敗: ピン%d / %s — %s" % (pin_num, service, e))
                 failed += 1
                 continue
+            record_post_step(pin_num, service, text, ok, detail)
             if ok:
                 append_ledger(pin_num, service, today_str)
                 out("  成功: ピン%d / %s — %s（台帳へ1行追記）" % (pin_num, service, detail))
