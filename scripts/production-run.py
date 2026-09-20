@@ -43,7 +43,13 @@ run_id:
 使い方:
   python site/scripts/production-run.py open
   python site/scripts/production-run.py finalize
+  python site/scripts/production-run.py finalize --session-id <id>   # 復旧用（下記）
   python site/scripts/production-run.py backfill --session-id <id> --base <sha> --head <sha> --opened-at YYYY-MM-DD [--dry-run]
+
+復旧用の finalize --session-id:
+  SessionEndが観測されないまま残ったrunを手で閉じる。次のセッションのopenが
+  30分ルールで代理確定するのを待たずに閉じたい場合に使う。close_reason は
+  既定で session_end_not_observed（--close-reason で変えられる）。
 """
 
 import datetime
@@ -1072,12 +1078,35 @@ def cmd_open(argv):
 
 
 def cmd_finalize(argv):
-    session_id, reason = session_id_from_stdin()
-    if not session_id:
-        session_id = session_id_from_env()
-    close_reason = "session_end"
-    if reason:
-        close_reason = "session_end:%s" % reason
+    """SessionEndフックから起動される。
+
+    --session-id / --close-reason は復旧用（SessionEndが観測されないまま残った
+    runを手で閉じるため）。フック経由ではどちらも渡さない。
+    """
+    override_id = None
+    override_reason = None
+    i = 0
+    while i < len(argv):
+        if argv[i] == "--session-id":
+            i += 1
+            override_id = argv[i]
+        elif argv[i] == "--close-reason":
+            i += 1
+            override_reason = argv[i]
+        else:
+            print("不明な引数です: %s" % argv[i])
+            return 1
+        i += 1
+
+    if override_id:
+        session_id = override_id
+        close_reason = override_reason or "session_end_not_observed"
+    else:
+        session_id, reason = session_id_from_stdin()
+        if not session_id:
+            session_id = session_id_from_env()
+        close_reason = "session_end:%s" % reason if reason else "session_end"
+
     try:
         path = finalize_run(session_id=session_id, close_reason=close_reason)
     except Exception:
