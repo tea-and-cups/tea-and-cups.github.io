@@ -19,6 +19,9 @@ Codex からシェル実行される前提で、標準出力に契約JSONを1個
   python site/scripts/growth-metrics.py gsc --operation gsc.search_analytics --lookback-days 28 --limit 28
   python site/scripts/growth-metrics.py buffer --operation buffer.account
   python site/scripts/growth-metrics.py pins --operation pins.daily_metrics --lookback-days 30
+  python site/scripts/growth-metrics.py ga4 --operation ga4.page_traffic --lookback-days 28 --limit 20
+  python site/scripts/growth-metrics.py gsc --operation gsc.search_analytics_by_query --lookback-days 28 --limit 20
+  python site/scripts/growth-metrics.py gsc --operation gsc.search_analytics_by_page --lookback-days 28 --limit 20
 
 終了コード: 0=正常（status ok）/ 1=エラー（status error・許可外・範囲外・secretガード作動）
 """
@@ -45,6 +48,8 @@ GA4_PROPERTY_ID = "547119508"  # 「琥珀時間」・親スクリプト fetch-g
 GA4_SOURCE = "google_analytics_data_api_v1beta"
 GA4_ENTITY_ID = "properties/%s" % GA4_PROPERTY_ID
 GA4_METRICS = ("sessions", "activeUsers", "screenPageViews")
+# ga4.page_traffic 専用。順序はGA4 orderBysで指定する降順ソート対象（screenPageViews）を先頭に置く。
+GA4_PAGE_METRICS = ("screenPageViews", "sessions", "activeUsers")
 
 # GSC（Search Console）・親スクリプト check-gsc-status.py の SITE_URL と同一。
 # URLプレフィックス型プロパティの登録文字列（末尾スラッシュあり）。
@@ -55,6 +60,10 @@ GSC_ENTITY_ID = GSC_SITE_URL
 # ctr/position は小数として格納する。
 GSC_INT_METRICS = ("clicks", "impressions")
 GSC_FLOAT_METRICS = ("ctr", "position")
+# gsc.search_analytics_by_query / by_page 専用。searchanalytics.query は query/page 次元に
+# サーバー側 orderBy を持たないため、この上限まで1回で取得してから impressions 降順に
+# ブローカー側でソートし、--limit 件へ切り詰める（GSCの1リクエストあたり最大値）。
+GSC_DIMENSION_FETCH_ROW_LIMIT = 25000
 
 BUFFER_SOURCE = "buffer_graphql"
 
@@ -379,6 +388,117 @@ def run_ga4_daily_traffic(params: dict) -> dict:
     return payload
 
 
+def run_ga4_page_traffic(params: dict) -> dict:
+    from google.auth.transport.requests import AuthorizedSession, Request
+    from google.oauth2.credentials import Credentials
+
+    lookback_days = params["lookback_days"]
+    limit = params["limit"]
+
+    end_date = dt.date.today()
+    start_date = end_date - dt.timedelta(days=lookback_days - 1)
+    params["period"] = {"start_date": start_date.isoformat(), "end_date": end_date.isoformat()}
+
+    if not os.path.exists(TOKEN_PATH):
+        raise BrokerError("token_missing", "data/google-token.json not found")
+
+    try:
+        creds = Credentials.from_authorized_user_file(TOKEN_PATH)
+    except (OSError, ValueError) as exc:
+        raise BrokerError("token_unreadable", "could not load google-token.json: %s" % exc)
+
+    if not creds.valid:
+        if creds.expired and creds.refresh_token:
+            try:
+                creds.refresh(Request())  # メモリ内のみ。ファイルへ書き戻さない。
+            except Exception as exc:  # noqa: BLE001 - refresh 失敗は人手対応が必要
+                raise BrokerError("token_refresh_failed", "OAuth refresh failed: %s" % exc)
+        else:
+            raise BrokerError("token_invalid", "stored credential is not usable and cannot be refreshed")
+
+    body = {
+        "dateRanges": [{"startDate": params["period"]["start_date"], "endDate": params["period"]["end_date"]}],
+        "dimensions": [{"name": "pagePath"}],
+        "metrics": [{"name": name} for name in GA4_PAGE_METRICS],
+        "orderBys": [{"metric": {"metricName": "screenPageViews"}, "desc": True}],
+        "limit": str(limit),
+    }
+
+    session = AuthorizedSession(creds)
+    try:
+        http_response = session.post(
+            GA4_RUNREPORT_URL,
+            params={"alt": "json"},
+            json=body,
+            timeout=HTTP_TIMEOUT_SECONDS,
+        )
+    except Exception as exc:  # noqa: BLE001 - connect / proxy / timeout failures
+        raise BrokerError("ga4_transport_error", "GA4 request failed: %s" % type(exc).__name__)
+    finally:
+        session.close()
+
+    if http_response.status_code >= 400:
+        # レスポンス本文は出力しない（secret ガードを通す前提を崩さない）。
+        raise BrokerError("ga4_api_error", "GA4 runReport failed: HTTP %s" % http_response.status_code)
+
+    try:
+        response = http_response.json()
+    except ValueError as exc:
+        raise BrokerError("ga4_transport_error", "GA4 request failed: %s" % type(exc).__name__)
+
+    fetched_at = iso_now()
+    rows = response.get("rows") or []
+    series: list[dict] = []
+
+    for row in rows:
+        dim_values = row.get("dimensionValues") or []
+        metric_values = row.get("metricValues") or []
+        page_path = dim_values[0].get("value") if dim_values else None
+        reasons: list[str] = []
+        record = {
+            "source": GA4_SOURCE,
+            "fetched_at": fetched_at,
+            "entity_id": GA4_ENTITY_ID,
+            "observed_at": fetched_at,
+        }
+        if page_path:
+            record["page_path"] = page_path
+        else:
+            reasons.append("GA4 row had a missing or empty pagePath dimension")
+        for index, name in enumerate(GA4_PAGE_METRICS):
+            value = None
+            if index < len(metric_values):
+                try:
+                    value = int(metric_values[index].get("value"))
+                except (TypeError, ValueError, AttributeError):
+                    value = None
+            if value is None:
+                reasons.append("%s was missing or not an integer" % name)
+            else:
+                record[name] = value
+        record["unknown_reason"] = "; ".join(reasons) if reasons else None
+        series.append(record)
+
+    warnings: list[str] = []
+    if len(rows) >= limit:
+        warnings.append(
+            "returned row count reached limit=%d; lower-ranked pages beyond this list are not included"
+            % limit
+        )
+
+    payload = _base_payload("ga4", "ga4.page_traffic", params)
+    payload["generated_at"] = fetched_at
+    payload["warnings"] = warnings
+    payload["coverage"]["reason"] = (
+        "GA4 Data API v1beta runReport exposes no data-finality field; this is a page-level "
+        "aggregate over the whole lookback window (not a per-day breakdown), ranked by "
+        "screenPageViews via the API's own orderBys"
+    )
+    payload["data"]["series"] = series
+    payload["data"]["snapshot"] = {}
+    return payload
+
+
 # --- GSC (Search Console) --------------------------------------------------
 
 
@@ -514,6 +634,150 @@ def run_gsc_search_analytics(params: dict) -> dict:
     payload["data"]["series"] = series
     payload["data"]["snapshot"] = {}
     return payload
+
+
+def _gsc_impressions_sort_key(row: dict) -> float:
+    try:
+        return float(row.get("impressions"))
+    except (TypeError, ValueError):
+        return -1.0
+
+
+def _run_gsc_dimension_report(params: dict, operation: str, dimension: str, record_key: str) -> dict:
+    from urllib.parse import quote
+
+    from google.auth.transport.requests import AuthorizedSession, Request
+    from google.oauth2.credentials import Credentials
+
+    lookback_days = params["lookback_days"]
+    limit = params["limit"]
+
+    end_date = dt.date.today()
+    start_date = end_date - dt.timedelta(days=lookback_days - 1)
+    params["period"] = {"start_date": start_date.isoformat(), "end_date": end_date.isoformat()}
+
+    if not os.path.exists(TOKEN_PATH):
+        raise BrokerError("token_missing", "data/google-token.json not found")
+
+    try:
+        creds = Credentials.from_authorized_user_file(TOKEN_PATH)
+    except (OSError, ValueError) as exc:
+        raise BrokerError("token_unreadable", "could not load google-token.json: %s" % exc)
+
+    if not creds.valid:
+        if creds.expired and creds.refresh_token:
+            try:
+                creds.refresh(Request())  # メモリ内のみ。ファイルへ書き戻さない。
+            except Exception as exc:  # noqa: BLE001 - refresh 失敗は人手対応が必要
+                raise BrokerError("token_refresh_failed", "OAuth refresh failed: %s" % exc)
+        else:
+            raise BrokerError("token_invalid", "stored credential is not usable and cannot be refreshed")
+
+    body = {
+        "startDate": params["period"]["start_date"],
+        "endDate": params["period"]["end_date"],
+        "dimensions": [dimension],
+        "rowLimit": GSC_DIMENSION_FETCH_ROW_LIMIT,
+        "dataState": "all",
+    }
+
+    url = GSC_SEARCHANALYTICS_URL_TEMPLATE % quote(GSC_SITE_URL, safe="")
+    session = AuthorizedSession(creds)
+    try:
+        http_response = session.post(
+            url,
+            params={"alt": "json"},
+            json=body,
+            timeout=HTTP_TIMEOUT_SECONDS,
+        )
+    except Exception as exc:  # noqa: BLE001 - connect / proxy / timeout failures
+        raise BrokerError("gsc_transport_error", "GSC request failed: %s" % type(exc).__name__)
+    finally:
+        session.close()
+
+    if http_response.status_code >= 400:
+        # レスポンス本文は出力しない（secret ガードを通す前提を崩さない）。
+        raise BrokerError(
+            "gsc_api_error",
+            "GSC searchanalytics.query failed: HTTP %s" % http_response.status_code,
+        )
+
+    try:
+        response = http_response.json()
+    except ValueError as exc:
+        raise BrokerError("gsc_transport_error", "GSC request failed: %s" % type(exc).__name__)
+
+    fetched_at = iso_now()
+    all_rows = response.get("rows") or []
+    # searchanalytics.query は query/page 次元にサーバー側 orderBy を持たないため、
+    # ここで impressions 降順に並べ替えてから --limit 件へ切り詰める。
+    sorted_rows = sorted(all_rows, key=_gsc_impressions_sort_key, reverse=True)
+    rows = sorted_rows[:limit]
+    series: list[dict] = []
+
+    for row in rows:
+        keys = row.get("keys") or []
+        key_value = str(keys[0]) if keys and keys[0] else None
+        reasons: list[str] = []
+        record = {
+            "source": GSC_SOURCE,
+            "fetched_at": fetched_at,
+            "entity_id": GSC_ENTITY_ID,
+            "observed_at": fetched_at,
+        }
+        if key_value:
+            record[record_key] = key_value
+        else:
+            reasons.append("GSC row had a missing or empty %s key" % dimension)
+        for name in GSC_INT_METRICS:
+            raw = row.get(name)
+            try:
+                record[name] = int(round(float(raw)))
+            except (TypeError, ValueError):
+                reasons.append("%s was missing or not numeric" % name)
+        for name in GSC_FLOAT_METRICS:
+            raw = row.get(name)
+            try:
+                record[name] = float(raw)
+            except (TypeError, ValueError):
+                reasons.append("%s was missing or not numeric" % name)
+        record["unknown_reason"] = "; ".join(reasons) if reasons else None
+        series.append(record)
+
+    warnings: list[str] = []
+    if len(all_rows) > limit:
+        warnings.append(
+            "%d rows were fetched and ranked by impressions; %d lower-ranked %s values beyond "
+            "limit=%d are not included"
+            % (len(all_rows), len(all_rows) - limit, dimension, limit)
+        )
+    if len(all_rows) >= GSC_DIMENSION_FETCH_ROW_LIMIT:
+        warnings.append(
+            "the underlying fetch reached its own %d-row cap; the true top-%d by impressions "
+            "cannot be guaranteed if more than %d %s values exist"
+            % (GSC_DIMENSION_FETCH_ROW_LIMIT, limit, GSC_DIMENSION_FETCH_ROW_LIMIT, dimension)
+        )
+
+    payload = _base_payload("gsc", operation, params)
+    payload["generated_at"] = fetched_at
+    payload["warnings"] = warnings
+    payload["coverage"]["reason"] = (
+        "Search Console reporting is delayed by a few days and searchanalytics.query exposes no "
+        "per-row finality flag; this is a %s-level aggregate over the whole lookback window "
+        "(not a per-day breakdown), ranked by impressions by this broker (the API itself has no "
+        "server-side orderBy for this dimension)" % dimension
+    )
+    payload["data"]["series"] = series
+    payload["data"]["snapshot"] = {}
+    return payload
+
+
+def run_gsc_search_analytics_by_query(params: dict) -> dict:
+    return _run_gsc_dimension_report(params, "gsc.search_analytics_by_query", "query", "query")
+
+
+def run_gsc_search_analytics_by_page(params: dict) -> dict:
+    return _run_gsc_dimension_report(params, "gsc.search_analytics_by_page", "page", "page")
 
 
 # --- Buffer ------------------------------------------------------------------
@@ -681,6 +945,33 @@ ALLOWED_OPERATIONS = {
         "description": "GSC daily clicks / impressions / ctr / position over a trailing window",
         "accepts": frozenset(["lookback_days", "limit"]),
         "handler": run_gsc_search_analytics,
+    },
+    "ga4.page_traffic": {
+        "service": "ga4",
+        "description": (
+            "GA4 screenPageViews / sessions / activeUsers by pagePath over a trailing window, "
+            "top-N by screenPageViews"
+        ),
+        "accepts": frozenset(["lookback_days", "limit"]),
+        "handler": run_ga4_page_traffic,
+    },
+    "gsc.search_analytics_by_query": {
+        "service": "gsc",
+        "description": (
+            "GSC clicks / impressions / ctr / position by query over a trailing window (period "
+            "total, not daily), top-N by impressions"
+        ),
+        "accepts": frozenset(["lookback_days", "limit"]),
+        "handler": run_gsc_search_analytics_by_query,
+    },
+    "gsc.search_analytics_by_page": {
+        "service": "gsc",
+        "description": (
+            "GSC clicks / impressions / ctr / position by page over a trailing window (period "
+            "total, not daily), top-N by impressions"
+        ),
+        "accepts": frozenset(["lookback_days", "limit"]),
+        "handler": run_gsc_search_analytics_by_page,
     },
     "buffer.account": {
         "service": "buffer",
