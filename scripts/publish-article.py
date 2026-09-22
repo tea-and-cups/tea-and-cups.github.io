@@ -45,8 +45,42 @@ Edit/Writeによるpublished化は .claude/hooks/check-publish-gate.py で拒否
   実行のたびに publish_attempt を1件だけ data/production-handoff/_steps/ へ
   追記する（slug・dry-runか本番か・OK/NG・NGだったチェック名）。記録の成否は
   標準出力・終了コード・公開処理のいずれにも影響しない。
+
+【既存記事の修正・再公開（--prepare-revise / --revise）】
+  published化した記事を、公開前チェックを通したうえで修正・再公開するための
+  正規経路。正本は常に site/src/content/posts/ 側であり、output/articles/ 側の
+  下書きは「修正作業中だけ一時的に存在する作業コピー」として扱う。
+
+  手順:
+    1. python site/scripts/publish-article.py --prepare-revise <slug>
+       posts側の内容を output/articles/<slug>.md へ用意する（無ければ複製、
+       既にあれば posts側と一致するか確認するだけで上書きはしない）。
+    2. Editツールで output/articles/<slug>.md を直接修正する。
+    3. python site/scripts/publish-article.py --revise <slug> --dry-run
+       公開前チェック（Pin・SNS投稿文関連を除いた5本）と変更差分を確認する。
+    4. quality-reviewer サブエージェントに変更箇所と前後の整合性を確認させる。
+    5. python site/scripts/publish-article.py --revise <slug>
+       本番反映（コピー→git add→commit「revise: <slug>」→push）する。
+
+  --prepare-revise <slug>:
+    posts側に記事が無い → 中断。
+    下書きが無い → posts側をそのまま output/articles/ へ複製する。
+    下書きが posts側と同一 → 何もせず正常終了。
+    下書きが posts側と異なる → 差分を表示して中断する（下書きは上書きしない）。
+
+  --revise <slug> [--dry-run]:
+    posts側に記事が無い場合・下書きが無い場合・下書きの status が published
+    でない場合・下書きが posts側と差分なしの場合は、いずれも中断する。
+    公開前チェックは8本から check-pin-image-naming・check-pin-image-style・
+    check-x-post-length を除いた5本（Pin・SNS投稿文は再公開で変わらないため）。
+    本番実行時は site/src/content/posts/<slug>.md への上書きコピー→
+    記事ファイルのみの git add→commit「revise: <slug>」→push まで行う。
+    prune-used-ideas・post-pins-to-pinterest・post-pins-to-buffer の実行や
+    production runのstep記録・record-lessonのセッションマーカーは行わない
+    （再公開はネタ帳消費・SNS新規投稿・日次生産のいずれにも当たらないため）。
 """
 
+import difflib
 import importlib.util
 import os
 import re
@@ -74,6 +108,16 @@ PRE_PUBLISH_CHECKS = [
     # X向けの本文（ピンmdの「- X用説明文: 」行）が280に収まるかを機械で見る。
     # 文章のルールとして書くだけでは守られないため、公開前に必ず通る位置に置く。
     ("check-x-post-length.py", True, []),
+]
+
+# --revise 用: Pin・SNS投稿文はrevise（再公開）で内容が変わらないため除外する3本。
+REVISE_EXCLUDED_CHECKS = {
+    "check-pin-image-naming.py",
+    "check-pin-image-style.py",
+    "check-x-post-length.py",
+}
+REVISE_PUBLISH_CHECKS = [
+    c for c in PRE_PUBLISH_CHECKS if c[0] not in REVISE_EXCLUDED_CHECKS
 ]
 
 CHECK_TIMEOUT = 120
@@ -109,13 +153,17 @@ def record_production_step(kind, **fields):
         pass
 
 
-def run_checks(slug, attempt=None):
+def run_checks(slug, attempt=None, checks=None):
     """公開前チェックを順に実行する。1本でも落ちたらFalseを返す。
 
     attempt は呼び出し元が渡す記録用の辞書で、落ちたチェック名を書き戻す
     （D-0235）。標準出力・終了コードはこの引数の有無で変わらない。
+    checks を省略すると PRE_PUBLISH_CHECKS（8本）を使う。--revise は
+    REVISE_PUBLISH_CHECKS（5本）を明示的に渡す。
     """
-    for script_name, takes_slug, extra_args in PRE_PUBLISH_CHECKS:
+    if checks is None:
+        checks = PRE_PUBLISH_CHECKS
+    for script_name, takes_slug, extra_args in checks:
         script_path = os.path.join(SCRIPTS_DIR, script_name)
         cmd = [sys.executable, script_path]
         if takes_slug:
@@ -220,6 +268,23 @@ def untracked_images(slug):
     return [line for line in result.stdout.splitlines() if line.strip()]
 
 
+def diff_text(old_text, new_text, old_label, new_label):
+    """unified diffを1つの文字列で返す（difflib）。"""
+    return "".join(
+        difflib.unified_diff(
+            old_text.splitlines(keepends=True),
+            new_text.splitlines(keepends=True),
+            fromfile=old_label,
+            tofile=new_label,
+        )
+    )
+
+
+def out_lines(text):
+    for line in text.rstrip("\n").splitlines():
+        out("  " + line)
+
+
 def ahead_count():
     """origin/main より何コミット先行しているか。判定できなければNone。"""
     result = git("rev-list", "--count", "@{u}..HEAD")
@@ -254,12 +319,193 @@ def mark_daily_session():
         pass
 
 
+def _run_prepare_revise(rest_args):
+    """--prepare-revise <slug>: posts側の内容を下書きとして用意する。"""
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
+
+    if len(rest_args) != 1 or rest_args[0].startswith("-"):
+        out(__doc__)
+        return 1
+
+    slug = rest_args[0]
+    draft_path = os.path.join(DRAFTS_DIR, "%s.md" % slug)
+    published_path = os.path.join(POSTS_DIR, "%s.md" % slug)
+
+    out("=== publish-article.py --prepare-revise %s ===" % slug)
+
+    out("1. 公開済みの存在確認: site/src/content/posts/%s.md" % slug)
+    if not os.path.isfile(published_path):
+        return abort(
+            "site/src/content/posts/%s.md が見つかりません。この記事はまだ公開されていません"
+            % slug
+        )
+    out("  OK")
+
+    published_text = read_text(published_path)
+
+    if not os.path.isfile(draft_path):
+        out("2. 下書きが無いため、公開済みの内容をそのまま output/articles/%s.md へ複製します" % slug)
+        write_text(draft_path, published_text)
+        out("  完了: output/articles/%s.md" % slug)
+        out("=== --prepare-revise 完了 ===")
+        return 0
+
+    draft_text = read_text(draft_path)
+    out("2. 既存の下書きと公開済み内容を比較します")
+    if draft_text == published_text:
+        out("  OK  下書きは公開済み内容と同一です。そのまま --revise へ進められます")
+        out("=== --prepare-revise 完了（変更なし） ===")
+        return 0
+
+    out("  下書きが公開済み内容と異なります。下書きは上書きしていません")
+    out("  --- 差分（site/src/content/posts/ → output/articles/） ---")
+    out_lines(
+        diff_text(
+            published_text,
+            draft_text,
+            "site/src/content/posts/%s.md" % slug,
+            "output/articles/%s.md" % slug,
+        )
+    )
+    out("  ---")
+    return abort(
+        "output/articles/%s.md が公開済み内容と異なるため中断しました。"
+        "どちらが新しいかは判断せず、内容を確認してください" % slug
+    )
+
+
+def _run_revise(rest_args):
+    """--revise <slug> [--dry-run]: 公開済み記事を修正・再公開する。"""
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
+
+    dry_run = "--dry-run" in rest_args
+    positional = [a for a in rest_args if not a.startswith("-")]
+    unknown = [a for a in rest_args if a.startswith("-") and a != "--dry-run"]
+    if len(positional) != 1 or unknown:
+        out(__doc__)
+        return 1
+
+    slug = positional[0]
+    draft_path = os.path.join(DRAFTS_DIR, "%s.md" % slug)
+    published_path = os.path.join(POSTS_DIR, "%s.md" % slug)
+
+    out("=== publish-article.py --revise %s%s ===" % (slug, "（--dry-run）" if dry_run else ""))
+
+    out("1. 公開済みの存在確認: site/src/content/posts/%s.md" % slug)
+    if not os.path.isfile(published_path):
+        return abort(
+            "site/src/content/posts/%s.md が見つかりません。この記事はまだ公開されていません。"
+            "新規公開は python site/scripts/publish-article.py %s で行ってください" % (slug, slug)
+        )
+    out("  OK")
+
+    if not os.path.isfile(draft_path):
+        return abort(
+            "output/articles/%s.md が見つかりません。"
+            "先に python site/scripts/publish-article.py --prepare-revise %s を実行してください"
+            % (slug, slug)
+        )
+
+    status, err = current_status(draft_path)
+    if err:
+        return abort("output/articles/%s.md の %s" % (slug, err))
+    if status != "published":
+        return abort(
+            "output/articles/%s.md の status が published ではありません（%s）。"
+            "この記事は公開済みのため、下書きの status は published のまま修正してください"
+            % (slug, status)
+        )
+
+    published_text = read_text(published_path)
+    draft_text = read_text(draft_path)
+    if draft_text == published_text:
+        return abort(
+            "output/articles/%s.md は site/src/content/posts/%s.md と差分がありません"
+            % (slug, slug)
+        )
+    diff = diff_text(
+        published_text,
+        draft_text,
+        "site/src/content/posts/%s.md" % slug,
+        "output/articles/%s.md" % slug,
+    )
+
+    out("2. 公開前チェック群（Pin・SNS投稿文関連の3本を除いた5本）")
+    if not run_checks(slug, checks=REVISE_PUBLISH_CHECKS):
+        return abort("公開前チェックに失敗したため、以降の処理（コピー・commit・push）は一切実行していません")
+
+    out("3. 変更差分")
+    out_lines(diff)
+
+    if dry_run:
+        out("4. [dry-run] site/src/content/posts/%s.md へ上書きコピーする" % slug)
+        out(
+            "5. [dry-run] git add src/content/posts/%s.md → git commit -m \"revise: %s\""
+            % (slug, slug)
+        )
+        out("6. [dry-run] git push")
+        out("=== dry-run 完了（4〜6は実行していません） ===")
+        return 0
+
+    # 4. コピー
+    shutil.copyfile(draft_path, published_path)
+    out("4. コピー完了: site/src/content/posts/%s.md" % slug)
+
+    # 5. add・commit（記事ファイルのみ。Pin画像はrevise対象外）
+    add_target = "src/content/posts/%s.md" % slug
+    result = git("add", "--", add_target)
+    if result.returncode != 0:
+        return abort("git add に失敗しました: %s" % (result.stderr or result.stdout).strip())
+    out("5. git add: %s" % add_target)
+
+    staged = git("diff", "--cached", "--quiet")
+    if staged.returncode == 0:
+        out("   ステージ対象に差分が無いため commit をスキップ")
+    elif staged.returncode == 1:
+        result = git("commit", "-m", "revise: %s" % slug)
+        if result.returncode != 0:
+            return abort("git commit に失敗しました: %s" % (result.stderr or result.stdout).strip())
+        out("   git commit: revise: %s" % slug)
+    else:
+        return abort("git diff --cached の判定に失敗しました: %s" % (staged.stderr or staged.stdout).strip())
+
+    # 6. push
+    ahead = ahead_count()
+    if ahead == 0:
+        out("6. git push は差分なしのためスキップ（origin/main と同一）")
+    else:
+        result = git("push")
+        if result.returncode != 0:
+            return abort("git push に失敗しました: %s" % (result.stderr or result.stdout).strip())
+        out("6. git push 完了")
+        push_out = (result.stdout + result.stderr).strip()
+        for line in push_out.splitlines():
+            out("   " + line)
+
+    out("=== 再公開完了: %s ===" % slug)
+    out("再公開のため prune-used-ideas・post-pins-to-pinterest・post-pins-to-buffer は実行しない")
+    return 0
+
+
 def main():
     """本体（_run）を呼び、その結果を production run の step として1件だけ記録する。
 
     標準出力・終了コードは _run() のものをそのまま返す（D-0235で追加した記録は
     公開処理の挙動を変えない）。
+
+    --prepare-revise / --revise はここで分岐し、_run() を一切経由しない
+    （mark_daily_session・record_production_stepのいずれも呼ばない。D-0239）。
     """
+    args = list(sys.argv[1:])
+
+    if args[:1] == ["--prepare-revise"]:
+        return _run_prepare_revise(args[1:])
+
+    if args[:1] == ["--revise"]:
+        return _run_revise(args[1:])
+
     attempt = {"slug": None, "dry_run": False, "failed_check": None}
     rc = _run(attempt)
     record_production_step(
