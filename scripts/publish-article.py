@@ -73,6 +73,8 @@ Edit/Writeによるpublished化は .claude/hooks/check-publish-gate.py で拒否
     でない場合・下書きが posts側と差分なしの場合は、いずれも中断する。
     公開前チェックは8本から check-pin-image-naming・check-pin-image-style・
     check-x-post-length を除いた5本（Pin・SNS投稿文は再公開で変わらないため）。
+    商品リンクの基準は「公開中（posts側）の点数以上・上限3」（--min min(3, N)）。
+    公開中が0点の記事は商品リンクのチェックを省く（減らしようが無いため）。
     本番実行時は site/src/content/posts/<slug>.md への上書きコピー→
     記事ファイルのみの git add→commit「revise: <slug>」→push まで行う。
     prune-used-ideas・post-pins-to-pinterest・post-pins-to-buffer の実行や
@@ -375,6 +377,28 @@ def _run_prepare_revise(rest_args):
     )
 
 
+def _revise_checks(published_path):
+    """--revise 用のチェック群と、公開中の商品点数Nを返す（Nが数えられなければNone）。
+
+    商品リンクの基準は「公開中の点数から減らさない（上限3）」。数え方は
+    check-product-link-presence.py の count_products を再利用する（複製しない）。
+    """
+    path = os.path.join(SCRIPTS_DIR, "check-product-link-presence.py")
+    spec = importlib.util.spec_from_file_location("check_product_link_presence", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    _, body = module.split_frontmatter(read_text(published_path))
+    n = module.count_products(body)
+    checks = []
+    for name, takes_slug, extra_args in REVISE_PUBLISH_CHECKS:
+        if name == "check-product-link-presence.py":
+            if n == 0:
+                continue  # --min は1以上のみ。公開中0点なら減ることは無いので省く
+            extra_args = ["--min", str(min(3, n))]
+        checks.append((name, takes_slug, extra_args))
+    return checks, n
+
+
 def _run_revise(rest_args):
     """--revise <slug> [--dry-run]: 公開済み記事を修正・再公開する。"""
     if hasattr(sys.stdout, "reconfigure"):
@@ -433,7 +457,9 @@ def _run_revise(rest_args):
     )
 
     out("2. 公開前チェック群（Pin・SNS投稿文関連の3本を除いた5本）")
-    if not run_checks(slug, checks=REVISE_PUBLISH_CHECKS):
+    revise_checks, published_products = _revise_checks(published_path)
+    out("  商品リンク基準: 公開中の点数（%d点）以上（上限3）" % published_products)
+    if not run_checks(slug, checks=revise_checks):
         return abort("公開前チェックに失敗したため、以降の処理（コピー・commit・push）は一切実行していません")
 
     out("3. 変更差分")
