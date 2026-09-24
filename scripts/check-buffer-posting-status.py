@@ -4,7 +4,8 @@ r"""Buffer経由のSNS投稿（X・Instagram・Threads）で未投稿の組を�
 
 判定材料:
   - output/pins/ のファイル名から抽出したピン番号のうち BUFFER_START_PIN 以上
-  - サービスは post-pins-to-buffer.py の SERVICES（twitter / instagram / threads）
+  - サービスは post-pins-to-buffer.py の SERVICES（ALL_SERVICES から PAUSED_CHANNELS を
+    除いたもの。2026-09-25からinstagramは一時停止中・D-0240）
   - 台帳 data/buffer-posted.md の「投稿済み:」行
 
 ピン番号の抽出・開始番号・サービス一覧・台帳の読み方は

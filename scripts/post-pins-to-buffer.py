@@ -145,8 +145,22 @@ DAILY_LIMIT = 30
 # APIキーの残日数がこれを下回ったら【警告】を出す（処理は止めない）。
 KEY_EXPIRY_WARN_DAYS = 30
 
-# 送信先サービス。台帳・TSV・Buffer側の service 名はすべてこの表記で揃える。
-SERVICES = ("twitter", "instagram", "threads")
+# 送信先になりうるサービスの全体。台帳・TSV・Buffer側の service 名はすべてこの表記で揃える。
+ALL_SERVICES = ("twitter", "instagram", "threads")
+
+# 一時停止中のチャンネル。ここに入れたサービスは Buffer への予約作成の対象にせず、
+# 「投稿されているべき組」（check-buffer-posting-status.py・production-run.py が
+# SERVICES 経由で参照する）にも含めない。
+# 停止理由: 2026-09-23以降のInstagram向け投稿がすべて Buffer 側で
+#           "Instagram flagged this post as potential spam" と判定されたため、
+#           アカウント凍結を避ける目的で予約作成だけを止める。
+# 停止日: 2026-09-25 / 再開判断日: 2026-10-22（チャネル評価日）/ D-0240
+# 再開手順: この集合から "instagram" を外す（この1箇所だけ）。
+# 台帳（data/buffer-posted.md）の instagram 行と buffer-channels.tsv の行は残す。
+PAUSED_CHANNELS = {"instagram"}
+
+# 実際に送信・照合する（停止中を除いた）サービス。以降のコードはこちらだけを参照する。
+SERVICES = tuple(s for s in ALL_SERVICES if s not in PAUSED_CHANNELS)
 
 # Buffer投稿の対象にする最小のピン番号。これ未満は未投稿の導出から除外する。
 # ピン195以前には「- X用説明文: 」行が無く、対象に含めると恒久的に未投稿として
