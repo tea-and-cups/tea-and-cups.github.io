@@ -3,7 +3,7 @@ title: 作り置き水出し紅茶は何日もつ？保存期間と衛生の注�
 slug: mizudashi-koucha-hozon-eisei-qa
 date: 2026-08-13
 updated: 2026-08-13
-description: 水出し紅茶をまとめて作り置きしたとき、何日くらいで飲み切ればいいのか気になりませんか。抽出後の保存期間の目安と、傷みを防ぐための保存方法・衛生の注意点をQ&A形式で紹介します。
+description: 作り置きした水出し紅茶は、冷蔵庫で保存して2〜3日程度を目安に飲み切るのが基本ですが、水質や容器の清潔さで傷みやすさは変わります。保存方法と衛生の注意点をQ&A形式で紹介します。
 tags: [紅茶, 水出し, 保存, 夏]
 hero: /images/mizudashi-koucha-hozon-eisei-qa/hero.webp
 status: published
