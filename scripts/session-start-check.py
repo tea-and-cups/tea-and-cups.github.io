@@ -26,6 +26,8 @@ check-image-gen-needed-today.py）をAIが順に手動実行する運用だっ�
   - 子スクリプトが例外・非ゼロ終了・タイムアウト（1本30秒）した場合も無言で飛ばさず、
     「【エラー】<スクリプト名> が失敗しました（終了コード: N）」を出力し、残りの
     スクリプトは実行を続ける（silent failureを作らないため）。
+  - 標準出力・標準エラーとも空で終了コード0の子スクリプトは、見出しも含めて何も出さない
+    （正常で伝えることが無いものを毎セッション表示しないため）。
   - 冒頭・末尾に固定文を印字する（AIの文脈に投入され、二重実行防止の指示として機能する）。
 
 このスクリプト自体は既存4本のロジックを一切変更しない。呼び出し位置を移すのみ。
@@ -155,7 +157,6 @@ def read_hook_session_id():
 
 
 def run_child(script_name, ok_codes, args=None):
-    print("--- %s ---" % script_name)
     try:
         result = subprocess.run(
             build_argv(script_name, args),
@@ -165,15 +166,23 @@ def run_child(script_name, ok_codes, args=None):
             stdin=subprocess.DEVNULL,
         )
     except subprocess.TimeoutExpired:
+        print("--- %s ---" % script_name)
         print("【エラー】%s が失敗しました（終了コード: タイムアウト %d秒）" % (script_name, TIMEOUT_SECONDS))
-        return
+        return True
     except Exception as e:
+        print("--- %s ---" % script_name)
         print("【エラー】%s が失敗しました（終了コード: 例外 %s）" % (script_name, e))
-        return
+        return True
 
     stdout_text = result.stdout.decode("utf-8", errors="replace") if result.stdout else ""
     stderr_text = result.stderr.decode("utf-8", errors="replace") if result.stderr else ""
 
+    # 伝えることが何も無い子スクリプト（標準出力・標準エラーとも空で終了コード0）は
+    # 見出しごと出さない。それ以外は従来どおり見出しつきで出す。
+    if not stdout_text and not stderr_text and result.returncode == 0:
+        return False
+
+    print("--- %s ---" % script_name)
     if stdout_text:
         print(stdout_text.rstrip("\n"))
 
@@ -181,6 +190,7 @@ def run_child(script_name, ok_codes, args=None):
         print("【エラー】%s が失敗しました（終了コード: %d）" % (script_name, result.returncode))
         if stderr_text:
             print(stderr_text.rstrip("\n"))
+    return True
 
 
 def main():
@@ -196,8 +206,8 @@ def main():
     for entry in CHILD_SCRIPTS:
         script_name, ok_codes = entry[0], entry[1]
         args = entry[2] if len(entry) > 2 else None
-        run_child(script_name, ok_codes, args)
-        print("")
+        if run_child(script_name, ok_codes, args):
+            print("")
 
     print(FOOTER)
     sys.exit(0)
