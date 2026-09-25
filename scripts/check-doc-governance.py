@@ -41,8 +41,8 @@ CLAUDE.md 3節1「rules/配下のファイルの新設・削除はオーナー�
      （判定が消えたことに気づけないため）。
 
  13. data/link-health.md（商品リンク健全性台帳）の鮮度指標（D-0190） → 通常行1行を常時出力し、
-     最古の最終確認日が一巡見込みの LINK_HEALTH_STALE_FACTOR 倍を超える場合と、
-     一巡見込みが LINK_HEALTH_MAX_CYCLE_DAYS を超える場合に【警告】。台帳は読み取りのみ。
+     最新の最終確認日が実行日から LINK_HEALTH_MAX_GAP_DAYS 日を超えて前の場合
+     （週次確認が2週以上止まっている）に【警告】（D-0242）。台帳は読み取りのみ。
 
  14. 公開済み記事の実数（D-0213） → site/src/content/posts/ 配下の frontmatter の
      status: published を数え、通常行1行で常時表示する。docs/status.md 中の
@@ -148,8 +148,7 @@ RECENT_DECISIONS = 5
 # 台帳は読み取り専用。件数上限は rules/product-linking.md 4節「固定10件・絶対上限」と同期する。
 LINK_HEALTH_PATH = os.path.join(ROOT, "data", "link-health.md")
 LINK_HEALTH_ROTATION_PER_WEEK = 10  # rules/product-linking.md 4節「固定10件・絶対上限」と同期
-LINK_HEALTH_STALE_FACTOR = 1.5
-LINK_HEALTH_MAX_CYCLE_DAYS = 180
+LINK_HEALTH_MAX_GAP_DAYS = 14  # 最新の最終確認日がこれを超えて前なら週次確認停止とみなす（D-0242）
 LINK_HEALTH_DATE_COLUMN = "最終確認日"
 LINK_HEALTH_DATE_RE = re.compile(r"^\d\d\d\d-\d\d-\d\d$")
 LINK_HEALTH_SEPARATOR_CELL_RE = re.compile(r"^:?-\-*:?$")
@@ -853,7 +852,7 @@ def check_link_health(today):
     台帳の週次ローテーション（rules/product-linking.md 4節）は、どのスクリプトからも
     読まれておらず実行漏れの機械検知が無かった（2週連続で漏れた実例・D-0156）。
     台帳の書式は変えず、行数・最古の最終確認日・一巡見込み日数を毎回可視化し、
-    ローテーション停止と処理能力不足の2つを警告条件で検知する。
+    一巡日数は管理目標にせず、週次確認の停止だけを警告条件で検知する（D-0242）。
     台帳は読み取りのみ（書き換えない）。ファイル1回読みで完結し、外部アクセスはしない。
 
     戻り値は (通常行1行の文字列, 警告文字列のリスト)。
@@ -910,6 +909,7 @@ def check_link_health(today):
         ]
 
     oldest = min(dates)
+    newest = max(dates)
     today_date = datetime.date(int(today[0:4]), int(today[5:7]), int(today[8:10]))
     elapsed = (today_date - oldest).days
     weeks = (total + LINK_HEALTH_ROTATION_PER_WEEK - 1) // LINK_HEALTH_ROTATION_PER_WEEK
@@ -922,18 +922,12 @@ def check_link_health(today):
         info += " / 最終確認日を解析できない行 %d行（計算から除外）" % unparsed
 
     warnings = []
-    if elapsed > cycle_days * LINK_HEALTH_STALE_FACTOR:
+    gap = (today_date - newest).days
+    if gap > LINK_HEALTH_MAX_GAP_DAYS:
         warnings.append(
-            "【警告】link-health: 最古の最終確認日が一巡見込みを大きく超過"
-            "（最古 %s・%d日経過／一巡見込み %d日）。"
-            "ローテーション停止または処理能力不足の疑い"
-            % (oldest.isoformat(), elapsed, cycle_days)
-        )
-    if cycle_days > LINK_HEALTH_MAX_CYCLE_DAYS:
-        warnings.append(
-            "【警告】link-health: 台帳%d行に対し一巡見込み %d日。週%d件では半年で一巡しない。"
-            "rules/product-linking.md 4節の件数上限の見直しをオーナーに確認すること"
-            % (total, cycle_days, LINK_HEALTH_ROTATION_PER_WEEK)
+            "【警告】link-health: 最新の最終確認日が %s（%d日前）。"
+            "週次の商品リンク確認が2週以上実施されていない（rules/product-linking.md 4節）"
+            % (newest.isoformat(), gap)
         )
     return info, warnings
 
