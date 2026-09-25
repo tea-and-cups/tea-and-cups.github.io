@@ -22,6 +22,7 @@ Codex からシェル実行される前提で、標準出力に契約JSONを1個
   python site/scripts/growth-metrics.py ga4 --operation ga4.page_traffic --lookback-days 28 --limit 20
   python site/scripts/growth-metrics.py gsc --operation gsc.search_analytics_by_query --lookback-days 28 --limit 20
   python site/scripts/growth-metrics.py gsc --operation gsc.search_analytics_by_page --lookback-days 28 --limit 20
+  python site/scripts/growth-metrics.py gsc --operation gsc.search_analytics_by_query_page --lookback-days 28 --limit 20
 
 終了コード: 0=正常（status ok）/ 1=エラー（status error・許可外・範囲外・secretガード作動）
 """
@@ -643,7 +644,7 @@ def _gsc_impressions_sort_key(row: dict) -> float:
         return -1.0
 
 
-def _run_gsc_dimension_report(params: dict, operation: str, dimension: str, record_key: str) -> dict:
+def _run_gsc_dimension_report(params: dict, operation: str, dimensions: list[str]) -> dict:
     from urllib.parse import quote
 
     from google.auth.transport.requests import AuthorizedSession, Request
@@ -651,6 +652,7 @@ def _run_gsc_dimension_report(params: dict, operation: str, dimension: str, reco
 
     lookback_days = params["lookback_days"]
     limit = params["limit"]
+    dimension = "-".join(dimensions)  # 出力文言用（単一次元では従来と同一の文字列）
 
     end_date = dt.date.today()
     start_date = end_date - dt.timedelta(days=lookback_days - 1)
@@ -676,7 +678,7 @@ def _run_gsc_dimension_report(params: dict, operation: str, dimension: str, reco
     body = {
         "startDate": params["period"]["start_date"],
         "endDate": params["period"]["end_date"],
-        "dimensions": [dimension],
+        "dimensions": list(dimensions),
         "rowLimit": GSC_DIMENSION_FETCH_ROW_LIMIT,
         "dataState": "all",
     }
@@ -717,7 +719,6 @@ def _run_gsc_dimension_report(params: dict, operation: str, dimension: str, reco
 
     for row in rows:
         keys = row.get("keys") or []
-        key_value = str(keys[0]) if keys and keys[0] else None
         reasons: list[str] = []
         record = {
             "source": GSC_SOURCE,
@@ -725,10 +726,12 @@ def _run_gsc_dimension_report(params: dict, operation: str, dimension: str, reco
             "entity_id": GSC_ENTITY_ID,
             "observed_at": fetched_at,
         }
-        if key_value:
-            record[record_key] = key_value
-        else:
-            reasons.append("GSC row had a missing or empty %s key" % dimension)
+        for index, dim_name in enumerate(dimensions):
+            key_value = str(keys[index]) if len(keys) > index and keys[index] else None
+            if key_value:
+                record[dim_name] = key_value
+            else:
+                reasons.append("GSC row had a missing or empty %s key" % dim_name)
         for name in GSC_INT_METRICS:
             raw = row.get(name)
             try:
@@ -773,11 +776,17 @@ def _run_gsc_dimension_report(params: dict, operation: str, dimension: str, reco
 
 
 def run_gsc_search_analytics_by_query(params: dict) -> dict:
-    return _run_gsc_dimension_report(params, "gsc.search_analytics_by_query", "query", "query")
+    return _run_gsc_dimension_report(params, "gsc.search_analytics_by_query", ["query"])
 
 
 def run_gsc_search_analytics_by_page(params: dict) -> dict:
-    return _run_gsc_dimension_report(params, "gsc.search_analytics_by_page", "page", "page")
+    return _run_gsc_dimension_report(params, "gsc.search_analytics_by_page", ["page"])
+
+
+def run_gsc_search_analytics_by_query_page(params: dict) -> dict:
+    return _run_gsc_dimension_report(
+        params, "gsc.search_analytics_by_query_page", ["query", "page"]
+    )
 
 
 # --- Buffer ------------------------------------------------------------------
@@ -972,6 +981,15 @@ ALLOWED_OPERATIONS = {
         ),
         "accepts": frozenset(["lookback_days", "limit"]),
         "handler": run_gsc_search_analytics_by_page,
+    },
+    "gsc.search_analytics_by_query_page": {
+        "service": "gsc",
+        "description": (
+            "GSC clicks / impressions / ctr / position by (query, page) pair over a trailing "
+            "window (period total, not daily), top-N by impressions"
+        ),
+        "accepts": frozenset(["lookback_days", "limit"]),
+        "handler": run_gsc_search_analytics_by_query_page,
     },
     "buffer.account": {
         "service": "buffer",
