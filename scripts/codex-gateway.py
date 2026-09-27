@@ -28,6 +28,15 @@
   そのとき標準出力の1行JSONに timeout_rescued: true を含める。成果物が無ければ
   従来どおり終了コード 5。終了コードの意味は追加も変更もしない。
 
+モデル非対応の自動切替について（D-0243・2026-09-27）:
+  ~/.codex/config.toml の model が Codex CLI の対応範囲より先に進むと、codex exec が
+  「The '<model>' model requires a newer version of Codex」（HTTP 400）で失敗する。
+  gateway はまず従来どおり config のモデル（--model 指定時はそのモデル）で実行し、
+  成果物が無く、かつ出力が MODEL_UNSUPPORTED_RE に一致した場合に限り、FALLBACK_MODEL を
+  -m で明示して1回だけ再試行する。再試行した回は標準出力へ【注意】の1行を出す。
+  利用上限・認証・ネットワーク等のそれ以外の失敗では再試行せず、従来の終了コードで返す。
+  共有設定（~/.codex/config.toml）と Codex CLI 本体は変更しない。
+
 標準出力には1行のJSONを出す。進捗・説明はすべて標準エラー出力へ出す。
 唯一の例外として、実行前のキャッシュ正規化（ensure_models_cache_consistent）が
 実際に動いたときだけ、JSONとは別行の告知を標準出力へ出す（D-0204）。
@@ -35,10 +44,12 @@
 import argparse
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
 import time
+import tomllib
 from datetime import datetime
 from pathlib import Path
 
@@ -57,6 +68,15 @@ LOG_DIR = Path(__file__).resolve().parent.parent.parent / "tmp" / "codex-gateway
 # 容量対策（実行時間が蓄積量に比例しないよう、1回の実行での削除数に上限を置く）
 PRUNE_AGE_DAYS = 30
 PRUNE_MAX_DIRS = 20
+
+# モデル非対応の自動切替（D-0243）。予備モデルは Codex CLI 0.145.0 で実際に成功した実績のある
+# モデル（2026-09-26 05:11〜05:15 の gateway 実行4回・セッション記録の model=gpt-5.6-sol）。
+FALLBACK_MODEL = "gpt-5.6-sol"
+# 「モデル非対応」の判別文字列（2026-09-06・2026-09-27 の gateway ログ／L070 で同一文言を確認）:
+#   "The 'gpt-6-astra' model requires a newer version of Codex. Please upgrade ..."
+# 利用上限・認証・ネットワーク等の他の失敗にはこの文言が出ないため、再試行の対象にならない。
+MODEL_UNSUPPORTED_RE = re.compile(r"model requires a newer version of codex", re.IGNORECASE)
+CONFIG_TOML_PATH = HOME / ".codex" / "config.toml"
 
 EXIT_OK = 0
 EXIT_PRECONDITION = 2
@@ -348,7 +368,22 @@ def _run_codex_exec(cmd, env):
         return out or "", err or "", proc.returncode, True
 
 
-def run_exec(purpose, prompt_file, out_name):
+def _config_model():
+    """~/.codex/config.toml のトップレベル model を読む（読み取りのみ）。取れなければ None。"""
+    try:
+        with open(CONFIG_TOML_PATH, "rb") as fh:
+            value = tomllib.load(fh).get("model")
+    except (OSError, ValueError):
+        return None
+    return value if isinstance(value, str) and value else None
+
+
+def _is_model_unsupported(*texts):
+    """出力（stdout の --json 全行・stderr）に「モデル非対応」の文言があるか。"""
+    return any(MODEL_UNSUPPORTED_RE.search(t or "") for t in texts)
+
+
+def run_exec(purpose, prompt_file, out_name, model_override=None):
     method = "exec"
 
     if shutil.which("codex") is None:
@@ -377,41 +412,76 @@ def run_exec(purpose, prompt_file, out_name):
     # (1-2) codex 実行前のキャッシュ正規化（D-0204・失敗しても止めない）
     ensure_models_cache_consistent()
 
-    # (2) codex exec を非対話実行する
+    # (2) codex exec を非対話実行する（モデル非対応のときだけ予備モデルで1回再試行する・D-0243）
     # --skip-git-repo-check: このプロジェクトのルート直下は非Git管理（D-0043）のため、
     # これを付けないと codex exec が "Not inside a trusted directory" で即座に失敗する。
-    cmd = ["codex", "exec", "--json", "-s", "read-only", "--skip-git-repo-check", prompt]
     child_env = _codex_child_env()
     if child_env is not None:
         eprint("codex exec の子プロセス PATH 先頭に codex-resources を追加します（L043 対策）。")
     else:
         eprint("codex-resources を解決できず。既定の環境で codex exec を実行します。")
-    eprint("codex exec を開始します（-s read-only / --json / timeout=%d秒）: prompt %d 文字"
-           % (EXEC_TIMEOUT_SEC, len(prompt)))
-    try:
-        stdout, stderr_text, returncode, timed_out = _run_codex_exec(cmd, child_env)
-    except OSError as exc:
-        return fail(EXIT_LAUNCH_FAILED, purpose, method,
-                    "codex exec の起動に失敗しました: %s" % exc)
 
-    # (3) --json の出力を全行ファイルへ保存し、thread.started 行からスレッドIDを取り出す
-    log_path.write_text(stdout, encoding="utf-8")
-    lines = stdout.splitlines()
-    thread_id = extract_thread_id(lines)
-    if timed_out:
-        eprint("codex exec を %d秒で打ち切り、起動した PID ツリーを終了しました"
-               "（rc=%s・成功判定には使わない）。ログ: %s" % (EXEC_TIMEOUT_SEC, returncode, log_path))
-    else:
-        eprint("codex exec 終了（rc=%s・成功判定には使わない）。ログ: %s" % (returncode, log_path))
-    eprint("thread.started のID: %s" % (thread_id or "取得できず"))
+    config_model = _config_model()
+    primary_model = model_override or config_model
+    eprint("使用モデル（1回目）: %s（%s）"
+           % (primary_model or "不明", "--model 指定" if model_override else "config.toml の値"))
+
+    attempt_model = model_override  # None なら -m を付けず config の値に従う（従来どおり）
+    retried = False
+    while True:
+        cmd = ["codex", "exec", "--json", "-s", "read-only", "--skip-git-repo-check"]
+        if attempt_model:
+            cmd += ["-m", attempt_model]
+        cmd.append(prompt)
+        eprint("codex exec を開始します（-s read-only / --json / timeout=%d秒）: prompt %d 文字"
+               % (EXEC_TIMEOUT_SEC, len(prompt)))
+        try:
+            stdout, stderr_text, returncode, timed_out = _run_codex_exec(cmd, child_env)
+        except OSError as exc:
+            return fail(EXIT_LAUNCH_FAILED, purpose, method,
+                        "codex exec の起動に失敗しました: %s" % exc)
+
+        # (3) --json の出力を全行ファイルへ保存し、thread.started 行からスレッドIDを取り出す
+        #     （再試行時は1回目のログを上書きしないよう別ファイルにする）
+        if retried:
+            log_path = log_path.with_name(log_path.stem + "-retry" + log_path.suffix)
+        log_path.write_text(stdout, encoding="utf-8")
+        lines = stdout.splitlines()
+        thread_id = extract_thread_id(lines)
+        if timed_out:
+            eprint("codex exec を %d秒で打ち切り、起動した PID ツリーを終了しました"
+                   "（rc=%s・成功判定には使わない）。ログ: %s" % (EXEC_TIMEOUT_SEC, returncode, log_path))
+        else:
+            eprint("codex exec 終了（rc=%s・成功判定には使わない）。ログ: %s" % (returncode, log_path))
+        eprint("thread.started のID: %s" % (thread_id or "取得できず"))
+
+        # (4) 成果物の検出
+        if GENERATED_IMAGES_DIR.is_dir():
+            source, how = find_artifact(thread_id, started_at)
+        else:
+            source, how = None, "検出できず"
+
+        # 成果物が無く、出力がモデル非対応の文言に一致し、まだ再試行しておらず、
+        # 予備モデルが1回目と別のときだけ、予備モデルを明示して1回だけ再試行する。
+        effective = attempt_model or config_model
+        if (source is None and not retried and effective != FALLBACK_MODEL
+                and _is_model_unsupported(stdout, stderr_text)):
+            print("[codex-gateway]【注意】モデル非対応のため予備モデルで再試行しました"
+                  "（config のモデル=%s／予備モデル=%s／Codex CLI=%s）。"
+                  "config.toml の model 指定の見直しまたは Codex CLI の更新を検討してください。"
+                  % (effective or "不明", FALLBACK_MODEL, _codex_cli_version() or "不明"))
+            sys.stdout.flush()
+            eprint("使用モデル（2回目・予備）: %s" % FALLBACK_MODEL)
+            attempt_model = FALLBACK_MODEL
+            retried = True
+            continue
+        break
 
     if not GENERATED_IMAGES_DIR.is_dir():
         return fail(EXIT_PRECONDITION, purpose, method,
                     "generated_images に到達できません: %s ／ codexログ: %s ／ stderr: %s"
                     % (GENERATED_IMAGES_DIR, log_path, stderr_text.strip()[:400]))
 
-    # (4) 成果物の検出
-    source, how = find_artifact(thread_id, started_at)
     base_message = ("codexログ: %s ／ thread.started ID: %s ／ 検出経路: %s"
                     % (log_path, thread_id or "取得できず", how))
     if source is None:
@@ -458,6 +528,8 @@ def main():
     parser.add_argument("--purpose", required=True, help="用途名（ルーティング表のキー）")
     parser.add_argument("--prompt-file", required=True, help="プロンプト本文のファイルパス")
     parser.add_argument("--out-name", required=True, help="~/Downloads に置く最終ファイル名")
+    parser.add_argument("--model", default=None,
+                        help="1回目に使うモデルを上書きする（検証用・既定は config.toml の値・D-0243）")
     args = parser.parse_args()
 
     purpose = args.purpose
@@ -473,7 +545,7 @@ def main():
         return fail(EXIT_NOT_IMPLEMENTED, purpose, method,
                     "方式 %s は未実装のため実行しません。" % method)
 
-    return run_exec(purpose, args.prompt_file, args.out_name)
+    return run_exec(purpose, args.prompt_file, args.out_name, args.model)
 
 
 if __name__ == "__main__":
