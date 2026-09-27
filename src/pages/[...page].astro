@@ -4,7 +4,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import PostCard from '../components/PostCard.astro';
 import Pagination from '../components/Pagination.astro';
 import { POSTS_PER_PAGE, compareByDateDescThenSlugAsc } from '../data/pagination';
-import { getCategory, categoryPath } from '../data/categories';
+import { CATEGORIES, getCategory, categoryPath } from '../data/categories';
 import { HOME_FIRST_STEPS, HOME_DOORS } from '../data/editorial';
 
 export async function getStaticPaths({ paginate }) {
@@ -18,6 +18,8 @@ const resolve = (slug) => allPosts.find((p) => p.data.slug === slug);
 const firstSteps = isFirst ? HOME_FIRST_STEPS.map((item) => ({ ...item, post: resolve(item.slug) })) : [];
 const doors = isFirst ? HOME_DOORS.map((item) => ({ ...item, categoryData: getCategory(item.category), post: resolve(item.featured) })) : [];
 if (isFirst && (firstSteps.some((x) => !x.post) || doors.some((x) => !x.categoryData || !x.post))) throw new Error('[home] editorial slug mapping failed');
+// 三つの入口に出ていないカテゴリ（お手入れ・ギフト・行事・季節）を「その他テーマ」に並べる（D-0246）。
+const otherThemes = CATEGORIES.filter((c) => !HOME_DOORS.some((d) => d.category === c.slug));
 const recent = isFirst ? allPosts.slice(0, 8) : page.data;
 // 記事一覧の1ページ目は /articles/。/2/ の「前へ」だけ / ではなく /articles/ へ繋ぐ。
 const pagination = page.currentPage === 2 ? { ...page, url: { ...page.url, prev: '/articles/' } } : page;
@@ -45,7 +47,7 @@ const description = isFirst ? '紅茶を「なんとなく」から「自分で�
 
     <section class="section" aria-labelledby="doors-title"><div class="container"><div class="section-head"><div><p class="eyebrow">テーマから探す <em>Three Doors</em></p><h2 class="section-title" id="doors-title">入口は、三つ。</h2></div><p class="section-lead">茶葉、淹れ方、器。どこから読んでも、自分の一杯に近づけます。</p></div><div class="doors-grid">{doors.map((d) => <section class="door"><span class="door__mark" aria-hidden="true">{d.mark}</span><div><h3>{d.categoryData.name}</h3><p class="door__note">{d.note}</p><a class="door__pick" href={`/posts/${d.post.data.slug}/`}><small>まず読むなら</small>{d.post.data.title.split('｜')[0]}</a><a class="text-arrow" href={categoryPath(d.category)}>{d.categoryData.name}の記事を見る</a></div></section>)}</div></div></section>
 
-    <section class="section section--deep" id="themes"><div class="container theme-row"><div><p class="eyebrow">切り口から探す <em>Selected Themes</em></p><h2 class="section-title">気になるテーマから探す</h2></div><div><a class="theme-card" href="/category/gift/"><span><small>Gift / 手土産</small>贈りものを選ぶ</span><span aria-hidden="true">→</span></a></div></div></section>
+    <section class="section section--deep" id="themes"><div class="container theme-row"><div><p class="eyebrow">切り口から探す <em>Selected Themes</em></p><h2 class="section-title">気になるテーマから探す</h2></div><div class="theme-cards">{otherThemes.map((c) => <a class="theme-card" href={categoryPath(c.slug)}><span><small>{c.en}</small>{c.name}</span><span aria-hidden="true">→</span></a>)}</div></div></section>
 
     {/* growth-exp-2026-09-27 */}
     <section class="section" id="popular-questions"><div class="container theme-row"><div><p class="eyebrow">読者の疑問 <em>Questions</em></p><h2 class="section-title">よく検索されている疑問</h2></div><div><a class="theme-card" href="/posts/koucha-nisenme-degarashi-tanoshimikata/"><span>紅茶の二煎目は飲める？</span><span aria-hidden="true">→</span></a><a class="theme-card" style="margin-top:.8rem" href="/posts/mizudashi-koucha-hozon-eisei-qa/"><span>水出し紅茶は何日もつ？</span><span aria-hidden="true">→</span></a><a class="theme-card" style="margin-top:.8rem" href="/posts/tea-strainer-chakoshi-erabikata/"><span>茶こしの名前と選び方</span><span aria-hidden="true">→</span></a></div></div></section>

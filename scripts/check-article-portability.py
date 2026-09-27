@@ -4,7 +4,7 @@
 
 チェック項目:
   1. frontmatterのキーが必須9項目と完全一致しているか（欠落・余分キーの両方を検出）
-  2. categoryが site/src/data/categories.ts 定義の4択のいずれかに収まっているか
+  2. categoryが site/src/data/categories.ts の CATEGORY_SLUGS（許可値）のいずれかに収まっているか
   3. 本文（frontmatter除く）が純Markdownのみか（生HTMLタグの疑いを検出。コードブロック内は除外）
   4. 商品リンク（af.moshimo.com）がMarkdownリンク構文 [text](url) で直書きされているか
   5. hero画像の実ファイルが site/public/ 配下に実在するか（2026-08-15・D-0126。frontmatterに
@@ -102,7 +102,7 @@ def check_category(values, allowed_slugs):
         return False, "categories.tsからCATEGORY_SLUGSを読み取れませんでした"
     if category in allowed_slugs:
         return True, ""
-    return False, f"category='{category}' は許可された4択（{', '.join(allowed_slugs)}）に含まれません"
+    return False, f"category='{category}' は許可値（{', '.join(allowed_slugs)}）に含まれません"
 
 
 def check_html_free(body):
@@ -157,7 +157,7 @@ def check_article(path, allowed_slugs):
 
     results = []
     results.append(("frontmatter必須9項目", *check_frontmatter_keys(keys)))
-    results.append(("category(4択)", *check_category(values, allowed_slugs)))
+    results.append(("category(許可値)", *check_category(values, allowed_slugs)))
     results.append(("本文の純Markdown性", *check_html_free(body)))
     results.append(("商品リンクのURL直書き", *check_affiliate_links_plain(body)))
     results.append(("hero画像の実在", *check_hero_exists(values)))

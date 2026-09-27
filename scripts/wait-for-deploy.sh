@@ -88,7 +88,7 @@ check_routes() {
     PATHS+=("/posts/$SLUG/")
   done
   local C
-  for C in how-to tea-leaves teaware gift; do
+  for C in tea-leaves how-to teaware care gift seasons; do
     PATHS+=("/category/$C/")
   done
   PATHS+=("$@")

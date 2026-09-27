@@ -12,7 +12,9 @@ Edit/Writeによるpublished化は .claude/hooks/check-publish-gate.py で拒否
   1. output/articles/<slug>.md の存在確認
   2. 公開前チェック群を順に実行（1本でも非ゼロ終了なら中断）
        check-article-portability.py <slug>
-       check-product-link-presence.py <slug> --min 3
+       check-product-link-presence.py <slug> --min N
+         （N は category で切り替える。gift・teaware は3点、それ以外は1点。
+           categoryを読めなければ3点。D-0248）
        check-fact-source.py <slug>
        check-source-fetched.py <slug>
        check-pin-image-naming.py
@@ -75,11 +77,34 @@ Edit/Writeによるpublished化は .claude/hooks/check-publish-gate.py で拒否
     check-x-post-length を除いた5本（Pin・SNS投稿文は再公開で変わらないため）。
     商品リンクの基準は「公開中（posts側）の点数以上・上限3」（--min min(3, N)）。
     公開中が0点の記事は商品リンクのチェックを省く（減らしようが無いため）。
-    本番実行時は site/src/content/posts/<slug>.md への上書きコピー→
-    記事ファイルのみの git add→commit「revise: <slug>」→push まで行う。
+    本番実行時は下書きの updated を再公開日（日本時間）へ書き換えたうえで、
+    site/src/content/posts/<slug>.md への上書きコピー→
+    記事ファイルのみの git add→commit「revise: <slug>」→push まで行う（D-0250。
+    初回の公開では updated を触らない）。--dry-run の差分にも updated の書き換えを含める。
+    下書きが公開済みと updated の行以外で同一なら「差分なし」で中断する。
     prune-used-ideas・post-pins-to-pinterest・post-pins-to-buffer の実行や
     production runのstep記録・record-lessonのセッションマーカーは行わない
     （再公開はネタ帳消費・SNS新規投稿・日次生産のいずれにも当たらないため）。
+
+【カテゴリの一括変更（--recategorize・D-0247。D-0239の例外）】
+  公開済み記事の category の行だけを、対応表に従って一括で書き換える。
+  python site/scripts/publish-article.py --recategorize <対応表.tsv> [--dry-run]
+  対応表: 1行に「slug<TAB>新しいcategory」。空行と # 始まりの行は無視する。
+
+  動き:
+    1. 対応表の検査（slugが公開済みで実在／新しいcategoryが categories.ts の許可値／重複なし）。
+       対象ファイルに未commitの変更があれば中断する。
+    2. 各記事について、公開済みの本文の category の1行だけを置き換える。置き換え後の本文が
+       元の本文と category の1行以外で一致することを行単位で確認し、外れれば全体を中断する。
+       すでに同じcategoryの記事は「変更なし」として飛ばす。updated は変えない。
+    3. 下書き（output/articles/<slug>.md）が公開済みと完全に同じ内容なら、下書きも同じ本文へ
+       揃える。異なる場合は下書きに触れず「飛ばした」として報告する。下書きが無ければ何もしない。
+    4. check-article-portability.py を全対象に、astro build を1回かける。落ちたら書き換えを
+       すべて元に戻して中断する（commit・pushはしない）。
+    5. 対象記事だけを add し、commit「recategorize: N記事」を1回、push を1回行う。
+       ステージに対象以外のファイルが載っていれば中断する。
+  --dry-run は1〜3の内容（対象・飛ばす記事）を表示するだけで、ファイルを書かず、4〜5もしない。
+  prune-used-ideas・Pin/Buffer投稿・production runのstep記録は行わない（--reviseと同じ）。
 """
 
 import difflib
@@ -89,6 +114,7 @@ import re
 import shutil
 import subprocess
 import sys
+from datetime import datetime, timedelta, timezone
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 SITE = os.path.join(ROOT, "site")
@@ -99,8 +125,9 @@ POSTS_DIR = os.path.join(ROOT, "site", "src", "content", "posts")
 # (スクリプト名, slugを引数に取るか, 追加の固定引数)
 PRE_PUBLISH_CHECKS = [
     ("check-article-portability.py", True, []),
-    # 新規記事は商品3点紹介を標準とする（rules/product-linking.md 0節）。
-    # 週次の健全性チェックは引数なし（1点以上）で実行するため、ここだけが --min 3 を渡す。
+    # 商品点数の必須数はカテゴリで切り替える（gift・teaware=3、それ以外=1・D-0248）。
+    # 実際の --min は publish_checks() が category から決めて差し替える（この3は既定値）。
+    # 週次の健全性チェックは引数なし（1点以上）で実行する。
     ("check-product-link-presence.py", True, ["--min", "3"]),
     ("check-fact-source.py", True, []),
     ("check-source-fetched.py", True, []),
@@ -124,9 +151,80 @@ REVISE_PUBLISH_CHECKS = [
 
 CHECK_TIMEOUT = 120
 GIT_TIMEOUT = 180
+BUILD_TIMEOUT = 600
 
 RE_FRONTMATTER = re.compile(r"\A---\r?\n(.*?\r?\n)---\r?\n", re.S)
 RE_STATUS = re.compile(r"^(\s*status:\s*)(\S+)[ \t]*$", re.M)
+RE_CATEGORY = re.compile(r"^(\s*category:\s*)(\S+)[ \t]*$", re.M)
+RE_UPDATED = re.compile(r"^(\s*updated:\s*)(\S+)[ \t]*$", re.M)
+
+# 商品点数の必須数（D-0248）。gift・teaware は購入検討が主の題材のため3点必須、
+# それ以外のカテゴリは1点以上。categoryを読めなければ厳しい側（3点）に倒す。
+STRICT_PRODUCT_CATEGORIES = ("gift", "teaware")
+JST = timezone(timedelta(hours=9))
+
+
+def read_category(path):
+    """ファイルの frontmatter から category の値を返す。読めなければ None。"""
+    try:
+        with open(path, encoding="utf-8", newline="") as f:
+            text = f.read()
+    except OSError:
+        return None
+    m = RE_FRONTMATTER.match(text)
+    if not m:
+        return None
+    cm = RE_CATEGORY.search(m.group(1))
+    return cm.group(2) if cm else None
+
+
+def required_products(category):
+    """category に応じた商品点数の必須数（gift・teaware=3、それ以外=1、不明=3）。"""
+    if category is None or category in STRICT_PRODUCT_CATEGORIES:
+        return 3
+    return 1
+
+
+def publish_checks(draft_path):
+    """初回公開用のチェック群。商品点数の要求だけ category で切り替える。"""
+    n = required_products(read_category(draft_path))
+    checks = []
+    for name, takes_slug, extra_args in PRE_PUBLISH_CHECKS:
+        if name == "check-product-link-presence.py":
+            extra_args = ["--min", str(n)]
+        checks.append((name, takes_slug, extra_args))
+    return checks
+
+
+def today_jst():
+    """今日の日付（日本時間）を YYYY-MM-DD で返す。"""
+    return datetime.now(JST).strftime("%Y-%m-%d")
+
+
+def normalize_updated(text):
+    """updated の値を固定文字列に置き換えた本文を返す（updated以外の差分判定用）。"""
+    m = RE_FRONTMATTER.match(text)
+    if not m:
+        return text
+    front = m.group(1)
+    um = RE_UPDATED.search(front)
+    if not um:
+        return text
+    new_front = front[: um.start(2)] + "<UPDATED>" + front[um.end(2) :]
+    return text[: m.start(1)] + new_front + text[m.end(1) :]
+
+
+def set_updated(text, date_str):
+    """updated の値を date_str へ書き換えた本文を返す。updated 行が無ければ None。"""
+    m = RE_FRONTMATTER.match(text)
+    if not m:
+        return None
+    front = m.group(1)
+    um = RE_UPDATED.search(front)
+    if not um:
+        return None
+    new_front = front[: um.start(2)] + date_str + front[um.end(2) :]
+    return text[: m.start(1)] + new_front + text[m.end(1) :]
 
 
 def out(text=""):
@@ -444,11 +542,16 @@ def _run_revise(rest_args):
 
     published_text = read_text(published_path)
     draft_text = read_text(draft_path)
-    if draft_text == published_text:
+    if normalize_updated(draft_text) == normalize_updated(published_text):
         return abort(
             "output/articles/%s.md は site/src/content/posts/%s.md と差分がありません"
-            % (slug, slug)
+            "（updated の行は差分に数えません）" % (slug, slug)
         )
+    # 再公開日（日本時間）を updated に反映する（D-0250）。下書きの updated が何であっても上書きする。
+    revised_date = today_jst()
+    draft_text = set_updated(draft_text, revised_date)
+    if draft_text is None:
+        return abort("output/articles/%s.md の frontmatter に updated 行が見つかりません" % slug)
     diff = diff_text(
         published_text,
         draft_text,
@@ -466,7 +569,7 @@ def _run_revise(rest_args):
     out_lines(diff)
 
     if dry_run:
-        out("4. [dry-run] site/src/content/posts/%s.md へ上書きコピーする" % slug)
+        out("4. [dry-run] updated を %s へ更新し、site/src/content/posts/%s.md へ上書きコピーする" % (revised_date, slug))
         out(
             "5. [dry-run] git add src/content/posts/%s.md → git commit -m \"revise: %s\""
             % (slug, slug)
@@ -475,9 +578,11 @@ def _run_revise(rest_args):
         out("=== dry-run 完了（4〜6は実行していません） ===")
         return 0
 
-    # 4. コピー
+    # 4. updated を再公開日へ書き換え（下書き側）→コピー
+    write_text(draft_path, draft_text)
+    out("4. updated を %s（日本時間の再公開日）へ更新: output/articles/%s.md" % (revised_date, slug))
     shutil.copyfile(draft_path, published_path)
-    out("4. コピー完了: site/src/content/posts/%s.md" % slug)
+    out("   コピー完了: site/src/content/posts/%s.md" % slug)
 
     # 5. add・commit（記事ファイルのみ。Pin画像はrevise対象外）
     add_target = "src/content/posts/%s.md" % slug
@@ -515,6 +620,220 @@ def _run_revise(rest_args):
     return 0
 
 
+def _load_allowed_categories():
+    """categories.ts の CATEGORY_SLUGS を返す（check-article-portability.py の読み取りを再利用する）。"""
+    path = os.path.join(SCRIPTS_DIR, "check-article-portability.py")
+    spec = importlib.util.spec_from_file_location("check_article_portability", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module.load_category_slugs()
+
+
+def _parse_recategorize_map(map_path):
+    """対応表（slug<TAB>category）を読む。(list of (slug, category), エラー文言) を返す。"""
+    if not os.path.isfile(map_path):
+        return None, "対応表が見つかりません: %s" % map_path
+    rows = []
+    seen = set()
+    for no, raw in enumerate(read_text(map_path).splitlines(), start=1):
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        parts = line.split("\t")
+        if len(parts) != 2 or not parts[0].strip() or not parts[1].strip():
+            return None, "対応表 %d行目が「slug<TAB>category」の形ではありません: %s" % (no, raw)
+        slug, category = parts[0].strip(), parts[1].strip()
+        if slug in seen:
+            return None, "対応表に同じslugが2回あります: %s" % slug
+        seen.add(slug)
+        rows.append((slug, category))
+    if not rows:
+        return None, "対応表に有効な行がありません"
+    return rows, None
+
+
+def _replace_category(text, new_category):
+    """本文の category の1行だけを置き換える。(新しい本文, エラー文言) を返す。
+
+    置き換え後が元の本文と category の1行以外で一致することを行単位で確認する。
+    """
+    m = RE_FRONTMATTER.match(text)
+    if not m:
+        return None, "frontmatterが見つかりません"
+    front = m.group(1)
+    cm = RE_CATEGORY.search(front)
+    if not cm:
+        return None, "category 行が見つかりません"
+    new_front = front[: cm.start(2)] + new_category + front[cm.end(2) :]
+    new_text = text[: m.start(1)] + new_front + text[m.end(1) :]
+    old_lines = text.splitlines(keepends=True)
+    new_lines = new_text.splitlines(keepends=True)
+    if len(old_lines) != len(new_lines):
+        return None, "行数が変わりました"
+    changed = [i for i, (a, b) in enumerate(zip(old_lines, new_lines)) if a != b]
+    if len(changed) > 1:
+        return None, "category 以外の行も変わりました（%d行）" % len(changed)
+    if changed and not old_lines[changed[0]].lstrip().startswith("category:"):
+        return None, "category 以外の行が変わりました（%d行目）" % (changed[0] + 1)
+    return new_text, None
+
+
+def _run_build():
+    """astro build を実行する。(成功か, 出力末尾) を返す。"""
+    try:
+        result = subprocess.run(
+            ["node", os.path.join(SITE, "node_modules", "astro", "astro.js"), "build"],
+            cwd=SITE,
+            capture_output=True,
+            timeout=BUILD_TIMEOUT,
+        )
+    except Exception as e:
+        return False, "ビルドの実行に失敗: %s" % e
+    text = (result.stdout or b"").decode("utf-8", errors="replace") + (result.stderr or b"").decode(
+        "utf-8", errors="replace"
+    )
+    return result.returncode == 0, "\n".join(text.rstrip("\n").splitlines()[-15:])
+
+
+def _run_recategorize(rest_args):
+    """--recategorize <対応表> [--dry-run]: 公開済み記事の category の行だけを一括で書き換える（D-0247）。"""
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
+
+    dry_run = "--dry-run" in rest_args
+    positional = [a for a in rest_args if not a.startswith("-")]
+    unknown = [a for a in rest_args if a.startswith("-") and a != "--dry-run"]
+    if len(positional) != 1 or unknown:
+        out(__doc__)
+        return 1
+
+    out("=== publish-article.py --recategorize %s%s ===" % (positional[0], "（--dry-run）" if dry_run else ""))
+
+    out("1. 対応表の検査")
+    rows, err = _parse_recategorize_map(positional[0])
+    if err:
+        return abort(err)
+    allowed = _load_allowed_categories()
+    if not allowed:
+        return abort("categories.ts から CATEGORY_SLUGS を読み取れませんでした")
+    for slug, category in rows:
+        if category not in allowed:
+            return abort("%s: category '%s' は許可値（%s）にありません" % (slug, category, ", ".join(allowed)))
+        if not os.path.isfile(os.path.join(POSTS_DIR, "%s.md" % slug)):
+            return abort("site/src/content/posts/%s.md が見つかりません（公開済みの記事だけが対象です）" % slug)
+    rel_paths = ["src/content/posts/%s.md" % slug for slug, _ in rows]
+    status = git("status", "--porcelain", "--", *rel_paths)
+    if status.returncode != 0:
+        return abort("git status に失敗しました: %s" % (status.stderr or status.stdout).strip())
+    if status.stdout.strip():
+        return abort("対象記事に未commitの変更があります。先に片付けてください:\n" + status.stdout.rstrip())
+    out("  OK  %d件" % len(rows))
+
+    out("2. category の1行だけを置き換えた本文を作る")
+    plans = []  # (slug, old_text, new_text, old_category, new_category, draft_action)
+    for slug, category in rows:
+        published_path = os.path.join(POSTS_DIR, "%s.md" % slug)
+        old_text = read_text(published_path)
+        old_category = read_category(published_path)
+        if old_category == category:
+            out("  変更なし  %s（すでに %s）" % (slug, category))
+            continue
+        new_text, err = _replace_category(old_text, category)
+        if err:
+            return abort("%s: %s。何も書き換えていません" % (slug, err))
+        draft_path = os.path.join(DRAFTS_DIR, "%s.md" % slug)
+        if not os.path.isfile(draft_path):
+            draft_action = "なし"
+        elif read_text(draft_path) == old_text:
+            draft_action = "揃える"
+        else:
+            draft_action = "飛ばす"
+        plans.append((slug, old_text, new_text, old_category, category, draft_action))
+        out("  %s: %s → %s（下書き: %s）" % (slug, old_category, category, draft_action))
+    if not plans:
+        out("=== 変更対象がありません ===")
+        return 0
+    skipped = [p[0] for p in plans if p[5] == "飛ばす"]
+    if skipped:
+        out("  下書きが公開済みと異なるため触らない記事（%d件）: %s" % (len(skipped), ", ".join(skipped)))
+
+    if dry_run:
+        out("3. [dry-run] 書き換え・チェック・ビルド・commit・push は実行していません")
+        out("=== dry-run 完了（変更対象 %d件） ===" % len(plans))
+        return 0
+
+    # 3. 書き換え（失敗時に戻せるよう元の本文を保持している）
+    written = []  # (path, old_text)
+
+    def rollback():
+        for path, old in written:
+            write_text(path, old)
+
+    for slug, old_text, new_text, _oc, _nc, draft_action in plans:
+        published_path = os.path.join(POSTS_DIR, "%s.md" % slug)
+        write_text(published_path, new_text)
+        written.append((published_path, old_text))
+        if draft_action == "揃える":
+            draft_path = os.path.join(DRAFTS_DIR, "%s.md" % slug)
+            write_text(draft_path, new_text)
+            written.append((draft_path, old_text))
+    out("3. 書き換え完了（公開済み %d件・下書きを揃えたもの %d件）" % (len(plans), sum(1 for p in plans if p[5] == "揃える")))
+
+    # 4. チェックとビルド
+    out("4. portability チェックとビルド")
+    ng = False
+    for slug, *_rest in plans:
+        result = subprocess.run(
+            [sys.executable, os.path.join(SCRIPTS_DIR, "check-article-portability.py"), slug],
+            cwd=ROOT,
+            capture_output=True,
+            timeout=CHECK_TIMEOUT,
+        )
+        if result.returncode != 0:
+            out("  NG  check-article-portability.py %s" % slug)
+            out_lines((result.stdout or b"").decode("utf-8", errors="replace"))
+            ng = True
+            break
+    if not ng:
+        out("  OK  check-article-portability.py（%d件）" % len(plans))
+        ok, tail = _run_build()
+        if not ok:
+            out("  NG  astro build")
+            out_lines(tail)
+            ng = True
+        else:
+            out("  OK  astro build")
+    if ng:
+        rollback()
+        return abort("チェックまたはビルドに失敗したため、書き換えをすべて元に戻しました（commit・pushは実行していません）")
+
+    # 5. add・commit（1回）・push（1回）
+    staged_before = git("diff", "--cached", "--name-only")
+    if staged_before.returncode != 0:
+        rollback()
+        return abort("git diff --cached に失敗しました。書き換えを元に戻しました")
+    foreign = [f for f in staged_before.stdout.split() if f not in rel_paths]
+    if foreign:
+        rollback()
+        return abort("対象以外のファイルがステージされています（%s）。書き換えを元に戻しました" % ", ".join(foreign))
+    result = git("add", "--", *rel_paths)
+    if result.returncode != 0:
+        return abort("git add に失敗しました: %s" % (result.stderr or result.stdout).strip())
+    out("5. git add: %d件" % len(rel_paths))
+    result = git("commit", "-m", "recategorize: %d記事" % len(plans))
+    if result.returncode != 0:
+        return abort("git commit に失敗しました: %s" % (result.stderr or result.stdout).strip())
+    out("   git commit: recategorize: %d記事" % len(plans))
+    result = git("push")
+    if result.returncode != 0:
+        return abort("git push に失敗しました: %s" % (result.stderr or result.stdout).strip())
+    out("6. git push 完了")
+    for line in (result.stdout + result.stderr).strip().splitlines():
+        out("   " + line)
+    out("=== カテゴリ変更完了: %d記事 ===" % len(plans))
+    return 0
+
+
 def main():
     """本体（_run）を呼び、その結果を production run の step として1件だけ記録する。
 
@@ -531,6 +850,9 @@ def main():
 
     if args[:1] == ["--revise"]:
         return _run_revise(args[1:])
+
+    if args[:1] == ["--recategorize"]:
+        return _run_recategorize(args[1:])
 
     attempt = {"slug": None, "dry_run": False, "failed_check": None}
     rc = _run(attempt)
@@ -576,7 +898,9 @@ def _run(attempt):
 
     # 2. 公開前チェック群
     out("2. 公開前チェック群")
-    if not run_checks(slug, attempt):
+    new_checks = publish_checks(draft_path)
+    out("  商品点数の必須数: %d点（category: %s）" % (required_products(read_category(draft_path)), read_category(draft_path)))
+    if not run_checks(slug, attempt, checks=new_checks):
         return abort("公開前チェックに失敗したため、以降の処理（status書き換え・コピー・commit・push）は一切実行していません")
 
     # 3. status書き換え

@@ -128,4 +128,27 @@ main{min-height:55vh}.breadcrumb{padding-top:clamp(2rem,5vw,4rem);padding-bottom
   .category-beginner .beginner-list small{display:none}
 }
 
+/* D-0246: ハブブロック（カテゴリページ冒頭）・ハブ記事の全記事一覧・トップのテーマカード群 */
+.category-hub{padding:clamp(2rem,3.8vw,3.25rem) 0 0}
+.category-hub__head{display:flex;align-items:baseline;gap:1rem 2rem;flex-wrap:wrap}
+.category-hub__head .eyebrow{margin:0}
+.category-hub__head .section-title{font-size:clamp(1.45rem,2.4vw,2rem)}
+.hub-main{display:block;margin-top:1.25rem;padding:1.1rem 1.25rem;background:var(--color-paper);border:1px solid rgba(58,42,31,.32);border-radius:6px;color:var(--color-brown);text-decoration:none;transition:background .2s,border-color .2s}
+.hub-main:hover,.hub-main:focus-visible{border-color:var(--color-amber)}
+.hub-main small{display:block;color:var(--color-amber-text)}
+.hub-main .hub-title{display:block;margin:.25rem 0;font-family:var(--font-mincho);font-size:1.2rem}
+.hub-main .hub-desc{display:block;color:var(--color-muted);font-size:.85rem}
+.hub-spokes{display:grid;grid-template-columns:repeat(5,1fr);margin:1rem 0 0;padding:0;list-style:none;border-top:1px solid var(--color-line);border-bottom:1px solid var(--color-line)}
+.hub-spokes li+li{border-left:1px solid var(--color-line)}
+.hub-spokes a{display:block;height:100%;padding:.8rem .9rem;color:var(--color-brown);text-decoration:none;font-family:var(--font-mincho);font-size:.92rem;line-height:1.55}
+.hub-articles{margin:3rem 0 0;padding-top:1.5rem;border-top:1px solid var(--color-line)}
+.hub-articles h2{margin:0 0 .4rem;font-size:1.45rem}
+.hub-articles p{margin:0 0 1rem;color:var(--color-muted)}
+.hub-articles ul{margin:0;padding:0;list-style:none}
+.hub-articles li{padding:.55rem 0;border-bottom:1px solid var(--color-line)}
+.hub-articles a{color:var(--color-brown)}
+.theme-cards{display:grid;gap:.8rem}
+@media(max-width:1023px){.hub-spokes{grid-template-columns:repeat(2,1fr)}.hub-spokes li:nth-child(odd){border-left:0}.hub-spokes li:nth-child(n+3){border-top:1px solid var(--color-line)}}
+@media(max-width:767px){.hub-spokes{display:block}.hub-spokes li+li{border-left:0;border-top:1px solid var(--color-line)}.category-hub__head{display:block}.category-hub__head .eyebrow{margin-bottom:.35rem}}
+
 

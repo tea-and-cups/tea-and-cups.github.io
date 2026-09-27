@@ -1,6 +1,6 @@
 ---
 import { getCollection } from 'astro:content';
-import { CATEGORIES } from '../data/categories';
+import { CATEGORIES, categoryName } from '../data/categories';
 import { compareByDateDescThenSlugAsc } from '../data/pagination';
 import '../styles/global.css';
 const { title, description, ogImage, ogType = 'website', publishedDate, updatedDate, breadcrumbs = null, jsonLd = null, showRecentPosts = true, pageClass = '' } = Astro.props;
@@ -53,10 +53,10 @@ const structuredData = [siteJsonLd, ...(jsonLd ?? [])];
       <svg class="brand__icon" viewBox="0 0 48 48" fill="none" aria-hidden="true"><path d="M20.5 14.5c-2.2-2.6 2.2-4.6 0-7.6M26 14.5c-2.2-2.6 2.2-4.6 0-7.6M9 19.5h26v6.5a13 13 0 0 1-26 0zM35 23h2.4a4.6 4.6 0 0 1 0 9.2H33.4M5.5 42.5h33" /></svg>
       <span class="brand__name">琥珀時間</span><span class="brand__en">Kohaku Jikan</span>
     </a>
-    <nav class="site-nav" aria-label="メインメニュー"><a href="/#first-steps">はじめての方へ</a><a href="/category/tea-leaves/">茶葉を知る</a><a href="/category/how-to/">淹れる・楽しむ</a><a href="/category/teaware/">器・道具</a><a href="/#themes">その他テーマ</a><a href="/articles/">すべての記事</a></nav>
+    <nav class="site-nav" aria-label="メインメニュー"><a href="/#first-steps">はじめての方へ</a><a href="/category/tea-leaves/">{categoryName('tea-leaves')}</a><a href="/category/how-to/">{categoryName('how-to')}</a><a href="/category/teaware/">{categoryName('teaware')}</a><a href="/#themes">その他テーマ</a><a href="/articles/">すべての記事</a></nav>
     <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="mobile-menu"><span class="menu-toggle__open">メニュー</span><span class="menu-toggle__close">閉じる</span></button>
   </div></header>
-  <div class="mobile-menu" id="mobile-menu" hidden><nav aria-label="モバイルメニュー"><a href="/#first-steps">はじめての方へ</a><a href="/category/tea-leaves/">茶葉を知る</a><a href="/category/how-to/">淹れる・楽しむ</a><a href="/category/teaware/">器・道具</a><a href="/#themes">その他テーマ</a><a href="/articles/">すべての記事</a><a href="/about/">このサイトについて</a></nav><p>自分の一杯を、自分で選べるように。</p></div>
+  <div class="mobile-menu" id="mobile-menu" hidden><nav aria-label="モバイルメニュー"><a href="/#first-steps">はじめての方へ</a><a href="/category/tea-leaves/">{categoryName('tea-leaves')}</a><a href="/category/how-to/">{categoryName('how-to')}</a><a href="/category/teaware/">{categoryName('teaware')}</a><a href="/#themes">その他テーマ</a><a href="/articles/">すべての記事</a><a href="/about/">このサイトについて</a></nav><p>自分の一杯を、自分で選べるように。</p></div>
   <main id="main" tabindex="-1">
     {breadcrumbs && <nav class="breadcrumb container" aria-label="パンくずリスト"><ol>{breadcrumbs.map((c, i) => <li>{c.href && i < breadcrumbs.length - 1 ? <a href={c.href}>{c.label}</a> : <span aria-current="page">{c.label}</span>}</li>)}</ol></nav>}
     <slot />

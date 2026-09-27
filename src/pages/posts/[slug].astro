@@ -2,7 +2,7 @@
 import { getCollection, render } from 'astro:content';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import PostCard from '../../components/PostCard.astro';
-import { getCategory } from '../../data/categories';
+import { getCategory, categoryPath } from '../../data/categories';
 import { compareByDateDescThenSlugAsc } from '../../data/pagination';
 
 // URL規約: /posts/{slug}/ 。slugはfrontmatterで手動固定（公開後変更禁止）
@@ -51,6 +51,17 @@ const related = posts
 
 // --- 構造化データ -----------------------------------------------------------
 const category = getCategory(post.data.category);
+// ハブ記事（categories.ts の hub）の扱い（D-0246）。
+//  - ハブ記事そのもののページには、同じカテゴリの全記事の一覧を自動で出す（手書きリンクは保守しない）
+//  - 記事末の「次に読む」は、ハブを指定したカテゴリではハブ記事へ、未指定のカテゴリ（とハブ記事自身）ではカテゴリ一覧へ向ける
+const isHub = category.hub === post.data.slug;
+const hubArticles = isHub
+  ? posts
+      .filter((p) => p.data.category === category.slug && p.data.slug !== post.data.slug)
+      .sort(compareByDateDescThenSlugAsc)
+  : [];
+const nextHref = category.hub && !isHub ? `/posts/${category.hub}/` : categoryPath(category.slug);
+const nextLabel = category.hub && !isHub ? `${category.name}の入口の記事を読む →` : `${category.name}の記事を見る →`;
 const isComparison = /(hikaku|erabikata)/.test(post.data.slug);
 const [titleMain, ...titleRest] = post.data.title.split('｜');
 const titleDetail = titleRest.join('｜');
@@ -113,11 +124,12 @@ const jsonLd = [
       </figure>
     </header>
     <div class="article-content"><Content /></div>
+    {isHub && hubArticles.length > 0 && <section class="hub-articles" aria-labelledby="hub-articles-title"><h2 id="hub-articles-title">「{category.name}」の記事一覧</h2><p>このテーマの記事をまとめています（{hubArticles.length}本）。</p><ul>{hubArticles.map((p) => <li><a href={`/posts/${p.data.slug}/`}>{p.data.title}</a></li>)}</ul></section>}
     <aside class="article-end-cta">
       <p class="eyebrow">次に読む</p>
       <h2>自分に合う一杯を、もう少し探す</h2>
-      <p>「{category.name}」の記事から、今日の気分に合う読みものを選べます。</p>
-      <a class="btn btn--primary" href={`/category/${category.slug}/`}>{category.name}の記事を見る →</a>
+      <p>{category.hub && !isHub ? `「${category.name}」の入口になる記事から、関連する読みものをたどれます。` : `「${category.name}」の記事から、今日の気分に合う読みものを選べます。`}</p>
+      <a class="btn btn--primary" href={nextHref}>{nextLabel}</a>
     </aside>
   </article>
 

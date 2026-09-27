@@ -12,21 +12,31 @@ export const HOME_DOORS = [
   { category: 'teaware', mark: '器', note: '器が変わると、紅茶の時間が変わる。', featured: 'teacup-coffee-cup-chigai' },
 ] as const;
 
+// カテゴリページの冒頭の編集枠（D-0246）。すべて任意で、無いカテゴリは該当ブロックを出さない。
+//   spokes:    ハブ記事のあとに並べる主要5本（categories.ts の hub を指定したカテゴリで使う。ちょうど5本）
+//   beginners: 「最初は、この3本から」（hub を指定していないカテゴリで使う。ちょうど3本）
+// hub を指定したカテゴリはハブブロックが「最初の入口」を兼ねるため、beginners は出さない。
 export const CATEGORY_EDITORIAL = {
   'tea-leaves': {
+    spokes: ['seiron-koucha-santi-kubun', 'assam-tea-nyumon', 'chaba-grade-op-bop-ctc-yomikata', 'wakoucha-nyumon', 'darjeeling-autumnal-second-flush-hikaku'],
     beginners: ['sekai-sandai-koucha-towa', 'seiron-koucha-santi-kubun', 'assam-tea-nyumon'],
     featured: 'seiron-koucha-santi-kubun',
   },
   'how-to': {
-    beginners: ['koucha-kihon-no-irekata', 'koucha-mizu-nansui-kousui', 'chaba-hokan-natsu'],
+    spokes: ['koucha-mizu-nansui-kousui', 'mizudashi-koucha-chaba-erabikata', 'royal-milk-tea-to-no-chigai', 'hot-brew-mizudashi-icetea-hikaku', 'koucha-nisenme-degarashi-tanoshimikata'],
+    beginners: ['koucha-kihon-no-irekata', 'koucha-mizu-nansui-kousui', 'hot-brew-mizudashi-icetea-hikaku'],
     featured: 'koucha-kihon-no-irekata',
   },
   teaware: {
     beginners: ['teacup-coffee-cup-chigai', 'bone-china-jiki-touki-chigai', 'tea-strainer-chakoshi-erabikata'],
     featured: 'bone-china-jiki-touki-chigai',
   },
+  care: {
+    spokes: ['chashibu-kibami-otoshikata', 'kinsai-teacup-atsukaikata', 'teacup-kyusu-shuunou-shokkidana-seiri', 'chakan-canister-erabikata', 'chaba-hokan-natsu'],
+  },
   gift: {
     beginners: ['keirounohi-koucha-gift', 'kisei-temiyage-koucha-gift', 'pair-cup-saucer-kekkonjoshii-tanjoubi-hikaku'],
     featured: 'twg-tea-gift-koucha-erabikata',
   },
+  seasons: {},
 } as const;

@@ -27,9 +27,14 @@
   例外は次の2つのみで、いずれも機械的に確定できるものに限る:
     例外1 その記事自身の frontmatter の title に含まれる価格表現と同一の文字列
     例外2 Markdownリンクのリンクテキスト（[ ] の内側）にある価格表現
+    例外3 category: gift の記事に限り、贈答の相場・予算帯の区分名（「3,000円台」
+          「5,000円以下」「3,000〜5,000円」等）。同じ判定単位に「相場」または「予算」と
+          執筆年月（「2026年10月執筆」「2026年10月時点」）があり、アフィリエイトリンクを
+          含まない場合のみ。区分名の形をしていない価格（「1,280円」等）は個別商品の価格として
+          違反のまま（rules/product-linking.md 5節・D-0249）
 
 違反: 判定単位がA〜Gのいずれかに該当し、かつ
-      ・Bに該当する（例外1・例外2を除いた上で）場合は出典の有無を問わず違反
+      ・Bに該当する（例外1〜3を除いた上で）場合は出典の有無を問わず違反
       ・A・C〜Gに該当する場合は有効な出典を1つも含まないとき違反
       件数は「判定単位1つ＝1件」で数える（複数カテゴリ該当でも1件）。
       カテゴリ別件数は該当カテゴリごとの延べ数のため、合計は違反総数を超えうる。
@@ -87,6 +92,18 @@ RE_PRICE_EXPR = re.compile(r"\d[\d,]*円(?:以下|以上|未満|前後|程度|�
 # 例外2: Markdownリンクの表示文字部分 [表示文字](
 RE_MD_LINK_TEXT = re.compile(r"\[([^\]\n]*)\]\(")
 
+# 例外3（D-0249）: 贈答の相場・予算帯の区分名。category: gift の記事に限る。
+# 区分名の形（「〜円台」「〜円以下/以上/未満/以内/超」「A〜B円」「〜B円」）だけを免除し、
+# 「1,280円」のような単独の価格は個別商品の価格として違反のまま残す。
+RE_CATEGORY_LINE = re.compile(r"^category:\s*(\S+)\s*$", re.M)
+RE_BUDGET_BAND = re.compile(
+    r"\d[\d,]*円(?:台|以下|以上|未満|以内|超)"
+    r"|\d[\d,]*(?:円)?\s*[〜～~]\s*\d[\d,]*円"
+    r"|[〜～~]\s*\d[\d,]*円"
+)
+RE_BUDGET_WORD = re.compile(r"相場|予算")
+RE_WRITTEN_YM = re.compile(r"\d{4}年\d{1,2}月(?:執筆|時点)")
+
 # カテゴリH（D-0245）: 実物を使った行為・観察の記述と「編集部」等の主語。
 # 過去形の行為（〜たところ）・行為を前提にした条件文（実際に淹れ比べると）・感想の断定・
 # 人の存在をうかがわせる主語だけを拾う。「試してみてください」等の読者への呼びかけや、
@@ -112,6 +129,7 @@ CATEGORY_ORDER = ["A", "B", "C", "D", "E", "F", "G", "H"]
 
 RE_URL = re.compile(r"https?://[^\s\)\]\>\"'　]+")
 RE_AFFILIATE = re.compile(r"^https?://(?:[\w.-]+\.)?af\.moshimo\.com", re.IGNORECASE)
+RE_AFFILIATE_ANY = re.compile(r"af\.moshimo\.com", re.IGNORECASE)
 
 
 def io_read(path):
@@ -211,13 +229,38 @@ def title_price_expressions(front):
     return sorted(set(RE_PRICE_EXPR.findall(m.group(1))), key=len, reverse=True)
 
 
-def price_survives_exceptions(text, title_prices):
-    """例外1・例外2を除いてもなお価格表現が残るかを返す。"""
+def is_gift_article(front):
+    """frontmatterの category が gift か（例外3の適用条件）。"""
+    m = RE_CATEGORY_LINE.search(front or "")
+    return bool(m) and m.group(1) == "gift"
+
+
+def budget_bands_exempt(text, is_gift):
+    """例外3: 相場・予算帯の書式なら、区分名を除いた本文を返す。書式でなければNone。
+
+    条件は全部満たすこと: gift記事／「相場」か「予算」を含む／執筆年月を含む／
+    アフィリエイトURLを含まない（商品紹介ブロックで個別商品の価格を書けないようにする）。
+    """
+    if not is_gift:
+        return None
+    if not (RE_BUDGET_WORD.search(text) and RE_WRITTEN_YM.search(text)):
+        return None
+    if RE_AFFILIATE_ANY.search(text):
+        return None
+    return RE_BUDGET_BAND.sub(" ", text)
+
+
+def price_survives_exceptions(text, title_prices, is_gift=False):
+    """例外1〜3を除いてもなお価格表現が残るかを返す。"""
     # 例外2: Markdownリンクの表示文字部分を除去
     masked = RE_MD_LINK_TEXT.sub(lambda m: "[](", text)
     # 例外1: titleに含まれる価格表現と同一の文字列を除去
     for expr in title_prices:
         masked = masked.replace(expr, " ")
+    # 例外3: gift記事の相場・予算帯の区分名（執筆年月つき）
+    banded = budget_bands_exempt(text, is_gift)
+    if banded is not None:
+        masked = RE_BUDGET_BAND.sub(" ", masked)
     return bool(RE_PRICE_B.search(RE_URL.sub(" ", masked)))
 
 
@@ -232,6 +275,7 @@ def check_article(path, slug):
     front, body = split_frontmatter(text)
     body_start_line = len(front.splitlines()) + 3 if front else 1
     title_prices = title_price_expressions(front)
+    is_gift = is_gift_article(front)
 
     violations = []
     b_before = 0
@@ -243,7 +287,7 @@ def check_article(path, slug):
             continue
         if "B" in cats:
             b_before += 1
-            if not price_survives_exceptions(text_u, title_prices):
+            if not price_survives_exceptions(text_u, title_prices, is_gift):
                 cats = [c for c in cats if c != "B"]
         # Bは出典併記による免除を認めない。A・C〜Gは従来どおり出典があれば通す。
         if has_valid_source(text_u):

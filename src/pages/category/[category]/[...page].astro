@@ -35,9 +35,15 @@ const breadcrumbs = [
 ];
 const pageUrl = new URL(Astro.url.pathname, Astro.site).href;
 const allPosts = isFirst ? await getCollection('posts', (p) => p.data.status === 'published') : [];
-const editorial = CATEGORY_EDITORIAL[category.slug];
-const beginners = isFirst ? editorial.beginners.map((slug) => allPosts.find((p) => p.data.slug === slug)).filter(Boolean) : [];
-if (isFirst && beginners.length !== 3) throw new Error(`[category] editorial selection failed: ${category.slug}`);
+const editorial = CATEGORY_EDITORIAL[category.slug] ?? {};
+const findPost = (slug) => allPosts.find((p) => p.data.slug === slug);
+// ハブを指定したカテゴリは「ハブ記事＋主要5本」、未指定のカテゴリは（あれば）「最初は、この3本から」を冒頭に出す。
+// 記事が別のカテゴリへ移った等で指定が崩れたときは、壊れたページを公開せずビルドを止める。
+const hubPost = isFirst && category.hub ? findPost(category.hub) : null;
+const spokes = hubPost ? (editorial.spokes ?? []).map(findPost) : [];
+if (isFirst && category.hub && (!hubPost || hubPost.data.category !== category.slug || spokes.length !== 5 || spokes.some((p) => !p || p.data.category !== category.slug))) throw new Error(`[category] hub selection failed: ${category.slug}`);
+const beginners = isFirst && !category.hub && editorial.beginners ? editorial.beginners.map(findPost) : [];
+if (beginners.length > 0 && (beginners.length !== 3 || beginners.some((p) => !p))) throw new Error(`[category] editorial selection failed: ${category.slug}`);
 
 const jsonLd = [
   {
@@ -68,7 +74,8 @@ const jsonLd = [
   breadcrumbs={breadcrumbs}
   jsonLd={jsonLd}
 >
-  <header class="category-hero"><div class="container"><p class="eyebrow">カテゴリ <em>{category.slug === 'tea-leaves' ? 'Tea Leaves' : category.name}</em></p><h1>{category.name}{pageSuffix}</h1><p>{category.description}</p></div></header>
-  {isFirst && <section class="category-beginner"><div class="container"><div class="category-beginner__head"><p class="eyebrow">初心者向け <em>Start Here</em></p><h2 class="section-title">最初は、この3本から。</h2></div><ol class="beginner-list">{beginners.map((post, i) => <li><a href={`/posts/${post.data.slug}/`}><span class="beginner-no">0{i + 1}</span><span><small>{i === 0 ? '基本を知る' : i === 1 ? '地図をつくる' : '好みで比べる'}</small><span class="beginner-title">{post.data.title}</span></span></a></li>)}</ol></div></section>}
+  <header class="category-hero"><div class="container"><p class="eyebrow">カテゴリ <em>{category.en ?? category.name}</em></p><h1>{category.name}{pageSuffix}</h1><p>{category.description}</p></div></header>
+  {hubPost && <section class="category-hub"><div class="container"><div class="category-hub__head"><p class="eyebrow">まずはここから <em>Start Here</em></p><h2 class="section-title">このテーマの入口</h2></div><a class="hub-main" href={`/posts/${hubPost.data.slug}/`}><small>ハブ記事</small><span class="hub-title">{hubPost.data.title}</span><span class="hub-desc">{hubPost.data.description}</span></a><ol class="hub-spokes">{spokes.map((post) => <li><a href={`/posts/${post.data.slug}/`}>{post.data.title}</a></li>)}</ol></div></section>}
+  {beginners.length > 0 && <section class="category-beginner"><div class="container"><div class="category-beginner__head"><p class="eyebrow">初心者向け <em>Start Here</em></p><h2 class="section-title">最初は、この3本から。</h2></div><ol class="beginner-list">{beginners.map((post, i) => <li><a href={`/posts/${post.data.slug}/`}><span class="beginner-no">0{i + 1}</span><span><small>{i === 0 ? '基本を知る' : i === 1 ? '地図をつくる' : '好みで比べる'}</small><span class="beginner-title">{post.data.title}</span></span></a></li>)}</ol></div></section>}
   <section class="category-stories"><div class="container"><div class="category-stories__head"><div><p class="eyebrow">記事一覧 <em>All Stories</em></p><h2>{category.name}の記事</h2></div></div><ul class="post-list">{page.data.map((post, i) => <PostCard post={post} eager={isFirst && i < 3} />)}</ul><Pagination page={page} /><p class="back-to-list"><a class="text-arrow" href="/category/">ほかのテーマを見る</a></p></div></section>
 </BaseLayout>
