@@ -107,7 +107,10 @@ const jsonLd = [
       <h1>{isComparison || !titleDetail ? post.data.title : <Fragment>{titleMain}<span class="article-title-detail"><span aria-hidden="true">｜</span>{titleDetail}</span></Fragment>}</h1>
       <p class="article-lead">{post.data.description}</p>
       <p class="post-meta"><time datetime={post.data.date.toISOString()}>公開 {fmt(post.data.date)}</time>{post.data.updated.valueOf() !== post.data.date.valueOf() && <Fragment>　<time datetime={post.data.updated.toISOString()}>更新 {fmt(post.data.updated)}</time></Fragment>}</p>
-      <img src={post.data.hero} alt={post.data.title} class="hero-image" width="1200" height="630" fetchpriority="high" decoding="async" />
+      <figure class="hero-figure">
+        <img src={post.data.hero} alt={post.data.title} class="hero-image" width="1200" height="630" fetchpriority="high" decoding="async" />
+        <figcaption class="hero-note">イメージ画像</figcaption>
+      </figure>
     </header>
     <div class="article-content"><Content /></div>
     <aside class="article-end-cta">
@@ -121,6 +124,7 @@ const jsonLd = [
   <aside class="site-operator">
     <h2>このサイトについて</h2>
     <p>「琥珀時間」は、紅茶とティーカップにまつわる実用的な情報をお届けするメディアです。紹介する茶葉・茶器は、実際に調べた情報や一般的な評価をもとに選定しており、体験の捏造は行いません。</p>
+    <p>琥珀時間の記事と画像は、AIが下調べ・執筆・作成しています。記事内の画像は、特記のない限りAIで作成したイメージです。</p>
     <p><a href="/about/">運営者情報を見る</a></p>
   </aside>
 

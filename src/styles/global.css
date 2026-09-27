@@ -100,6 +100,11 @@ main{min-height:55vh}.breadcrumb{padding-top:clamp(2rem,5vw,4rem);padding-bottom
 .category-beginner .beginner-list{margin-top:1.25rem}
 .category-beginner .beginner-list a{grid-template-columns:34px 1fr;gap:.6rem;min-height:80px;padding:.65rem .9rem}
 .category-stories{padding:clamp(2.25rem,4vw,3.75rem) 0 var(--section-y)}
+.hero-figure{margin:0 0 clamp(2.5rem,5vw,4.5rem)}
+.article-header .hero-figure .hero-image{margin-bottom:0}
+.hero-note{margin:.35rem 0 0;text-align:right;font-size:.7rem;line-height:1.4;color:var(--color-muted)}
+.standard-article-page .hero-figure{margin-bottom:clamp(1.9rem,3.5vw,3rem)}
+@media(max-width:767px){.standard-article-page .hero-figure{margin-bottom:1.65rem}}
 
 @media(max-width:767px){
   .standard-article-page .article-title-detail{display:block;margin-top:.25rem;font-size:.72em;line-height:1.65}

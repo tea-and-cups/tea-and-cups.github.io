@@ -82,6 +82,13 @@ hero画像に焼き込む見出し文言の必須指定（D-0173）:
   未指定・件数超過・文字数超過・半角英数字混入のいずれでも、hero用もpin用もプロンプトを
   一切出力せず exit 1 で終わる。
 
+ブランド固定要素と写実の指定（D-0244）:
+  全画像共通で、【画像に描く文字】の許可文に「右下に小さく「琥珀時間」を入れてよい（文言の連番には
+  数えない）」を1文足し、【仕上げ】に琥珀・生成り・深い茶の3色基調と明朝系の書体を置く。
+  「文言その[漢数字]」の連番は増やさない（analyze-pin-metrics.py の文言件数がずれるため）。
+  写実の指定（実物を撮った写真の質感）は hero と PHOTO_STYLES（写真ヒーロー）の Pin にだけ付け、
+  図解・イラスト系の型には付けない。構図の4軸・型の選び方は変更しない。
+
 使い方:
   python site/scripts/make-image-prompt.py <slug> --hero-text "見出し文言"
     --pin1-text "文言A｜文言B" --pin2-text "文言C" --pin3-text "文言D｜文言E｜文言F"
@@ -179,6 +186,27 @@ def pin_ratio_tail():
     ).format(w=PIN_RATIO_W, h=PIN_RATIO_H)
 
 
+# --- ブランド固定要素（D-0244） ---
+# 右下の小さな店名表記は、文言の連番（「文言その[漢数字]」）には数えない。連番は analyze-pin-metrics.py の
+# 文言件数の分母であり、ここを増やすと情報少なめ／多めの群分けがずれる。許可文の追記だけで表す。
+BRAND_MARK = "琥珀時間"
+BRAND_MARK_ALLOWANCE = (
+    "これに加えて、画像の右下に小さく「{m}」の文字を入れてよい（文言の連番には数えない）。"
+).format(m=BRAND_MARK)
+# 色と書体は全画像共通の【仕上げ】に置く（構図の4軸・型は変更しない）。
+BRAND_FINISH_RULES = [
+    "全体の色は、琥珀色・生成り・深い茶色の三色を基調にする。",
+    "画像に描く文字は、明朝系（細めのセリフ体）で統一する。",
+]
+
+# 写真系の型（D-0244）。TYPE_GUIDANCE で「物撮り・情景写真」と定義している型だけを挙げる。
+PHOTO_STYLES = {"写真ヒーロー"}
+
+
+def is_photo_style(style):
+    return style in PHOTO_STYLES
+
+
 # --- rules/image-generation-flow.md にある既存の固定要素（正本はこのファイル・D-0126） ---
 # 【用途】節。
 HERO_PURPOSE = "紅茶と器の暮らしを紹介するブログの、記事の見出しに使う横長画像を一枚作る。"
@@ -188,9 +216,18 @@ PIN_PURPOSE = "紅茶と器の暮らしを紹介するブログの、写真共�
 # （同じ趣旨の否定文を各所に散らすと他の指示への追従が弱まるため）。
 # 2文目は実在ブランドの模造禁止（D-0059）であり、削除しない。
 EXCLUDE_RULES = [
-    "上に挙げた文言以外の文字・数字・記号・説明文・英字・記入欄は描かない。",
+    "上に挙げた文言と、右下の「%s」以外の文字・数字・記号・説明文・英字・記入欄は描かない。" % BRAND_MARK,
     "実在の商標を思わせるロゴや文字は描かず、缶や箱の面は無地にする。",
 ]
+
+# 写実の指定（D-0244）。hero画像と、写真系の型（PHOTO_STYLES）のPin画像にだけ付ける。
+# 図解・イラスト系の型（比較グリッド・手順図解等）には付けない（写真の質感を求めると図の可読性が落ちるため）。
+# 肯定形の指示は【構図】へ、避けたい表現は D-0172 の方針に従い【描かない要素】へ置く。
+REALISM_COMPOSITION_RULE = (
+    "実物を撮った写真に見える質感にする。"
+    "自然光で、器や茶葉の実際の質感と、手前にピントが合い背景が自然にぼける被写界深度を表現する。"
+)
+REALISM_EXCLUDE_RULE = "CGのような光沢、イラスト調、過度に整った左右対称は避ける。"
 
 # heroは後工程の hero-to-webp.py が 1400x735 へ中央クロップするため上下が削られる。
 # 端に寄った見出し文言は切れて作り直しになる（D-0148）。
@@ -236,7 +273,7 @@ def text_whitelist_head(count, has_cta):
     return (
         "次の{n}件の文言を必ず画像に描き込む。一字一句そのまま描く。"
         "画像に描いてよい文字は{only}だけとする。"
-    ).format(n=n, only=only)
+    ).format(n=n, only=only) + BRAND_MARK_ALLOWANCE
 
 
 def hero_text_section(text_position, texts):
@@ -540,10 +577,11 @@ def build_hero_prompt(row, texts):
         section(SEC_PURPOSE, [HERO_PURPOSE]),
         section(SEC_COMPOSITION, [
             axis_summary(row) + "の構図で、物撮りまたは情景写真として仕上げる。",
+            REALISM_COMPOSITION_RULE,
         ]),
         hero_text_section(row["text_position"], texts),
-        section(SEC_EXCLUDE, EXCLUDE_RULES),
-        section(SEC_FINISH, [hero_ratio_tail()]),
+        section(SEC_EXCLUDE, EXCLUDE_RULES + [REALISM_EXCLUDE_RULE]),
+        section(SEC_FINISH, BRAND_FINISH_RULES + [hero_ratio_tail()]),
     ])
 
 
@@ -566,21 +604,25 @@ def build_pin_prompt(row, style, texts, cta_text=None):
     if guidance is None:
         print("型ごとの指示方針が未定義です（TYPE_GUIDANCEにない型）: %s" % style)
         sys.exit(1)
+    photo = is_photo_style(style)
+    composition = [
+        "型は「%s」。" % display_style(style),
+        guidance,
+        axis_summary(row) + "を反映する。",
+    ]
+    if photo:
+        composition.append(REALISM_COMPOSITION_RULE)
     parts = [
         section(SEC_RATIO, [pin_ratio_head()]),
         section(SEC_PURPOSE, [PIN_PURPOSE]),
-        section(SEC_COMPOSITION, [
-            "型は「%s」。" % display_style(style),
-            guidance,
-            axis_summary(row) + "を反映する。",
-        ]),
+        section(SEC_COMPOSITION, composition),
         pin_text_section(row["text_position"], texts, ranking, bool(cta_text)),
     ]
     if cta_text:
         parts.append(section(SEC_CTA, cta_instruction(cta_text)))
     parts.extend([
-        section(SEC_EXCLUDE, EXCLUDE_RULES),
-        section(SEC_FINISH, [pin_ratio_tail()]),
+        section(SEC_EXCLUDE, EXCLUDE_RULES + ([REALISM_EXCLUDE_RULE] if photo else [])),
+        section(SEC_FINISH, BRAND_FINISH_RULES + [pin_ratio_tail()]),
     ])
     return "\n".join(parts)
 
