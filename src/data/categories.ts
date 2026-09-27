@@ -53,6 +53,7 @@ export const CATEGORIES = [
     en: 'Gift',
     description:
       '贈る相手やシーンに合わせて選ぶ、紅茶のギフト・手土産の選び方をご紹介します。',
+    hub: 'koucha-gift-erabikata-aite-bamen-yosan',
   },
   {
     slug: 'seasons',

@@ -35,6 +35,7 @@ export const CATEGORY_EDITORIAL = {
     spokes: ['chashibu-kibami-otoshikata', 'kinsai-teacup-atsukaikata', 'teacup-kyusu-shuunou-shokkidana-seiri', 'chakan-canister-erabikata', 'chaba-hokan-natsu'],
   },
   gift: {
+    spokes: ['keirounohi-koucha-gift', 'kisei-temiyage-koucha-gift', 'pair-cup-saucer-kekkonjoshii-tanjoubi-hikaku', 'twg-tea-gift-koucha-erabikata', 'zansho-mimai-koucha-gift'],
     beginners: ['keirounohi-koucha-gift', 'kisei-temiyage-koucha-gift', 'pair-cup-saucer-kekkonjoshii-tanjoubi-hikaku'],
     featured: 'twg-tea-gift-koucha-erabikata',
   },
