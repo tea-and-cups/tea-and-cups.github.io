@@ -7,7 +7,7 @@ description: いつものアイスティーを、見た目からも涼しく感�
 tags: [紅茶, アイスティー, テーブルコーディネート, 夏]
 hero: /images/suzushige-natsu-table-coordinate/hero.webp
 status: published
-category: how-to
+category: seasons
 ---
 
 ※当サイトはアフィリエイト広告（もしもアフィリエイト経由の楽天市場）を利用しています。

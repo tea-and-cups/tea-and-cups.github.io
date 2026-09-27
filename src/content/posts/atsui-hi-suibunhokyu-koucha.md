@@ -7,7 +7,7 @@ description: 暑い日の水分補給に紅茶は向いているのか。麦茶�
 tags: [紅茶, 夏, 水分補給]
 hero: /images/atsui-hi-suibunhokyu-koucha/hero.webp
 status: published
-category: tea-leaves
+category: seasons
 ---
 
 ※当サイトはアフィリエイト広告（もしもアフィリエイト経由の楽天市場）を利用しています。

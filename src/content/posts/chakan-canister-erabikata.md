@@ -7,7 +7,7 @@ description: 紅茶の茶葉を長く美味しく保つための保存容器選�
 tags: [紅茶, 保存方法, 茶筒, 比較]
 hero: /images/chakan-canister-erabikata/hero.webp
 status: published
-category: teaware
+category: care
 ---
 
 ※当サイトはアフィリエイト広告（もしもアフィリエイト経由の楽天市場）を利用しています。

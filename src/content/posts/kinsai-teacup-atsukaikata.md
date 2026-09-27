@@ -7,7 +7,7 @@ description: 金彩・金縁のティーカップが電子レンジNGとされ�
 tags: [紅茶, ティーカップ, お手入れ, 入門]
 hero: /images/kinsai-teacup-atsukaikata/hero.webp
 status: published
-category: teaware
+category: care
 ---
 
 ※当サイトはアフィリエイト広告（もしもアフィリエイト経由の楽天市場）を利用しています。

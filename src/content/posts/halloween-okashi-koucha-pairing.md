@@ -7,7 +7,7 @@ description: ハロウィンのチョコレートやかぼちゃスイーツに�
 tags: [紅茶, ハロウィン, お菓子, 秋, おうちティーパーティー]
 hero: /images/halloween-okashi-koucha-pairing/hero.webp
 status: published
-category: how-to
+category: seasons
 ---
 
 ※当サイトはアフィリエイト広告（もしもアフィリエイト経由の楽天市場）を利用しています。

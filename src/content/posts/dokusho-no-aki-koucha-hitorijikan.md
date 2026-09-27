@@ -7,7 +7,7 @@ description: 秋の読書時間を心地よくする3つの要素（香りで切
 tags: [紅茶, 読書, リラックス, 秋]
 hero: /images/dokusho-no-aki-koucha-hitorijikan/hero.webp
 status: published
-category: how-to
+category: seasons
 ---
 
 ※当サイトはアフィリエイト広告（もしもアフィリエイト経由の楽天市場）を利用しています。

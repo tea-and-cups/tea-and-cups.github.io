@@ -7,7 +7,7 @@ description: 2026年の中秋の名月（9月25日）に、和紅茶と月見団
 tags: [紅茶, 和紅茶, 秋, ペアリング, お月見]
 hero: /images/otsukimi-wakoucha-tsukimi-dango/hero.webp
 status: published
-category: how-to
+category: seasons
 ---
 
 ※当サイトはアフィリエイト広告（もしもアフィリエイト経由の楽天市場）を利用しています。

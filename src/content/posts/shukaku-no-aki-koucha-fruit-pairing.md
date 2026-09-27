@@ -7,7 +7,7 @@ description: 梨・ぶどう・柿それぞれに合う紅茶のタイプを、�
 tags: [紅茶, ペアリング, フルーツ, 秋]
 hero: /images/shukaku-no-aki-koucha-fruit-pairing/hero.webp
 status: published
-category: how-to
+category: seasons
 ---
 
 ※当サイトはアフィリエイト広告（もしもアフィリエイト経由の楽天市場）を利用しています。

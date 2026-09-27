@@ -7,7 +7,7 @@ description: 紅茶の缶やティーバッグをふと見たら賞味期限が�
 tags: [紅茶, 保存方法, 賞味期限]
 hero: /images/koucha-shomikigen-kireta-fuumi-mikiwame/hero.webp
 status: published
-category: how-to
+category: care
 ---
 
 ※当サイトはアフィリエイト広告（もしもアフィリエイト経由の楽天市場）を利用しています。

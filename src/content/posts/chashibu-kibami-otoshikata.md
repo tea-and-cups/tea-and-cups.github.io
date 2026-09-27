@@ -7,7 +7,7 @@ description: ティーカップにこびりついた茶渋・黄ばみを、重�
 tags: [紅茶, ティーカップ, お手入れ, 入門]
 hero: /images/chashibu-kibami-otoshikata/hero.webp
 status: published
-category: teaware
+category: care
 ---
 
 ※当サイトはアフィリエイト広告（もしもアフィリエイト経由の楽天市場）を利用しています。

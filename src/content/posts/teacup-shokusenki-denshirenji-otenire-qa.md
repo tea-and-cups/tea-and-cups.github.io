@@ -7,7 +7,7 @@ description: ボーンチャイナ・磁器・陶器などティーカップの�
 tags: [紅茶, ティーカップ, お手入れ, 入門]
 hero: /images/teacup-shokusenki-denshirenji-otenire-qa/hero.webp
 status: published
-category: teaware
+category: care
 ---
 
 ※当サイトはアフィリエイト広告（もしもアフィリエイト経由の楽天市場）を利用しています。

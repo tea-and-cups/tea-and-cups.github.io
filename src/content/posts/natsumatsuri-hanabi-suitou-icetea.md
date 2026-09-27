@@ -7,7 +7,7 @@ description: 夏祭りや花火大会に浴衣で出かけるとき、大きな�
 tags: [紅茶, アイスティー, 水筒, 夏]
 hero: /images/natsumatsuri-hanabi-suitou-icetea/hero.webp
 status: published
-category: teaware
+category: seasons
 ---
 
 ※当サイトはアフィリエイト広告（もしもアフィリエイト経由の楽天市場）を利用しています。

@@ -7,7 +7,7 @@ description: 11月1日は「紅茶の日」。江戸時代の漂流民・大黒�
 tags: [紅茶, 紅茶の日, コラム, 秋, 茶葉]
 hero: /images/koucha-no-hi-yurai/hero.webp
 status: published
-category: how-to
+category: seasons
 ---
 
 ※当サイトはアフィリエイト広告（もしもアフィリエイト経由の楽天市場）を利用しています。

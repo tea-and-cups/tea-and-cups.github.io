@@ -7,7 +7,7 @@ description: 9月1日の防災の日を機に、非常用持ち出し袋や備�
 tags: [紅茶, 防災, ティーバッグ, 保存方法]
 hero: /images/bousai-koucha-teabag-erabikata/hero.webp
 status: published
-category: how-to
+category: seasons
 ---
 
 ※当サイトはアフィリエイト広告（もしもアフィリエイト経由の楽天市場）を利用しています。

@@ -7,7 +7,7 @@ description: ハロウィンの食卓になじむ黒猫モチーフのマグカ�
 tags: [マグカップ, ハロウィン, 黒猫, 秋]
 hero: /images/halloween-kuroneko-mug-teatime/hero.webp
 status: published
-category: teaware
+category: seasons
 ---
 
 ※当サイトはアフィリエイト広告（もしもアフィリエイト経由の楽天市場）を利用しています。

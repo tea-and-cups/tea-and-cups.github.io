@@ -7,7 +7,7 @@ description: ティーカップや急須は形や重さがバラバラで、食�
 tags: [紅茶, ティーカップ, 急須, 収納]
 hero: /images/teacup-kyusu-shuunou-shokkidana-seiri/hero.webp
 status: published
-category: teaware
+category: care
 ---
 
 ※当サイトはアフィリエイト広告（もしもアフィリエイト経由の楽天市場）を利用しています。

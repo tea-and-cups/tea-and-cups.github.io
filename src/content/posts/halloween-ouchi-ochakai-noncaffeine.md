@@ -7,7 +7,7 @@ description: ハロウィンに家族や友人を招いてお茶会を開くと�
 tags: [ハロウィン, ノンカフェイン, テーブルコーディネート, 季節, シーン別]
 hero: /images/halloween-ouchi-ochakai-noncaffeine/hero.webp
 status: published
-category: how-to
+category: seasons
 ---
 
 ※当サイトはアフィリエイト広告（もしもアフィリエイト経由の楽天市場）を利用しています。

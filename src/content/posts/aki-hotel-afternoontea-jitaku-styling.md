@@ -7,7 +7,7 @@ description: 2026年秋のホテルアフタヌーンティーに共通する食
 tags: [紅茶, アフタヌーンティー, テーブルコーディネート, 秋]
 hero: /images/aki-hotel-afternoontea-jitaku-styling/hero.webp
 status: published
-category: how-to
+category: seasons
 ---
 
 ※当サイトはアフィリエイト広告（もしもアフィリエイト経由の楽天市場）を利用しています。

@@ -7,7 +7,7 @@ description: 台風や長雨で外出しづらい9月、おうちで過ごす時
 tags: [紅茶, 淹れ方, 秋, 台風, ホットティー]
 hero: /images/taifu-nagame-uchi-hot-tea-kibuntenkan/hero.webp
 status: published
-category: how-to
+category: seasons
 ---
 
 ※当サイトはアフィリエイト広告（もしもアフィリエイト経由の楽天市場）を利用しています。
