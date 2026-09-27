@@ -7,7 +7,14 @@
 
 裏取りが要る記述のカテゴリ:
   A 発売時期 / B 価格 / C 限定性 / D 受賞・認定 / E 初・首位・シェア
-  F 沿革・規模 / G 数値主張
+  F 沿革・規模 / G 数値主張 / H 実物を使った行為・観察・「編集部」の記述
+
+カテゴリH（行為・観察・編集部）の特則（D-0245）:
+  琥珀時間はAIが下調べ・執筆する媒体のため、淹れた・飲んだ・使った・見比べたといった
+  実物を使った行為・観察の記述と、人の存在をうかがわせる「編集部」等の主語は書かない。
+  出典URLを併記しても免除しない（出典の有無と無関係に違反）。検知は EXPERIENCE_PATTERNS。
+  読者への呼びかけ（「試してみてください」等）と、AIが実際に行った調査の記述
+  （「読み比べて整理した」等）は検知しない。
 
 出典とみなすもの（カテゴリA・C〜Gのみ）:
   同一判定単位内の Markdownリンク [表示文字](http〜) または素のhttp(s) URL。
@@ -80,9 +87,26 @@ RE_PRICE_EXPR = re.compile(r"\d[\d,]*円(?:以下|以上|未満|前後|程度|�
 # 例外2: Markdownリンクの表示文字部分 [表示文字](
 RE_MD_LINK_TEXT = re.compile(r"\[([^\]\n]*)\]\(")
 
-CATEGORY_LABELS = {"A": "発売時期"}
+# カテゴリH（D-0245）: 実物を使った行為・観察の記述と「編集部」等の主語。
+# 過去形の行為（〜たところ）・行為を前提にした条件文（実際に淹れ比べると）・感想の断定・
+# 人の存在をうかがわせる主語だけを拾う。「試してみてください」等の読者への呼びかけや、
+# 「読み比べて整理した」等のAIが実際に行った調査の記述は拾わない。
+RE_EXPERIENCE_ACT = "|".join(
+    [
+        r"編集部|当編集|私たち|筆者",
+        r"比べ(?:て(?:み)?)?たところ",
+        r"(?:試し|使っ|飲ん|淹れ|いれ|入れ|作っ|食べ|測っ|量っ|計っ|触っ|並べ)(?:て)?(?:み)?たところ",
+        r"実際に[^。、]{0,25}(?:淹れ比べ|見比べ|飲み比べ|食べ比べ|使い比べ|持ち比べ)(?:る)?と",
+        r"実際に[^。、]{0,30}(?:て|で)みる?と",
+        r"魅力に感じ(?:ます|ています)|(?:実感|痛感)(?:します|しました|しています)",
+        r"感じました|驚きました|気づきました",
+    ]
+)
+RE_EXPERIENCE = re.compile(RE_EXPERIENCE_ACT)
+
+CATEGORY_LABELS = {"A": "発売時期", "H": "行為・観察・編集部の記述"}
 CATEGORY_LABELS.update({key: label for key, label, _ in CATEGORIES})
-CATEGORY_ORDER = ["A", "B", "C", "D", "E", "F", "G"]
+CATEGORY_ORDER = ["A", "B", "C", "D", "E", "F", "G", "H"]
 
 # --- 出典判定 ------------------------------------------------------------------
 
@@ -214,7 +238,8 @@ def check_article(path, slug):
     for unit in build_units(body, body_start_line):
         text_u = unit_text(unit)
         cats = match_categories(text_u)
-        if not cats:
+        experience = RE_EXPERIENCE.search(RE_URL.sub(" ", text_u))
+        if not cats and not experience:
             continue
         if "B" in cats:
             b_before += 1
@@ -223,6 +248,9 @@ def check_article(path, slug):
         # Bは出典併記による免除を認めない。A・C〜Gは従来どおり出典があれば通す。
         if has_valid_source(text_u):
             cats = [c for c in cats if c == "B"]
+        # Hも出典併記による免除を認めない（D-0245）。
+        if experience:
+            cats = cats + ["H"]
         if not cats:
             continue
         violations.append(
@@ -231,6 +259,7 @@ def check_article(path, slug):
                 "line": unit[0][0],
                 "categories": cats,
                 "excerpt": excerpt(text_u),
+                "hit": experience.group(0) if experience else "",
                 "in_product_block": has_affiliate(text_u),
             }
         )
@@ -266,11 +295,15 @@ def run_single(slug):
         print("FACT_SOURCE_OK")
         return 0
 
-    print(f"出典が併記されていない要裏取り記述: {len(violations)}件")
+    print(f"出典が併記されていない要裏取り記述・行為観察の記述: {len(violations)}件")
     for v in violations:
         cats = "".join(v["categories"])
-        print(f"  L{v['line']} [{cats}] {v['excerpt']}")
+        hit = f" 〔検知語: {v['hit']}〕" if v.get("hit") else ""
+        print(f"  L{v['line']} [{cats}] {v['excerpt']}{hit}")
     print("該当箇所に一次情報のURLを併記するか、断定を避けた表現へ書き換えてください")
+    if any("H" in v["categories"] for v in violations):
+        print("[H] 実物を使った行為・観察・「編集部」の記述は出典を付けても通りません。"
+              "資料に基づく表現（〜が目安とされています／出典の記述）に書き換えるか削除してください")
     return 1
 
 
