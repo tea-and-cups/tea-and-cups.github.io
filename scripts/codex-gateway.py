@@ -15,6 +15,7 @@
                最終メッセージを --output-file へ保存する。
                引数: --prompt-file <パス> --output-file <growth/outputs/ 配下のパス>
                実行: codex exec -C <プロジェクトルート> -s read-only --json -o <output-file>
+               （GROWTH_AUDIT_HARDENING_ARGS で外部遮断を上乗せする・D-0253）
                プロンプトは標準入力で渡す（Windows のコマンドライン長上限 約3.2万文字を避けるため）。
                -o のファイルが書かれなかった場合は、--json の出力から最終の agent_message を
                gateway が取り出して --output-file へ書く（Codex に書き込み権限は与えない）。
@@ -85,6 +86,63 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 LOG_DIR = PROJECT_ROOT / "tmp" / "codex-gateway"
 # growth-audit の --output-file に許可する唯一の置き場（D-0251）
 AUDIT_OUTPUTS_DIR = PROJECT_ROOT / "growth" / "outputs"
+
+# growth-audit 専用の外部遮断（D-0253）。起動引数・子プロセス環境変数だけで完結させ、
+# ~/.codex/config.toml・Codexアプリ側の設定・image-gen の起動内容は一切変えない。
+# growth-audit の実行時だけ、次を無効にする: ネットワーク（シェル・Web検索）／
+# アプリ連携（MCPコネクタ・プラグイン経由の computer-use を含む）／ブラウザ操作・
+# computer-use／画像生成／サブエージェントの起動。ローカルファイル・ローカル画像の
+# 閲覧は無効にしない（対象外）。
+#
+# 実測の経緯（2026-09-27・growth/outputs/probe-hardening.md）:
+#   1) `-s read-only` 単体はシェルからのネットワーク到達を遮断しない
+#      （reports/2026-09-27-7.md で既知）。`-c features.network_proxy.enabled=true`
+#      （domains 未指定で全拒否を期待）も効果が無く、HTTP 200 が通った。
+#   2) growth-audit を実行するだけで ~/.codex/config.toml のハッシュが変わることを
+#      確認した（Codexアプリ全体で共有される、他プロジェクトの trust_level 追記等が
+#      入るファイルのため）。このファイルには browser/computer-use/chrome 等の
+#      プラグイン登録・mcp_servers.node_repl（computer-use を提供する MCP サーバ）・
+#      approval_policy="on-request"+approvals_reviewer="guardian_subagent"
+#      （非対話実行でも自動承認されてしまう設定）が入っている。
+#   3) `--ignore-user-config` でこのファイルを読み込ませないようにしたところ、
+#      ハッシュ不変・プラグイン一式の不登録（apps/browser/computer-use が実際に
+#      「ツール無し」になった）に加え、副次効果としてシェルの HTTP コマンドが
+#      Codex 自身の実行前チェックにより `rejected: blocked by policy` で拒否される
+#      ようになった（承認者不在時の既定ポリシーに戻ったため）。狙って作った経路では
+#      ないため、他のシェルコマンドの書き方で素通りする余地が残る可能性がある
+#      （断定しない・残課題として補足に書く）。
+#   4) Web検索は `[features].web_search` ではなく、トップレベルの `web_search`
+#      （"live"/"indexed"/"cached"/"disabled"）で制御することが、1回目の実行時の
+#      非推奨警告（`--json` ログ）から判明した。`web_search="disabled"` を使う。
+#   5) computer-use 系プラグイン向けの --disable は (3) の --ignore-user-config で
+#      冗長になった可能性が高いが、多重防御として残す。
+GROWTH_AUDIT_HARDENING_ARGS = [
+    "-c", 'web_search="disabled"',
+    "--disable", "apps",
+    "--disable", "browser_use",
+    "--disable", "browser_use_external",
+    "--disable", "browser_use_full_cdp_access",
+    "--disable", "computer_use",
+    "--disable", "in_app_browser",
+    "--disable", "plugins",
+    "--disable", "remote_plugin",
+    "--disable", "plugin_sharing",
+    "--disable", "image_generation",
+    "--disable", "multi_agent",
+    # シェルが起動する子プロセス（PowerShell 等）だけにプロキシ環境変数を注入する
+    # （shell_environment_policy.set は codex 自身の通信には影響しない・
+    # codex 自身の env を直接書き換えると wss://chatgpt.com への接続まで
+    # 塞いでしまうことを実測で確認したため、この経路に切り替えた）。
+    # 誰も listen していないループバックポートへ向け、接続を即時拒否させる
+    # （(3) のガード拒否をすり抜けた場合の多重防御）。
+    "-c", 'shell_environment_policy.set.HTTP_PROXY="http://127.0.0.1:1"',
+    "-c", 'shell_environment_policy.set.HTTPS_PROXY="http://127.0.0.1:1"',
+    "-c", 'shell_environment_policy.set.http_proxy="http://127.0.0.1:1"',
+    "-c", 'shell_environment_policy.set.https_proxy="http://127.0.0.1:1"',
+    "-c", 'shell_environment_policy.set.ALL_PROXY="http://127.0.0.1:1"',
+    "-c", 'shell_environment_policy.set.NO_PROXY=""',
+    "-c", 'shell_environment_policy.set.no_proxy=""',
+]
 
 # 容量対策（実行時間が蓄積量に比例しないよう、1回の実行での削除数に上限を置く）
 PRUNE_AGE_DAYS = 30
@@ -650,11 +708,23 @@ def run_growth_audit(purpose, prompt_file, output_file, model_override=None):
 
     # プロンプトは標準入力で渡す（"-"）。-C でプロジェクトルートを作業ルートにし、
     # -s read-only のまま -o で最終メッセージを書かせる（-o は Codex CLI 本体が書く）。
+    # --ignore-user-config: ~/.codex/config.toml を読み込ませない（D-0253）。
+    #   実測で、growth-audit を実行するだけで ~/.codex/config.toml のハッシュが
+    #   変わることを確認した（他プロジェクトの trust_level 追記等、Codexアプリ全体で
+    #   共有されるファイルのため）。このファイルには browser/computer-use/chrome 等の
+    #   プラグインと mcp_servers.node_repl の登録も入っており、読み込ませないことで
+    #   ハッシュ不変とアプリ連携遮断を同時に満たす。認証は CODEX_HOME 側で別管理のため
+    #   影響しない。モデルは config.toml に頼れなくなるため、このプロセス自身が読んだ
+    #   config_model を明示の -m で渡す（--model 未指定時の既定動作を変えないため、
+    #   model_override が無ければ config_model を使う）。
     def build_cmd(model):
+        effective_model = model or config_model
         cmd = ["codex", "exec", "--json", "-s", "read-only", "--skip-git-repo-check",
+               "--ignore-user-config",
                "-C", str(PROJECT_ROOT), "-o", str(target)]
-        if model:
-            cmd += ["-m", model]
+        cmd += GROWTH_AUDIT_HARDENING_ARGS
+        if effective_model:
+            cmd += ["-m", effective_model]
         cmd.append("-")
         return cmd
 

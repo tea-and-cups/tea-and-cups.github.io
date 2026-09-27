@@ -18,6 +18,8 @@ Codex からシェル実行される前提で、標準出力に契約JSONを1個
   python site/scripts/growth-metrics.py ga4 --operation ga4.daily_traffic --lookback-days 7
   python site/scripts/growth-metrics.py gsc --operation gsc.search_analytics --lookback-days 28 --limit 28
   python site/scripts/growth-metrics.py buffer --operation buffer.account
+  python site/scripts/growth-metrics.py buffer --operation buffer.sent_posts --lookback-days 7 --limit 25
+  python site/scripts/growth-metrics.py buffer --operation buffer.aggregated_metrics --lookback-days 7
   python site/scripts/growth-metrics.py pins --operation pins.daily_metrics --lookback-days 30
   python site/scripts/growth-metrics.py ga4 --operation ga4.page_traffic --lookback-days 28 --limit 20
   python site/scripts/growth-metrics.py gsc --operation gsc.search_analytics_by_query --lookback-days 28 --limit 20
@@ -98,9 +100,58 @@ query BufferObservationAccount {
 }
 """
 
+# buffer.sent_posts（D-0253）: posts(input:{organizationId}) は channelId による絞り込みが
+# 無いため（実測確認済み）、全チャンネル分を新しい順（デフォルト順）に first/after でページ
+# 送りしつつ、各投稿の channel.service で Threads/X だけへ絞り込む。日付での絞り込み引数は
+# 無いため、lookback の開始日より古い sentAt に達したらページ送りを止める。
+BUFFER_SENT_POSTS_QUERY = """
+query BufferObservationSentPosts($organizationId: OrganizationId!, $first: Int, $after: String) {
+  posts(input: {organizationId: $organizationId, filter: {status: sent}}, first: $first, after: $after) {
+    pageInfo { hasNextPage endCursor }
+    edges {
+      node {
+        id
+        text
+        sentAt
+        channel { service }
+        metrics { type value }
+      }
+    }
+  }
+}
+"""
+
+# buffer.aggregated_metrics（D-0253）: 実測確認済みの入力は organizationId・channelIds・
+# startDateTime・endDateTime。AggregatedPostMetrics 型は metrics フィールドしか持たず
+# （channel や id を要求すると GRAPHQL_VALIDATION_FAILED になることを実測確認済み）、
+# channelIds に複数渡すと合算値になるため、チャネル別の内訳を得るには1チャンネルずつ呼ぶ。
+BUFFER_AGGREGATED_METRICS_QUERY = """
+query BufferObservationAggregatedMetrics($organizationId: OrganizationId!, $channelIds: [ChannelId!]!, $startDateTime: DateTime!, $endDateTime: DateTime!) {
+  aggregatedPostMetrics(input: {organizationId: $organizationId, channelIds: $channelIds, startDateTime: $startDateTime, endDateTime: $endDateTime}) {
+    metrics { type value }
+  }
+}
+"""
+
 # Buffer 側で「呼んでよい read クエリ」の明示リスト。buffer_api.assert_operation_allowed()
 # とは別に、broker 自身がもう一段チェックする（二重チェック）。
-BUFFER_READ_ALLOWED = frozenset(["BufferObservationAccount"])
+BUFFER_READ_ALLOWED = frozenset([
+    "BufferObservationAccount",
+    "BufferObservationSentPosts",
+    "BufferObservationAggregatedMetrics",
+])
+
+# Instagram は停止中（D-0240）のため buffer.sent_posts / buffer.aggregated_metrics の対象外。
+BUFFER_SNS_SERVICES = frozenset(["threads", "twitter"])
+
+# buffer.sent_posts の安全弁（Bufferのレート制限は24時間250リクエスト・
+# https://developers.buffer.com/guides/api-limits.html）。1回の呼び出しでこれを超えて
+# ページ送りし続けない。
+BUFFER_SENT_POSTS_MAX_PAGES = 30
+
+# buffer.aggregated_metrics のチャネルID源。buffer-list-channels.py --save が書く台帳
+# （post-pins-to-buffer.py と同じ考え方・投稿のたびにAPIでチャンネルIDを引き直さない）。
+BUFFER_CHANNELS_TSV = os.path.join(PROJECT_ROOT, "data", "buffer-channels.tsv")
 
 
 class BrokerError(Exception):
@@ -859,6 +910,241 @@ def run_buffer_account(params: dict) -> dict:
     return payload
 
 
+def _buffer_read(query: str, operation_name: str, variables: dict) -> dict:
+    """buffer.sent_posts / buffer.aggregated_metrics 共通の読み取り1回分。
+
+    二重チェック: (1) broker 自身の read 許可リスト BUFFER_READ_ALLOWED
+    (2) buffer_api.assert_operation_allowed()。すべての失敗を BrokerError に正規化する。
+    """
+    try:
+        from buffer_api import (
+            BufferApiError,
+            BufferGuardError,
+            assert_operation_allowed,
+            graphql,
+        )
+        from env_loader import EnvLoaderError
+    except Exception as exc:  # noqa: BLE001
+        raise BrokerError("buffer_import_error", "could not import buffer_api: %s" % exc)
+
+    if operation_name not in BUFFER_READ_ALLOWED:
+        raise BrokerError(
+            "buffer_not_allowed",
+            "operation is not in the broker read allow-list: %s" % operation_name,
+        )
+    if "mutation" in query.lower():
+        raise BrokerError("buffer_not_read_only", "refusing: query text contains 'mutation'")
+    try:
+        assert_operation_allowed(query)
+    except BufferGuardError as exc:
+        raise BrokerError("buffer_guard_error", "buffer_api rejected the query: %s" % exc)
+
+    try:
+        return graphql(query, variables, operation_name=operation_name)
+    except BufferApiError as exc:
+        raise BrokerError("buffer_api_error", "Buffer API call failed: %s" % exc)
+    except EnvLoaderError as exc:
+        raise BrokerError("buffer_env_error", "Buffer credential unavailable: %s" % exc)
+    except Exception as exc:  # noqa: BLE001
+        raise BrokerError("buffer_transport_error", "Buffer request failed: %s" % type(exc).__name__)
+
+
+def _buffer_org_id() -> str:
+    data = _buffer_read(BUFFER_ACCOUNT_QUERY, "BufferObservationAccount", {})
+    organizations = ((data or {}).get("account") or {}).get("organizations") or []
+    if not organizations or not organizations[0].get("id"):
+        raise BrokerError("buffer_org_missing", "Buffer account query returned no organization id")
+    return organizations[0]["id"]
+
+
+def _read_buffer_channels_tsv() -> list[tuple[str, str, str]]:
+    """data/buffer-channels.tsv を読み [(service, channel_id, name), ...] を返す（無ければ空）。
+
+    buffer-list-channels.py --save が書く台帳と同じ書式（1行目ヘッダー・タブ区切り・
+    service/channel_id/name）。post-pins-to-buffer.py の読み方に合わせる。
+    """
+    if not os.path.exists(BUFFER_CHANNELS_TSV):
+        return []
+    rows: list[tuple[str, str, str]] = []
+    with open(BUFFER_CHANNELS_TSV, "r", encoding="utf-8") as handle:
+        header_skipped = False
+        for line in handle:
+            line = line.rstrip("\n")
+            if not line.strip():
+                continue
+            if not header_skipped:
+                header_skipped = True
+                continue
+            parts = line.split("\t")
+            if len(parts) < 3:
+                continue
+            service, channel_id, name = parts[0].strip().lower(), parts[1].strip(), parts[2].strip()
+            if service and channel_id:
+                rows.append((service, channel_id, name))
+    return rows
+
+
+def run_buffer_sent_posts(params: dict) -> dict:
+    lookback_days = params["lookback_days"]
+    page_size = params["limit"]
+    end_date = dt.datetime.now(dt.timezone.utc)
+    start_date = end_date - dt.timedelta(days=lookback_days)
+    params["period"] = {
+        "start_date": start_date.date().isoformat(),
+        "end_date": end_date.date().isoformat(),
+    }
+
+    fetched_at = iso_now()
+    series: list[dict] = []
+    warnings: list[str] = []
+
+    org_id = _buffer_org_id()
+
+    after = None
+    pages = 0
+    reached_period_edge = False
+    hit_page_cap = False
+    while True:
+        pages += 1
+        if pages > BUFFER_SENT_POSTS_MAX_PAGES:
+            hit_page_cap = True
+            break
+        data = _buffer_read(
+            BUFFER_SENT_POSTS_QUERY,
+            "BufferObservationSentPosts",
+            {"organizationId": org_id, "first": page_size, "after": after},
+        )
+        posts = (data or {}).get("posts") or {}
+        edges = posts.get("edges") or []
+        for edge in edges:
+            node = (edge or {}).get("node") or {}
+            sent_at = node.get("sentAt")
+            reasons: list[str] = []
+            sent_dt = None
+            if sent_at:
+                try:
+                    sent_dt = dt.datetime.fromisoformat(sent_at.replace("Z", "+00:00"))
+                except ValueError:
+                    reasons.append("sentAt could not be parsed as an ISO datetime")
+            else:
+                reasons.append("sentAt was missing from the Buffer response")
+            if sent_dt is not None and sent_dt < start_date:
+                reached_period_edge = True
+                break
+            service = ((node.get("channel") or {}).get("service") or "").strip().lower()
+            if service not in BUFFER_SNS_SERVICES:
+                continue
+            metrics = [
+                {"type": m.get("type"), "value": m.get("value")}
+                for m in (node.get("metrics") or [])
+            ]
+            series.append({
+                "source": BUFFER_SOURCE,
+                "fetched_at": fetched_at,
+                "entity_id": node.get("id") or "buffer:post",
+                "observed_at": sent_at or fetched_at,
+                "service": service,
+                "text": node.get("text"),
+                "sent_at": sent_at,
+                "metrics": metrics,
+                "unknown_reason": "; ".join(reasons) if reasons else None,
+            })
+        if reached_period_edge:
+            break
+        page_info = posts.get("pageInfo") or {}
+        if not page_info.get("hasNextPage"):
+            break
+        after = page_info.get("endCursor")
+        if not after:
+            break
+
+    if hit_page_cap:
+        warnings.append(
+            "stopped after %d pages (BUFFER_SENT_POSTS_MAX_PAGES) before reaching the start "
+            "of the requested period; the series is incomplete for lookback_days=%d"
+            % (BUFFER_SENT_POSTS_MAX_PAGES, lookback_days)
+        )
+
+    payload = _base_payload("buffer", "buffer.sent_posts", params)
+    payload["generated_at"] = fetched_at
+    payload["warnings"] = warnings
+    payload["coverage"]["reason"] = (
+        "posts(input:{organizationId}) has no channelId or date filter (confirmed by probing "
+        "the live schema); this operation pages newest-first and stops once a post's sentAt "
+        "precedes the requested period, filtering to %s client-side (Instagram is paused, D-0240)"
+        % "/".join(sorted(BUFFER_SNS_SERVICES))
+    )
+    payload["coverage"]["state"] = "as_of_fetch"
+    payload["coverage"]["pages_fetched"] = pages
+    payload["data"]["series"] = series
+    payload["data"]["snapshot"] = {}
+    return payload
+
+
+def run_buffer_aggregated_metrics(params: dict) -> dict:
+    lookback_days = params["lookback_days"]
+    end_date = dt.datetime.now(dt.timezone.utc)
+    start_date = end_date - dt.timedelta(days=lookback_days)
+    params["period"] = {
+        "start_date": start_date.date().isoformat(),
+        "end_date": end_date.date().isoformat(),
+    }
+
+    channels = [row for row in _read_buffer_channels_tsv() if row[0] in BUFFER_SNS_SERVICES]
+    if not channels:
+        raise BrokerError(
+            "buffer_channels_missing",
+            "%s has no threads/twitter rows; run "
+            "`python site/scripts/buffer-list-channels.py --save` first" % BUFFER_CHANNELS_TSV,
+        )
+
+    fetched_at = iso_now()
+    org_id = _buffer_org_id()
+
+    start_str = start_date.strftime("%Y-%m-%dT%H:%M:%S.000Z")
+    end_str = end_date.strftime("%Y-%m-%dT%H:%M:%S.000Z")
+
+    series: list[dict] = []
+    for service, channel_id, name in channels:
+        data = _buffer_read(
+            BUFFER_AGGREGATED_METRICS_QUERY,
+            "BufferObservationAggregatedMetrics",
+            {
+                "organizationId": org_id,
+                "channelIds": [channel_id],
+                "startDateTime": start_str,
+                "endDateTime": end_str,
+            },
+        )
+        metrics = ((data or {}).get("aggregatedPostMetrics") or {}).get("metrics") or []
+        series.append({
+            "source": BUFFER_SOURCE,
+            "fetched_at": fetched_at,
+            "entity_id": channel_id,
+            "observed_at": fetched_at,
+            "service": service,
+            "channel_name": name,
+            "metrics": [{"type": m.get("type"), "value": m.get("value")} for m in metrics],
+            "unknown_reason": (
+                "aggregatedPostMetrics exposes no server-side observation timestamp; "
+                "observed_at falls back to fetched_at"
+            ),
+        })
+
+    payload = _base_payload("buffer", "buffer.aggregated_metrics", params)
+    payload["generated_at"] = fetched_at
+    payload["coverage"]["reason"] = (
+        "aggregatedPostMetrics is called once per channel (its own schema has no per-channel "
+        "breakdown when multiple channelIds are given; confirmed by probing the live schema); "
+        "channel ids come from %s (Instagram rows are skipped, D-0240)" % BUFFER_CHANNELS_TSV
+    )
+    payload["coverage"]["state"] = "as_of_fetch"
+    payload["coverage"]["channels_queried"] = [c[1] for c in channels]
+    payload["data"]["series"] = series
+    payload["data"]["snapshot"] = {}
+    return payload
+
+
 # --- pins.daily_metrics（TSV参照のみ）----------------------------------------
 
 
@@ -996,6 +1282,25 @@ ALLOWED_OPERATIONS = {
         "description": "Buffer account id and organizations via one read-only GraphQL call",
         "accepts": frozenset(),
         "handler": run_buffer_account,
+    },
+    "buffer.sent_posts": {
+        "service": "buffer",
+        "description": (
+            "Sent Threads/X posts over a trailing window (text, sentAt, channel service, "
+            "per-post metrics); Instagram excluded (D-0240). --limit controls the page size "
+            "per Buffer API call, not the total row count"
+        ),
+        "accepts": frozenset(["lookback_days", "limit"]),
+        "handler": run_buffer_sent_posts,
+    },
+    "buffer.aggregated_metrics": {
+        "service": "buffer",
+        "description": (
+            "Aggregated post metrics per Threads/X channel over a trailing window "
+            "(channel ids from data/buffer-channels.tsv; Instagram excluded, D-0240)"
+        ),
+        "accepts": frozenset(["lookback_days"]),
+        "handler": run_buffer_aggregated_metrics,
     },
     "pins.daily_metrics": {
         "service": "pins",
