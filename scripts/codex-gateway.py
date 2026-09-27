@@ -8,20 +8,37 @@
 "mcp" / "app-server" は未実装であり、呼ばれた時点で終了コード3で停止する
 （未実装であることを文章ではなく実行時の停止で示すため）。
 
+用途:
+  image-gen    画像1枚を生成し ~/Downloads/<--out-name> へコピーする（D-0199）。
+               引数: --prompt-file <パス> --out-name <ファイル名>
+  growth-audit 全コンテンツの週次監査（D-0251）。Codex は読み取り専用で動き、
+               最終メッセージを --output-file へ保存する。
+               引数: --prompt-file <パス> --output-file <growth/outputs/ 配下のパス>
+               実行: codex exec -C <プロジェクトルート> -s read-only --json -o <output-file>
+               プロンプトは標準入力で渡す（Windows のコマンドライン長上限 約3.2万文字を避けるため）。
+               -o のファイルが書かれなかった場合は、--json の出力から最終の agent_message を
+               gateway が取り出して --output-file へ書く（Codex に書き込み権限は与えない）。
+
 終了コード:
-  0 = 成功（~/Downloads へのコピーまで完了）
-  2 = 前提不備（codex が見つからない／未ログイン／generated_images に到達できない）
-  3 = 方式未実装（mcp / app-server）／未登録の用途
+  0 = 成功（image-gen: ~/Downloads へのコピーまで完了／growth-audit: --output-file が実在し空でない）
+  2 = 前提不備（codex が見つからない／未ログイン／generated_images に到達できない／
+      必須引数・プロンプトファイルの不備）
+  3 = 方式未実装（mcp / app-server）／未登録の用途／
+      growth-audit の --output-file が growth/outputs/ 配下でない
   4 = codex exec の起動自体に失敗した
-  5 = 成果物の .png を検出できなかった、またはコピーに失敗した
+  5 = 成果物を検出できなかった（image-gen: .png の検出またはコピーに失敗／
+      growth-audit: --output-file が作られない、または空）
 
 成功判定について:
   codex exec の終了コードは成功判定に使わない。内部のPowerShell実行が失敗しても
   codex exec 全体は 0 を返すことが実測されているため（設計調査 第2便 D-1-3）。
-  成功判定は「~/Downloads に --out-name のファイルが実在すること」で行う。
+  image-gen の成功判定は「~/Downloads に --out-name のファイルが実在すること」で行う。
+  growth-audit の成功判定は「--output-file が実行開始後に書かれ、空でないこと」で行う。
 
 タイムアウトと救済について（L043・2026-09-08）:
-  codex exec の本実行に EXEC_TIMEOUT_SEC（既定 300 秒）を設ける。子プロセスの
+  codex exec の本実行に EXEC_TIMEOUT_SEC（既定 300 秒・growth-audit は
+  AUDIT_TIMEOUT_SEC 既定 3600 秒）を設ける。どちらも環境変数 CODEX_EXEC_TIMEOUT_SEC で上書きできる。
+  以下の救済は image-gen の説明。子プロセスの
   PATH 先頭に codex-resources を足す根治（_codex_child_env）を入れているため
   正常時は数分以内に終わる。打ち切った場合でも generated_images 配下に成果物
   .png が既にあれば通常時と同じ経路でコピーし、status ok / 終了コード 0 で返す。
@@ -56,6 +73,7 @@ from pathlib import Path
 # --- 用途 → 方式のルーティング表（将来の用途追加はここへ1行足す） ---
 PURPOSE_METHOD = {
     "image-gen": "exec",
+    "growth-audit": "exec",
 }
 
 IMPLEMENTED_METHODS = {"exec"}
@@ -63,7 +81,10 @@ IMPLEMENTED_METHODS = {"exec"}
 HOME = Path.home()
 GENERATED_IMAGES_DIR = HOME / ".codex" / "generated_images"
 DOWNLOADS_DIR = HOME / "Downloads"
-LOG_DIR = Path(__file__).resolve().parent.parent.parent / "tmp" / "codex-gateway"
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+LOG_DIR = PROJECT_ROOT / "tmp" / "codex-gateway"
+# growth-audit の --output-file に許可する唯一の置き場（D-0251）
+AUDIT_OUTPUTS_DIR = PROJECT_ROOT / "growth" / "outputs"
 
 # 容量対策（実行時間が蓄積量に比例しないよう、1回の実行での削除数に上限を置く）
 PRUNE_AGE_DAYS = 30
@@ -88,13 +109,19 @@ EXIT_ARTIFACT_MISSING = 5
 # codex-resources を追加）が入っているため正常時は数分以内に終わる。打ち切っても
 # 成果物 .png が既にあれば成功扱いで拾う（run_exec の TimeoutExpired 捕捉部）。
 # 検証時のみ環境変数 CODEX_EXEC_TIMEOUT_SEC で上書きする（運用では設定しない）。
-EXEC_TIMEOUT_SEC = 300
-_env_timeout = os.environ.get("CODEX_EXEC_TIMEOUT_SEC")
-if _env_timeout is not None and _env_timeout.strip():
-    try:
-        EXEC_TIMEOUT_SEC = int(_env_timeout)
-    except ValueError:
-        pass
+def _timeout_from_env(default):
+    value = os.environ.get("CODEX_EXEC_TIMEOUT_SEC")
+    if value is not None and value.strip():
+        try:
+            return int(value)
+        except ValueError:
+            pass
+    return default
+
+
+EXEC_TIMEOUT_SEC = _timeout_from_env(300)
+# growth-audit は全コンテンツを読むため長い（D-0251）。上書きは同じ環境変数で行う。
+AUDIT_TIMEOUT_SEC = _timeout_from_env(3600)
 
 
 def eprint(msg):
@@ -339,16 +366,17 @@ def _kill_codex_tree(pid):
         pass
 
 
-def _run_codex_exec(cmd, env):
+def _run_codex_exec(cmd, env, timeout, input_text=None):
     """codex exec を実行し (stdout, stderr, returncode, timed_out) を返す。
 
-    EXEC_TIMEOUT_SEC を超えたら gateway が起動した PID ツリーのみ終了させ、
-    timed_out=True で戻る（成否は呼び出し側が成果物 .png の実在で判定する）。
+    timeout 秒を超えたら gateway が起動した PID ツリーのみ終了させ、
+    timed_out=True で戻る（成否は呼び出し側が成果物の実在で判定する）。
+    input_text を渡すとプロンプトとして標準入力へ流す（growth-audit）。
     起動自体の失敗（OSError）はそのまま送出する。
     """
     proc = subprocess.Popen(
         cmd,
-        stdin=subprocess.DEVNULL,
+        stdin=subprocess.PIPE if input_text is not None else subprocess.DEVNULL,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,
@@ -357,7 +385,7 @@ def _run_codex_exec(cmd, env):
         env=env,
     )
     try:
-        out, err = proc.communicate(timeout=EXEC_TIMEOUT_SEC)
+        out, err = proc.communicate(input=input_text, timeout=timeout)
         return out or "", err or "", proc.returncode, False
     except subprocess.TimeoutExpired:
         _kill_codex_tree(proc.pid)
@@ -383,38 +411,35 @@ def _is_model_unsupported(*texts):
     return any(MODEL_UNSUPPORTED_RE.search(t or "") for t in texts)
 
 
-def run_exec(purpose, prompt_file, out_name, model_override=None):
-    method = "exec"
-
+def _read_prompt(purpose, method, prompt_file):
+    """--prompt-file を読む。戻り値は (prompt or None, 失敗時の終了コード or None)。"""
     if shutil.which("codex") is None:
-        return fail(EXIT_PRECONDITION, purpose, method,
-                    "codex コマンドが見つかりません（PATH未設定または未インストール）。")
-
+        return None, fail(EXIT_PRECONDITION, purpose, method,
+                          "codex コマンドが見つかりません（PATH未設定または未インストール）。")
     prompt_path = Path(prompt_file)
     if not prompt_path.is_file():
-        return fail(EXIT_PRECONDITION, purpose, method,
-                    "--prompt-file が存在しません: %s" % prompt_path)
+        return None, fail(EXIT_PRECONDITION, purpose, method,
+                          "--prompt-file が存在しません: %s" % prompt_path)
     prompt = prompt_path.read_text(encoding="utf-8")
     if not prompt.strip():
-        return fail(EXIT_PRECONDITION, purpose, method,
-                    "--prompt-file の内容が空です: %s" % prompt_path)
+        return None, fail(EXIT_PRECONDITION, purpose, method,
+                          "--prompt-file の内容が空です: %s" % prompt_path)
+    return prompt, None
 
-    if not DOWNLOADS_DIR.is_dir():
-        return fail(EXIT_PRECONDITION, purpose, method,
-                    "~/Downloads が存在しません: %s" % DOWNLOADS_DIR)
 
-    # (1) 実行開始時刻を記録する
+def _prepare_exec(purpose, model_override):
+    """用途共通の実行準備。戻り値は (started_at, log_path, child_env, config_model)。
+
+    キャッシュ正規化（D-0204）と codex-resources の PATH 追加（L043）はここで行う。
+    """
     started_at = time.time()
     stamp = datetime.fromtimestamp(started_at).strftime("%Y%m%d-%H%M%S")
     LOG_DIR.mkdir(parents=True, exist_ok=True)
     log_path = LOG_DIR / ("%s-%s.jsonl" % (stamp, purpose))
 
-    # (1-2) codex 実行前のキャッシュ正規化（D-0204・失敗しても止めない）
+    # codex 実行前のキャッシュ正規化（D-0204・失敗しても止めない）
     ensure_models_cache_consistent()
 
-    # (2) codex exec を非対話実行する（モデル非対応のときだけ予備モデルで1回再試行する・D-0243）
-    # --skip-git-repo-check: このプロジェクトのルート直下は非Git管理（D-0043）のため、
-    # これを付けないと codex exec が "Not inside a trusted directory" で即座に失敗する。
     child_env = _codex_child_env()
     if child_env is not None:
         eprint("codex exec の子プロセス PATH 先頭に codex-resources を追加します（L043 対策）。")
@@ -425,46 +450,43 @@ def run_exec(purpose, prompt_file, out_name, model_override=None):
     primary_model = model_override or config_model
     eprint("使用モデル（1回目）: %s（%s）"
            % (primary_model or "不明", "--model 指定" if model_override else "config.toml の値"))
+    return started_at, log_path, child_env, config_model
 
+
+def _exec_with_model_fallback(build_cmd, model_override, config_model, child_env,
+                              log_path, timeout, check, input_text=None, prompt_len=0):
+    """codex exec を実行し、モデル非対応のときだけ予備モデルで1回再試行する（D-0243・用途共通）。
+
+    build_cmd(model) は -m を含むコマンド配列を返す（model が None なら -m を付けない）。
+    check(stdout) は (成功したか, 付随情報) を返す。成功しなかった場合に限り再試行を判定する。
+    戻り値は dict（stdout / stderr / returncode / timed_out / log_path / info / model / retried）。
+    起動自体の失敗（OSError）はそのまま送出する。
+    """
     attempt_model = model_override  # None なら -m を付けず config の値に従う（従来どおり）
     retried = False
     while True:
-        cmd = ["codex", "exec", "--json", "-s", "read-only", "--skip-git-repo-check"]
-        if attempt_model:
-            cmd += ["-m", attempt_model]
-        cmd.append(prompt)
+        cmd = build_cmd(attempt_model)
         eprint("codex exec を開始します（-s read-only / --json / timeout=%d秒）: prompt %d 文字"
-               % (EXEC_TIMEOUT_SEC, len(prompt)))
-        try:
-            stdout, stderr_text, returncode, timed_out = _run_codex_exec(cmd, child_env)
-        except OSError as exc:
-            return fail(EXIT_LAUNCH_FAILED, purpose, method,
-                        "codex exec の起動に失敗しました: %s" % exc)
+               % (timeout, prompt_len))
+        stdout, stderr_text, returncode, timed_out = _run_codex_exec(
+            cmd, child_env, timeout, input_text)
 
-        # (3) --json の出力を全行ファイルへ保存し、thread.started 行からスレッドIDを取り出す
-        #     （再試行時は1回目のログを上書きしないよう別ファイルにする）
+        # --json の出力を全行ファイルへ保存する（再試行時は1回目のログを上書きしないよう別ファイルにする）
         if retried:
             log_path = log_path.with_name(log_path.stem + "-retry" + log_path.suffix)
         log_path.write_text(stdout, encoding="utf-8")
-        lines = stdout.splitlines()
-        thread_id = extract_thread_id(lines)
         if timed_out:
             eprint("codex exec を %d秒で打ち切り、起動した PID ツリーを終了しました"
-                   "（rc=%s・成功判定には使わない）。ログ: %s" % (EXEC_TIMEOUT_SEC, returncode, log_path))
+                   "（rc=%s・成功判定には使わない）。ログ: %s" % (timeout, returncode, log_path))
         else:
             eprint("codex exec 終了（rc=%s・成功判定には使わない）。ログ: %s" % (returncode, log_path))
-        eprint("thread.started のID: %s" % (thread_id or "取得できず"))
 
-        # (4) 成果物の検出
-        if GENERATED_IMAGES_DIR.is_dir():
-            source, how = find_artifact(thread_id, started_at)
-        else:
-            source, how = None, "検出できず"
+        ok, info = check(stdout)
 
         # 成果物が無く、出力がモデル非対応の文言に一致し、まだ再試行しておらず、
         # 予備モデルが1回目と別のときだけ、予備モデルを明示して1回だけ再試行する。
         effective = attempt_model or config_model
-        if (source is None and not retried and effective != FALLBACK_MODEL
+        if (not ok and not retried and effective != FALLBACK_MODEL
                 and _is_model_unsupported(stdout, stderr_text)):
             print("[codex-gateway]【注意】モデル非対応のため予備モデルで再試行しました"
                   "（config のモデル=%s／予備モデル=%s／Codex CLI=%s）。"
@@ -475,7 +497,59 @@ def run_exec(purpose, prompt_file, out_name, model_override=None):
             attempt_model = FALLBACK_MODEL
             retried = True
             continue
-        break
+        return {
+            "stdout": stdout, "stderr": stderr_text, "returncode": returncode,
+            "timed_out": timed_out, "log_path": log_path, "info": info,
+            "model": effective, "retried": retried,
+        }
+
+
+def run_exec(purpose, prompt_file, out_name, model_override=None):
+    method = "exec"
+
+    prompt, err_code = _read_prompt(purpose, method, prompt_file)
+    if prompt is None:
+        return err_code
+
+    if not DOWNLOADS_DIR.is_dir():
+        return fail(EXIT_PRECONDITION, purpose, method,
+                    "~/Downloads が存在しません: %s" % DOWNLOADS_DIR)
+
+    # (1) 実行開始時刻の記録・キャッシュ正規化・子プロセス環境の準備
+    started_at, log_path, child_env, config_model = _prepare_exec(purpose, model_override)
+
+    # (2) codex exec を非対話実行する（モデル非対応のときだけ予備モデルで1回再試行する・D-0243）
+    # --skip-git-repo-check: このプロジェクトのルート直下は非Git管理（D-0043）のため、
+    # これを付けないと codex exec が "Not inside a trusted directory" で即座に失敗する。
+    def build_cmd(model):
+        cmd = ["codex", "exec", "--json", "-s", "read-only", "--skip-git-repo-check"]
+        if model:
+            cmd += ["-m", model]
+        cmd.append(prompt)
+        return cmd
+
+    def check(stdout):
+        # (3) thread.started 行からスレッドIDを取り出し、(4) 成果物を検出する
+        thread_id = extract_thread_id(stdout.splitlines())
+        eprint("thread.started のID: %s" % (thread_id or "取得できず"))
+        if GENERATED_IMAGES_DIR.is_dir():
+            source, how = find_artifact(thread_id, started_at)
+        else:
+            source, how = None, "検出できず"
+        return source is not None, (thread_id, source, how)
+
+    try:
+        result = _exec_with_model_fallback(build_cmd, model_override, config_model, child_env,
+                                           log_path, EXEC_TIMEOUT_SEC, check,
+                                           prompt_len=len(prompt))
+    except OSError as exc:
+        return fail(EXIT_LAUNCH_FAILED, purpose, method,
+                    "codex exec の起動に失敗しました: %s" % exc)
+    stderr_text = result["stderr"]
+    returncode = result["returncode"]
+    timed_out = result["timed_out"]
+    log_path = result["log_path"]
+    thread_id, source, how = result["info"]
 
     if not GENERATED_IMAGES_DIR.is_dir():
         return fail(EXIT_PRECONDITION, purpose, method,
@@ -517,6 +591,112 @@ def run_exec(purpose, prompt_file, out_name, model_override=None):
     return EXIT_OK
 
 
+def _resolve_audit_output(output_file):
+    """--output-file を解決し、growth/outputs/ 配下なら Path、それ以外なら None を返す。"""
+    try:
+        target = Path(output_file).resolve()
+        base = AUDIT_OUTPUTS_DIR.resolve()
+    except OSError:
+        return None
+    if target == base or base not in target.parents:
+        return None
+    return target
+
+
+def _last_agent_message(stdout):
+    """--json の出力から最後の agent_message の本文を取り出す。無ければ None。"""
+    last = None
+    for line in stdout.splitlines():
+        line = line.strip()
+        if not line.startswith("{"):
+            continue
+        try:
+            obj = json.loads(line)
+        except ValueError:
+            continue
+        item = obj.get("item") if isinstance(obj, dict) else None
+        if (isinstance(item, dict) and obj.get("type") == "item.completed"
+                and item.get("type") == "agent_message"
+                and isinstance(item.get("text"), str) and item["text"].strip()):
+            last = item["text"]
+    return last
+
+
+def _fresh_nonempty(path, started_at):
+    """path が実行開始後に書かれ、空でないか。"""
+    try:
+        st = path.stat()
+    except OSError:
+        return False
+    return st.st_size > 0 and st.st_mtime >= started_at - 1
+
+
+def run_growth_audit(purpose, prompt_file, output_file, model_override=None):
+    """全コンテンツの週次監査（D-0251）。Codex は -s read-only のまま、最終メッセージを保存する。"""
+    method = "exec"
+
+    target = _resolve_audit_output(output_file)
+    if target is None:
+        return fail(EXIT_NOT_IMPLEMENTED, purpose, method,
+                    "--output-file は %s 配下だけを許可しています: %s"
+                    % (AUDIT_OUTPUTS_DIR, output_file))
+
+    prompt, err_code = _read_prompt(purpose, method, prompt_file)
+    if prompt is None:
+        return err_code
+
+    target.parent.mkdir(parents=True, exist_ok=True)
+    started_at, log_path, child_env, config_model = _prepare_exec(purpose, model_override)
+
+    # プロンプトは標準入力で渡す（"-"）。-C でプロジェクトルートを作業ルートにし、
+    # -s read-only のまま -o で最終メッセージを書かせる（-o は Codex CLI 本体が書く）。
+    def build_cmd(model):
+        cmd = ["codex", "exec", "--json", "-s", "read-only", "--skip-git-repo-check",
+               "-C", str(PROJECT_ROOT), "-o", str(target)]
+        if model:
+            cmd += ["-m", model]
+        cmd.append("-")
+        return cmd
+
+    def check(stdout):
+        if _fresh_nonempty(target, started_at):
+            return True, "codex -o"
+        return _last_agent_message(stdout) is not None, "gateway（--json の最終 agent_message）"
+
+    try:
+        result = _exec_with_model_fallback(build_cmd, model_override, config_model, child_env,
+                                           log_path, AUDIT_TIMEOUT_SEC, check,
+                                           input_text=prompt, prompt_len=len(prompt))
+    except OSError as exc:
+        return fail(EXIT_LAUNCH_FAILED, purpose, method,
+                    "codex exec の起動に失敗しました: %s" % exc)
+
+    elapsed = int(time.time() - started_at)
+    log_path = result["log_path"]
+    written_by = result["info"]
+    if not _fresh_nonempty(target, started_at):
+        message = _last_agent_message(result["stdout"])
+        if message is not None:
+            target.write_text(message, encoding="utf-8")
+            written_by = "gateway（--json の最終 agent_message）"
+            eprint("-o の出力が無かったため、--json の最終メッセージを書き出しました: %s" % target)
+
+    to_note = "（timeout %d秒で打ち切り後）" % AUDIT_TIMEOUT_SEC if result["timed_out"] else ""
+    base_message = ("codexログ: %s ／ 所要 %d秒%s ／ 使用モデル: %s%s"
+                    % (log_path, elapsed, to_note, result["model"] or "不明",
+                       "（予備モデルで再試行）" if result["retried"] else ""))
+    if not _fresh_nonempty(target, started_at):
+        return fail(EXIT_ARTIFACT_MISSING, purpose, method,
+                    "--output-file が作られないか空です: %s ／ %s ／ codex rc=%s ／ stderr: %s"
+                    % (target, base_message, result["returncode"], result["stderr"].strip()[:400]))
+
+    emit("ok", purpose, method, str(target), None,
+         "%s ／ 書き出し: %s" % (base_message, written_by),
+         extra={"elapsed_sec": elapsed, "model": result["model"], "written_by": written_by,
+                "timed_out": result["timed_out"]})
+    return EXIT_OK
+
+
 def main():
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
@@ -527,10 +707,16 @@ def main():
         description="Claude Code から Codex を呼ぶ唯一の入口（D-0199）")
     parser.add_argument("--purpose", required=True, help="用途名（ルーティング表のキー）")
     parser.add_argument("--prompt-file", required=True, help="プロンプト本文のファイルパス")
-    parser.add_argument("--out-name", required=True, help="~/Downloads に置く最終ファイル名")
+    parser.add_argument("--out-name", default=None,
+                        help="image-gen: ~/Downloads に置く最終ファイル名（image-gen では必須）")
+    parser.add_argument("--output-file", default=None,
+                        help="growth-audit: 監査結果の保存先（growth/outputs/ 配下のみ・必須）")
     parser.add_argument("--model", default=None,
                         help="1回目に使うモデルを上書きする（検証用・既定は config.toml の値・D-0243）")
     args = parser.parse_args()
+    # image-gen の --out-name 必須は従来どおり argparse のエラー（終了コード2）で止める
+    if args.purpose == "image-gen" and not args.out_name:
+        parser.error("the following arguments are required: --out-name")
 
     purpose = args.purpose
     method = PURPOSE_METHOD.get(purpose)
@@ -545,6 +731,10 @@ def main():
         return fail(EXIT_NOT_IMPLEMENTED, purpose, method,
                     "方式 %s は未実装のため実行しません。" % method)
 
+    if purpose == "growth-audit":
+        if not args.output_file:
+            return fail(EXIT_PRECONDITION, purpose, method, "--output-file が指定されていません。")
+        return run_growth_audit(purpose, args.prompt_file, args.output_file, args.model)
     return run_exec(purpose, args.prompt_file, args.out_name, args.model)
 
 
