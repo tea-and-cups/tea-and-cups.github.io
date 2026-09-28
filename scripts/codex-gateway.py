@@ -11,23 +11,39 @@
 用途:
   image-gen    画像1枚を生成し ~/Downloads/<--out-name> へコピーする（D-0199）。
                引数: --prompt-file <パス> --out-name <ファイル名>
-  growth-audit 全コンテンツの監査（週次=D-0251／評価範囲の週次・月次分離=2026-09-28）。
+  growth-audit 全コンテンツの監査（週次=D-0251／評価範囲の週次・月次分離=2026-09-28／
+               区切り実行への分割=D-0255・2026-09-28）。
                Codex は読み取り専用で動き、最終メッセージを --output-file へ保存する。
-               引数: --prompt-file <パス> --output-file <growth/outputs/ 配下のパス>
-                     [--mode weekly --since YYYY-MM-DD --until YYYY-MM-DD]
-                     [--mode monthly [--month YYYY-MM]]
-               実行: <codexの実体パス> exec -C <プロジェクトルート> -s read-only --json -o <output-file>
+               引数: --prompt-file <まとめ用プロンプトのパス> --output-file <growth/outputs/ 配下のパス>
+                     --mode weekly --since YYYY-MM-DD --until YYYY-MM-DD
+                     または --mode monthly [--month YYYY-MM]
+                     [--dry-run]（Codexを起動せず、区切りの実行計画だけを表示して終了する）
+               実行: <codexの実体パス> exec -C <プロジェクトルート> -s read-only --json -o <出力先>
                （GROWTH_AUDIT_HARDENING_ARGS で外部遮断を上乗せし、windows.sandbox="elevated"・
                model_reasoning_effort・tool_output_token_limit=30000 を追加で渡す・2026-09-28）
                "codex"（PATH名）ではなく os.path.realpath(shutil.which("codex")) の実体パスで
                起動する（windows.sandbox="elevated" は実体パスでないと失敗するため・診断済み）。
-               --mode を渡すと、対象期間・対象月から作った一覧をプロンプトの {{TARGETS}} へ
-               差し込む（週次=growth/prompts/weekly-audit.md・月次=growth/prompts/monthly-audit.md）。
+               1回のCodex呼び出しで全対象を読ませるのをやめ、対象を「区切り」（weekly=
+               生成ルール等のR-1..R-n＋記事単位のO-1..O-n／monthly=恒久アセットのS-1..S-n＋
+               代表サンプルのP-1..P-n）に分け、区切りごとに1回ずつ Codex を呼んで
+               growth/outputs/<label>/parts/<区切り名>.md（所見のみ）へ保存し、最後に
+               全区切りの出力・監査スキル・ledger・入力数値・docs/tasks.md・docs/decisions.md
+               を読む「まとめ」を1回だけ実行して --output-file へ保存する（D-0255）。
+               区切りの本文はgateway が対象ファイルから機械的に組み立て、部分監査用の
+               プロンプト（固定パス growth/prompts/weekly-audit-part.md・
+               monthly-audit-part.md）の {{TARGETS}} へ差し込む。--prompt-file に渡す
+               まとめ用プロンプトの {{TARGETS}} には、区切り出力ファイルの一覧を差し込む。
+               既に有効な部分出力（## 所見・## 部分監査範囲の両節が揃っている）がある
+               区切りは実行せず飛ばす（同じコマンドでの再開に対応）。
+               1つの区切りの上限は本文合計 PARTITION_CHAR_CAP 字または画像
+               PARTITION_IMAGE_CAP 枚（定数）。growth-audit の reasoning effort は
+               config.toml を読まず、定数 GROWTH_AUDIT_EFFORT に固定する（D-0255）。
                プロンプトは標準入力で渡す（Windows のコマンドライン長上限 約3.2万文字を避けるため）。
                -o のファイルが書かれなかった場合は、--json の出力から最終の agent_message を
-               gateway が取り出して --output-file へ書く（Codex に書き込み権限は与えない）。
+               gateway が取り出して出力先へ書く（Codex に書き込み権限は与えない）。
                成功時のJSONには truncated_outputs（rolloutの"Warning: truncated output"件数）・
-               view_image_calls（同ロールアウトの画像閲覧呼び出し件数）を含める。
+               view_image_calls（同ロールアウトの画像閲覧呼び出し件数）・区切りごと/全体の
+               トークン内訳（token_usage）を含める（いずれも全区切り＋まとめの合計・D-0255）。
 
 終了コード:
   0 = 成功（image-gen: ~/Downloads へのコピーまで完了／growth-audit: --output-file が実在し空でない）
@@ -43,7 +59,13 @@
   codex exec の終了コードは成功判定に使わない。内部のPowerShell実行が失敗しても
   codex exec 全体は 0 を返すことが実測されているため（設計調査 第2便 D-1-3）。
   image-gen の成功判定は「~/Downloads に --out-name のファイルが実在すること」で行う。
-  growth-audit の成功判定は「--output-file が実行開始後に書かれ、空でないこと」で行う。
+  growth-audit の成功判定は、区切り・まとめの実行1回ごとに次の3つがすべて満たされる
+  ことで行う（D-0255・2026-09-28）: (1) --json ログに turn.failed が無い (2) --json ログに
+  type が error の行が無い (3) 出力ファイルが実行開始後に書かれ・空でなく・必須の節が
+  揃っている（区切り=## 所見・## 部分監査範囲／まとめ=## 要約・## 改善指示・
+  ## 前回採用した指示の遵守確認・## 評価できなかったもの・## 監査範囲）。
+  いずれか1つでも欠けた区切り・まとめがあれば、その時点で全体を失敗とする
+  （出力ファイルは削除しない・終了コードは成果物なしと同じ EXIT_ARTIFACT_MISSING）。
 
 タイムアウトと救済について（L043・2026-09-08）:
   codex exec の本実行に EXEC_TIMEOUT_SEC（既定 300 秒・growth-audit は
@@ -176,13 +198,20 @@ FALLBACK_MODEL = "gpt-5.6-sol"
 MODEL_UNSUPPORTED_RE = re.compile(r"model requires a newer version of codex", re.IGNORECASE)
 CONFIG_TOML_PATH = HOME / ".codex" / "config.toml"
 
-# growth-audit の追加の締め付け（2026-09-28・完了条件1〜6）。
-# 既定の reasoning effort（config.toml に無ければ "high"）と、出力の切り詰め上限の緩和。
-DEFAULT_GROWTH_AUDIT_REASONING_EFFORT = "high"
+# growth-audit の追加の締め付け（2026-09-28・完了条件1〜6）。出力の切り詰め上限の緩和。
 GROWTH_AUDIT_TOOL_OUTPUT_TOKEN_LIMIT = 30000
 CODEX_SESSIONS_DIR = HOME / ".codex" / "sessions"
 
-# --mode weekly|monthly（2026-09-28・{{TARGETS}} の組み立て）で参照するパス。
+# growth-audit の reasoning effort（D-0255・2026-09-28）。config.toml は読まず固定する
+# （1回あたりの消費を抑えるため、区切り実行のどの回も同じ強さにする）。
+GROWTH_AUDIT_EFFORT = "medium"
+
+# 区切り実行（D-0255・2026-09-28）。1区切りの上限（本文合計の字数／画像枚数、どちらか
+# 先に超えた時点で次の区切りへ回す）。
+PARTITION_CHAR_CAP = 40000
+PARTITION_IMAGE_CAP = 8
+
+# --mode weekly|monthly（2026-09-28・区切りの組み立て）で参照するパス。
 CONTENT_POSTS_DIR = PROJECT_ROOT / "site" / "src" / "content" / "posts"
 OUTPUT_PINS_DIR = PROJECT_ROOT / "output" / "pins"
 OUTPUT_PIN_IMAGES_DIR = PROJECT_ROOT / "output" / "Pin-images"
@@ -190,6 +219,15 @@ GROWTH_LEDGER_PATH = PROJECT_ROOT / "growth" / "ledger" / "adopted-directives.ts
 GROWTH_INPUTS_DIR = PROJECT_ROOT / "growth" / "inputs"
 SITE_DIR = PROJECT_ROOT / "site"
 SITE_DIST_DIR = SITE_DIR / "dist"
+
+# 部分監査用プロンプトの固定パス（--prompt-file には渡さず、gateway が直接読む・D-0255）。
+PART_PROMPT_PATHS = {
+    "weekly": PROJECT_ROOT / "growth" / "prompts" / "weekly-audit-part.md",
+    "monthly": PROJECT_ROOT / "growth" / "prompts" / "monthly-audit-part.md",
+}
+REQUIRED_PART_SECTIONS = ("## 所見", "## 部分監査範囲")
+REQUIRED_SUMMARY_SECTIONS = ("## 要約", "## 改善指示", "## 前回採用した指示の遵守確認",
+                              "## 評価できなかったもの", "## 監査範囲")
 
 # 生成ルール（全文・週次のTARGETSに載せる）。ルート直下は更新時刻、site/ 配下はgit logで
 # 期間内変更を判定する（ルート非Git・D-0043）。
@@ -207,6 +245,10 @@ GENERATION_RULE_FILES_SITE = [
 PERMANENT_ASSET_SUBDIRS = ["components", "layouts", "pages", "data", "styles"]
 
 PIN_FILENAME_DATE_RE = re.compile(r"^(\d{4}-\d{2}-\d{2})-pin-(\d+)-")
+# ピン投稿文ファイル名から記事slugを取り出す（例: 2026-09-26-pin-306-shoga-koucha-
+# tsukurikata-03.md → shoga-koucha-tsukurikata）。週次の区切りを記事単位でまとめるため
+# （D-0255・2026-09-28）。
+PIN_TEXT_SLUG_RE = re.compile(r"^\d{4}-\d{2}-\d{2}-pin-\d+-(.+)-\d{2}\.md$")
 # Pin-images の命名は2系統ある（実測・2026-09-28）: 旧 "pin-NN-slug.png"、
 # 新 "ピンNN <タイトル>（誘導先 …）.png"。どちらもピン番号で output/pins/ と対応させる。
 PIN_IMAGE_NUMBER_RE = re.compile(r"^(?:pin-|ピン)(\d+)")
@@ -743,16 +785,6 @@ def _fresh_nonempty(path, started_at):
     return st.st_size > 0 and st.st_mtime >= started_at - 1
 
 
-def _config_reasoning_effort():
-    """~/.codex/config.toml のトップレベル model_reasoning_effort を読む（読み取りのみ）。"""
-    try:
-        with open(CONFIG_TOML_PATH, "rb") as fh:
-            value = tomllib.load(fh).get("model_reasoning_effort")
-    except (OSError, ValueError):
-        return None
-    return value if isinstance(value, str) and value else None
-
-
 def _codex_real_exe():
     """PATH解決した codex の実体パスを返す（growth-audit専用・-s 6 の対策）。
 
@@ -767,6 +799,74 @@ def _codex_real_exe():
         return str(Path(os.path.realpath(exe)))
     except OSError:
         return None
+
+
+def _json_log_has_failure(stdout):
+    """--json の出力に turn.failed または type=="error" の行があるか（D-0255・2026-09-28）。
+
+    あれば (True, メッセージ) を返す。メッセージは turn.failed の error.message、
+    無ければ error 行の message（無ければ行全体の文字列）。無ければ (False, None)。
+    """
+    for line in stdout.splitlines():
+        line = line.strip()
+        if not line.startswith("{"):
+            continue
+        try:
+            obj = json.loads(line)
+        except ValueError:
+            continue
+        if not isinstance(obj, dict):
+            continue
+        obj_type = obj.get("type")
+        if obj_type == "turn.failed":
+            error = obj.get("error")
+            message = error.get("message") if isinstance(error, dict) else None
+            return True, message or "turn.failed"
+        if obj_type == "error":
+            message = obj.get("message") or obj.get("error")
+            return True, str(message) if message else line
+    return False, None
+
+
+def _rollout_last_token_usage(thread_id):
+    """thread_id の rollout（~/.codex/sessions 配下）から、最後の token_count イベントの
+    total_token_usage を (input/cached/output/reasoning) の辞書で返す（D-0255・2026-09-28）。
+    見つからなければ None。
+    """
+    if not thread_id:
+        return None
+    matches = list(CODEX_SESSIONS_DIR.rglob("*-%s.jsonl" % thread_id))
+    if not matches:
+        return None
+    rollout_path = matches[0]
+    last = None
+    try:
+        with open(rollout_path, "r", encoding="utf-8", errors="replace") as fh:
+            for line in fh:
+                line = line.strip()
+                if not line.startswith("{"):
+                    continue
+                try:
+                    obj = json.loads(line)
+                except ValueError:
+                    continue
+                payload = obj.get("payload") if isinstance(obj, dict) else None
+                if not isinstance(payload, dict) or payload.get("type") != "token_count":
+                    continue
+                info = payload.get("info")
+                usage = info.get("total_token_usage") if isinstance(info, dict) else None
+                if isinstance(usage, dict):
+                    last = usage
+    except OSError:
+        return None
+    if last is None:
+        return None
+    return {
+        "tokens_input": last.get("input_tokens", 0),
+        "tokens_cached": last.get("cached_input_tokens", 0),
+        "tokens_output": last.get("output_tokens", 0),
+        "tokens_reasoning": last.get("reasoning_output_tokens", 0),
+    }
 
 
 _VIEW_IMAGE_CALL_RE = re.compile(r"view_image\s*\(")
@@ -884,26 +984,35 @@ def _posts_in_period(since_date, until_date):
     return matched
 
 
-def _pins_in_period(since_date, until_date):
-    """ファイル名の日付が [since_date, until_date] に入るピン（投稿文・画像）を返す。"""
-    texts = []
-    pin_numbers = set()
+def _pins_by_slug_in_period(since_date, until_date):
+    """ファイル名の日付が [since_date, until_date] に入るピンを、記事slugごとに
+    (投稿文リスト, 画像リスト) でまとめて返す（週次の区切りを記事単位にするため・D-0255）。
+    """
+    by_slug = {}
     if OUTPUT_PINS_DIR.is_dir():
         for p in sorted(OUTPUT_PINS_DIR.glob("*.md")):
             m = PIN_FILENAME_DATE_RE.match(p.name)
             if not m:
                 continue
             date_str, pin_num = m.group(1), m.group(2)
-            if since_date <= date_str <= until_date:
-                texts.append(p)
-                pin_numbers.add(pin_num)
-    images = []
-    if pin_numbers and OUTPUT_PIN_IMAGES_DIR.is_dir():
-        for img in sorted(OUTPUT_PIN_IMAGES_DIR.glob("*.png")):
-            m = PIN_IMAGE_NUMBER_RE.match(img.name)
-            if m and m.group(1) in pin_numbers:
-                images.append(img)
-    return texts, images
+            if not (since_date <= date_str <= until_date):
+                continue
+            sm = PIN_TEXT_SLUG_RE.match(p.name)
+            if not sm:
+                continue
+            texts, pin_numbers = by_slug.setdefault(sm.group(1), ([], set()))
+            texts.append(p)
+            pin_numbers.add(pin_num)
+    result = {}
+    for slug, (texts, pin_numbers) in by_slug.items():
+        images = []
+        if OUTPUT_PIN_IMAGES_DIR.is_dir():
+            for img in sorted(OUTPUT_PIN_IMAGES_DIR.glob("*.png")):
+                m = PIN_IMAGE_NUMBER_RE.match(img.name)
+                if m and m.group(1) in pin_numbers:
+                    images.append(img)
+        result[slug] = (sorted(texts), images)
+    return result
 
 
 def _generation_rule_targets(since_date, until_date):
@@ -1005,62 +1114,110 @@ def _format_generation_rule_lines(rule_targets):
     return lines
 
 
-def _format_targets_weekly(since_date, until_date, target):
-    posts = _posts_in_period(since_date, until_date)
-    pin_texts, pin_images = _pins_in_period(since_date, until_date)
-    rule_targets = _generation_rule_targets(since_date, until_date)
-    asset_changes = _permanent_asset_changes(since_date, until_date)
-    ledger_rows = _ledger_adopted_with_impl_date()
-    input_dir = _input_dir_for_output(target)
+def _text_len(path):
+    """テキストファイルの文字数。読めなければ0（区切りの上限判定に使う・D-0255）。"""
+    try:
+        return len(path.read_text(encoding="utf-8", errors="replace"))
+    except OSError:
+        return 0
 
-    lines = []
-    lines.append("## 監査対象一覧（gateway 生成・--mode weekly --since %s --until %s）" % (since_date, until_date))
-    lines.append("")
-    lines.append("### 生成物")
-    lines.append("- 記事（date または updated が期間内・%d本）:" % len(posts))
-    for p, reason in posts:
-        lines.append("  - site/src/content/posts/%s（%s）" % (p.name, reason))
-    if not posts:
-        lines.append("  - 該当なし")
-    lines.append("- ピン投稿文（ファイル名の日付が期間内・%d件）:" % len(pin_texts))
-    for p in pin_texts:
-        lines.append("  - output/pins/%s" % p.name)
-    if not pin_texts:
-        lines.append("  - 該当なし")
-    lines.append("- ピン画像（対応する投稿文と同じピン番号・%d件）:" % len(pin_images))
-    for p in pin_images:
-        lines.append("  - output/Pin-images/%s" % p.name)
-    if not pin_images:
-        lines.append("  - 該当なし")
-    lines.append("- Buffer投稿文: %s/buffer-posts.json（存在すれば）" % _rel(input_dir))
-    lines.append("")
-    lines.append("### 生成ルール（全文を読む・【変更あり】は期間内に変更があったもの）")
-    lines.extend(_format_generation_rule_lines(rule_targets))
-    lines.append("")
-    lines.append("### 恒久アセットの変更（期間内にgit logで変更があった site/src の記事以外）")
-    if asset_changes:
-        for rel, dist_candidates in asset_changes:
-            lines.append("- site/%s" % rel)
-            for d in dist_candidates:
-                lines.append("  - 対応: site/%s" % d)
-    else:
-        lines.append("- 該当なし")
-    lines.append("")
-    lines.append("### 遵守確認の対象（ledger で「採用」かつ実装日のある行・%d件）" % len(ledger_rows))
+
+def _rule_file_path(display):
+    """_generation_rule_targets の表示パス（"rules/x.md" または "site/y.py"）から実パスへ。"""
+    if display.startswith("site/"):
+        return SITE_DIR / display[len("site/"):]
+    return PROJECT_ROOT / display
+
+
+def _weekly_r_items(since_date, until_date):
+    """週次の区切りR（生成ルール全文・恒久アセットの変更・遵守確認の対象）の材料を、
+    1ファイル（または遵守確認の対象一式）＝1アイテムで返す（D-0255）。
+    """
+    items = []
+    rule_targets = _generation_rule_targets(since_date, until_date)
+    for (display, _changed), line in zip(rule_targets, _format_generation_rule_lines(rule_targets)):
+        items.append({"chars": _text_len(_rule_file_path(display)), "images": 0, "lines": [line]})
+
+    asset_changes = _permanent_asset_changes(since_date, until_date)
+    for rel, dist_candidates in asset_changes:
+        lines = ["- site/%s" % rel]
+        for d in dist_candidates:
+            lines.append("  - 対応: site/%s" % d)
+        items.append({"chars": _text_len(SITE_DIR / rel), "images": 0, "lines": lines})
+
+    ledger_rows = _ledger_adopted_with_impl_date()
+    ledger_lines = ["### 遵守確認の対象（ledger で「採用」かつ実装日のある行・%d件）" % len(ledger_rows)]
     for row in ledger_rows:
-        lines.append("- %s（%s・実装D番号=%s・実装日=%s）" % (
+        ledger_lines.append("- %s（%s・実装D番号=%s・実装日=%s）" % (
             row.get("ID", ""), row.get("指示", ""), row.get("実装D番号", ""), row.get("実装日", "")))
     if not ledger_rows:
-        lines.append("- 該当なし")
-    lines.append("")
-    lines.append("### 数値（Cの判断材料。品質判定には混ぜない）")
-    if input_dir.is_dir():
-        for p in sorted(input_dir.glob("*")):
-            if p.is_file():
-                lines.append("- %s" % _rel(p))
-    else:
-        lines.append("- %s は存在しない（数値なしで評価する）" % _rel(input_dir))
-    return "\n".join(lines)
+        ledger_lines.append("- 該当なし")
+    items.append({"chars": sum(len(l) for l in ledger_lines), "images": 0, "lines": ledger_lines})
+    return items
+
+
+def _weekly_o_items(since_date, until_date):
+    """週次の区切りO（生成物）の材料を、記事1本＝1アイテム（その記事のピン・画像込み）で
+    返す（記事単位で同じ区切りに入れるため分割しない・D-0255）。
+    """
+    posts = _posts_in_period(since_date, until_date)
+    pins_by_slug = _pins_by_slug_in_period(since_date, until_date)
+    items = []
+    for p, reason in posts:
+        chars = _text_len(p)
+        images = 0
+        lines = ["- site/src/content/posts/%s（%s）" % (p.name, reason)]
+        texts, imgs = pins_by_slug.pop(p.stem, ([], []))
+        for t in texts:
+            chars += _text_len(t)
+            lines.append("  - output/pins/%s" % t.name)
+        for im in imgs:
+            images += 1
+            lines.append("  - output/Pin-images/%s" % im.name)
+        items.append({"chars": chars, "images": images, "lines": lines})
+
+    # 対象期間の記事一覧（frontmatterのdate/updated基準）に見つからない残りのピンも、
+    # ファイル名の日付が期間内である以上は取りこぼさず1アイテムとして計上する。
+    for slug in sorted(pins_by_slug):
+        texts, imgs = pins_by_slug[slug]
+        chars = 0
+        images = 0
+        lines = ["- （対象期間の記事一覧に無い）slug=%s" % slug]
+        for t in texts:
+            chars += _text_len(t)
+            lines.append("  - output/pins/%s" % t.name)
+        for im in imgs:
+            images += 1
+            lines.append("  - output/Pin-images/%s" % im.name)
+        items.append({"chars": chars, "images": images, "lines": lines})
+    return items
+
+
+def _pack_items(items, prefix):
+    """items（各 {chars, images, lines}）を PARTITION_CHAR_CAP／PARTITION_IMAGE_CAP の
+    上限で貪欲に詰め、区切り名 <prefix>-1.. を振って返す（アイテムは分割しない・D-0255）。
+    """
+    partitions = []
+    cur_chars = 0
+    cur_images = 0
+    cur_lines = []
+    cur_count = 0
+    for item in items:
+        if cur_count and (cur_chars + item["chars"] > PARTITION_CHAR_CAP
+                           or cur_images + item["images"] > PARTITION_IMAGE_CAP):
+            partitions.append({"chars": cur_chars, "images": cur_images,
+                               "lines": cur_lines, "count": cur_count})
+            cur_chars, cur_images, cur_lines, cur_count = 0, 0, [], 0
+        cur_chars += item["chars"]
+        cur_images += item["images"]
+        cur_lines.extend(item["lines"])
+        cur_count += 1
+    if cur_count:
+        partitions.append({"chars": cur_chars, "images": cur_images,
+                           "lines": cur_lines, "count": cur_count})
+    for i, part in enumerate(partitions, start=1):
+        part["name"] = "%s-%d" % (prefix, i)
+    return partitions
 
 
 def _previous_month(year_month):
@@ -1146,152 +1303,119 @@ def _select_monthly_samples(posts_by_category, ga4_series):
     return samples
 
 
-def _format_targets_monthly(year_month, target):
-    # M-1の「前月」は実行日（毎月1日）から見た直近の完了月を指し、year_month（監査対象月）と
-    # 同じ月になる（例: 2026-10-01に実行 → 対象月・前月ともに2026-09）。ここでは year_month を
-    # そのままデータの対象月として扱う（別の月へずらさない）。
-    input_dir = _input_dir_for_output(target)
-
-    dist_pages = []
+def _monthly_s_items():
+    """月次の区切りS（恒久アセットの全体）の材料を、1ファイル＝1アイテムで返す（D-0255）。"""
+    items = []
     if SITE_DIST_DIR.is_dir():
         for p in sorted(SITE_DIST_DIR.rglob("index.html")):
             rel = p.relative_to(SITE_DIST_DIR).as_posix()
             if rel.startswith("posts/"):
                 continue
-            dist_pages.append(rel)
+            items.append({"chars": _text_len(p), "images": 0, "lines": ["- site/dist/%s" % rel]})
+    cats = SITE_DIR / "src" / "data" / "categories.ts"
+    if cats.is_file():
+        items.append({"chars": _text_len(cats), "images": 0, "lines": ["- site/src/data/categories.ts"]})
+    editorial = SITE_DIR / "src" / "data" / "editorial.ts"
+    if editorial.is_file():
+        items.append({"chars": _text_len(editorial), "images": 0, "lines": ["- site/src/data/editorial.ts"]})
+    layouts_dir = SITE_DIR / "src" / "layouts"
+    if layouts_dir.is_dir():
+        for p in sorted(layouts_dir.glob("*")):
+            if p.is_file():
+                items.append({"chars": _text_len(p), "images": 0,
+                             "lines": ["- site/src/layouts/%s" % p.name]})
+    components_dir = SITE_DIR / "src" / "components"
+    if components_dir.is_dir():
+        for p in sorted(components_dir.rglob("*")):
+            if p.is_file():
+                rel = p.relative_to(components_dir).as_posix()
+                items.append({"chars": _text_len(p), "images": 0,
+                             "lines": ["- site/src/components/%s" % rel]})
+    return items
 
+
+def _monthly_p_items(target):
+    """月次の区切りP（代表サンプル）の材料を、記事1本＝1アイテムで返す（D-0255）。"""
+    input_dir = _input_dir_for_output(target)
     posts_by_category = _posts_by_category()
     ga4_series = _load_ga4_page_traffic_series(input_dir)
     samples = _select_monthly_samples(posts_by_category, ga4_series)
-
-    weekly_dirs = sorted(
-        [p for p in GROWTH_INPUTS_DIR.glob("20*") if p.is_dir() and not p.name.startswith("trial-") and not p.name.startswith("monthly-")]
-    ) if GROWTH_INPUTS_DIR.is_dir() else []
-    latest_sns = None
-    for wd in reversed(weekly_dirs):
-        candidate = wd / "sns.md"
-        if candidate.is_file():
-            latest_sns = candidate
-            break
-
-    lines = []
-    lines.append("## 監査対象一覧（gateway 生成・--mode monthly --month %s）" % year_month)
-    lines.append("")
-    lines.append("### 恒久アセットの全体（site/dist のうち記事以外・%d件）" % len(dist_pages))
-    for rel in dist_pages:
-        lines.append("- site/dist/%s" % rel)
-    if not dist_pages:
-        lines.append("- 該当なし（site/dist が未ビルド）")
-    lines.append("- site/src/data/categories.ts")
-    lines.append("- site/src/data/editorial.ts")
-    if (SITE_DIR / "src" / "layouts").is_dir():
-        for p in sorted((SITE_DIR / "src" / "layouts").glob("*")):
-            if p.is_file():
-                lines.append("- site/src/layouts/%s" % p.name)
-    if (SITE_DIR / "src" / "components").is_dir():
-        for p in sorted((SITE_DIR / "src" / "components").rglob("*")):
-            if p.is_file():
-                lines.append("- site/src/components/%s" % p.relative_to(SITE_DIR / "src" / "components").as_posix())
-    if latest_sns is not None:
-        lines.append("- 直近の週次のsns.md: %s" % _rel(latest_sns))
-    else:
-        lines.append("- 直近の週次のsns.md: 見つからず（評価できなかったものに書く）")
-    lines.append("")
-    lines.append("### 代表サンプル（6カテゴリ×最大2本・最大12本）")
-    total = 0
+    items = []
     for category, chosen in samples:
         for slug, reason in chosen:
-            lines.append("- [%s] %s（%s）: site/src/content/posts/%s.md" % (category, slug, reason, slug))
-            total += 1
-    lines.append("（計 %d本）" % total)
-    lines.append("")
-    lines.append("### 数値（%s分。Cの判断材料。品質判定には混ぜない）" % year_month)
-    if input_dir.is_dir():
-        for p in sorted(input_dir.glob("*")):
-            if p.is_file():
-                lines.append("- %s" % _rel(p))
-    else:
-        lines.append("- %s は存在しない（数値なしで評価する）" % _rel(input_dir))
+            p = CONTENT_POSTS_DIR / ("%s.md" % slug)
+            items.append({
+                "chars": _text_len(p), "images": 0,
+                "lines": ["- [%s] %s（%s）: site/src/content/posts/%s.md" % (category, slug, reason, slug)],
+            })
+    return items
+
+
+def _build_partitions(mode, since, until, month, target):
+    """mode に応じて区切りの計画（各 {name, chars, images, lines, count}）を返す（D-0255）。"""
+    if mode == "weekly":
+        return (_pack_items(_weekly_r_items(since, until), "R")
+                + _pack_items(_weekly_o_items(since, until), "O"))
+    if mode == "monthly":
+        return (_pack_items(_monthly_s_items(), "S")
+                + _pack_items(_monthly_p_items(target), "P"))
+    return []
+
+
+def _has_sections(path, headers):
+    if not path.is_file():
+        return False
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError:
+        return False
+    return all(h in text for h in headers)
+
+
+def _valid_partial_output(path):
+    """区切りの出力が有効か（必須の2節が揃っているか）。再開時にこれが真の区切りは飛ばす。"""
+    return _has_sections(path, REQUIRED_PART_SECTIONS)
+
+
+def _format_parts_reference(parts_dir, partitions):
+    """まとめ用プロンプトの {{TARGETS}} へ差し込む、部分監査の出力一覧。"""
+    lines = ["## 部分監査の出力一覧（すべて読む・%d件）" % len(partitions)]
+    for part in partitions:
+        lines.append("- %s" % _rel(parts_dir / (part["name"] + ".md")))
     return "\n".join(lines)
 
 
-def _apply_targets_placeholder(prompt, mode, since, until, month, target):
-    """{{TARGETS}} を mode に応じて組み立てた一覧へ置き換える。mode が無ければ無変更。"""
-    if not mode:
-        return prompt
-    if "{{TARGETS}}" not in prompt:
-        eprint("警告: プロンプトに {{TARGETS}} が無いため、対象一覧は差し込まれません。")
-        return prompt
-    if mode == "weekly":
-        targets_text = _format_targets_weekly(since, until, target)
-    elif mode == "monthly":
-        targets_text = _format_targets_monthly(month, target)
-    else:
-        return prompt
-    return prompt.replace("{{TARGETS}}", targets_text)
+def _emit_dry_run(purpose, method, target, parts_dir, partitions):
+    plan = []
+    for part in partitions:
+        part_path = parts_dir / (part["name"] + ".md")
+        plan.append({
+            "name": part["name"], "target_count": part["count"],
+            "chars": part["chars"], "images": part["images"],
+            "skip": _valid_partial_output(part_path),
+        })
+    skip_names = [p["name"] for p in plan if p["skip"]]
+    emit("dry_run", purpose, method, str(target), None,
+         "区切り計画 %d件（スキップ%d件）: %s"
+         % (len(plan), len(skip_names), "、".join(p["name"] for p in plan) or "なし"),
+         extra={"partitions": plan, "skip": skip_names})
+    return EXIT_OK
 
 
-def run_growth_audit(purpose, prompt_file, output_file, model_override=None,
-                      mode=None, since=None, until=None, month=None):
-    """全コンテンツの週次監査（D-0251）。Codex は -s read-only のまま、最終メッセージを保存する。"""
-    method = "exec"
+def _build_audit_cmd(real_exe, output_path, reasoning_effort, config_model):
+    """growth-audit の codex exec 起動引数を組み立てる（区切り・まとめ共通・D-0255）。
 
-    target = _resolve_audit_output(output_file)
-    if target is None:
-        return fail(EXIT_NOT_IMPLEMENTED, purpose, method,
-                    "--output-file は %s 配下だけを許可しています: %s"
-                    % (AUDIT_OUTPUTS_DIR, output_file))
-
-    if mode is not None and mode not in ("weekly", "monthly"):
-        return fail(EXIT_PRECONDITION, purpose, method,
-                    "--mode は weekly か monthly のみです: %s" % mode)
-    if mode == "weekly" and (not since or not until):
-        return fail(EXIT_PRECONDITION, purpose, method,
-                    "--mode weekly には --since と --until（YYYY-MM-DD）が必要です。")
-    effective_month = month
-    if mode == "monthly" and not effective_month:
-        effective_month = _previous_month(datetime.now().strftime("%Y-%m"))
-
-    prompt, err_code = _read_prompt(purpose, method, prompt_file)
-    if prompt is None:
-        return err_code
-
-    real_exe = _codex_real_exe()
-    if real_exe is None:
-        return fail(EXIT_PRECONDITION, purpose, method,
-                    "codex の実体パスを解決できませんでした（shutil.which/realpath失敗）。")
-
-    target.parent.mkdir(parents=True, exist_ok=True)
-    try:
-        prompt = _apply_targets_placeholder(prompt, mode, since, until, effective_month, target)
-    except Exception as exc:  # noqa: BLE001 - 対象一覧の組み立て失敗で監査自体は止めない
-        eprint("警告: {{TARGETS}} の組み立てに失敗しました（%s）。プレースホルダは未置換のまま送ります。" % exc)
-
-    started_at, log_path, child_env, config_model = _prepare_exec(purpose, model_override)
-    reasoning_effort = _config_reasoning_effort() or DEFAULT_GROWTH_AUDIT_REASONING_EFFORT
-
-    # プロンプトは標準入力で渡す（"-"）。-C でプロジェクトルートを作業ルートにし、
-    # -s read-only のまま -o で最終メッセージを書かせる（-o は Codex CLI 本体が書く）。
-    # --ignore-user-config: ~/.codex/config.toml を読み込ませない（D-0253）。
-    #   実測で、growth-audit を実行するだけで ~/.codex/config.toml のハッシュが
-    #   変わることを確認した（他プロジェクトの trust_level 追記等、Codexアプリ全体で
-    #   共有されるファイルのため）。このファイルには browser/computer-use/chrome 等の
-    #   プラグインと mcp_servers.node_repl の登録も入っており、読み込ませないことで
-    #   ハッシュ不変とアプリ連携遮断を同時に満たす。認証は CODEX_HOME 側で別管理のため
-    #   影響しない。モデルは config.toml に頼れなくなるため、このプロセス自身が読んだ
-    #   config_model を明示の -m で渡す（--model 未指定時の既定動作を変えないため、
-    #   model_override が無ければ config_model を使う）。
-    # 実行ファイルは "codex"（PATH名）ではなく実体のパス（real_exe）で起動する。
-    # windows.sandbox="elevated" は "codex" のままだと毎回失敗するため（GROWTH_AUDIT_
-    # HARDENING_ARGS 直前の注釈6参照）。reasoning effort は config.toml の値
-    # （無ければ "high"）を明示し、tool_output_token_limit は既定値では読み取り対象が
-    # 切り詰められるため growth-audit のときだけ引き上げる（Codex CLI 0.145.0 で
-    # --strict-config を通ることを確認済み・2026-09-28）。
+    -s read-only のまま -o で最終メッセージを書かせ、GROWTH_AUDIT_HARDENING_ARGS で
+    外部遮断を上乗せし、windows.sandbox="elevated"・model_reasoning_effort・
+    tool_output_token_limit を追加で渡す。実行ファイルは実体パス（real_exe）に限定する
+    （"codex" のままだと windows.sandbox="elevated" が失敗するため・診断済み）。
+    --ignore-user-config で ~/.codex/config.toml を読み込ませないため、モデルは
+    config_model（または --model 指定）を明示の -m で渡す。
+    """
     def build_cmd(model):
         effective_model = model or config_model
         cmd = [real_exe, "exec", "--json", "-s", "read-only", "--skip-git-repo-check",
-               "--ignore-user-config",
-               "-C", str(PROJECT_ROOT), "-o", str(target)]
+               "--ignore-user-config", "-C", str(PROJECT_ROOT), "-o", str(output_path)]
         cmd += GROWTH_AUDIT_HARDENING_ARGS
         cmd += ["-c", 'windows.sandbox="elevated"']
         cmd += ["-c", 'model_reasoning_effort="%s"' % reasoning_effort]
@@ -1300,48 +1424,211 @@ def run_growth_audit(purpose, prompt_file, output_file, model_override=None,
             cmd += ["-m", effective_model]
         cmd.append("-")
         return cmd
+    return build_cmd
 
+
+def _make_check(output_path, started_at, required_sections, state):
+    """区切り・まとめ共通の成功判定（D-0255）。turn.failed／type=="error" があれば失敗、
+    無ければ出力ファイルの書き出し（-o優先・無ければ最終agent_messageで代替）と
+    必須の節が揃っているかを見る。state["written_by"] に書き出し経路を残す。
+    """
     def check(stdout):
-        if _fresh_nonempty(target, started_at):
-            return True, "codex -o"
-        return _last_agent_message(stdout) is not None, "gateway（--json の最終 agent_message）"
+        failed, err_msg = _json_log_has_failure(stdout)
+        if failed:
+            return False, {"reason": "turn_failed", "message": err_msg}
+        if _fresh_nonempty(output_path, started_at):
+            state["written_by"] = "codex -o"
+        else:
+            message = _last_agent_message(stdout)
+            if message is not None:
+                output_path.write_text(message, encoding="utf-8")
+                state["written_by"] = "gateway（--json の最終 agent_message）"
+            if not _fresh_nonempty(output_path, started_at):
+                return False, {"reason": "no_output", "message": None}
+        if not _has_sections(output_path, required_sections):
+            return False, {"reason": "missing_sections", "message": None}
+        return True, {"reason": "ok", "message": None}
+    return check
 
+
+def _run_one_audit_step(build_cmd, prompt_text, output_path, model_override, config_model,
+                        child_env, required_sections, log_label):
+    """区切り・まとめ共通の1回の codex exec 実行（D-0255）。起動自体の失敗（OSError）は
+    呼び出し側へそのまま送出する。
+    """
+    started_at = time.time()
+    stamp = datetime.fromtimestamp(started_at).strftime("%Y%m%d-%H%M%S")
+    log_path = LOG_DIR / ("%s-growth-audit-%s.jsonl" % (stamp, log_label))
+    state = {"written_by": None}
+    check = _make_check(output_path, started_at, required_sections, state)
+    result = _exec_with_model_fallback(build_cmd, model_override, config_model, child_env,
+                                       log_path, AUDIT_TIMEOUT_SEC, check,
+                                       input_text=prompt_text, prompt_len=len(prompt_text))
+    thread_id = extract_thread_id(result["stdout"].splitlines())
+    truncated, view_calls = _count_rollout_signals(thread_id)
+    token_usage = _rollout_last_token_usage(thread_id)
+    ok, info = result["info"]
+    return {
+        "ok": ok, "info": info, "elapsed": int(time.time() - started_at),
+        "log_path": result["log_path"], "model": result["model"],
+        "timed_out": result["timed_out"], "truncated_outputs": truncated,
+        "view_image_calls": view_calls, "token_usage": token_usage,
+        "stderr": result["stderr"], "returncode": result["returncode"],
+        "written_by": state["written_by"],
+    }
+
+
+_STEP_FAILURE_REASONS = {
+    "no_output": "--output-file が作られないか空です",
+    "missing_sections": "必須の節が揃っていません",
+}
+
+
+def _step_failure_message(step):
+    reason = step["info"].get("reason")
+    if reason == "turn_failed":
+        return step["info"].get("message") or "turn.failed"
+    return _STEP_FAILURE_REASONS.get(reason, "不明な失敗")
+
+
+def run_growth_audit(purpose, prompt_file, output_file, model_override=None,
+                      mode=None, since=None, until=None, month=None, dry_run=False):
+    """全コンテンツの監査（D-0251）。区切りごとの部分監査を順に実行し、最後にまとめを
+    1回実行する（D-0255）。Codex は常に -s read-only のまま、各回の最終メッセージを
+    保存する。
+    """
+    method = "exec"
+
+    target = _resolve_audit_output(output_file)
+    if target is None:
+        return fail(EXIT_NOT_IMPLEMENTED, purpose, method,
+                    "--output-file は %s 配下だけを許可しています: %s"
+                    % (AUDIT_OUTPUTS_DIR, output_file))
+
+    if mode not in ("weekly", "monthly"):
+        return fail(EXIT_PRECONDITION, purpose, method,
+                    "--mode は weekly か monthly が必須です: %s" % mode)
+    if mode == "weekly" and (not since or not until):
+        return fail(EXIT_PRECONDITION, purpose, method,
+                    "--mode weekly には --since と --until（YYYY-MM-DD）が必要です。")
+    effective_month = month
+    if mode == "monthly" and not effective_month:
+        effective_month = _previous_month(datetime.now().strftime("%Y-%m"))
+
+    partitions = _build_partitions(mode, since, until, effective_month, target)
+    parts_dir = target.parent / "parts"
+
+    if dry_run:
+        return _emit_dry_run(purpose, method, target, parts_dir, partitions)
+
+    prompt, err_code = _read_prompt(purpose, method, prompt_file)
+    if prompt is None:
+        return err_code
+
+    part_prompt_path = PART_PROMPT_PATHS[mode]
     try:
-        result = _exec_with_model_fallback(build_cmd, model_override, config_model, child_env,
-                                           log_path, AUDIT_TIMEOUT_SEC, check,
-                                           input_text=prompt, prompt_len=len(prompt))
+        part_prompt_template = part_prompt_path.read_text(encoding="utf-8")
+    except OSError as exc:
+        return fail(EXIT_PRECONDITION, purpose, method,
+                    "部分監査プロンプトを読み込めません: %s（%s）" % (part_prompt_path, exc))
+
+    real_exe = _codex_real_exe()
+    if real_exe is None:
+        return fail(EXIT_PRECONDITION, purpose, method,
+                    "codex の実体パスを解決できませんでした（shutil.which/realpath失敗）。")
+
+    target.parent.mkdir(parents=True, exist_ok=True)
+    parts_dir.mkdir(parents=True, exist_ok=True)
+
+    ensure_models_cache_consistent()
+    child_env = _codex_child_env()
+    if child_env is not None:
+        eprint("codex exec の子プロセス PATH 先頭に codex-resources を追加します（L043 対策）。")
+    config_model = _config_model()
+    reasoning_effort = GROWTH_AUDIT_EFFORT
+
+    overall_started = time.time()
+    part_reports = []
+    truncated_total = 0
+    view_image_total = 0
+    token_totals = {"tokens_input": 0, "tokens_cached": 0, "tokens_output": 0, "tokens_reasoning": 0}
+    token_by_part = {}
+    any_timed_out = False
+
+    for part in partitions:
+        part_path = parts_dir / (part["name"] + ".md")
+        if _valid_partial_output(part_path):
+            eprint("区切り %s は有効な出力が既にあるため飛ばします: %s" % (part["name"], part_path))
+            part_reports.append({"name": part["name"], "status": "skipped"})
+            continue
+
+        part_prompt = (part_prompt_template
+                       .replace("{{PART_NAME}}", part["name"])
+                       .replace("{{TARGETS}}", "\n".join(part["lines"])))
+        build_cmd = _build_audit_cmd(real_exe, part_path, reasoning_effort, config_model)
+        try:
+            step = _run_one_audit_step(build_cmd, part_prompt, part_path, model_override,
+                                       config_model, child_env, REQUIRED_PART_SECTIONS,
+                                       "part-%s" % part["name"])
+        except OSError as exc:
+            return fail(EXIT_LAUNCH_FAILED, purpose, method,
+                        "区切り %s の codex exec 起動に失敗しました: %s" % (part["name"], exc))
+
+        truncated_total += step["truncated_outputs"]
+        view_image_total += step["view_image_calls"]
+        if step["token_usage"]:
+            token_by_part[part["name"]] = step["token_usage"]
+            for k in token_totals:
+                token_totals[k] += step["token_usage"].get(k, 0)
+        any_timed_out = any_timed_out or step["timed_out"]
+
+        if not step["ok"]:
+            return fail(EXIT_ARTIFACT_MISSING, purpose, method,
+                        "区切り %s が失敗しました: %s ／ codexログ: %s ／ 所要 %d秒 ／ stderr: %s"
+                        % (part["name"], _step_failure_message(step), step["log_path"],
+                           step["elapsed"], step["stderr"].strip()[:400]))
+        part_reports.append({"name": part["name"], "status": "ok", "elapsed_sec": step["elapsed"]})
+
+    # 最後のまとめ（1回）: 全区切りの出力一覧を {{TARGETS}} へ差し込む。
+    summary_prompt = prompt.replace("{{TARGETS}}", _format_parts_reference(parts_dir, partitions))
+    build_cmd = _build_audit_cmd(real_exe, target, reasoning_effort, config_model)
+    try:
+        summary_step = _run_one_audit_step(build_cmd, summary_prompt, target, model_override,
+                                           config_model, child_env, REQUIRED_SUMMARY_SECTIONS,
+                                           "summary")
     except OSError as exc:
         return fail(EXIT_LAUNCH_FAILED, purpose, method,
-                    "codex exec の起動に失敗しました: %s" % exc)
+                    "まとめの codex exec 起動に失敗しました: %s" % exc)
 
-    elapsed = int(time.time() - started_at)
-    log_path = result["log_path"]
-    written_by = result["info"]
-    if not _fresh_nonempty(target, started_at):
-        message = _last_agent_message(result["stdout"])
-        if message is not None:
-            target.write_text(message, encoding="utf-8")
-            written_by = "gateway（--json の最終 agent_message）"
-            eprint("-o の出力が無かったため、--json の最終メッセージを書き出しました: %s" % target)
+    truncated_total += summary_step["truncated_outputs"]
+    view_image_total += summary_step["view_image_calls"]
+    if summary_step["token_usage"]:
+        token_by_part["summary"] = summary_step["token_usage"]
+        for k in token_totals:
+            token_totals[k] += summary_step["token_usage"].get(k, 0)
+    any_timed_out = any_timed_out or summary_step["timed_out"]
+    elapsed_total = int(time.time() - overall_started)
 
-    thread_id = extract_thread_id(result["stdout"].splitlines())
-    truncated_outputs, view_image_calls = _count_rollout_signals(thread_id)
-
-    to_note = "（timeout %d秒で打ち切り後）" % AUDIT_TIMEOUT_SEC if result["timed_out"] else ""
-    base_message = ("codexログ: %s ／ 所要 %d秒%s ／ 使用モデル: %s%s ／ reasoning effort: %s"
-                    % (log_path, elapsed, to_note, result["model"] or "不明",
-                       "（予備モデルで再試行）" if result["retried"] else "", reasoning_effort))
-    if not _fresh_nonempty(target, started_at):
+    if not summary_step["ok"]:
         return fail(EXIT_ARTIFACT_MISSING, purpose, method,
-                    "--output-file が作られないか空です: %s ／ %s ／ codex rc=%s ／ stderr: %s"
-                    % (target, base_message, result["returncode"], result["stderr"].strip()[:400]))
+                    "まとめが失敗しました: %s ／ codexログ: %s ／ 所要 %d秒（全体） ／ stderr: %s"
+                    % (_step_failure_message(summary_step), summary_step["log_path"],
+                       elapsed_total, summary_step["stderr"].strip()[:400]))
 
+    ok_parts = sum(1 for r in part_reports if r["status"] == "ok")
+    skipped_parts = sum(1 for r in part_reports if r["status"] == "skipped")
     emit("ok", purpose, method, str(target), None,
-         "%s ／ 書き出し: %s ／ truncated_outputs: %d ／ view_image_calls: %d"
-         % (base_message, written_by, truncated_outputs, view_image_calls),
-         extra={"elapsed_sec": elapsed, "model": result["model"], "written_by": written_by,
-                "timed_out": result["timed_out"], "truncated_outputs": truncated_outputs,
-                "view_image_calls": view_image_calls})
+         "codexログ(まとめ): %s ／ 所要 %d秒（全体） ／ 使用モデル: %s ／ reasoning effort: %s"
+         " ／ 区切り: %d件（実行%d・スキップ%d） ／ truncated_outputs: %d ／ view_image_calls: %d"
+         % (summary_step["log_path"], elapsed_total, summary_step["model"] or "不明",
+            reasoning_effort, len(part_reports), ok_parts, skipped_parts,
+            truncated_total, view_image_total),
+         extra={"elapsed_sec": elapsed_total, "model": summary_step["model"],
+                "written_by": summary_step["written_by"], "timed_out": any_timed_out,
+                "truncated_outputs": truncated_total, "view_image_calls": view_image_total,
+                "reasoning_effort": reasoning_effort,
+                "token_usage": {"total": token_totals, "parts": token_by_part},
+                "parts": part_reports})
     return EXIT_OK
 
 
@@ -1370,6 +1657,9 @@ def main():
                         help="growth-audit --mode weekly: 対象期間の終了日 YYYY-MM-DD")
     parser.add_argument("--month", default=None,
                         help="growth-audit --mode monthly: 対象年月 YYYY-MM（省略時は前月）")
+    parser.add_argument("--dry-run", action="store_true",
+                        help="growth-audit: Codexを起動せず、区切りの実行計画（対象・字数・"
+                             "画像枚数・スキップ有無）だけを表示して終了する（D-0255）")
     args = parser.parse_args()
     # image-gen の --out-name 必須は従来どおり argparse のエラー（終了コード2）で止める
     if args.purpose == "image-gen" and not args.out_name:
@@ -1393,7 +1683,7 @@ def main():
             return fail(EXIT_PRECONDITION, purpose, method, "--output-file が指定されていません。")
         return run_growth_audit(purpose, args.prompt_file, args.output_file, args.model,
                                 mode=args.mode, since=args.since, until=args.until,
-                                month=args.month)
+                                month=args.month, dry_run=args.dry_run)
     return run_exec(purpose, args.prompt_file, args.out_name, args.model)
 
 
