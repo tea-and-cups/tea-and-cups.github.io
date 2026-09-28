@@ -24,8 +24,10 @@
                "codex"（PATH名）ではなく os.path.realpath(shutil.which("codex")) の実体パスで
                起動する（windows.sandbox="elevated" は実体パスでないと失敗するため・診断済み）。
                1回のCodex呼び出しで全対象を読ませるのをやめ、対象を「区切り」（weekly=
-               生成ルール等のR-1..R-n＋記事単位のO-1..O-n／monthly=恒久アセットのS-1..S-n＋
-               代表サンプルのP-1..P-n）に分け、区切りごとに1回ずつ Codex を呼んで
+               期間内に変更があった生成ルール等のR-1..R-n＋記事単位のO-1..O-n（変更の無い
+               生成ルールは区切りRに含めない）／monthly=生成ルール一式のG-1..G-n（変更の
+               有無に関わらず全文）＋恒久アセットのS-1..S-n＋代表サンプルのP-1..P-n）に分け、
+               区切りごとに1回ずつ Codex を呼んで
                growth/outputs/<label>/parts/<区切り名>.md（所見のみ）へ保存し、最後に
                全区切りの出力・監査スキル・ledger・入力数値・docs/tasks.md・docs/decisions.md
                を読む「まとめ」を1回だけ実行して --output-file へ保存する（D-0255）。
@@ -229,7 +231,8 @@ REQUIRED_PART_SECTIONS = ("## 所見", "## 部分監査範囲")
 REQUIRED_SUMMARY_SECTIONS = ("## 要約", "## 改善指示", "## 前回採用した指示の遵守確認",
                               "## 評価できなかったもの", "## 監査範囲")
 
-# 生成ルール（全文・週次のTARGETSに載せる）。ルート直下は更新時刻、site/ 配下はgit logで
+# 生成ルール一式。週次は期間内に変更があったものだけをR区切りへ、月次は変更の有無に
+# 関わらず全文をG区切りへ載せる（2026-09-28）。ルート直下は更新時刻、site/ 配下はgit logで
 # 期間内変更を判定する（ルート非Git・D-0043）。
 GENERATION_RULE_FILES_ROOT_FIXED = [
     PROJECT_ROOT / "docs" / "strategy.md",
@@ -1015,8 +1018,15 @@ def _pins_by_slug_in_period(since_date, until_date):
     return result
 
 
+def _generation_rule_root_files():
+    """生成ルールのうちルート直下（rules/*.md・固定3ファイル）のPathリストを返す。"""
+    files = sorted((PROJECT_ROOT / "rules").glob("*.md")) if (PROJECT_ROOT / "rules").is_dir() else []
+    files += GENERATION_RULE_FILES_ROOT_FIXED
+    return files
+
+
 def _generation_rule_targets(since_date, until_date):
-    """生成ルール全文の対象リストを [(表示パス, 変更ありbool)] で返す。
+    """生成ルール全文の対象リストを [(表示パス, 変更ありbool)] で返す（期間内変更の判定つき）。
 
     ルート直下（rules/*.md・docs/strategy.md・CLAUDE.md・quality-reviewer.md）は
     更新時刻、site/ 配下（post-pins-to-buffer.py・make-image-prompt.py）は git log で判定する。
@@ -1029,9 +1039,7 @@ def _generation_rule_targets(since_date, until_date):
     except ValueError:
         since_dt = until_dt = None
 
-    root_files = sorted((PROJECT_ROOT / "rules").glob("*.md")) if (PROJECT_ROOT / "rules").is_dir() else []
-    root_files += GENERATION_RULE_FILES_ROOT_FIXED
-    for p in root_files:
+    for p in _generation_rule_root_files():
         changed = False
         if since_dt is not None and p.is_file():
             try:
@@ -1046,6 +1054,16 @@ def _generation_rule_targets(since_date, until_date):
         display = "site/" + rel
         out.append((display, rel in site_changed))
     return out
+
+
+def _all_generation_rule_files():
+    """生成ルール一式（週次が変更判定に使う対象と同じ一覧）を表示パスのリストで返す
+    （変更の有無を問わない。月次のG区切りで使う・2026-09-28）。
+    """
+    displays = [str(p.relative_to(PROJECT_ROOT)).replace("\\", "/")
+                for p in _generation_rule_root_files()]
+    displays += ["site/" + rel for rel in GENERATION_RULE_FILES_SITE]
+    return displays
 
 
 def _permanent_asset_changes(since_date, until_date):
@@ -1130,11 +1148,13 @@ def _rule_file_path(display):
 
 
 def _weekly_r_items(since_date, until_date):
-    """週次の区切りR（生成ルール全文・恒久アセットの変更・遵守確認の対象）の材料を、
-    1ファイル（または遵守確認の対象一式）＝1アイテムで返す（D-0255）。
+    """週次の区切りR（期間内に変更があった生成ルール・恒久アセットの変更・遵守確認の対象）
+    の材料を、1ファイル（または遵守確認の対象一式）＝1アイテムで返す（D-0255・変更分のみに
+    絞る扱いは2026-09-28）。変更の無い生成ルールはここに入れない。
     """
     items = []
-    rule_targets = _generation_rule_targets(since_date, until_date)
+    rule_targets = [(display, changed) for display, changed
+                     in _generation_rule_targets(since_date, until_date) if changed]
     for (display, _changed), line in zip(rule_targets, _format_generation_rule_lines(rule_targets)):
         items.append({"chars": _text_len(_rule_file_path(display)), "images": 0, "lines": [line]})
 
@@ -1303,6 +1323,17 @@ def _select_monthly_samples(posts_by_category, ga4_series):
     return samples
 
 
+def _monthly_g_items():
+    """月次の区切りG（生成ルール一式・変更の有無に関わらず全文）の材料を、
+    1ファイル＝1アイテムで返す（週次のR区切りが対象判定に使う一覧と同じ・2026-09-28）。
+    """
+    items = []
+    for display in _all_generation_rule_files():
+        items.append({"chars": _text_len(_rule_file_path(display)), "images": 0,
+                      "lines": ["- %s" % display]})
+    return items
+
+
 def _monthly_s_items():
     """月次の区切りS（恒久アセットの全体）の材料を、1ファイル＝1アイテムで返す（D-0255）。"""
     items = []
@@ -1357,7 +1388,8 @@ def _build_partitions(mode, since, until, month, target):
         return (_pack_items(_weekly_r_items(since, until), "R")
                 + _pack_items(_weekly_o_items(since, until), "O"))
     if mode == "monthly":
-        return (_pack_items(_monthly_s_items(), "S")
+        return (_pack_items(_monthly_g_items(), "G")
+                + _pack_items(_monthly_s_items(), "S")
                 + _pack_items(_monthly_p_items(target), "P"))
     return []
 
