@@ -26,18 +26,28 @@ r"""未投稿ピンをBuffer経由でX・Instagram・Threadsへ送る本体ス�
       DAILY_LIMIT（30件＝10ピン×3チャンネル）を超えるなら、1件も投稿せず
       件数だけ報告して終了する。
   (5) 本文の組み立て。送信先で構成が違う。
-      Threads … 説明文＋誘導文＋誘導先URL（従来どおり）。誘導文は
-        固定3種からピン番号の3で割った余りで機械的に選ぶ（自由入力は受け付けない）。
+      リンク付きの回とリンクなしの回（D-0256）: 同じ記事（誘導先URLのslug）の
+        ピンを番号順に並べ、1番目だけをリンク付きにする。2番目以降（先行ピンを
+        含む）は Threads・X ともURLを載せない「リンクなし」の回にする。
+        画像はどちらの回にも必ず付ける（(10) の刈り込みが画像URLで保護対象を
+        決めるため、画像の無い投稿がキューにあると刈り込みが止まる）。
+      Threads（リンク付き）… 説明文（ハッシュタグ除く）＋ハッシュタグ（最大3件）＋
+        空行＋問いかけ（ピンmdの「- Threads用問いかけ: 」行。無ければ付けない）＋
+        誘導先URL。
+      Threads（リンクなし）… 説明文の1文目＋空行＋問いかけ（あれば）＋話題タグ1件。
       Instagram … 説明文（ハッシュタグを除いた部分）＋ハッシュタグ部分＋空行＋
         固定の誘導文（INSTAGRAM_CTA_LINE）。**誘導先URLを載せない**ため
         utm_source の置換も行わない。Instagramはキャプション内のリンクが
         クリックできず、URLを載せる意味がないため、プロフィールのリンクへ
         誘導する形に統一する。
-      X … ピンmdの「- X用説明文: 」行＋改行＋誘導先URL。誘導文は付けない。
+      X（リンク付き）… ピンmdの「- X用説明文: 」行＋改行＋誘導先URL。誘導文は付けない。
         共通の説明文はXの数え方だと必ず280を超えるため、Xだけ専用の短い本文を
         持たせる（書式は rules/pinterest-api.md「X向けの説明文」節が正本）。
         この行が無い／空／2行以上あるピンは **X投稿だけ** を理由つきでスキップし、
         Instagram・Threadsへの投稿はそのまま続ける。
+      X（リンクなし）… 説明文の1文目＋ハッシュタグ2件以内（Threadsの短縮版）。
+      「- Threads用問いかけ: 」行が2行以上あるピンは **Threads投稿だけ** を
+        理由つきでスキップする（どれを使うかが決まらないため）。
   (6) X向けの文字数判定。X重み（全角=2 / 半角=1 / URLは長さに関わらず23）と
       実文字数（Bufferの入力検証が見る）の**両方**が280以下でなければ
       **そのピンのX投稿だけ**をスキップする。自動切り詰めはしない
@@ -228,6 +238,10 @@ GUIDE_URL_RE = re.compile(r"^-\s*誘導先URL:\s*(.+)$")
 # 共通の説明文はXの数え方だと必ず280を超えるため、Xだけ別の本文を持たせる
 # （書式・目的は rules/pinterest-api.md「X向けの説明文」節が正本）。
 X_DESC_RE = re.compile(r"^-\s*X用説明文:\s*(.*)$")
+# Threadsの問いかけ。0行または1行。記事固有の内容で読者に問う1文を人が書く
+# （定型文から機械的に選ばない・書き方は rules/pinterest-api.md
+#  「Threads用の問いかけ」節が正本・D-0256）。
+THREADS_Q_RE = re.compile(r"^-\s*Threads用問いかけ:\s*(.*)$")
 
 # 台帳の書式。
 # 「投稿済み: {ピン番号} {service}」  … 二重投稿防止の判定に使う（日付を持たない）
@@ -467,12 +481,52 @@ def derive_targets(created_map, posted_pairs, only=None):
 # --- (5) 本文の組み立て ---------------------------------------------------------
 
 
+def article_slug(guide_url):
+    """誘導先URLのパス末尾（/posts/<slug>/ の <slug>）を返す。取れなければ None。"""
+    path = urllib.parse.urlsplit(guide_url).path.strip("/")
+    return path.rsplit("/", 1)[-1] or None
+
+
+def read_guide_url(file_name):
+    """ピンファイルの「- 誘導先URL:」行の値を返す。無い・読めないときは None。"""
+    try:
+        with open(os.path.join(PINS_DIR, file_name), encoding="utf-8") as f:
+            for line in f:
+                m = GUIDE_URL_RE.match(line.strip())
+                if m:
+                    return m.group(1).strip() or None
+    except OSError:
+        return None
+    return None
+
+
+def first_pin_of_article(slug):
+    """誘導先URLのslugが一致するピンの中で、最も小さいピン番号を返す（無ければ None）。
+
+    同じ記事のピンを番号順に並べたときの1番目を決めるのに使う。先行ピン（-04以降）は
+    元の3枚より後の番号になるため、1番目にはならない。ピン番号の読み取りは
+    check-pin-posting-status.py が正本（範囲表記の扱いを二重実装しないため）。
+    """
+    created = _load_check_pin_posting_status().extract_created_pins(PINS_DIR)
+    numbers = []
+    for pin_num, files in created.items():
+        for fname in files:
+            url = read_guide_url(fname)
+            if url and article_slug(url) == slug:
+                numbers.append(pin_num)
+                break
+    return min(numbers) if numbers else None
+
+
 def parse_pin_file(file_name):
-    """ピンファイルから説明文・X用説明文・誘導先URLを読む。
+    """ピンファイルから説明文・X用説明文・Threads用問いかけ・誘導先URLを読む。
 
     戻り値: (dict または None, 理由)
     x_description は0行のとき None（X投稿だけをスキップする材料になる。
     Instagram・Threadsは同じピンでも投稿を続ける）。
+    threads_question は0行のとき None（問いかけを付けない）。2行以上のときは
+    threads_reason に理由を入れ、Threads投稿だけを見送る材料にする。
+    first_pin は同じ記事のピンで最も小さい番号（リンク付きの回の判定に使う）。
     """
     path = os.path.join(PINS_DIR, file_name)
     try:
@@ -484,6 +538,7 @@ def parse_pin_file(file_name):
     description = None
     guide_url = None
     x_descriptions = []
+    questions = []
     for line in lines:
         stripped = line.strip()
         if description is None:
@@ -497,11 +552,23 @@ def parse_pin_file(file_name):
         m = X_DESC_RE.match(stripped)
         if m:
             x_descriptions.append(m.group(1).strip())
+        m = THREADS_Q_RE.match(stripped)
+        if m:
+            questions.append(m.group(1).strip())
 
     if not description:
         return None, "「説明文:」行が見つからないか空です"
     if not guide_url:
         return None, "「- 誘導先URL:」行が見つからないか空です"
+
+    threads_question = None
+    threads_reason = None
+    if len(questions) > 1:
+        threads_reason = (
+            "「- Threads用問いかけ: 」行が%d本あります（1ファイルにつき0行または1行）"
+            % len(questions))
+    elif questions and questions[0]:
+        threads_question = questions[0]
 
     # 2行以上あるとどれを送るかが決まらないため、Xだけ見送る材料として None にする。
     x_description = x_descriptions[0] if len(x_descriptions) == 1 else None
@@ -519,6 +586,9 @@ def parse_pin_file(file_name):
         "guide_url": guide_url,
         "x_description": x_description,
         "x_reason": x_reason,
+        "threads_question": threads_question,
+        "threads_reason": threads_reason,
+        "first_pin": first_pin_of_article(article_slug(guide_url)),
     }, None
 
 
@@ -568,38 +638,38 @@ def extract_topic(tags):
     return first.lstrip("#") or None
 
 
-# Threads向けの問いかけ（読者が短く答えられる二択・具体名詞入り）。ピン番号を
-# 3で割った余りで機械的に選ぶ（他のTHREADS_*/CTA_LINESと同じ考え方・自由入力は
-# 受け付けない）。冒頭は説明文自身の最初の文（記事に元からある具体的な事実）を
-# そのまま使うため、ここに冒頭用の定型文は持たない
-# （P9-C01-THREADS-COMPOSITION-NATIVE-FIT対応・D-0231）。
-# {topic} はハッシュタグ先頭語（説明文に元からある語）で埋める。
-THREADS_QUESTION_TEMPLATES = (
-    "あなたは{topic}、ストレート派ですか、ミルクティー派ですか？",
-    "あなたは{topic}を選ぶとき、渋み重視派ですか、香り重視派ですか？",
-    "あなたは{topic}、ホット派ですか、アイス派ですか？",
-)
-# ハッシュタグが無い（topicが取れない）ときの代替。同じ順で選ぶ。
-THREADS_QUESTION_FALLBACK = (
-    "あなたは紅茶、ストレート派ですか、ミルクティー派ですか？",
-    "あなたは紅茶を選ぶとき、渋み重視派ですか、香り重視派ですか？",
-    "あなたは紅茶、ホット派ですか、アイス派ですか？",
-)
+# Threadsの問いかけは定型文から選ばず、ピンmdの「- Threads用問いかけ: 」行を
+# そのまま使う（行が無ければ付けない・D-0256）。定型の二択は記事と無関係な
+# 問いになりやすかったため廃止した（監査 reports/2026-09-27-3.md 指示13）。
 
 # Threads本文に載せるハッシュタグの上限（宣伝色を抑えるため6個から絞る）。
 THREADS_HASHTAG_LIMIT = 3
 
+# リンクなしの回に載せるハッシュタグの上限。Threadsは話題タグ1件、Xは2件まで。
+THREADS_NOLINK_TAG_LIMIT = 1
+X_NOLINK_TAG_LIMIT = 2
 
-def pick_threads_question(pin_num, topic):
-    idx = pin_num % 3
-    if topic:
-        return THREADS_QUESTION_TEMPLATES[idx].format(topic=topic)
-    return THREADS_QUESTION_FALLBACK[idx]
+# 説明文の1文目の終わりとみなす文字。
+SENTENCE_END_CHARS = "。！？!?"
 
 
 def limit_threads_hashtags(tags, limit=THREADS_HASHTAG_LIMIT):
     """ハッシュタグ文字列（半角スペース区切り）を先頭からlimit件に絞る。"""
     return " ".join(tags.split()[:limit])
+
+
+def first_sentence(body):
+    """説明文（ハッシュタグを除いた部分）の1文目を、終わりの句点ごと返す。
+    句点が無ければ全体を返す。"""
+    for i, ch in enumerate(body):
+        if ch in SENTENCE_END_CHARS:
+            return body[:i + 1].strip()
+    return body.strip()
+
+
+def is_linked_turn(pin_num, fields):
+    """このピンがリンク付きの回かどうか。同じ記事のピンで番号が最も小さいものだけ True。"""
+    return fields.get("first_pin") == pin_num
 
 
 # Instagram向けの「保存してあとで読む」動機の一言。{topic}で記事に固有の言葉にする。
@@ -636,35 +706,67 @@ def build_instagram_text(description):
     return "\n".join(lines)
 
 
+def build_threads_nolink_text(description, question):
+    """Threadsのリンクなしの回の本文。URLは載せない。
+
+      <説明文の1文目>
+      （空行）
+      <問いかけ（ピンmdに行があるときだけ）>
+      <話題タグ1件>
+    """
+    body, tags = split_description(description)
+    parts = [first_sentence(body), ""]
+    if question:
+        parts.append(question)
+    if tags:
+        parts.append(limit_threads_hashtags(tags, THREADS_NOLINK_TAG_LIMIT))
+    return "\n".join(parts).rstrip("\n")
+
+
 def build_text(pin_num, fields, service):
     """投稿本文を組み立てる。戻り値: (本文, 差し替え後のURL) または (None, 理由)
 
-    Instagram   … build_instagram_text() に委譲（URLが無いので utm_source の
-                  置換も行わない。第2要素は None）。
+    リンク付きの回（同じ記事のピンで番号が最も小さいもの）:
     Threads     … 説明文（ハッシュタグを除いた部分。記事内容そのものが書き出しになる）
                   ＋ ハッシュタグ（最大THREADS_HASHTAG_LIMIT件）＋ 空行 ＋
-                  読者への二択の問いかけ ＋ 改行 ＋ 誘導先URL
+                  問いかけ（ピンmdに行があるときだけ）＋ 改行 ＋ 誘導先URL
     X（twitter）… X用説明文 ＋ 改行 ＋ 誘導先URL（誘導文は付けない）
+
+    リンクなしの回（2番目以降・先行ピンを含む）: 第2要素（URL）は None。
+    Threads     … build_threads_nolink_text()
+    X（twitter）… 説明文の1文目 ＋ ハッシュタグ2件以内（check-x-post-length.py の
+                  build_x_nolink_text() が正本）
+
+    Instagram   … build_instagram_text() に委譲（URLが無いので utm_source の
+                  置換も行わない。第2要素は None）。
 
     X に誘導文を付けないのは、280という上限に対して誘導文が固定で
     十数文字（X重みでは倍）を占め、本文に載せられる情報が削れるため。
     """
     if service == "instagram":
         return build_instagram_text(fields["description"]), None
-    url = rewrite_utm_source(fields["guide_url"], service)
+    if service == "threads" and fields.get("threads_reason"):
+        return None, fields["threads_reason"]
+    linked = is_linked_turn(pin_num, fields)
     if service == "twitter":
+        xcheck = _load_check_x_post_length()
+        if not linked:
+            return xcheck.build_x_nolink_text(fields["description"]), None
         if not fields.get("x_description"):
             return None, fields.get("x_reason") or "X用説明文がありません"
-        xcheck = _load_check_x_post_length()
+        url = rewrite_utm_source(fields["guide_url"], service)
         return xcheck.build_x_text(fields["x_description"], url), url
+    question = fields.get("threads_question")
+    if not linked:
+        return build_threads_nolink_text(fields["description"], question), None
+    url = rewrite_utm_source(fields["guide_url"], service)
     body, tags = split_description(fields["description"])
-    topic = extract_topic(tags)
-    question = pick_threads_question(pin_num, topic)
     parts = [body]
     if tags:
         parts.append(limit_threads_hashtags(tags))
     parts.append("")
-    parts.append(question)
+    if question:
+        parts.append(question)
     parts.append(url)
     return "\n".join(parts), url
 
@@ -1114,12 +1216,16 @@ def main(argv):
         for service in services:
             text, url = build_text(pin_num, fields, service)
             if text is None:
-                # X用説明文が無い／複数ある場合。X投稿だけを見送り、
-                # Instagram・Threadsは同じピンでもそのまま投稿する。
-                out("  スキップ: ピン%d の X 投稿 — %s" % (pin_num, url))
-                out("            書式: 「%s<%d字以内の本文>」（rules/pinterest-api.md）"
-                    % (xcheck.X_DESC_LABEL, xcheck.X_DESC_TARGET_CHARS))
-                out("            Instagram・Threadsへは投稿します。")
+                # X用説明文が無い／複数ある、または Threads用問いかけが複数ある場合。
+                # そのサービスの投稿だけを見送り、他のサービスは同じピンでも投稿する。
+                out("  スキップ: ピン%d の %s 投稿 — %s" % (pin_num, service, url))
+                if service == "twitter":
+                    out("            書式: 「%s<%d字以内の本文>」（rules/pinterest-api.md）"
+                        % (xcheck.X_DESC_LABEL, xcheck.X_DESC_TARGET_CHARS))
+                else:
+                    out("            書式: 「%s<問いかけ1文>」（rules/pinterest-api.md）"
+                        % xcheck.THREADS_Q_LABEL)
+                out("            他のサービスへは投稿します。")
                 continue
             if service == "twitter":
                 ok, weighted, raw = x_length_verdict(text, url)
@@ -1148,8 +1254,7 @@ def main(argv):
             out("  --- ピン%d / %s（%s） ---"
                 % (pin_num, service,
                    "誘導先 utm_source=%s" % UTM_SOURCE_BY_SERVICE[service]
-                   if service in UTM_SOURCE_BY_SERVICE
-                   else "誘導先URLを載せない"))
+                   if url else "誘導先URLを載せない"))
             out(text)
             if service == "twitter":
                 _ok, weighted, raw = x_length_verdict(text, url)

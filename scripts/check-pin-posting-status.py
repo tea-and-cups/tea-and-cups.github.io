@@ -59,24 +59,31 @@ SINGLE_RE = re.compile(r"^(\d+)$")
 RANGE_MAX_SPAN = 20
 
 
-def extract_created_pins():
-    """{pin番号: [該当ファイル名, ...]} を返す"""
+def pin_numbers_in_name(fname):
+    """ファイル名が担当するピン番号の一覧を返す（範囲表記 pin-78-80-... を展開する）。
+    ピン番号を含まない名前なら空リスト。"""
+    m = PIN_NUM_RE.search(fname)
+    if not m:
+        return []
+    start = int(m.group(1))
+    end = start
+    if m.group(2):
+        second = int(m.group(2))
+        if second > start and (second - start) <= RANGE_MAX_SPAN:
+            end = second
+    return list(range(start, end + 1))
+
+
+def extract_created_pins(pins_dir=None):
+    """{pin番号: [該当ファイル名, ...]} を返す。pins_dir 省略時は output/pins/。"""
+    pins_dir = pins_dir or PINS_DIR
     nums_map = {}
-    if not os.path.isdir(PINS_DIR):
+    if not os.path.isdir(pins_dir):
         return nums_map
-    for fname in sorted(os.listdir(PINS_DIR)):
+    for fname in sorted(os.listdir(pins_dir)):
         if not fname.endswith(".md"):
             continue
-        m = PIN_NUM_RE.search(fname)
-        if not m:
-            continue
-        start = int(m.group(1))
-        end = start
-        if m.group(2):
-            second = int(m.group(2))
-            if second > start and (second - start) <= RANGE_MAX_SPAN:
-                end = second
-        for n in range(start, end + 1):
+        for n in pin_numbers_in_name(fname):
             nums_map.setdefault(n, []).append(fname)
     return nums_map
 

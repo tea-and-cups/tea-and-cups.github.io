@@ -21,6 +21,11 @@ r"""記事slugのピン投稿文が「X向けの文字数」を満たしてい�
   b) 実際にXへ送る本文（X用説明文 ＋ 改行 ＋ utm_source=x に置換した誘導先URL）の
      実文字数が X_CHAR_LIMIT 以下であること
   c) 同じ本文のX重みが X_CHAR_LIMIT 以下であること
+  d) リンクなしの回のX本文（説明文の1文目 ＋ ハッシュタグ2件以内・D-0256）も
+     実文字数・X重みの両方が X_CHAR_LIMIT 以下であること。記事の何番目のピンに
+     なるかはファイル単体では決まらないため、全ピンで検査する
+  e) ピン番号 NEW_PIN_RULE_FROM 以降に限り、「- Threads用問いかけ: 」行が
+     ちょうど1行あり、内容が空でないこと（既存のピンは対象外・D-0256）
 
 NG時は「あと何文字削れば両方を満たすか」まで出す。超過文字数だけを出すと、
 全角を削るのか半角を削るのかで必要量が倍違うため、書き直しが何度も往復する。
@@ -63,6 +68,11 @@ X_DESC_TARGET_CHARS = 90
 
 # ピン投稿文ファイル内の項目名。
 X_DESC_LABEL = "- X用説明文: "
+THREADS_Q_LABEL = "- Threads用問いかけ: "
+
+# 「- Threads用問いかけ: 」行を必須にする最小のピン番号（D-0256）。
+# 導入時点で作成済みだったピン（312以前）は対象外にする。
+NEW_PIN_RULE_FROM = 313
 
 
 _PPB_CACHE = []
@@ -99,7 +109,10 @@ def x_weight(text):
 
 
 def x_weighted_length(text, url):
-    """本文のX重み。URLは長さに関わらず X_URL_WEIGHT として数える。"""
+    """本文のX重み。URLは長さに関わらず X_URL_WEIGHT として数える。
+    url が None（リンクなしの回）なら本文をそのまま数える。"""
+    if not url:
+        return x_weight(text)
     occurrences = text.count(url)
     return x_weight(text.replace(url, "")) + X_URL_WEIGHT * occurrences
 
@@ -119,9 +132,25 @@ def build_x_text(x_description, url):
     return "%s\n%s" % (x_description, url)
 
 
+def build_x_nolink_text(description):
+    """リンクなしの回のX本文を組み立てる（Threadsのリンクなしの回の短縮版・D-0256）。
+
+      <説明文の1文目> <ハッシュタグ2件以内>
+
+    URLは載せない。説明文の分割・1文目の切り出しは post-pins-to-buffer.py が正本。
+    """
+    ppb = _load_post_pins_to_buffer()
+    body, tags = ppb.split_description(description)
+    text = ppb.first_sentence(body)
+    if tags:
+        text = "%s %s" % (text, ppb.limit_threads_hashtags(tags, ppb.X_NOLINK_TAG_LIMIT))
+    return text
+
+
 def verdict(x_description, url):
-    """X向け本文の判定。戻り値: (送ってよいか, 本文, 実文字数, X重み)"""
-    text = build_x_text(x_description, url)
+    """X向け本文の判定。戻り値: (送ってよいか, 本文, 実文字数, X重み)
+    url が None のときは x_description を組み立て済みのリンクなし本文として扱う。"""
+    text = build_x_text(x_description, url) if url else x_description
     raw = raw_length(text)
     weighted = x_weighted_length(text, url)
     return (raw <= X_CHAR_LIMIT and weighted <= X_CHAR_LIMIT), text, raw, weighted
@@ -197,28 +226,82 @@ def check_file(file_name, out):
         out("       「- 誘導先URL:」行がありません（X向け本文を組み立てられません）")
         return False
 
+    problems = []  # NGの説明行（1件目の行頭に [NG] を付けて出す）
+
+    # a)〜c) リンク付きの回のX本文
+    linked_note = None
     x_description, reason = extract_x_description(lines)
     if x_description is None:
-        out("  [NG] %s" % file_name)
-        out("       %s" % reason)
-        out("       書式: 「%s<90字以内の本文>」（rules/pinterest-api.md）" % X_DESC_LABEL)
-        return False
+        problems.append(reason)
+        problems.append("書式: 「%s<90字以内の本文>」（rules/pinterest-api.md）" % X_DESC_LABEL)
+    else:
+        url = ppb.rewrite_utm_source(guide_url, "twitter")
+        ok, _text, raw, weighted = verdict(x_description, url)
+        if ok:
+            linked_note = "リンク付き 実文字数 %d / X重み %d" % (raw, weighted)
+        else:
+            problems.extend(_over_lines("リンク付きの回のX本文", raw, weighted,
+                                        "X用説明文を書き直してください。"))
 
-    url = ppb.rewrite_utm_source(guide_url, "twitter")
-    ok, _text, raw, weighted = verdict(x_description, url)
-    if ok:
-        out("  [OK] %s  実文字数 %d / X重み %d（上限 %d）"
-            % (file_name, raw, weighted, X_CHAR_LIMIT))
+    # d) リンクなしの回のX本文
+    nolink_note = None
+    description = None
+    for line in lines:
+        m = ppb.DESC_RE.match(line.strip())
+        if m:
+            description = m.group(1).strip()
+            break
+    if not description:
+        problems.append("「説明文:」行がありません（リンクなしの回のX本文を組み立てられません）")
+    else:
+        ok, _text, raw, weighted = verdict(build_x_nolink_text(description), None)
+        if ok:
+            nolink_note = "リンクなし 実文字数 %d / X重み %d" % (raw, weighted)
+        else:
+            problems.extend(_over_lines(
+                "リンクなしの回のX本文（説明文の1文目＋ハッシュタグ2件以内）", raw, weighted,
+                "説明文の1文目を短くしてください。"))
+
+    # e) Threads用問いかけ（NEW_PIN_RULE_FROM 以降のピンだけ）
+    numbers = ppb._load_check_pin_posting_status().pin_numbers_in_name(file_name)
+    if numbers and max(numbers) >= NEW_PIN_RULE_FROM:
+        questions = [m.group(1).strip() for m in
+                     (ppb.THREADS_Q_RE.match(line.strip()) for line in lines) if m]
+        q_reason = None
+        if not questions:
+            q_reason = "「%s」行がありません（ピン%d以降は必須）" % (
+                THREADS_Q_LABEL.strip(), NEW_PIN_RULE_FROM)
+        elif len(questions) > 1:
+            q_reason = "「%s」行が%d本あります（1ファイルにつき1行）" % (
+                THREADS_Q_LABEL.strip(), len(questions))
+        elif not questions[0]:
+            q_reason = "「%s」行が空です" % THREADS_Q_LABEL.strip()
+        if q_reason:
+            problems.append(q_reason)
+            problems.append("書式: 「%s<記事固有の、読者に問う1文>」（rules/pinterest-api.md）"
+                            % THREADS_Q_LABEL)
+
+    if not problems:
+        out("  [OK] %s  %s / %s（上限 %d）"
+            % (file_name, linked_note, nolink_note, X_CHAR_LIMIT))
         return True
-
-    raw_over, weight_over, need_fw, need_hw = shortfall(raw, weighted)
     out("  [NG] %s" % file_name)
-    out("       実文字数 %d / 上限 %d → %d文字超過" % (raw, X_CHAR_LIMIT, raw_over))
-    out("       X重み   %d / 上限 %d → %d文字超過" % (weighted, X_CHAR_LIMIT, weight_over))
-    out("       あと何文字削れば両方を満たすか: 全角だけを削るなら %d文字 / "
-        "半角だけを削るなら %d文字" % (need_fw, need_hw))
-    out("       ※自動切り詰めは行いません。X用説明文を書き直してください。")
+    for line in problems:
+        out("       %s" % line)
     return False
+
+
+def _over_lines(label, raw, weighted, fix):
+    """上限超過のときの説明行を返す（あと何文字削れば両方を満たすかまで出す）。"""
+    raw_over, weight_over, need_fw, need_hw = shortfall(raw, weighted)
+    return [
+        "%s が上限を超えています" % label,
+        "実文字数 %d / 上限 %d → %d文字超過" % (raw, X_CHAR_LIMIT, raw_over),
+        "X重み   %d / 上限 %d → %d文字超過" % (weighted, X_CHAR_LIMIT, weight_over),
+        "あと何文字削れば両方を満たすか: 全角だけを削るなら %d文字 / "
+        "半角だけを削るなら %d文字" % (need_fw, need_hw),
+        "※自動切り詰めは行いません。%s" % fix,
+    ]
 
 
 def main(argv):
