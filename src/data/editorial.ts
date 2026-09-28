@@ -39,5 +39,7 @@ export const CATEGORY_EDITORIAL = {
     beginners: ['keirounohi-koucha-gift', 'kisei-temiyage-koucha-gift', 'pair-cup-saucer-kekkonjoshii-tanjoubi-hikaku'],
     featured: 'twg-tea-gift-koucha-erabikata',
   },
-  seasons: {},
+  seasons: {
+    spokes: ['bousai-koucha-teabag-erabikata', 'otsukimi-wakoucha-tsukimi-dango', 'koucha-no-hi-yurai', 'halloween-ouchi-ochakai-noncaffeine', 'natsumatsuri-hanabi-suitou-icetea'],
+  },
 } as const;

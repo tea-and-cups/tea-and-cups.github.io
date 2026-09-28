@@ -61,6 +61,7 @@ export const CATEGORIES = [
     en: 'Seasons',
     description:
       'お月見・ハロウィン・夏祭りなど、行事や季節に合わせて楽しむ紅茶の過ごし方をまとめました。',
+    hub: 'koucha-nenkan-calendar-gyoji-kisetsu',
   },
 ];
 
