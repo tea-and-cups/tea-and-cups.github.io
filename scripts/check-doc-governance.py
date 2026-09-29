@@ -49,6 +49,10 @@ CLAUDE.md 3節1「rules/配下のファイルの新設・削除はオーナー�
      「記事N本」表記を全件抽出し、実数と異なるものが1件でもあれば【警告】。
      status.mdが数字を書いていない（表記0件）場合は警告しない。
 
+ 15. docs/status.md「## 未実施の定期作業」節の「未生成」行（D-0257） → 行内の
+     reports/weekly-YYYY-WW.md・reports/monthly-YYYY-MM.md が実在する場合に【警告】
+     （生成済みなのに消し忘れた古い記述の検知）。節が無い・一致が無い場合は何も出さない。
+
 状態は data/doc-state.tsv に保存する。プロジェクトルートはD-0043によりGit管理外のため、
 この状態ファイルがsite/リポジトリへ混入することは構造的に起こらない。
 
@@ -163,6 +167,9 @@ ARTICLE_STATUS_PUBLISHED_RE = re.compile(r"^status:\s*published\s*$", re.MULTILI
 # ものと直前が「関連」のものは除外する（実測: 素朴な抽出では記事目次由来の
 # ordinal表記が誤って不一致判定に混入し、実数側に修正しても警告が消えなかった）。
 ARTICLE_COUNT_LABEL_RE = re.compile(r"(?<!関連)記事(\d+)本(?!目)")
+
+# status.md「未実施の定期作業」節の行から週次・月次レポートのパスを抜き出す（D-0257）
+STALE_REPORT_PATH_RE = re.compile(r"reports/(?:weekly-\d{4}-\d{2}|monthly-\d{4}-\d{2})\.md")
 
 # docs/tasks.md「## 今日」節直下の日付マーカー（rotate-today-tasks.pyが更新する・D-0097）が
 # 今日の日付と一致するかの検知に使う（rotate-today-tasks.py実行漏れの機械検知・D-0102）。
@@ -965,6 +972,32 @@ def check_status_article_count(actual_count):
     ]
 
 
+def check_status_stale_report_lines(status_path=None):
+    """docs/status.md「## 未実施の定期作業」節で「未生成」と書かれた週次・月次レポートが
+    実在する場合に【警告】を返す（D-0257・古い記述の消し忘れの機械検知）。
+    読む範囲はその節（次の「## 」見出しの直前まで）に限る。節が無い・一致が無い場合は空。
+    """
+    path = status_path or STATUS_MD
+    if not os.path.isfile(path):
+        return []
+    warnings = []
+    in_section = False
+    for line in read_text(path).split("\n"):
+        if line.startswith("## "):
+            in_section = line.strip() == "## 未実施の定期作業"
+            continue
+        if not in_section or "未生成" not in line:
+            continue
+        for m in STALE_REPORT_PATH_RE.finditer(line):
+            rel = m.group(0)
+            if os.path.isfile(os.path.join(ROOT, *rel.split("/"))):
+                warnings.append(
+                    "【警告】status.md「未実施の定期作業」に %s が未生成と書かれているが、"
+                    "ファイルは存在する（古い記述。該当行を削除する）" % rel
+                )
+    return warnings
+
+
 def main():
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
@@ -1024,6 +1057,7 @@ def main():
     article_count = count_published_articles()
     print("公開済み記事 %d本（site/src/content/posts/）" % article_count)
     warnings += check_status_article_count(article_count)
+    warnings += check_status_stale_report_lines()
 
     state = load_state()
 
