@@ -38,6 +38,7 @@ export const CATEGORIES = [
     en: 'Teaware',
     description:
       'ティーカップ・グラス・ポットなど、紅茶の時間を支える器と道具の選び方、ブランドごとの違いをまとめました。',
+    hub: 'teacup-erabikata-sozai-katachi-brand',
   },
   {
     slug: 'care',

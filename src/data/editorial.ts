@@ -28,7 +28,7 @@ export const CATEGORY_EDITORIAL = {
     featured: 'koucha-kihon-no-irekata',
   },
   teaware: {
-    beginners: ['teacup-coffee-cup-chigai', 'bone-china-jiki-touki-chigai', 'tea-strainer-chakoshi-erabikata'],
+    spokes: ['teacup-coffee-cup-chigai', 'bone-china-jiki-touki-chigai', 'wedgwood-teacup-erabikata-hikaku', 'kaigai-brand-teacup-hikaku', '5000en-ika-brand-teacup-hikaku'],
     featured: 'bone-china-jiki-touki-chigai',
   },
   care: {
