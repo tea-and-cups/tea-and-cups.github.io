@@ -18,8 +18,7 @@ export const HOME_DOORS = [
 // hub を指定したカテゴリはハブブロックが「最初の入口」を兼ねるため、beginners は出さない。
 export const CATEGORY_EDITORIAL = {
   'tea-leaves': {
-    spokes: ['seiron-koucha-santi-kubun', 'assam-tea-nyumon', 'chaba-grade-op-bop-ctc-yomikata', 'wakoucha-nyumon', 'darjeeling-autumnal-second-flush-hikaku'],
-    beginners: ['sekai-sandai-koucha-towa', 'seiron-koucha-santi-kubun', 'assam-tea-nyumon'],
+    spokes: ['sekai-sandai-koucha-towa', 'seiron-koucha-santi-kubun', 'assam-tea-nyumon', 'wakoucha-nyumon', 'darjeeling-autumnal-second-flush-hikaku'],
     featured: 'seiron-koucha-santi-kubun',
   },
   'how-to': {

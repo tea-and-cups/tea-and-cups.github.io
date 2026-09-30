@@ -22,7 +22,7 @@ export const CATEGORIES = [
     en: 'Tea Leaves',
     description:
       '産地・等級・フレーバーごとの特徴をふまえて、目的や気分に合う茶葉の選び方をご紹介します。',
-    hub: 'sekai-sandai-koucha-towa',
+    hub: 'koucha-shurui-santi-map',
   },
   {
     slug: 'how-to',
