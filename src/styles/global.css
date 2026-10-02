@@ -76,14 +76,14 @@ main{min-height:55vh}.breadcrumb{padding-top:clamp(2rem,5vw,4rem);padding-bottom
 .standard-article-page .article-header h1{font-size:clamp(1.9rem,3vw,2.65rem)}
 .article-title-detail{display:inline}
 .standard-article-page .hero-image{--article-hero-focus-x:50%;object-position:var(--article-hero-focus-x) center;margin-bottom:clamp(1.9rem,3.5vw,3rem)}
-.standard-article-page .article-content{row-gap:0;column-gap:clamp(2rem,5vw,4rem);line-height:1.82}
-.standard-article-page .article-content>.toc{grid-row:1;margin-bottom:1.5rem}
-.standard-article-page .article-content p{margin:.52rem 0}
-.standard-article-page .article-content h2{margin:2rem 0 .7rem}
-.standard-article-page .article-content h3{margin:1.45rem 0 .55rem}
-.standard-article-page .article-content ul,.standard-article-page .article-content ol{margin:.7rem 0;padding-block:.75rem}
-.standard-article-page .article-content p+ul,.standard-article-page .article-content p+ol{margin-top:.55rem}
-.standard-article-page .article-content ul+p,.standard-article-page .article-content ol+p{margin-top:.65rem}
+:is(.standard-article-page,.comparison-page) .article-content{row-gap:0;column-gap:clamp(2rem,5vw,4rem);line-height:1.82}
+:is(.standard-article-page,.comparison-page) .article-content>.toc{grid-row:1;margin-bottom:1.5rem}
+:is(.standard-article-page,.comparison-page) .article-content p{margin:.52rem 0}
+:is(.standard-article-page,.comparison-page) .article-content h2{margin:2rem 0 .7rem}
+:is(.standard-article-page,.comparison-page) .article-content h3{margin:1.45rem 0 .55rem}
+:is(.standard-article-page,.comparison-page) .article-content ul,:is(.standard-article-page,.comparison-page) .article-content ol{margin:.7rem 0;padding-block:.75rem}
+:is(.standard-article-page,.comparison-page) .article-content p+ul,:is(.standard-article-page,.comparison-page) .article-content p+ol{margin-top:.55rem}
+:is(.standard-article-page,.comparison-page) .article-content ul+p,:is(.standard-article-page,.comparison-page) .article-content ol+p{margin-top:.65rem}
 .standard-article-page .product-card{margin:1.65rem 0;padding:1.2rem;border-color:rgba(142,83,28,.32);border-left:3px solid var(--color-amber);background:var(--color-ivory);box-shadow:0 8px 24px rgba(58,42,31,.045)}
 .standard-article-page .article-end-cta{margin-top:2.25rem;padding:1.65rem 2rem}
 .standard-article-page .article-shell{padding-bottom:0}
@@ -110,12 +110,12 @@ main{min-height:55vh}.breadcrumb{padding-top:clamp(2rem,5vw,4rem);padding-bottom
   .standard-article-page .article-title-detail{display:block;margin-top:.25rem;font-size:.72em;line-height:1.65}
   .standard-article-page .article-title-detail>span{display:none}
   .standard-article-page .hero-image{--article-hero-focus-x:50%;width:calc(100% + 40px);max-width:none;margin-inline:-20px;margin-bottom:1.65rem}
-  .standard-article-page .article-content{line-height:1.8}
-  .standard-article-page .article-content>.toc{margin-bottom:1.25rem}
-  .standard-article-page .article-content p{margin:.45rem 0}
-  .standard-article-page .article-content h2{margin:1.7rem 0 .6rem}
-  .standard-article-page .article-content h3{margin:1.25rem 0 .45rem}
-  .standard-article-page .article-content ul,.standard-article-page .article-content ol{margin:.6rem 0;padding-block:.65rem}
+  :is(.standard-article-page,.comparison-page) .article-content{line-height:1.8}
+  :is(.standard-article-page,.comparison-page) .article-content>.toc{margin-bottom:1.25rem}
+  :is(.standard-article-page,.comparison-page) .article-content p{margin:.45rem 0}
+  :is(.standard-article-page,.comparison-page) .article-content h2{margin:1.7rem 0 .6rem}
+  :is(.standard-article-page,.comparison-page) .article-content h3{margin:1.25rem 0 .45rem}
+  :is(.standard-article-page,.comparison-page) .article-content ul,:is(.standard-article-page,.comparison-page) .article-content ol{margin:.6rem 0;padding-block:.65rem}
   .standard-article-page .product-card{margin:1.15rem 0;padding:1rem}
   .standard-article-page .article-end-cta{margin-top:1.8rem;padding:1.4rem 1.1rem}
   .standard-article-page .site-operator{margin:.85rem auto 1.2rem}
