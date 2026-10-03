@@ -18,7 +18,7 @@
 
 出典とみなすもの（カテゴリA・C〜Gのみ）:
   同一判定単位内の Markdownリンク [表示文字](http〜) または素のhttp(s) URL。
-  ただしホストが af.moshimo.com のものは出典に数えない
+  ただしホストが af.moshimo.com・hb.afl.rakuten.co.jp のものは出典に数えない
   （アフィリエイトリンクを出典に数えるとチェックが実質無効化されるため）。
 
 カテゴリB（価格）の特則:
@@ -128,8 +128,12 @@ CATEGORY_ORDER = ["A", "B", "C", "D", "E", "F", "G", "H"]
 # --- 出典判定 ------------------------------------------------------------------
 
 RE_URL = re.compile(r"https?://[^\s\)\]\>\"'　]+")
-RE_AFFILIATE = re.compile(r"^https?://(?:[\w.-]+\.)?af\.moshimo\.com", re.IGNORECASE)
-RE_AFFILIATE_ANY = re.compile(r"af\.moshimo\.com", re.IGNORECASE)
+# アフィリエイトリンク（出典に数えない・例外3を使えない）。楽天アフィリエイト（hb.afl.rakuten.co.jp・
+# D-0260）ともしもアフィリエイト（af.moshimo.com）を同等に扱う。
+RE_AFFILIATE = re.compile(
+    r"^https?://(?:[\w.-]+\.)?(?:af\.moshimo\.com|hb\.afl\.rakuten\.co\.jp)", re.IGNORECASE
+)
+RE_AFFILIATE_ANY = re.compile(r"af\.moshimo\.com|hb\.afl\.rakuten\.co\.jp", re.IGNORECASE)
 
 
 def io_read(path):

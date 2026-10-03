@@ -6,7 +6,7 @@
   1. frontmatterのキーが必須9項目と完全一致しているか（欠落・余分キーの両方を検出）
   2. categoryが site/src/data/categories.ts の CATEGORY_SLUGS（許可値）のいずれかに収まっているか
   3. 本文（frontmatter除く）が純Markdownのみか（生HTMLタグの疑いを検出。コードブロック内は除外）
-  4. 商品リンク（af.moshimo.com）がMarkdownリンク構文 [text](url) で直書きされているか
+  4. 商品リンク（hb.afl.rakuten.co.jp・af.moshimo.com）がMarkdownリンク構文 [text](url) で直書きされているか
   5. hero画像の実ファイルが site/public/ 配下に実在するか（2026-08-15・D-0126。frontmatterに
      heroキーがあるだけでは画像が実際に生成・配置されたことの保証にならないため、画像が無いまま
      quality-reviewer依頼・公開へ進む経路を塞ぐ）
@@ -118,15 +118,19 @@ def check_html_free(body):
     return ok, detail
 
 
+# 商品リンクのホスト。楽天アフィリエイト（D-0260）ともしもアフィリエイトを同等に扱う。
+AFFILIATE_HOST_RE = r"(?:af\.moshimo\.com|hb\.afl\.rakuten\.co\.jp)"
+
+
 def check_affiliate_links_plain(body):
-    total = len(re.findall(r"af\.moshimo\.com", body))
+    total = len(re.findall(AFFILIATE_HOST_RE, body))
     if total == 0:
         return True, "該当リンクなし"
     # リンクテキストが画像Markdown `![alt](img)` の場合（CLAUDE.md 5節の商品画像埋め込み形式
     # `[![商品名](画像)](URL)`）にも対応する。画像部分の `]` で閉じ括弧と誤認しないようにする。
     in_link = 0
-    for m in re.finditer(r"\[(?:!\[[^\]]*\]\([^)]*\)|[^\[\]])+\]\([^)]*af\.moshimo\.com[^)]*\)", body):
-        in_link += len(re.findall(r"af\.moshimo\.com", m.group(0)))
+    for m in re.finditer(r"\[(?:!\[[^\]]*\]\([^)]*\)|[^\[\]])+\]\([^)]*" + AFFILIATE_HOST_RE + r"[^)]*\)", body):
+        in_link += len(re.findall(AFFILIATE_HOST_RE, m.group(0)))
     ok = in_link == total
     detail = "" if ok else f"Markdownリンク構文外の出現あり（全{total}件中{total - in_link}件）"
     return ok, detail

@@ -3,19 +3,25 @@
 対象は output/articles/{slug}.md（下書き段階。無ければ site/src/content/posts/{slug}.md）。
 
 判定単位は「リンク件数」ではなく「商品点数」である。1商品につき画像リンクとテキストリンクの
-2本が並ぶ書式（rules/product-linking.md 3節）のため、本文中の af.moshimo.com を含むURLを
+2本が並ぶ書式（rules/product-linking.md 3節）のため、本文中の商品リンクのURL
+（楽天アフィリエイトの hb.afl.rakuten.co.jp・もしもアフィリエイトの af.moshimo.com）を
 重複排除して数え、その件数を商品点数とみなす。画像取得に失敗してテキストリンクのみに
 なった商品も、URLが1つ残るため1点として数えられる。
 
 チェック内容:
+  0. --new（新規公開の公開前チェック。publish-article.py が初回公開のときだけ付ける）の場合、
+     本文に af.moshimo.com のリンクが1件でもあればNG（新規記事は楽天アフィリエイトのみ・D-0260）。
+     --new なし（--revise・週次）では、もしものリンクも従来どおり商品リンクとして数える
+     （既存記事の一括移行＝第2段の完了までは、もしものリンクを許す）
   1. 商品点数が要求点数N（--min・省略時は1）以上であればOK
   2. N未満の場合、data/product-link-exceptions.md にそのslugが登録されているか確認する
      - 登録されていればOK（「例外登録済み（区分: 恒久/一時/候補不足）」の旨を出力）
      - 登録されていなければNG（商品を追加するか、例外登録するよう促す）
 
 使い方:
-  python site/scripts/check-product-link-presence.py <slug>            （N=1・週次の健全性チェック用）
-  python site/scripts/check-product-link-presence.py <slug> --min 3    （新規記事の公開前チェック用）
+  python site/scripts/check-product-link-presence.py <slug>                  （N=1・週次の健全性チェック用）
+  python site/scripts/check-product-link-presence.py <slug> --min 3          （下書き段階の単独確認）
+  python site/scripts/check-product-link-presence.py <slug> --min 3 --new    （新規記事の公開前チェック用）
 
 終了コード: OKなら0、NGなら1
 """
@@ -31,7 +37,11 @@ EXCEPTIONS_REL = "data/product-link-exceptions.md"
 DEFAULT_MIN_PRODUCTS = 1
 
 # 本文中のアフィリエイトURL全体を拾う（末尾の ) や引用符・空白で切る）。
-AFFILIATE_URL_RE = re.compile(r"https?://[^\s\)\"'\]<>]*af\.moshimo\.com[^\s\)\"'\]<>]*")
+# 楽天アフィリエイト（hb.afl.rakuten.co.jp・D-0260）ともしもアフィリエイト（af.moshimo.com）を同等に数える。
+AFFILIATE_URL_RE = re.compile(
+    r"https?://[^\s\)\"'\]<>]*(?:af\.moshimo\.com|hb\.afl\.rakuten\.co\.jp)[^\s\)\"'\]<>]*"
+)
+MOSHIMO_URL_RE = re.compile(r"https?://[^\s\)\"'\]<>]*af\.moshimo\.com[^\s\)\"'\]<>]*")
 
 
 def resolve_path(slug):
@@ -84,7 +94,8 @@ def find_exception(slug):
 
 
 def parse_args(argv):
-    """(slug, min_products, エラーメッセージ) を返す。エラー時は先の2つがNone。"""
+    """(slug, min_products, エラーメッセージ) を返す。エラー時は先の2つがNone。
+    --new は main() が先に取り除くため、ここには来ない。"""
     slug = None
     min_products = DEFAULT_MIN_PRODUCTS
     i = 0
@@ -118,7 +129,9 @@ def main():
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
 
-    slug, min_products, err = parse_args(sys.argv[1:])
+    argv = sys.argv[1:]
+    new_article = "--new" in argv
+    slug, min_products, err = parse_args([a for a in argv if a != "--new"])
     if err is not None:
         print(err)
         sys.exit(1)
@@ -132,6 +145,16 @@ def main():
     _, body = split_frontmatter(text)
     if body is None:
         body = text
+
+    if new_article:
+        moshimo = sorted(set(MOSHIMO_URL_RE.findall(body)))
+        if moshimo:
+            print(f"商品リンク: もしもアフィリエイトのリンク（af.moshimo.com）が{len(moshimo)}件あります。"
+                  "新規記事の商品リンクは楽天アフィリエイトのリンク作成ページのリンクだけを使います（D-0260）")
+            print("  rules/product-linking.md 3節の手順（rakuten-freelink-extract.js → "
+                  "build-rakuten-affiliate-products.py）でリンクを作り直してください")
+            print("総合: NG")
+            sys.exit(1)
 
     products = count_products(body)
 

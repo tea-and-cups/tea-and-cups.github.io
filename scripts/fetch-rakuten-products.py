@@ -13,19 +13,23 @@
   参考情報であり、CLAUDE.md 2-2の実在・在庫確認（実売ページ確認）を
   省略してよいわけではない。
 
-  商品画像URL（mediumImageUrls）も別セクションで出力する（試行運用・
-  新規記事限定・D-0047）。既存のscoring-input.tsv用の出力形式は変更
-  していない。取得したURLは site/scripts/product-image-to-webp.py に
-  そのまま渡せる。
+  affiliateId を渡し、APIが返す affiliateUrl（hb.afl.rakuten.co.jp の
+  アフィリエイトリンク）を別セクションで出力する（D-0260）。Chromeが使えず
+  リンク作成ページ（rakuten-freelink-extract.js）を使えない日に、画像なしの
+  テキストリンクとして記事に使うためのもの。
+  APIの商品画像（mediumImageUrls）は出力しない。楽天ウェブサービス規約 第10条(9)
+  によりAPIから取った画像は保存できないため（旧 D-0047 の経路は D-0260 で廃止）。
 
 使い方:
   python site/scripts/fetch-rakuten-products.py <検索キーワード> [取得件数(既定5・最大30)]
 
 前提:
-  data/.rakuten-credentials（KEY=VALUE形式、1行目 RAKUTEN_APP_ID・2行目 RAKUTEN_ACCESS_KEY）
-  に楽天ウェブサービスのアプリケーションID・アクセスキーを保存しておく。data/ はGit管理外
+  data/.rakuten-credentials（KEY=VALUE形式、RAKUTEN_APP_ID・RAKUTEN_ACCESS_KEY・
+  RAKUTEN_AFFILIATE_ID）に楽天ウェブサービスのアプリケーションID・アクセスキー・
+  楽天アフィリエイトのアフィリエイトIDを保存しておく。data/ はGit管理外
   （decision_no_root_gitify）のため、キーをファイルに直接置いてよい。ファイルが無い場合は
-  環境変数 RAKUTEN_APP_ID / RAKUTEN_ACCESS_KEY にフォールバックする。
+  環境変数 RAKUTEN_APP_ID / RAKUTEN_ACCESS_KEY / RAKUTEN_AFFILIATE_ID にフォールバックする。
+  RAKUTEN_AFFILIATE_ID が無い場合は affiliateUrl を出さず、その旨を表示する（他の出力は変わらない）。
   2026年2〜5月の楽天API新方式移行により、旧エンドポイント（app.rakuten.co.jp）は廃止済み。
   新エンドポイント（openapi.rakuten.co.jp）は applicationId に加え accessKey が必須。
 """
@@ -61,11 +65,12 @@ def load_credentials():
                 creds[key.strip()] = value.strip()
     app_id = creds.get("RAKUTEN_APP_ID") or os.environ.get("RAKUTEN_APP_ID")
     access_key = creds.get("RAKUTEN_ACCESS_KEY") or os.environ.get("RAKUTEN_ACCESS_KEY")
-    return app_id, access_key
+    affiliate_id = creds.get("RAKUTEN_AFFILIATE_ID") or os.environ.get("RAKUTEN_AFFILIATE_ID")
+    return app_id, access_key, affiliate_id
 
 
 def fetch(keyword, hits):
-    app_id, access_key = load_credentials()
+    app_id, access_key, affiliate_id = load_credentials()
     if not app_id or not access_key:
         sys.exit(f"{CREDENTIALS_PATH} または環境変数に RAKUTEN_APP_ID / RAKUTEN_ACCESS_KEY が見つかりません")
 
@@ -78,6 +83,8 @@ def fetch(keyword, hits):
         "availability": 1,  # 在庫ありのみ
         "format": "json",
     }
+    if affiliate_id:
+        params["affiliateId"] = affiliate_id
     url = f"{ENDPOINT}?{urllib.parse.urlencode(params)}"
     req = urllib.request.Request(url, headers={"Referer": APP_REFERER, "Origin": APP_REFERER.rstrip("/")})
 
@@ -102,6 +109,22 @@ def fetch(keyword, hits):
     return body.get("Items", [])
 
 
+def plain_item_url(d):
+    """商品ページのURL（アフィリエイトでない素のURL）を返す。
+
+    affiliateId を渡すと、APIの itemUrl もアフィリエイトリンク（hb.afl.rakuten.co.jp）になる
+    （2026-10-03実測）。実在・在庫確認やリンク作成ページへ渡すのは素の商品URLのため、
+    pc パラメータから取り出す。
+    """
+    url = d.get("itemUrl", "")
+    parsed = urllib.parse.urlparse(url)
+    if parsed.hostname == "hb.afl.rakuten.co.jp":
+        pc = urllib.parse.parse_qs(parsed.query).get("pc")
+        if pc:
+            return pc[0]
+    return url
+
+
 def to_tsv_row(item):
     d = item["Item"]
     name = d["itemName"].replace("\t", " ")
@@ -111,23 +134,6 @@ def to_tsv_row(item):
     shop = d.get("shopName", "")
     url = d.get("itemUrl", "")
     return name, rating, reviews, price, shop, url
-
-
-def image_url(item):
-    """product-image-to-webp.pyへ渡す画像URL（mediumImageUrls優先）を1件返す。
-
-    APIが返すmediumImageUrlsはデフォルトで `?_ex=128x128` というクエリ付きで、
-    実体は128x128の極小画像（5KB前後）。これをそのまま600x600へ拡大すると
-    ぼやける（実測確認済み・reports/2026-08-02.md）。クエリを外して原寸画像の
-    URLを返し、拡大縮小はproduct-image-to-webp.py側のPillow処理に任せる。
-    """
-    d = item["Item"]
-    medium = d.get("mediumImageUrls") or []
-    small = d.get("smallImageUrls") or []
-    urls = medium or small
-    if not urls:
-        return ""
-    return urls[0].get("imageUrl", "").split("?")[0]
 
 
 def main():
@@ -156,12 +162,17 @@ def main():
     print("--- 商品URL・販売元（実在・在庫確認の参考。CLAUDE.md 2-2の実売ページ確認は別途必要） ---")
     for item in items:
         d = item["Item"]
-        print(f"- {d['itemName']}｜{d.get('shopName','')}｜{d.get('itemUrl','')}")
+        print(f"- {d['itemName']}｜{d.get('shopName','')}｜{plain_item_url(d)}")
     print()
-    print("--- 商品画像URL（試行運用・新規記事限定・D-0047。product-image-to-webp.pyへそのまま渡す） ---")
+    print("--- affiliateUrl（Chromeが使えない日の文字リンク用・画像なし・D-0260。リンク作成ページが使える日は rakuten-freelink-extract.js を使う） ---")
+    if not any(item["Item"].get("affiliateUrl") for item in items):
+        print("（affiliateUrl なし。data/.rakuten-credentials に RAKUTEN_AFFILIATE_ID があるか確認する）")
     for item in items:
         d = item["Item"]
-        print(f"- {d['itemName']}｜{image_url(item)}")
+        if d.get("affiliateUrl"):
+            print(f"- {d['itemName']}｜{d['affiliateUrl']}")
+    print()
+    print("※APIの商品画像（mediumImageUrls）は記事に使わないため出力しない（楽天ウェブサービス規約 第10条(9)・D-0260）")
 
 
 if __name__ == "__main__":

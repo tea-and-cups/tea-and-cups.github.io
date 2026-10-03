@@ -6,7 +6,7 @@
 PostToolUse フックで自動記録）と突き合わせ、台帳に無いURLがあれば公開を止める。
 
 【照合の対象外】
-  ・af.moshimo.com のURL（アフィリエイトリンクであり出典ではない）
+  ・af.moshimo.com・hb.afl.rakuten.co.jp のURL（アフィリエイトリンクであり出典ではない・D-0260）
   ・記事の date が台帳の「記録開始日」より前のもの（記録が存在しない期間のため）
   ・台帳が存在しない場合（照合できないことを表示して通す）
 
@@ -35,7 +35,9 @@ DRAFTS_DIR = os.path.join(ROOT, "output", "articles")
 LOG_PATH = os.path.join(ROOT, "data", "webfetch-log.md")
 
 RE_URL = re.compile(r"https?://[^\s\)\]\>\"'　]+")
-RE_AFFILIATE = re.compile(r"^https?://(?:[\w.-]+\.)?af\.moshimo\.com", re.IGNORECASE)
+RE_AFFILIATE = re.compile(
+    r"^https?://(?:[\w.-]+\.)?(?:af\.moshimo\.com|hb\.afl\.rakuten\.co\.jp)", re.IGNORECASE
+)
 
 RE_LOG_ENTRY = re.compile(r"^- (\d{4}-\d{2}-\d{2}) \| (\S+) \| (\S*)\s*$")
 RE_LOG_START = re.compile(r"^記録開始日:\s*(\d{4}-\d{2}-\d{2})\s*$", re.M)
@@ -109,7 +111,7 @@ def load_log():
 
 
 def article_urls(body):
-    """本文中のURLを、出現順・重複なしで返す（af.moshimo.com は除く）。"""
+    """本文中のURLを、出現順・重複なしで返す（アフィリエイトリンクは除く）。"""
     urls = []
     seen = set()
     for raw in RE_URL.findall(strip_code_blocks(body)):

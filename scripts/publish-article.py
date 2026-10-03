@@ -12,9 +12,10 @@ Edit/Writeによるpublished化は .claude/hooks/check-publish-gate.py で拒否
   1. output/articles/<slug>.md の存在確認
   2. 公開前チェック群を順に実行（1本でも非ゼロ終了なら中断）
        check-article-portability.py <slug>
-       check-product-link-presence.py <slug> --min N
+       check-product-link-presence.py <slug> --min N --new
          （N は category で切り替える。gift・teaware は3点、それ以外は1点。
-           categoryを読めなければ3点。D-0248）
+           categoryを読めなければ3点。D-0248。--new は初回公開だけに付け、
+           af.moshimo.com のリンクを含む記事を不合格にする。D-0260）
        check-fact-source.py <slug>
        check-source-fetched.py <slug>
        check-pin-image-naming.py
@@ -186,12 +187,17 @@ def required_products(category):
 
 
 def publish_checks(draft_path):
-    """初回公開用のチェック群。商品点数の要求だけ category で切り替える。"""
+    """初回公開用のチェック群。商品点数の要求だけ category で切り替える。
+
+    初回公開に限り --new を付け、もしもアフィリエイトのリンクを含む記事を不合格にする
+    （新規記事は楽天アフィリエイトのみ・D-0260）。--revise はこの関数を通らないため、
+    既存記事のもしものリンクは第2段（一括移行）の完了まで従来どおり通る。
+    """
     n = required_products(read_category(draft_path))
     checks = []
     for name, takes_slug, extra_args in PRE_PUBLISH_CHECKS:
         if name == "check-product-link-presence.py":
-            extra_args = ["--min", str(n)]
+            extra_args = ["--min", str(n), "--new"]
         checks.append((name, takes_slug, extra_args))
     return checks
 

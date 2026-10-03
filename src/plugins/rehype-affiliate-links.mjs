@@ -1,5 +1,6 @@
 // アフィリエイトリンクに rel="sponsored noopener" と target="_blank" を自動付与し、
-// 続けて商品ブロック（画像段落＋★段落、または★段落単独）を <div class="product-card"> で包む。
+// 続けて商品ブロック（画像段落＋★段落、または★段落単独）を <div class="product-card"> で包み、
+// リンク先が楽天市場のカードには「リンク先：楽天市場」の表記を入れる（D-0260）。
 // 目的:
 //   1. Googleのリンクスパム対策ガイドライン（有料・アフィリエイトリンクは rel="sponsored"）への準拠
 //   2. 別タブで開くことで、商品ページを見た読者が記事に戻れる（比較検討中の離脱防止）
@@ -94,6 +95,48 @@ function isProductImageParagraph(node) {
   return inner.length === 1 && inner[0].type === 'element' && inner[0].tagName === 'img';
 }
 
+// リンク先が楽天市場か（楽天アフィリエイトのリンク・楽天市場の商品URL・
+// もしもアフィリエイト経由で url= に楽天市場の商品URLを持つリンク）
+function isRakutenHref(href) {
+  const host = hostOf(href);
+  if (!host) return false;
+  if (host === 'hb.afl.rakuten.co.jp' || host === 'item.rakuten.co.jp') return true;
+  if (host === 'af.moshimo.com' || host.endsWith('.moshimo.com')) {
+    try {
+      const target = new URL(href).searchParams.get('url');
+      const t = target ? hostOf(target) : null;
+      return t === 'rakuten.co.jp' || (t?.endsWith('.rakuten.co.jp') ?? false);
+    } catch {
+      return false;
+    }
+  }
+  return false;
+}
+
+function firstSponsoredHref(node) {
+  let href = null;
+  walk(node, (n) => {
+    if (href === null && isSponsoredAnchor(n) && typeof n.properties?.href === 'string') {
+      href = n.properties.href;
+    }
+  });
+  return href;
+}
+
+// 楽天ガイドライン「リンク先が楽天市場だと分かる形にする」への対応（D-0260）。
+// ★段落の先頭に「リンク先：楽天市場」の小さな表記を入れる（Markdown本文は変えない）。
+function prependShopLabel(metaParagraph) {
+  metaParagraph.children = [
+    {
+      type: 'element',
+      tagName: 'span',
+      properties: { className: ['product-card__shop'] },
+      children: [{ type: 'text', value: 'リンク先：楽天市場' }],
+    },
+    ...(metaParagraph.children ?? []),
+  ];
+}
+
 function addClass(node, name) {
   const cur = node.properties?.className;
   const list = Array.isArray(cur)
@@ -115,6 +158,7 @@ function wrapProductCards(tree) {
       continue;
     }
     addClass(node, 'product-card__meta');
+    if (isRakutenHref(firstSponsoredHref(node))) prependShopLabel(node);
 
     // 直前の兄弟（段落間の改行テキストは読み飛ばす）が画像段落なら、同じカードに含める
     const spacer = [];

@@ -12,6 +12,11 @@ const footerPosts = [...publishedPosts].sort(compareByDateDescThenSlugAsc).slice
 const footerCategories = CATEGORIES.filter((c) => publishedPosts.some((p) => p.data.category === c.slug));
 const siteJsonLd = { '@context': 'https://schema.org', '@type': 'WebSite', name: siteName, alternateName: '紅茶とティーカップの静かな時間', url: Astro.site?.href };
 const structuredData = [siteJsonLd, ...(jsonLd ?? [])];
+// 楽天ウェブサービスのクレジット（https://webservice.rakuten.co.jp/guide/credit のテキスト形式。
+// 「ソースの改変はできません」のため、公式のHTMLソースを1文字も変えずに set:html で出す・D-0260）
+const rakutenCredit = `<!-- Rakuten Web Services Attribution Snippet FROM HERE -->
+<a href="https://developers.rakuten.com/" target="_blank">Supported by Rakuten Developers</a>
+<!-- Rakuten Web Services Attribution Snippet TO HERE -->`;
 ---
 <html lang="ja">
 <head>
@@ -69,6 +74,7 @@ const structuredData = [siteJsonLd, ...(jsonLd ?? [])];
       <nav aria-label="案内"><h2>案内</h2><a href="/articles/">すべての記事</a><a href="/about/">このサイトについて</a><a href="/privacy-policy/">プライバシーポリシー</a><a href="#main">ページの先頭へ ↑</a></nav>
     </div>
     <p class="footer-disclosure">当サイトはアフィリエイトプログラムに参加しています。商品リンクから購入された場合、紹介料が支払われることがあります。</p>
+    <p class="footer-credit"><Fragment set:html={rakutenCredit} /></p>
     <p class="footer-copy">© {new Date().getFullYear()} {siteName} Kohaku Jikan</p>
   </div></footer>
   <script is:inline>
