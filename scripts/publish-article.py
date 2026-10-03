@@ -132,6 +132,21 @@ Edit/Writeによるpublished化は .claude/hooks/check-publish-gate.py で拒否
        commit「migrate-rakuten: N記事」を1回、push を1回行う。ステージに対象以外が載っていれば中断する。
   --dry-run は1〜3の内容（件数・飛ばす下書き・消す画像）を表示するだけで、ファイルを書かず、4〜5もしない。
   prune-used-ideas・Pin/Buffer投稿・production runのstep記録は行わない（--reviseと同じ）。
+
+【PR表記の一括書き換え（--migrate-pr-line・D-0263。D-0239の例外）】
+  公開済み全記事のPR表記を、本文の商品リンクのURLホストから決まる文言に書き換える（GD-0026）。
+  規則は check-product-link-presence.py の expected_pr_line が正本（楽天→もしもの順に「・」でつなぐ。
+  商品リンクが無ければ「楽天アフィリエイト」）。
+  python site/scripts/publish-article.py --migrate-pr-line [--dry-run]
+    1. 変えてよいのは、PR表記の行と、経路を説明する定型句（「楽天市場（もしもアフィリエイト経由）」）だけ。
+       frontmatter・updated・他の行は変えない。PR表記の行が1行でない記事があれば全体を中断する。
+    2. 下書き（output/articles/<slug>.md）は、公開中と完全に同じ内容だった記事だけ同じ本文へ揃える。
+       異なる記事は飛ばして報告する。下書きが無ければ何もしない。
+    3. check-article-portability.py とPR表記の検査を全対象に、astro build を1回かける。
+       落ちたら書き換えをすべて元に戻して中断する。
+    4. 対象記事だけを add し、commit「migrate-pr-line: N記事」を1回、push を1回行う。
+  --dry-run は1・2の内容（件数・経路の文・飛ばす下書き）を表示するだけで、何も書かない。
+  prune-used-ideas・Pin/Buffer投稿・production runのstep記録は行わない（--reviseと同じ）。
 """
 
 import difflib
@@ -181,9 +196,10 @@ GIT_TIMEOUT = 180
 BUILD_TIMEOUT = 600
 
 RE_FRONTMATTER = re.compile(r"\A---\r?\n(.*?\r?\n)---\r?\n", re.S)
-RE_STATUS = re.compile(r"^(\s*status:\s*)(\S+)[ \t]*$", re.M)
-RE_CATEGORY = re.compile(r"^(\s*category:\s*)(\S+)[ \t]*$", re.M)
-RE_UPDATED = re.compile(r"^(\s*updated:\s*)(\S+)[ \t]*$", re.M)
+# 行末の \r（CRLF）は先読みで許し、置換のときも消さない（L032）。
+RE_STATUS = re.compile(r"^(\s*status:\s*)(\S+)[ \t]*(?=\r?$)", re.M)
+RE_CATEGORY = re.compile(r"^(\s*category:\s*)(\S+)[ \t]*(?=\r?$)", re.M)
+RE_UPDATED = re.compile(r"^(\s*updated:\s*)(\S+)[ \t]*(?=\r?$)", re.M)
 
 # 商品点数の必須数（D-0248）。gift・teaware は購入検討が主の題材のため3点必須、
 # それ以外のカテゴリは1点以上。categoryを読めなければ厳しい側（3点）に倒す。
@@ -523,8 +539,10 @@ def _revise_checks(published_path):
     for name, takes_slug, extra_args in REVISE_PUBLISH_CHECKS:
         if name == "check-product-link-presence.py":
             if n == 0:
-                continue  # --min は1以上のみ。公開中0点なら減ることは無いので省く
-            extra_args = ["--min", str(min(3, n))]
+                # --min は1以上のみ。公開中0点なら減ることは無いので点数は見ず、PR表記だけ検査する
+                extra_args = ["--pr-line-only"]
+            else:
+                extra_args = ["--min", str(min(3, n))]
         checks.append((name, takes_slug, extra_args))
     return checks, n
 
@@ -1227,6 +1245,183 @@ def _run_migrate_rakuten(rest_args):
     return 0
 
 
+# --- PR表記の一括書き換え（--migrate-pr-line・D-0263） ----------------------------
+
+# PR表記の行以外で、リンクの経路を説明している定型句（例: 「楽天市場（もしもアフィリエイト経由）」）。
+RE_ROUTE_PHRASE = re.compile(r"楽天市場（(?:もしも|楽天)アフィリエイト経由）")
+
+
+def _load_link_check():
+    path = os.path.join(SCRIPTS_DIR, "check-product-link-presence.py")
+    spec = importlib.util.spec_from_file_location("check_product_link_presence", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def _pr_migrate_text(text, link_check):
+    """PR表記の行と経路の定型句を、商品リンクのホストから決まる文言へ書き換える。
+
+    返り値は (新しい本文, [(行番号, 種別, 旧, 新)], エラー or None)。frontmatterは触らない。
+    行末の \\r は保つ。PR表記の行が1行でなければエラー。
+    """
+    m = RE_FRONTMATTER.match(text)
+    start = m.end() if m else 0
+    names = "・".join(link_check.program_names(text))
+    expected = link_check.expected_pr_line(text)
+    head, body = text[:start], text[start:]
+    base_line = head.count("\n")
+    changes, lines = [], body.split("\n")
+    pr_count = 0
+    for i, line in enumerate(lines):
+        cr = "\r" if line.endswith("\r") else ""
+        core = line[: len(line) - len(cr)]
+        if link_check.RE_PR_LINE.match(core):
+            pr_count += 1
+            new_core, kind = expected, "PR表記"
+        elif RE_ROUTE_PHRASE.search(core):
+            new_core, kind = RE_ROUTE_PHRASE.sub("楽天市場（%s経由）" % names, core), "経路の文"
+        else:
+            continue
+        if new_core != core:
+            changes.append((base_line + i + 1, kind, core, new_core))
+            lines[i] = new_core + cr
+    if pr_count != 1:
+        return None, [], "PR表記の行が%d行あります（1行だけの記事が対象）" % pr_count
+    return head + "\n".join(lines), changes, None
+
+
+def _run_migrate_pr_line(rest_args):
+    """--migrate-pr-line [--dry-run]（D-0263）。"""
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
+
+    dry_run = "--dry-run" in rest_args
+    if [a for a in rest_args if a != "--dry-run"]:
+        out(__doc__)
+        return 1
+    out("=== publish-article.py --migrate-pr-line%s ===" % ("（--dry-run）" if dry_run else ""))
+    link_check = _load_link_check()
+
+    out("1. 本文の書き換え案（行単位）")
+    jobs = []  # (slug, old, new, changes, draft_action)
+    for name in sorted(n for n in os.listdir(POSTS_DIR) if n.endswith(".md")):
+        slug = name[:-3]
+        old = read_text(os.path.join(POSTS_DIR, name))
+        new, changes, err = _pr_migrate_text(old, link_check)
+        if err:
+            return abort("%s: %s。何も書き換えていません" % (slug, err))
+        if not changes:
+            continue
+        draft_path = os.path.join(DRAFTS_DIR, name)
+        draft_action = "なし"
+        if os.path.isfile(draft_path):
+            draft_action = "揃える" if read_text(draft_path) == old else "飛ばす"
+        jobs.append((slug, old, new, changes, draft_action))
+    rel_posts = ["src/content/posts/%s.md" % j[0] for j in jobs]
+    status = git("status", "--porcelain", "--", *rel_posts) if rel_posts else None
+    if status is not None:
+        if status.returncode != 0:
+            return abort("git status に失敗しました: %s" % (status.stderr or status.stdout).strip())
+        if status.stdout.strip():
+            return abort("対象に未commitの変更があります。先に片付けてください:\n" + status.stdout.rstrip())
+
+    n_pr = sum(1 for j in jobs for c in j[3] if c[1] == "PR表記")
+    route = [(j[0], c) for j in jobs for c in j[3] if c[1] == "経路の文"]
+    by_name = {}
+    for j in jobs:
+        pr = next(c[3] for c in j[3] if c[1] == "PR表記")
+        by_name[pr] = by_name.get(pr, 0) + 1
+    out("  書き換える記事: %d件（PR表記の行 %d・経路の文 %d）" % (len(jobs), n_pr, len(route)))
+    for text, n in sorted(by_name.items()):
+        out("    %d件 → %s" % (n, text))
+    for slug, c in route:
+        out("    経路の文: %s:%d  「%s」→「%s」" % (slug, c[0], c[2], c[3]))
+    counts = {}
+    for j in jobs:
+        counts[j[4]] = counts.get(j[4], 0) + 1
+    out("  下書き: %s" % " / ".join("%s %d件" % (k, v) for k, v in sorted(counts.items())))
+    skipped = [j[0] for j in jobs if j[4] == "飛ばす"]
+    if skipped:
+        out("  下書きが公開中と異なるため触らない記事: %s" % ", ".join(skipped))
+    if not jobs:
+        out("=== 書き換える記事はありません ===")
+        return 0
+
+    if dry_run:
+        out("2. [dry-run] 書き換え・チェック・ビルド・commit・push は実行していません")
+        out("=== dry-run 完了（%d記事） ===" % len(jobs))
+        return 0
+
+    written = []  # (path, 元の本文)
+
+    def rollback():
+        for path, old_text in reversed(written):
+            write_text(path, old_text)
+
+    for slug, old, new, _changes, draft_action in jobs:
+        published_path = os.path.join(POSTS_DIR, "%s.md" % slug)
+        write_text(published_path, new)
+        written.append((published_path, old))
+        if draft_action == "揃える":
+            draft_path = os.path.join(DRAFTS_DIR, "%s.md" % slug)
+            write_text(draft_path, new)
+            written.append((draft_path, old))
+    out("2. 書き換え完了（公開済み %d件・下書き %d件）" % (
+        len(jobs), sum(1 for j in jobs if j[4] == "揃える")))
+
+    out("3. チェックとビルド")
+    ng = None
+    for slug, _old, new, _c, _d in jobs:
+        ok, text = _run_check("check-article-portability.py", [slug])
+        if not ok:
+            ng = ("check-article-portability.py %s" % slug, text)
+            break
+        problem = link_check.pr_line_problem(read_text(os.path.join(POSTS_DIR, "%s.md" % slug)))
+        if problem:
+            ng = ("PR表記 %s" % slug, "期待: %s\n実際: %s" % (problem[0], " / ".join(problem[1])))
+            break
+    if ng is None:
+        out("  OK  check-article-portability.py・PR表記（%d件）" % len(jobs))
+        ok, tail = _run_build()
+        if not ok:
+            ng = ("astro build", tail)
+        else:
+            out("  OK  astro build")
+    if ng is not None:
+        out("  NG  %s" % ng[0])
+        out_lines(ng[1])
+        rollback()
+        return abort("チェックまたはビルドに失敗したため、本文をすべて元に戻しました（commit・pushは実行していません）")
+
+    staged_before = git("diff", "--cached", "--name-only")
+    if staged_before.returncode != 0 or staged_before.stdout.strip():
+        rollback()
+        return abort("すでにステージされているファイルがあります（%s）。書き換えを元に戻しました"
+                     % ", ".join(staged_before.stdout.split()))
+    result = git("add", "-A", "--", *rel_posts)
+    if result.returncode != 0:
+        return abort("git add に失敗しました: %s" % (result.stderr or result.stdout).strip())
+    staged = git("diff", "--cached", "--name-only")
+    foreign = [f for f in staged.stdout.split() if f not in set(rel_posts)]
+    if foreign:
+        return abort("対象以外のファイルがステージされました（%s）。commit していません" % ", ".join(foreign))
+    out("4. git add: %d件" % len(rel_posts))
+    message = "migrate-pr-line: %d記事" % len(jobs)
+    result = git("commit", "-m", message)
+    if result.returncode != 0:
+        return abort("git commit に失敗しました: %s" % (result.stderr or result.stdout).strip())
+    out("   git commit: %s" % message)
+    result = git("push")
+    if result.returncode != 0:
+        return abort("git push に失敗しました: %s" % (result.stderr or result.stdout).strip())
+    out("5. git push 完了")
+    for line in (result.stdout + result.stderr).strip().splitlines():
+        out("   " + line)
+    out("=== PR表記の一括書き換え完了: %d記事 ===" % len(jobs))
+    return 0
+
+
 def main():
     """本体（_run）を呼び、その結果を production run の step として1件だけ記録する。
 
@@ -1249,6 +1444,9 @@ def main():
 
     if args[:1] == ["--migrate-rakuten"]:
         return _run_migrate_rakuten(args[1:])
+
+    if args[:1] == ["--migrate-pr-line"]:
+        return _run_migrate_pr_line(args[1:])
 
     attempt = {"slug": None, "dry_run": False, "failed_check": None}
     rc = _run(attempt)

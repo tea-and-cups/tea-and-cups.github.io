@@ -9,6 +9,11 @@
 なった商品も、URLが1つ残るため1点として数えられる。
 
 チェック内容:
+  00. PR表記（「※当サイトはアフィリエイト広告（…）を利用しています。」）が、本文の商品リンクの
+     URLホストから決まる期待文言と一致すること（GD-0026・D-0263）。楽天アフィリエイト
+     （hb.afl.rakuten.co.jp）→もしもアフィリエイト（af.moshimo.com）の順に「・」でつなぎ、
+     商品リンクが無ければ「楽天アフィリエイト」。1行だけあり、一致しなければNG（期待文言を1行出す）。
+     新規公開・--revise・週次のいずれでも常に検査する
   0. --new（新規公開の公開前チェック。publish-article.py が初回公開のときだけ付ける）の場合、
      本文に af.moshimo.com のリンクが1件でもあればNG（新規記事は楽天アフィリエイトのみ・D-0260）。
      --new なし（--revise・週次）では、もしものリンクも従来どおり商品リンクとして数える
@@ -23,6 +28,8 @@
   python site/scripts/check-product-link-presence.py <slug>                  （N=1・週次の健全性チェック用）
   python site/scripts/check-product-link-presence.py <slug> --min 3          （下書き段階の単独確認）
   python site/scripts/check-product-link-presence.py <slug> --min 3 --new    （新規記事の公開前チェック用）
+  python site/scripts/check-product-link-presence.py <slug> --pr-line-only   （PR表記だけ検査。--revise で公開中の商品が0点のとき）
+  python site/scripts/check-product-link-presence.py --all-posts             （公開済み全記事のPR表記だけ検査）
 
 終了コード: OKなら0、NGなら1
 """
@@ -43,6 +50,48 @@ AFFILIATE_URL_RE = re.compile(
     r"https?://[^\s\)\"'\]<>]*(?:af\.moshimo\.com|hb\.afl\.rakuten\.co\.jp)[^\s\)\"'\]<>]*"
 )
 MOSHIMO_URL_RE = re.compile(r"https?://[^\s\)\"'\]<>]*af\.moshimo\.com[^\s\)\"'\]<>]*")
+
+# PR表記は商品リンクのURLホストから決める（GD-0026・D-0263）。順序は表記に並べる順でもある。
+# 商品リンクが無い記事は先頭（楽天アフィリエイト）とする。
+PROGRAM_BY_HOST = (
+    ("hb.afl.rakuten.co.jp", "楽天アフィリエイト"),
+    ("af.moshimo.com", "もしもアフィリエイト"),
+)
+RE_PR_LINE = re.compile(r"^※当サイトはアフィリエイト広告[^\r\n]*", re.M)
+
+
+def program_names(text):
+    """本文の商品リンクのホストから、アフィリエイトプログラム名を返す（無ければ楽天のみ）。"""
+    names = [name for host, name in PROGRAM_BY_HOST
+             if re.search(r"https?://" + re.escape(host) + r"/", text)]
+    return names or [PROGRAM_BY_HOST[0][1]]
+
+
+def expected_pr_line(text):
+    return "※当サイトはアフィリエイト広告（%s）を利用しています。" % "・".join(program_names(text))
+
+
+def pr_line_problem(text):
+    """PR表記が期待どおりなら None。違えば (期待する行, 実際の行のリスト) を返す。"""
+    expected = expected_pr_line(text)
+    found = RE_PR_LINE.findall(text)
+    return None if found == [expected] else (expected, found)
+
+
+def check_all_posts():
+    """全記事（site/src/content/posts）のPR表記を検査し、終了コードを返す。"""
+    posts_dir = os.path.join(ROOT, "site", "src", "content", "posts")
+    names = sorted(n for n in os.listdir(posts_dir) if n.endswith(".md"))
+    ng = 0
+    for name in names:
+        problem = pr_line_problem(io_read(os.path.join(posts_dir, name)))
+        if problem:
+            ng += 1
+            print(f"NG {name[:-3]}")
+            print(f"  期待: {problem[0]}")
+            print(f"  実際: {' / '.join(problem[1]) if problem[1] else '（PR表記の行なし）'}")
+    print(f"PR表記: 全{len(names)}記事・不一致{ng}件")
+    return 1 if ng else 0
 
 
 def resolve_path(slug):
@@ -131,8 +180,11 @@ def main():
         sys.stdout.reconfigure(encoding="utf-8")
 
     argv = sys.argv[1:]
+    if argv == ["--all-posts"]:
+        sys.exit(check_all_posts())
     new_article = "--new" in argv
-    slug, min_products, err = parse_args([a for a in argv if a != "--new"])
+    pr_only = "--pr-line-only" in argv
+    slug, min_products, err = parse_args([a for a in argv if a not in ("--new", "--pr-line-only")])
     if err is not None:
         print(err)
         sys.exit(1)
@@ -146,6 +198,18 @@ def main():
     _, body = split_frontmatter(text)
     if body is None:
         body = text
+
+    problem = pr_line_problem(text)
+    if problem:
+        print("PR表記: 記事の広告表示が商品リンクのURLホストと一致しません（GD-0026）")
+        print(f"  期待: {problem[0]}")
+        print(f"  実際: {' / '.join(problem[1]) if problem[1] else '（PR表記の行なし）'}")
+        print("総合: NG")
+        sys.exit(1)
+    print(f"PR表記: OK（{'・'.join(program_names(text))}）")
+    if pr_only:
+        print("総合: OK")
+        sys.exit(0)
 
     if new_article:
         moshimo = sorted(set(MOSHIMO_URL_RE.findall(body)))
