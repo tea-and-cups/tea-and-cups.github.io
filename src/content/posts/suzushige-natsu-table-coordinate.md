@@ -32,9 +32,9 @@ category: seasons
 
 布小物を寒色でそろえるなら、リバーシブルで使えるランチョンマットが便利です。表裏で色が変わるタイプなら、藍系の面を上にすれば涼しげに、季節が変わったら裏返して暖色系の面を使うといった調整もできます。国内ブランド「fabrizm（ファブリズム）」の「つむぎ」シリーズは、藍×ローズなど複数の配色から選べるリバーシブル仕様です。
 
-[![fabrizm つむぎリバーシブル ランチョンマット](/images/suzushige-natsu-table-coordinate/products/1.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fjonaron%2Fplacemat-tumugi%2F)
+[![fabrizm つむぎリバーシブル ランチョンマット](/images/suzushige-natsu-table-coordinate/products/1.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824ec34.16cdf011.5824ec35.150cb08f/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fjonaron%2Fplacemat-tumugi%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.63（271件） [fabrizm つむぎリバーシブルランチョンマットはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fjonaron%2Fplacemat-tumugi%2F)
+★4.63（271件） [fabrizm つむぎリバーシブルランチョンマットはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824ec34.16cdf011.5824ec35.150cb08f/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fjonaron%2Fplacemat-tumugi%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 ## 2. 器の透明感を活かす
 
@@ -46,9 +46,9 @@ category: seasons
 
 グラスやポットをテーブルに直接置くより、トレイやランチョンマットの上にまとめて置くほうが、視線が一箇所に集まり、テーブル全体がすっきりまとまります。来客時にまとめて運ぶ際のトレイの選び方は[来客をもてなす「映える」アイスティーの出し方](/posts/raikyaku-motenashi-icetea/)でも触れていますが、日常使いなら、ランチョンマットと同じ生地のコースターをグラスの下に敷くだけでも統一感が出ます。
 
-[![fabrizm つむぎリバーシブル コースター](/images/suzushige-natsu-table-coordinate/products/2.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fjonaron%2F1083%2F)
+[![fabrizm つむぎリバーシブル コースター](/images/suzushige-natsu-table-coordinate/products/2.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824ec34.16cdf011.5824ec35.150cb08f/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fjonaron%2F1083%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.78（112件） [fabrizm つむぎリバーシブルコースターはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fjonaron%2F1083%2F)
+★4.78（112件） [fabrizm つむぎリバーシブルコースターはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824ec34.16cdf011.5824ec35.150cb08f/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fjonaron%2F1083%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 コースターとランチョンマットを同じシリーズでそろえておくと、来客用に少し華やかな組み合わせにしたいときも、色を替えるだけで印象を変えられて便利です。
 

@@ -36,9 +36,9 @@ category: seasons
 
 読書のお供にする紅茶は、味の濃さよりも「香りの立ち方」で選ぶと切り替えがうまくいきます。おすすめは、ベルガモットで香りづけしたアールグレイ。柑橘系のさわやかな香りは、読む前のひと口でわかりやすく気分を変えてくれます。ミルクを入れても香りが負けにくいので、夜に濃いめのミルクティーにする楽しみ方もできます。ティーバッグを選べば、読みたくなったときに1包つまむだけで用意でき、「準備が面倒だから」と読書そのものを先送りにしにくくなります。
 
-[![トワイニング アールグレイ ティーバッグ 50袋](/images/dokusho-no-aki-koucha-hitorijikan/products/1.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fkaumall%2F52094873%2F)
+[![トワイニング アールグレイ ティーバッグ 50袋](/images/dokusho-no-aki-koucha-hitorijikan/products/1.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824dc33.dc5da606.5824dc34.ced67af3/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fkaumall%2F52094873%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.89（36件） [トワイニング アールグレイ ティーバッグ 50袋はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fkaumall%2F52094873%2F)
+★4.89（36件） [トワイニング アールグレイ ティーバッグ 50袋はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824dc33.dc5da606.5824dc34.ced67af3/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fkaumall%2F52094873%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 英国の老舗ブランド、トワイニングのアールグレイが50袋入った定番のティーバッグです。箱を開けてすぐ使える手軽さがあり、レビューは★4.8台を保っています。淹れ方の目安は、沸かしたての熱いお湯250mlほどで3分蒸らすこと。ベルガモットの香りを楽しみやすくなります。ホットだけでなく水出しやアイスティーにも使えるので、残暑の昼下がりに冷たくして読む、という使い方にも向きます。
 
@@ -46,9 +46,9 @@ category: seasons
 
 読書中にカップが空になるたびキッチンへ立つと、そのたびに集中が切れます。300〜350mlほど入る少し大きめのカップにしておくと、一杯で長くもつぶん、本の世界に留まりやすくなります。両手で包める形なら、肌寒い夜には手を温める役割も果たします。素材は厚手の陶器がおすすめで、薄いカップより冷めにくく、置いたときの音も静かです。
 
-[![CLASKA DO スリムマグ 350ml](/images/dokusho-no-aki-koucha-hitorijikan/products/2.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fmercato-shop%2Fclaska-do-magslim%2F)
+[![CLASKA DO スリムマグ 350ml](/images/dokusho-no-aki-koucha-hitorijikan/products/2.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824dc44.213c5ef6.5824dc45.5ac4bcfb/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fmercato-shop%2Fclaska-do-magslim%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.67（73件） [CLASKA DO スリムマグ 350mlはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fmercato-shop%2Fclaska-do-magslim%2F)
+★4.67（73件） [CLASKA DO スリムマグ 350mlはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824dc44.213c5ef6.5824dc45.5ac4bcfb/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fmercato-shop%2Fclaska-do-magslim%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 ホテルやショップを手がけるCLASKAの器シリーズのマグで、容量は350ml。上に向かってすぼまった形をしています。商品説明によると、ぽってりとした厚手の生地で、持ち手には指が3本ほど入る大きさとのこと。色はイエロー・グレー・オフホワイトの3色。電子レンジと食洗機に対応しているので、少しぬるくなったら温め直せるのも長い読書時間には助かります。器の選び方は[コーヒーカップと紅茶カップの違い・使い分け](/posts/teacup-coffee-cup-chigai/)もあわせてどうぞ。
 
@@ -58,9 +58,9 @@ category: seasons
 
 カップウォーマーは、コースター状の板の上にカップを置いておくだけで、飲みごろの温度をキープしてくれる道具です。デスクワークのお供として広まりましたが、動かずに長く座る読書とも相性がよく、机の隅に置いておけます。
 
-[![カップウォーマー 卓上 保温プレート](/images/dokusho-no-aki-koucha-hitorijikan/products/3.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fvaluefactory%2Fap-091%2F)
+[![カップウォーマー 卓上 保温プレート](/images/dokusho-no-aki-koucha-hitorijikan/products/3.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824dc6e.2c960044.5824dc6f.c5d3017a/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fvaluefactory%2Fap-091%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.57（517件） [カップウォーマー（卓上・保温プレート）はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fvaluefactory%2Fap-091%2F)
+★4.57（517件） [カップウォーマー（卓上・保温プレート）はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824dc6e.2c960044.5824dc6f.c5d3017a/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fvaluefactory%2Fap-091%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 温度を数段階で調節でき、切り忘れ防止のタイマーが付いた卓上タイプです。レビュー件数が500件を超えて★4.5台を保っているので、選ぶときの安心材料になります。使うときは、底が平らなマグを選ぶこと、金属製のカップは避けることの2点だけ気をつければ大丈夫です。ポット派の方は無理に切り替えず、ティーコゼでの保温で十分です。
 

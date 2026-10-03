@@ -33,9 +33,9 @@ category: tea-leaves
 
 フォションは1886年、オーギュスト・フォションがパリのマドレーヌ広場に開いた高級食品店を起源とするフランスのブランドです（参考: [Fauchon - Wikipedia](https://en.wikipedia.org/wiki/Fauchon)）。アールグレイはベルガモットの香りを効かせた紅茶で、ゴールドの缶がそのまま食卓に置いても様になるパッケージも魅力です。茶葉タイプのためティーポットでの抽出が前提になりますが、その分香りの立ち方をしっかり楽しめます。
 
-[![フォション Special Earl Grey Tea 缶入り125g](/images/fauchon-harney-sons-kaigai-koucha-brand/products/1.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fprofoods%2F10002849%2F)
+[![フォション Special Earl Grey Tea 缶入り125g](/images/fauchon-harney-sons-kaigai-koucha-brand/products/1.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824dfae.7bb8596b.5824dfaf.0ee5f130/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fprofoods%2F10002849%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.81（16件） [フォション Special Earl Grey Tea 缶入り125gはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fprofoods%2F10002849%2F)
+★4.81（16件） [フォション Special Earl Grey Tea 缶入り125gはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824dfae.7bb8596b.5824dfaf.0ee5f130/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fprofoods%2F10002849%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 評価件数は多くありませんが平均評価は高く、定番のアールグレイをしっかり楽しみたい方におすすめです。
 
@@ -43,9 +43,9 @@ category: tea-leaves
 
 同じくフォションのダージリンは、エスビー食品が国内向けに正規展開している商品です。フレーバーを効かせたアールグレイとは対照的に、ダージリンならではのすっきりした渋みと上品な香りを楽しめます。フレーバードティーが多いラインナップの中で、紅茶そのものの味わいを求める方に向いています。
 
-[![S&B フォション ダージリン 茶葉缶125g](/images/fauchon-harney-sons-kaigai-koucha-brand/products/2.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fe-sbfoods%2F11536%2F)
+[![S&B フォション ダージリン 茶葉缶125g](/images/fauchon-harney-sons-kaigai-koucha-brand/products/2.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824dfb2.b82366ea.5824dfb3.30c7ecba/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fe-sbfoods%2F11536%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.60（50件） [S&B フォション ダージリン 茶葉缶125gはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fe-sbfoods%2F11536%2F)
+★4.60（50件） [S&B フォション ダージリン 茶葉缶125gはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824dfb2.b82366ea.5824dfb3.30c7ecba/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fe-sbfoods%2F11536%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 レビュー件数が50件と比較の中でも多く、国内で安定して入手しやすい点も選びやすさにつながっています。
 
@@ -53,9 +53,9 @@ category: tea-leaves
 
 ハーニー&サンズは1983年、ジョン・ハーニーがアメリカ・コネチカット州で創業した紅茶ブランドです（参考: [Harney & Sons - Wikipedia](https://en.wikipedia.org/wiki/Harney_%26_Sons)）。看板商品の「ホット・シナモン・スパイス」シリーズは、シナモン・オレンジ・クローブを重ねた華やかな香りが特徴で、このタガロングは5包入りのお試しサイズです。本格サイズを試す前に香りの系統が好みに合うか確認したい方に向いています。
 
-[![ハーニー&サンズ ホット・シナモン・サンセット タガロング 5包](/images/fauchon-harney-sons-kaigai-koucha-brand/products/3.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fharney%2Fhar-003-0004%2F)
+[![ハーニー&サンズ ホット・シナモン・サンセット タガロング 5包](/images/fauchon-harney-sons-kaigai-koucha-brand/products/3.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824dfcc.a5b3e7b6.5824dfcd.236167e5/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fharney%2Fhar-003-0004%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.29（14件） [ハーニー&サンズ ホット・シナモン・サンセット タガロング 5包はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fharney%2Fhar-003-0004%2F)
+★4.29（14件） [ハーニー&サンズ ホット・シナモン・サンセット タガロング 5包はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824dfcc.a5b3e7b6.5824dfcd.236167e5/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fharney%2Fhar-003-0004%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 まずは少量でスパイスの香りの強さを確かめたい方は、このお試しサイズから始めてみてください。
 
@@ -63,9 +63,9 @@ category: tea-leaves
 
 同じくホット・シナモン・スパイスのフレーバーをデカフェで楽しめるのがこちらです。カフェインを控えたい時間帯でも、シナモン系のスパイシーな香りを楽しめるのが特徴です。20包入りなので、タガロングで香りが好みに合うと分かった後の本格サイズとしても選びやすい分量です。
 
-[![ハーニー&サンズ デカフェ・ホット・シナモン ティーバッグ 40g 20個](/images/fauchon-harney-sons-kaigai-koucha-brand/products/4.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fharney%2Fhar-002-0050%2F)
+[![ハーニー&サンズ デカフェ・ホット・シナモン ティーバッグ 40g 20個](/images/fauchon-harney-sons-kaigai-koucha-brand/products/4.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824dfcc.a5b3e7b6.5824dfcd.236167e5/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fharney%2Fhar-002-0050%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.47（30件） [ハーニー&サンズ デカフェ・ホット・シナモン ティーバッグ 40g 20個はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fharney%2Fhar-002-0050%2F)
+★4.47（30件） [ハーニー&サンズ デカフェ・ホット・シナモン ティーバッグ 40g 20個はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824dfcc.a5b3e7b6.5824dfcd.236167e5/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fharney%2Fhar-002-0050%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 タガロングでシナモン系の香りが好みに合うと分かった方は、このデカフェ版で時間帯を気にせず楽しんでみてください。
 

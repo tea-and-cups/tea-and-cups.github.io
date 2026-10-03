@@ -43,9 +43,9 @@ category: how-to
 
 小さな氷を並べるだけでなく、大きめの丸い氷を1〜2個沈めるだけでも印象が変わります。丸型のシリコンモールドは、グラスの口径にもよりますが直径5cm前後のものが扱いやすく、ロックアイスのような存在感を出せます。
 
-[![俺の丸氷 同色4個セット（ColorfulBox）](/images/decoration-koori-icetea/products/1.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fcolorfulbox%2F251841set%2F)
+[![俺の丸氷 同色4個セット（ColorfulBox）](/images/decoration-koori-icetea/products/1.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824dbfe.d0848310.5824dbff.8ea425fd/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fcolorfulbox%2F251841set%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.64（22件） [丸型シリコン製氷モールドはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fcolorfulbox%2F251841set%2F) — 4個セットでバランスの取れた選択肢です
+★4.64（22件） [丸型シリコン製氷モールドはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824dbfe.d0848310.5824dbff.8ea425fd/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fcolorfulbox%2F251841set%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D) — 4個セットでバランスの取れた選択肢です
 
 モールドに素材を仕込む場合も、段階凍結の考え方は同じです。丸型は空間が広い分、素材が浮いて中心からずれやすいので、1回目の凍結でしっかり固定してから水を足すときれいに仕上がります。
 

@@ -46,9 +46,9 @@ category: how-to
 
 濃いめに仕込む場合、渋みが控えめで香りのはっきりした茶葉を選ぶと失敗しにくくなります。とくにアールグレイのような香りづけ茶葉は、濃く抽出しても渋みが強く出にくく、氷や炭酸で割ったときにも香りの輪郭が残りやすいのが特徴です。
 
-[![リプトン コールドブリュー アールグレイ 水出し紅茶ティーバッグ 13g×30袋](/images/koime-mizudashi-koucha-tsukurikata-arrange/products/1.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsoukaidrink%2F4902203525266%2F)
+[![リプトン コールドブリュー アールグレイ 水出し紅茶ティーバッグ 13g×30袋](/images/koime-mizudashi-koucha-tsukurikata-arrange/products/1.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824d6f1.1603ef5f.5824d6f2.6f7b082e/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fsoukaidrink%2F4902203525266%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.50（2件） [リプトン コールドブリュー アールグレイはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsoukaidrink%2F4902203525266%2F)
+★4.50（2件） [リプトン コールドブリュー アールグレイはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824d6f1.1603ef5f.5824d6f2.6f7b082e/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fsoukaidrink%2F4902203525266%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 水出し専用に作られたティーバッグで、1袋あたりの茶葉量が多めなのでそのまま濃いめの抽出にも使いやすいのがバランスの取れた選択肢です。個包装のため、茶葉量を数個単位で調整しやすいのも濃いめ抽出に向いています。ニルギリやキャンディなど渋みの少ない茶葉の選び方は、[水出し紅茶におすすめの茶葉4選](/posts/mizudashi-tea-leaves/)で詳しく紹介しています。
 

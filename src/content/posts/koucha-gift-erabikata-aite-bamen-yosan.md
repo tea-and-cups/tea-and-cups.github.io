@@ -73,9 +73,9 @@ category: gift
 
 イギリスの老舗紅茶ブランドで、贈り物としての知名度と信頼感が高いのが特徴です。ロイヤルブレンド・ブレックファスト・アールグレイクラシック・クィーンアンの4種類が楽しめる詰合せで、渋みが強すぎないタイプが揃っているため、幅広い世代に受け入れられやすい構成です。
 
-[![フォートナム&メイソン ティーバッグ詰合せ ギフトセット](/images/koucha-gift-erabikata-aite-bamen-yosan/products/1.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Flifucoco-shop%2F0764-001239%2F)
+[![フォートナム&メイソン ティーバッグ詰合せ ギフトセット](/images/koucha-gift-erabikata-aite-bamen-yosan/products/1.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824e461.4d69b36c.5824e462.0427653f/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Flifucoco-shop%2F0764-001239%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.72（292件） [フォートナム&メイソン ティーバッグ詰合せはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Flifucoco-shop%2F0764-001239%2F)
+★4.72（292件） [フォートナム&メイソン ティーバッグ詰合せはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824e461.4d69b36c.5824e462.0427653f/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Flifucoco-shop%2F0764-001239%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 評価・レビュー件数ともに高く、知名度のあるブランドとして自信を持っておすすめできる一品です。
 
@@ -83,9 +83,9 @@ category: gift
 
 日本の紅茶専門店カレルチャペック紅茶店が手がける缶入りギフトです。20種類のティーバッグが1缶に詰まっており、ラッピング・熨斗の両方に対応しているため、内祝いやお返しなど改まった場面でも安心して選べます。
 
-[![カレルチャペック紅茶店 紅茶ギフト 缶入りティーバッグ20枚](/images/koucha-gift-erabikata-aite-bamen-yosan/products/3.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fkarelcapek%2F01609376%2F)
+[![カレルチャペック紅茶店 紅茶ギフト 缶入りティーバッグ20枚](/images/koucha-gift-erabikata-aite-bamen-yosan/products/3.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824d4e5.f8d823d3.5824d4e6.9525a349/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fkarelcapek%2F01609376%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.81（53件） [カレルチャペック紅茶店 缶入りティーバッグ20枚はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fkarelcapek%2F01609376%2F)
+★4.81（53件） [カレルチャペック紅茶店 缶入りティーバッグ20枚はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824d4e5.f8d823d3.5824d4e6.9525a349/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fkarelcapek%2F01609376%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 3点の中ではレビュー件数が最も少ないものの、53件でも★4.81と高評価を維持しており、のし対応という実用面の安心感もあわせ持つ一品です。
 
@@ -93,9 +93,9 @@ category: gift
 
 スリランカの紅茶ブランド、バシラーティーの人気フレーバー4種を詰め合わせた缶入りセットです。ティーバッグ32袋と量が多めなので、しばらく楽しんでもらいたい相手への贈り物に向いています。水出しアイスティーにも対応しており、季節を問わず楽しめる構成です。
 
-[![バシラーティー 紅茶ギフト 人気4種アソート ティーバッグ32袋 缶入り](/images/koucha-gift-erabikata-aite-bamen-yosan/products/2.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fbasilurtea%2F70333%2F)
+[![バシラーティー 紅茶ギフト 人気4種アソート ティーバッグ32袋 缶入り](/images/koucha-gift-erabikata-aite-bamen-yosan/products/2.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824dffd.c5328271.5824dffe.40bf1ffd/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fbasilurtea%2F70333%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.78（424件） [バシラーティー 人気4種アソート缶入りはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fbasilurtea%2F70333%2F)
+★4.78（424件） [バシラーティー 人気4種アソート缶入りはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824dffd.c5328271.5824dffe.40bf1ffd/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fbasilurtea%2F70333%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 レビュー件数が3つの中で最も多く、幅広い世代への贈り物として支持されている一品です。
 

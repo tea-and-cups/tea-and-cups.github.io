@@ -30,11 +30,11 @@ category: seasons
 
 上記のポイントを満たす備蓄向けの紅茶ティーバッグを2つご紹介します。いずれも個包装・100個入りの大容量タイプで、まとめて備えておきやすいのが特徴です。
 
-★4.72（254件） [無農薬紅茶ティーバッグ100個入・常温1年保存可（水車むら農園）はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsuisya%2Fktb-100%2F)
+★4.72（254件） [無農薬紅茶ティーバッグ100個入・常温1年保存可（水車むら農園）はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824d73f.ef6150e5.5824d740.f86ed557/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fsuisya%2Fktb-100%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 3g×100個の個包装で、常温保存1年が可能と明記されています。静岡産の無添加紅茶で、備蓄用としてもまとめ買いしやすい価格帯です。
 
-★4.44（469件） [セイロンティーダージリンブレンド ティーバッグ100個入・常温2年保存可（ティーライフ）はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Ftealife-cafe%2F90659%2F)
+★4.44（469件） [セイロンティーダージリンブレンド ティーバッグ100個入・常温2年保存可（ティーライフ）はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824d766.75c6572a.5824d768.aaef66a5/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Ftealife-cafe%2F90659%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 こちらは常温保存2年と表示期間がさらに長く、賞味期限管理の手間を減らしたい備蓄用に向いています。セイロンとダージリンをブレンドした味わいで、ローリングストックとして日常使いもしやすい一品です。
 

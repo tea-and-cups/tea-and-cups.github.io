@@ -42,9 +42,9 @@ category: teaware
 
 波佐見焼の白磁でつくられた、容量約450mlの片手ポットです。磁器ならではの落ち着いた質感がありながら、商品ページでは電子レンジ・食洗機に対応と案内されていて、日常づかいしやすいタイプです。ステンレスの茶こしが付属し、リーフティーもティーバッグも使えます。ガラスに比べて器そのものに厚みがあるぶん、注いだあとに温度が下がりにくく、1〜2杯を淹れて少し時間をおいて飲むスタイルに向いています。
 
-[![白山陶器 波佐見焼 ティーポット 450ml 小 ミストホワイト 白磁](/images/kogata-teapot-1-2hai-erabikata/products/1.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fcucina%2F4828%2F)
+[![白山陶器 波佐見焼 ティーポット 450ml 小 ミストホワイト 白磁](/images/kogata-teapot-1-2hai-erabikata/products/1.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824e3f4.a0985a33.5824e3f5.c82d7a3c/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fcucina%2F4828%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.69（26件） [白山陶器 波佐見焼 ティーポット 450ml ミストホワイトはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fcucina%2F4828%2F)
+★4.69（26件） [白山陶器 波佐見焼 ティーポット 450ml ミストホワイトはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824e3f4.a0985a33.5824e3f5.c82d7a3c/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fcucina%2F4828%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 高評価のレビューが多く、白い器なので茶葉の色移りにも気づきやすく手入れの状態を保ちやすいポットです。まず1台目の小さめポットとして選びやすいイチ押しのタイプです。
 
@@ -52,9 +52,9 @@ category: teaware
 
 耐熱ガラス製で、蓋と茶こしが一体になった1人用ポットです。抽出が進むにつれて水色（すいしょく）が濃くなっていく様子が見えるので、「そろそろ注ぎどき」の判断がしやすいタイプです。パーツが少なく洗いやすいのも魅力で、リーフティーを気軽に淹れたい方に向いています。ガラスは保温性が控えめなので、冷める前に飲みきる分だけ淹れるのがコツです。
 
-[![ティーポット 450ml ホワイト 1人用 ガラス製 急須 ストレーナー一体型](/images/kogata-teapot-1-2hai-erabikata/products/2.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fcolorfulbox%2F331371%2F)
+[![ティーポット 450ml ホワイト 1人用 ガラス製 急須 ストレーナー一体型](/images/kogata-teapot-1-2hai-erabikata/products/2.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824dbfe.d0848310.5824dbff.8ea425fd/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fcolorfulbox%2F331371%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.29（24件） [ガラス製 1人用ティーポット 450ml（茶こし一体型）はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fcolorfulbox%2F331371%2F)
+★4.29（24件） [ガラス製 1人用ティーポット 450ml（茶こし一体型）はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824dbfe.d0848310.5824dbff.8ea425fd/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fcolorfulbox%2F331371%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 透明なので中の様子が分かりやすく、フレーバーティーやハーブティーの色を楽しみたいときにも使いやすいポットです。
 
@@ -62,9 +62,9 @@ category: teaware
 
 ポット・カップ・ソーサーが一組になった「ティーフォーワン」型です。ポットの容量は約220mlと1杯分に絞られていて、使わないときはカップにポットを重ねてコンパクトに置いておけます。キッチンとテーブルを往復せず、机の上だけで淹れて飲みたい在宅ワークや読書の時間に合ったタイプです。日本製の磁器で、電子レンジ対応の可否は商品ページの表記を確認してください。
 
-[![ティーフォーワン ポット カップ ソーサー 日本製 磁器](/images/kogata-teapot-1-2hai-erabikata/products/3.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Ftableware-factry%2Fottf1035%2F)
+[![ティーフォーワン ポット カップ ソーサー 日本製 磁器](/images/kogata-teapot-1-2hai-erabikata/products/3.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824e41e.9eded407.5824e41f.46f9495a/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Ftableware-factry%2Fottf1035%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.64（22件） [ティーフォーワン（ポット＋カップ＋ソーサー）はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Ftableware-factry%2Fottf1035%2F)
+★4.64（22件） [ティーフォーワン（ポット＋カップ＋ソーサー）はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824e41e.9eded407.5824e41f.46f9495a/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Ftableware-factry%2Fottf1035%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 一杯分だけを淹れる前提なら、茶葉とお湯の量を毎回そろえやすく、味が安定しやすいのも利点です。
 

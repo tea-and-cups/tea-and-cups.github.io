@@ -22,9 +22,9 @@ category: tea-leaves
 
 かぼちゃプリンやパンプキンパイ、かぼちゃのモンブランなど、シナモンやナツメグが使われることも多いかぼちゃスイーツには、スパイスの香りに負けない紅茶を合わせたいところです。ベースの紅茶自体にジンジャーやカルダモンなどのスパイスが効いたチャイ系の茶葉は、かぼちゃ特有の香りと共鳴しやすく、洋菓子のスパイス使いを引き立てる組み合わせとして試しやすい一杯です。
 
-[![レンジdeチャイ ティーバッグ 中目黒チャイ専門店 15包入り](/images/kabocha-satsumaimo-sweets-koucha-erabikata/products/1.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fmokshachai%2F10000000%2F)
+[![レンジdeチャイ ティーバッグ 中目黒チャイ専門店 15包入り](/images/kabocha-satsumaimo-sweets-koucha-erabikata/products/1.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824e21c.1c319f14.5824e21d.abfcfbfd/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fmokshachai%2F10000000%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.80（605件） [レンジdeチャイ ティーバッグ 中目黒チャイ専門店はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fmokshachai%2F10000000%2F)
+★4.80（605件） [レンジdeチャイ ティーバッグ 中目黒チャイ専門店はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824e21c.1c319f14.5824e21d.abfcfbfd/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fmokshachai%2F10000000%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 このティーバッグはアッサムベースにスパイスを配合した本格マサラチャイ仕様で、電子レンジでも手軽に作れるのが特徴です。しっかり煮出してミルクを加えるチャイ仕立てにすると、かぼちゃプリンのなめらかな甘さとスパイスの香りが呼応しやすくなります。濃いめに抽出したいときは、[アイスロイヤルミルクティーのいれ方](/posts/ice-royal-milktea/)で紹介している煮出しのコツも参考になります。
 
@@ -32,9 +32,9 @@ category: tea-leaves
 
 大学芋やスイートポテト、芋ようかんなど、さつまいもそのものの素朴な甘みとほくほくした食感が持ち味のスイーツには、香ばしさを引き立てるキャラメル系のフレーバードティーが合わせやすいでしょう。セイロンティーをベースにしたキャラメルフレーバーは、さつまいもの焼き芋のような香ばしさと甘みに寄り添う、やさしい組み合わせです。
 
-[![バシラーティー キャラメルドリーム ティーバッグ25袋入り](/images/kabocha-satsumaimo-sweets-koucha-erabikata/products/2.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fbasilurtea%2F71997%2F)
+[![バシラーティー キャラメルドリーム ティーバッグ25袋入り](/images/kabocha-satsumaimo-sweets-koucha-erabikata/products/2.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824dffd.c5328271.5824dffe.40bf1ffd/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fbasilurtea%2F71997%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.91（33件） [バシラーティー キャラメルドリーム ティーバッグ25袋入りはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fbasilurtea%2F71997%2F)
+★4.91（33件） [バシラーティー キャラメルドリーム ティーバッグ25袋入りはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824dffd.c5328271.5824dffe.40bf1ffd/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fbasilurtea%2F71997%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 スリランカの紅茶ブランド、バシラーティーのキャラメルドリームは、セイロンティーにキャラメルの香りをまとわせたフレーバードティーです。ストレートで飲むと、さつまいものほくほくした甘みとキャラメルの香ばしさが重なりやすく、大学芋のように蜜がからんだタイプのスイーツにも合わせやすい一杯です。熱湯で3分ほど蒸らし、渋みが気になる場合は少し時間を短めにすると香りが引き立ちます。フレーバードティーの選び方全般は、[夏に人気のフルーツ・フレーバードティー比較](/posts/natsu-fruit-flavor-tea-hikaku/)も参考になります。
 

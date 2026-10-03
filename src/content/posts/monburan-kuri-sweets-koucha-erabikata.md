@@ -24,9 +24,9 @@ category: tea-leaves
 
 アッサム地方の茶葉は、渋みとコクがはっきりしていてミルクとの相性がよいとされ、ミルクティーの定番として親しまれています。中でもセカンドフラッシュ（夏摘み）のCTC製法のものは水色が濃く、ミルクを加えても紅茶らしい風味が残りやすいのが特徴です。モンブランの生クリームの甘さに、ミルクティーのコクで応える組み合わせを試してみてください。
 
-[![シルバーポット アッサムCTC セカンドフラッシュ ハティマラ茶園BPS](/images/monburan-kuri-sweets-koucha-erabikata/products/1.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fhatimara2006%2F)
+[![シルバーポット アッサムCTC セカンドフラッシュ ハティマラ茶園BPS](/images/monburan-kuri-sweets-koucha-erabikata/products/1.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824d670.57eb77b3.5824d671.e3a6cb31/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fhatimara2006%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.73（746件） [紅茶 茶葉 アッサムCTC セカンドフラッシュ ハティマラ茶園BPSはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fhatimara2006%2F)
+★4.73（746件） [紅茶 茶葉 アッサムCTC セカンドフラッシュ ハティマラ茶園BPSはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824d670.57eb77b3.5824d671.e3a6cb31/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fhatimara2006%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 淹れ方は、通常より茶葉をやや多めにし、しっかり抽出したところに温めた牛乳を注ぐミルクティー仕立てがおすすめです。濃いめに抽出することで、ミルクを加えても紅茶の風味がぼやけにくくなります。さらに濃厚な仕上がりを楽しみたい場合は、[アイスロイヤルミルクティーのいれ方](/posts/ice-royal-milktea/)で紹介している煮出しの分量やコツも参考になります。
 
@@ -36,9 +36,9 @@ category: tea-leaves
 
 ダージリンはマスカットのような香り（マスカテルフレーバー）と呼ばれる華やかな香気が特徴で、和栗の繊細な甘みの邪魔をしにくい紅茶です。老舗ブランドのダージリンスーパーファインは、芳醇な香りと穏やかな渋みのバランスがよく、和栗スイーツの上品な甘さと合わせやすい一杯です。
 
-[![ロンネフェルト ダージリンスーパーファイン 100g](/images/monburan-kuri-sweets-koucha-erabikata/products/2.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fronnefeldt-salon%2F10000020%2F)
+[![ロンネフェルト ダージリンスーパーファイン 100g](/images/monburan-kuri-sweets-koucha-erabikata/products/2.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824dbfc.25ed8cfc.5824dbfd.f8271e68/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fronnefeldt-salon%2F10000020%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.67（12件） [ダージリンスーパーファイン 100gはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fronnefeldt-salon%2F10000020%2F)
+★4.67（12件） [ダージリンスーパーファイン 100gはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824dbfc.25ed8cfc.5824dbfd.f8271e68/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fronnefeldt-salon%2F10000020%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 ダージリンは茶葉の個性が香りに直結するため、熱湯で3分前後、蒸らしすぎないように淹れると、渋みを抑えつつ香りを引き立てやすくなります。ストレートのまま、または砂糖をひとさじ添える程度にとどめると、和栗の風味を邪魔しません。香りを引き立てる抽出には道具選びも影響するため、[紅茶用ティーポットの選び方比較](/posts/koucha-teapot-erabikata-hikaku/)もあわせて参考にしてみてください。
 

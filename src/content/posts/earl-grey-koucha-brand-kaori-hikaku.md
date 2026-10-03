@@ -46,9 +46,9 @@ category: tea-leaves
 
 英国紅茶ブランドAHMAD TEAの缶入りリーフティーです。缶入りなので香りが飛びにくく、茶葉のまま量って楽しみたい方に向いています。ミルクティーにしてもベルガモットの香りがしっかり感じられるタイプです。
 
-[![アーマッドティー クラシックティー アールグレイ](/images/earl-grey-koucha-brand-kaori-hikaku/products/1.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Frakuten24%2Fe451240h%2F)
+[![アーマッドティー クラシックティー アールグレイ](/images/earl-grey-koucha-brand-kaori-hikaku/products/1.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824d697.c793c0db.5824d698.dbe81f68/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Frakuten24%2Fe451240h%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.69（45件） [アーマッドティー クラシックティー アールグレイはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Frakuten24%2Fe451240h%2F)
+★4.69（45件） [アーマッドティー クラシックティー アールグレイはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824d697.c793c0db.5824d698.dbe81f68/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Frakuten24%2Fe451240h%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 3ブランドの中で最も評価件数が多く、まず試してみる1缶として選びやすい商品です。
 
@@ -56,9 +56,9 @@ category: tea-leaves
 
 英国王室御用達ブランド、トワイニングの定番アールグレイです。ティーバッグタイプで手軽に淹れられ、50袋入りなので毎日のティータイムにも取り入れやすい量です。すっきりとした香りなので、食事と合わせても邪魔をしません。
 
-[![トワイニング アールグレイ ティーバッグ](/images/earl-grey-koucha-brand-kaori-hikaku/products/2.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fkaumall%2F52094873%2F)
+[![トワイニング アールグレイ ティーバッグ](/images/earl-grey-koucha-brand-kaori-hikaku/products/2.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824dc33.dc5da606.5824dc34.ced67af3/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fkaumall%2F52094873%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.89（36件） [トワイニング アールグレイ ティーバッグはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fkaumall%2F52094873%2F)
+★4.89（36件） [トワイニング アールグレイ ティーバッグはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824dc33.dc5da606.5824dc34.ced67af3/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fkaumall%2F52094873%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 日常使いのアールグレイとして、クセなく続けやすい選択肢です。
 
@@ -66,9 +66,9 @@ category: tea-leaves
 
 ドイツの高級紅茶ブランド、ロンネフェルトのティーバッグシリーズです。個包装のティーバッグなので、来客時にも1杯ずつ香りよく淹れられます。華やかな香り立ちが特徴で、特別な時間を演出したいときに向いています。
 
-[![ロンネフェルト ティーベロップ アールグレイ](/images/earl-grey-koucha-brand-kaori-hikaku/products/3.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fronnefeldt-salon%2F10000066%2F)
+[![ロンネフェルト ティーベロップ アールグレイ](/images/earl-grey-koucha-brand-kaori-hikaku/products/3.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824dbfc.25ed8cfc.5824dbfd.f8271e68/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fronnefeldt-salon%2F10000066%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.89（27件） [ロンネフェルト ティーベロップ アールグレイはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fronnefeldt-salon%2F10000066%2F)
+★4.89（27件） [ロンネフェルト ティーベロップ アールグレイはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824dbfc.25ed8cfc.5824dbfd.f8271e68/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fronnefeldt-salon%2F10000066%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 個包装で香りが保たれやすく、来客用のストックにも向いています。
 

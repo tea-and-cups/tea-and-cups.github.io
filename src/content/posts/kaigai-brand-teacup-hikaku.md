@@ -32,17 +32,15 @@ category: teaware
 
 1775年創業のエインズレイは、エリザベス2世やダイアナ元妃の結婚祝いに英国陶磁器業界から贈られるなど、英国王室に愛用されてきた歴史を持つ窯元です（参考: [Aynsley China - Wikipedia](https://en.wikipedia.org/wiki/Aynsley_China)）。コテージガーデンシリーズは、英国の庭に咲く花々を密度高く描いた華やかな柄が特徴で、赤を基調にした「レディーレッド」は食卓に華やかさを添えたい方に向いています。紅茶・コーヒー兼用の形状で、日常使いもしやすい1客です。
 
-[![エインズレイ コテージガーデン カップ&ソーサー レディーレッド](/images/kaigai-brand-teacup-hikaku/products/1.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fecru-japan%2F00162-0012361%2F)
+[![エインズレイ コテージガーデン カップ&ソーサー レディーレッド](/images/kaigai-brand-teacup-hikaku/products/1.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824e266.59bcc92f.5824e267.1b86f61a/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fecru-japan%2F00162-0012361%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.50（2件） [エインズレイ コテージガーデン カップ&ソーサー レディーレッドはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fecru-japan%2F00162-0012361%2F)
+★4.50（2件） [エインズレイ コテージガーデン カップ&ソーサー レディーレッドはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824e266.59bcc92f.5824e267.1b86f61a/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fecru-japan%2F00162-0012361%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 レビュー件数はまだ2件と少なめですが、密度の高い花柄を求める方には有力な候補です。
 
 ### 2. ミントン ハドンホール（ブルー）— 伝統的な藍色の柄で長く使いたい方に
 
 1793年創業のミントンは、ヴィクトリア女王が製品を買い上げたことでも知られる歴史ある窯元です（参考: [Mintons - Wikipedia](https://en.wikipedia.org/wiki/Mintons)）。ハドンホールは藍色を基調に、金・グリーン・パープルなど複数の色を使って草花を描いた更紗調の伝統模様で、彩り豊かながらも藍の落ち着いた色合いが全体を引き締めており、飽きのこないデザインとして長年親しまれています。
-
-[![ミントン ハドンホール ブルー ティーカップ&ソーサー](/images/kaigai-brand-teacup-hikaku/products/2.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fnihonnotsurugi%2F061201%2F)
 
 ★5.00（1件） [ミントン ハドンホール ブルー ティーカップ&ソーサーはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fnihonnotsurugi%2F061201%2F)
 
@@ -52,9 +50,9 @@ category: teaware
 
 1759年創業のウェッジウッドが（参考: [Wedgwood - Wikipedia](https://en.wikipedia.org/wiki/Wedgwood)）、米国のファッションデザイナー ヴェラ・ウォンと協業したシリーズです。レース模様をモチーフにした繊細な柄をゴールドとプラチナで描き分けており、ペアギフトセットとして展開されています。花柄中心の英国ブランドの中で、モダンなデザイナーズラインを探している方や、特別な贈り物を探している方に向いています。
 
-[![ウェッジウッド ヴェラ・ウォン ヴェラレース ティーカップ&ソーサー ペアギフトセット](/images/kaigai-brand-teacup-hikaku/products/3.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fbelleseve%2Fwedgwood_vwl501469tcs2gdpl%2F)
+[![ウェッジウッド ヴェラ・ウォン ヴェラレース ティーカップ&ソーサー ペアギフトセット](/images/kaigai-brand-teacup-hikaku/products/3.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824c92d.436c4572.5824c92e.c7064406/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fbelleseve%2Fwedgwood_vwl501469tcs2gdpl%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★5.00（1件） [ウェッジウッド ヴェラ・ウォン ヴェラレース ペアギフトセットはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fbelleseve%2Fwedgwood_vwl501469tcs2gdpl%2F)
+★5.00（1件） [ウェッジウッド ヴェラ・ウォン ヴェラレース ペアギフトセットはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824c92d.436c4572.5824c92e.c7064406/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fbelleseve%2Fwedgwood_vwl501469tcs2gdpl%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 花柄が主流の英国ブランドの中では珍しいモダンなデザインなので、定番以外の贈り物を探している方にもおすすめです。
 

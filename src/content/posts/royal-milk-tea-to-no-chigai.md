@@ -73,25 +73,23 @@ category: how-to
 
 「濃厚ミルクティー用」とうたわれた三角ティーバッグタイプのアッサムCTCです。茶葉を量る手間なく、袋のまま煮出せる手軽さが魅力です。
 
-[![紅茶 ティーバッグ 15個入 お徳用パック アッサムCTC 濃厚ミルクティー用](/images/royal-milk-tea-to-no-chigai/products/2.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fteabag30-assamctc%2F)
+[![紅茶 ティーバッグ 15個入 お徳用パック アッサムCTC 濃厚ミルクティー用](/images/royal-milk-tea-to-no-chigai/products/2.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824d670.57eb77b3.5824d671.e3a6cb31/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fteabag30-assamctc%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.75（110件） [紅茶 ティーバッグ 15個入 お徳用パック アッサムCTC 濃厚ミルクティー用 はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fteabag30-assamctc%2F)
+★4.75（110件） [紅茶 ティーバッグ 15個入 お徳用パック アッサムCTC 濃厚ミルクティー用 はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824d670.57eb77b3.5824d671.e3a6cb31/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fteabag30-assamctc%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 ### 2. じっくり煮出して本格的に作りたい人に
 
 有機JAS認証のアッサムCTCリーフです。茶葉の量を自分で調整しながら煮出したい方や、レビュー件数の多さで選びたい方に合う一点です。
 
-[![紅茶 茶葉 アッサム CTC 100g オーガニック 有機JAS](/images/royal-milk-tea-to-no-chigai/products/1.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsantarosa%2Fsr_assam%2F)
-
-★4.63（981件） [紅茶 茶葉 アッサム CTC 100g オーガニック 有機JAS はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsantarosa%2Fsr_assam%2F)
+★4.63（981件） [紅茶 茶葉 アッサム CTC 100g オーガニック 有機JAS はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824d6ad.80b48201.5824d6ae.97ea73a9/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fsantarosa%2Fsr_assam%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 ### 3. 普段使いの後入れミルクティーに
 
 2gずつ個包装されたアッサムのティーバッグです。淹れてから牛乳を注ぐだけの普段使いに、量もちょうどいいサイズです。
 
-[![アッサム ティーバッグ 2g 40個入](/images/royal-milk-tea-to-no-chigai/products/3.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fkumorizora%2Fassamtb40%2F)
+[![アッサム ティーバッグ 2g 40個入](/images/royal-milk-tea-to-no-chigai/products/3.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824ea57.7078489a.5824ea58.51f67a02/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fkumorizora%2Fassamtb40%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.56（107件） [アッサム ティーバッグ 2g 40個入 はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fkumorizora%2Fassamtb40%2F)
+★4.56（107件） [アッサム ティーバッグ 2g 40個入 はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824ea57.7078489a.5824ea58.51f67a02/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fkumorizora%2Fassamtb40%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 ## よくある質問
 

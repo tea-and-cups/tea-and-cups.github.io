@@ -46,9 +46,9 @@ category: tea-leaves
 
 フランスの紅茶ブランドとして知られるマリアージュフレールの「マルコポーロ」は、名門のフレーバーティーを試すときにまず名前が挙がる一本です。花と果実を思わせる甘い香りで、ブランドを代表する一種として長く売られています。
 
-[![マリアージュフレール マルコポーロ モスリンティーバッグ](/images/kokyu-koucha-brand-guide/products/1.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fbelleseve%2Fmariage-freres_marco-polo-teabag%2F)
+[![マリアージュフレール マルコポーロ モスリンティーバッグ](/images/kokyu-koucha-brand-guide/products/1.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824c92d.436c4572.5824c92e.c7064406/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fbelleseve%2Fmariage-freres_marco-polo-teabag%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.78（124件） [マリアージュフレール マルコポーロ モスリンティーバッグはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fbelleseve%2Fmariage-freres_marco-polo-teabag%2F)
+★4.78（124件） [マリアージュフレール マルコポーロ モスリンティーバッグはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824c92d.436c4572.5824c92e.c7064406/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fbelleseve%2Fmariage-freres_marco-polo-teabag%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 コットンの三角ティーバッグに茶葉が入ったタイプで、カップにもポットにも使えます。レビュー件数もこの価格帯としては多めで、評価も高い水準で安定しています。香りがはっきりしているぶん、合わせるお菓子はプレーンなビスケットやパウンドケーキくらいが穏やかにまとまります。「マルコポーロ」がギフトで選ばれてきた背景は[マリアージュ フレール「マルコポーロ」はなぜギフトの定番なのか](/posts/mariage-freres-marco-polo/)で整理しています。
 
@@ -58,9 +58,9 @@ category: tea-leaves
 
 パリの高級食料品店フォションのアールグレイも、その入り口になりやすい一缶です。缶入りのリーフなので、開けたときの香りの立ち方や、時間が経ったときの変化も含めて楽しめます。なお、フォションを他ブランドと横並びで飲み比べた話は別記事に譲り、ここでは「名門の定番を一缶だけ持つなら」という視点で取り上げています。
 
-[![フォション アールグレイ 缶入 125g](/images/kokyu-koucha-brand-guide/products/2.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fprofoods%2F10002849%2F)
+[![フォション アールグレイ 缶入 125g](/images/kokyu-koucha-brand-guide/products/2.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824dfae.7bb8596b.5824dfaf.0ee5f130/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fprofoods%2F10002849%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.81（16件） [フォション アールグレイ 缶入 125gはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fprofoods%2F10002849%2F)
+★4.81（16件） [フォション アールグレイ 缶入 125gはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824dfae.7bb8596b.5824dfaf.0ee5f130/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fprofoods%2F10002849%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 評価は高い水準ですが、レビュー件数はまだ多くないため、口コミの傾向はこれから固まっていく段階と見ておくとよいでしょう。リーフタイプなので、ティーポットと茶こしがあると淹れやすく、目分量に慣れるまではティースプーンで量るのが無難です。ホットで香りを楽しんだあと、少し濃いめに淹れて冷ませばアイスにもできます。海外ブランドのアールグレイを横並びで見たいときは[アールグレイ紅茶3ブランド比較｜アーマッド・トワイニング・ロンネフェルト](/posts/earl-grey-koucha-brand-kaori-hikaku/)で香りの方向性の違いを比べています。
 
@@ -70,9 +70,7 @@ category: tea-leaves
 
 ニナスはパリ発の紅茶ブランドで、「マリー・アントワネット」の名を冠したフレーバーティーが看板です。下の商品は、そのフレーバーをダージリンとアールグレイにそれぞれ合わせた2缶入りのギフトボックスです。
 
-[![ニナス ロイヤルBOXギフトセット マリー・アントワネット ティー＆ダージリン／＆アールグレイ](/images/kokyu-koucha-brand-guide/products/3.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fbellevie-harima%2Ffood-01055%2F)
-
-★4.70（10件） [ニナス ロイヤルBOXギフトセット（2缶入り）はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fbellevie-harima%2Ffood-01055%2F)
+★4.70（10件） [ニナス ロイヤルBOXギフトセット（2缶入り）はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824e2c4.7c8b86f2.5824e2c5.9f44df59/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fbellevie-harima%2Ffood-01055%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 ティーバッグが個包装で2種類入るので、渡したあとに相手が飲み分けられるのが利点です。評価は高めですが、こちらもレビュー件数はまだ少ないため、参考程度に見ておくのがよいでしょう。
 

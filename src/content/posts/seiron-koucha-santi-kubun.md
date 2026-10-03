@@ -94,21 +94,21 @@ category: tea-leaves
 
 ディンブラ・ヌワラエリヤ・ウバ・キャンディ・ルフナの5産地を、1袋10gずつの個包装で試せるお試しセットです。スリランカから直輸入した鮮度の高い茶葉が使われており、まさにこの記事で紹介した5産地の飲み比べにぴったりの構成です。レビュー件数・評価とも高く、はじめの一箱としておすすめできます。
 
-★4.88（66件） [5大産地スリランカフレッシュティー お試しセットはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fteaisobuchi%2F10000087%2F)
+★4.88（66件） [5大産地スリランカフレッシュティー お試しセットはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824e5ae.4ad7f194.5824e5b1.70f8f6e0/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fteaisobuchi%2F10000087%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 ### 2. 個性を試すならウバ
 
 有機JAS認証を受けた、香料・保存料などを使わないウバの茶葉です。メントール様の清涼感のある「ウバフレーバー」を、ストレートでもミルクティーでも試せます。渋みとコクがしっかりしているので、朝の一杯にも向いています。
 
-★4.62（78件） [サンタローサ 有機JAS ウバ 80gはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsantarosa%2Fwindfarm_ceylon_tea1%2F)
+★4.62（78件） [サンタローサ 有機JAS ウバ 80gはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824d6ad.80b48201.5824d6ae.97ea73a9/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fsantarosa%2Fwindfarm_ceylon_tea1%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 ### 3. 2産地を比べるなら
 
 高地産のディンブラと、同じ高地産でも個性がはっきり異なるウバを、それぞれ200gずつセットにした商品です。1種類だけでは分かりにくい「産地による違い」を、淹れ比べながらじっくり確認したい方に向いています。
 
-[![セイロン紅茶BOP2大産地セット ウバ・ディンブラ各200g](/images/seiron-koucha-santi-kubun/products/3.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fgourmetcoffee%2F3301-04-02%2F)
+[![セイロン紅茶BOP2大産地セット ウバ・ディンブラ各200g](/images/seiron-koucha-santi-kubun/products/3.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824d791.473474c4.5824d792.836cb3ab/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fgourmetcoffee%2F3301-04-02%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.49（70件） [セイロン紅茶BOP2大産地セット（ウバ・ディンブラ各200g）はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fgourmetcoffee%2F3301-04-02%2F)
+★4.49（70件） [セイロン紅茶BOP2大産地セット（ウバ・ディンブラ各200g）はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824d791.473474c4.5824d792.836cb3ab/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fgourmetcoffee%2F3301-04-02%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 商品1・2の画像は掲載していません。テキストのリンクから商品ページをご確認ください。
 

@@ -82,21 +82,21 @@ category: tea-leaves
 
 ここまでの考え方を試すなら、同じシリーズの缶入りリーフティーで茶葉のタイプをそろえると、違いを比べながらチーズと合わせやすくなります。ご紹介するのはウェッジウッドの3点で、いずれも100gの缶入りです。他のブランドとの比較は行っていません。なお、各商品とチーズとの相性は商品説明に書かれているものではなく、上記の解説に沿った組み合わせの提案です。アッサム×熟成チェダーを試したい方は、[アッサムティー入門](/posts/assam-tea-nyumon/)で選び方をご確認ください。
 
-[![ウェッジウッド マハラジャ ダージリンティー 100g](/images/koucha-cheese-pairing/products/1.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fbelleseve%2Fwedgwood-tea_082969%2F)
+[![ウェッジウッド マハラジャ ダージリンティー 100g](/images/koucha-cheese-pairing/products/1.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824c92d.436c4572.5824c92e.c7064406/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fbelleseve%2Fwedgwood-tea_082969%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.74（19件） [マハラジャ ダージリンティーはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fbelleseve%2Fwedgwood-tea_082969%2F)
+★4.74（19件） [マハラジャ ダージリンティーはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824c92d.436c4572.5824c92e.c7064406/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fbelleseve%2Fwedgwood-tea_082969%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 商品ページでは、軽やかで花のような爽やかさのある紅茶として紹介されています。フロマージュ・ブランやクリームチーズなど、穏やかなフレッシュ系のチーズと合わせる、はじめの一杯に向いています。
 
-[![ウェッジウッド アールグレイ ティー 100g](/images/koucha-cheese-pairing/products/2.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fbelleseve%2Fwedgwood-tea_082974%2F)
+[![ウェッジウッド アールグレイ ティー 100g](/images/koucha-cheese-pairing/products/2.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824c92d.436c4572.5824c92e.c7064406/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fbelleseve%2Fwedgwood-tea_082974%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.44（16件） [アールグレイ ティーはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fbelleseve%2Fwedgwood-tea_082974%2F)
+★4.44（16件） [アールグレイ ティーはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824c92d.436c4572.5824c92e.c7064406/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fbelleseve%2Fwedgwood-tea_082974%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 商品ページでは、柑橘系の華やかな香りが特徴と紹介されています。クリームチーズやブリなど、クリーミー系のチーズと組み合わせて試しやすい一品です。
 
-[![ウェッジウッド イングリッシュブレックファスト ティー 100g](/images/koucha-cheese-pairing/products/3.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fbelleseve%2Fwedgwood-tea_082976%2F)
+[![ウェッジウッド イングリッシュブレックファスト ティー 100g](/images/koucha-cheese-pairing/products/3.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824c92d.436c4572.5824c92e.c7064406/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fbelleseve%2Fwedgwood-tea_082976%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.47（15件） [イングリッシュブレックファスト ティーはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fbelleseve%2Fwedgwood-tea_082976%2F)
+★4.47（15件） [イングリッシュブレックファスト ティーはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824c92d.436c4572.5824c92e.c7064406/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fbelleseve%2Fwedgwood-tea_082976%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 商品ページには、穏やかで深みのある香りとすっきりした爽やかさが特徴のブレンドで、ストレートでもミルクティーでも楽しめると紹介されています。ミルクティーにして、カマンベールなどクリーミーなチーズと合わせる入口にしやすい紅茶です。
 

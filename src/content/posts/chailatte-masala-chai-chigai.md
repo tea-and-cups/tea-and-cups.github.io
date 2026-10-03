@@ -117,19 +117,17 @@ CHANOYUのコラムは、チャイラテを「チャイよりもミルクの量�
 
 スパイスを一つずつ揃える手間を省いて、まず試したい方向けに、楽天市場で買えるチャイ関連の商品を3点選びました。作り方の案内や届き方がそれぞれ違うので、内容の違いで選んでみてください。他のブランドとの網羅的な比較は行っていません。
 
-[![マサラチャイセット 150g](/images/chailatte-masala-chai-chigai/products/1.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fmaya%2Fteaset-4%2F)
+[![マサラチャイセット 150g](/images/chailatte-masala-chai-chigai/products/1.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824d7ea.97d6cc75.5824d7eb.bb94aed2/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fmaya%2Fteaset-4%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.82（189件） [マサラチャイセット 150g（マヤティー）はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fmaya%2Fteaset-4%2F)
+★4.82（189件） [マサラチャイセット 150g（マヤティー）はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824d7ea.97d6cc75.5824d7eb.bb94aed2/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fmaya%2Fteaset-4%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 2種類の茶葉と、シナモン・黒胡椒・生姜・カルダモン・クローブの5種のスパイスがセットになった商品です。内容量は150g（50g×3種類）で、商品ページでは約40〜50杯分（手なべで約20回分）とされています。商品ページの原材料欄にはブロークンとホールの2通りの表記があるため、注文前に内容を確認してください。配送はメール便のみで、毎月1日〜15日は発送休みと案内されています。鍋で煮出す本格的な作り方を、スパイスを一つずつ買い揃えずに試したい方に向きます。レビュー評価・件数ともに高い商品です。
 
-★4.87（70件） [CHAInstant インスタントチャイ（インスパイス）はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Finspice%2Fchainstant-1%2F)
+★4.87（70件） [CHAInstant インスタントチャイ（インスパイス）はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824d7fa.30fe0fd0.5824d7fb.a4e1c465/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Finspice%2Fchainstant-1%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 1パック20gで220mlのチャイが作れる、ティーバッグタイプです。商品ページの原材料欄には、カシア、カルダモン、クローブ、ジンジャーパウダーなど12種類のスパイスに、アッサムCTC茶葉、岩塩、赤糖が並んでいます。赤糖が入っているため砂糖の用意は不要で、あとから注ぐのはミルクだけと案内されています。マグカップとミルクを用意して電子レンジで作る商品で、詳しい作り方は商品パッケージの裏面に記載されています。3個セットからの販売なので、まとめて試したい方向けです。こちらもレビュー評価・件数ともに高い商品です。
 
-[![マサラチャイ 4杯分×4パック](/images/chailatte-masala-chai-chigai/products/3.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fhimalaya%2Fspice-chai4%2F)
-
-★4.58（71件） [マサラチャイ 4杯分×4パック（ヒマラヤ貿易）はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fhimalaya%2Fspice-chai4%2F)
+★4.58（71件） [マサラチャイ 4杯分×4パック（ヒマラヤ貿易）はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824d802.b4777619.5824d803.0d535be4/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fhimalaya%2Fspice-chai4%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 茶葉とスパイスミックスの4杯分パックが4つ入ったセットです。スパイスはグリーンカルダモンホール、シナモンスティック、クローブ、ベイリーフ、スターアニス、ジンジャー、ブラックペッパーで、これにアッサムティーが加わります。商品ページの説明画像では、ミルクパンで水とパックを煮出し、ミルクを加えてさらに煮出す手順が示されています。小分けのパックなので、スパイスと茶葉を量る手間をかけずに、4杯分ずつ試したい方に合います。
 

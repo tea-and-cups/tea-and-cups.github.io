@@ -62,9 +62,9 @@ category: gift
 
 シンガポール発の高級紅茶ブランドTWG Teaによる、イングリッシュブレックファスト・フレンチアールグレイ・カモミールの3種を詰め合わせたセットです。知名度の高いブランドを選ぶと、お歳暮としての格式が伝わりやすくなります。取引先や普段あまり好みを把握できていない目上の方へ、きちんとした印象で贈りたい場面に向いています。
 
-[![TWG Tea クラシックティーバッグセレクション紅茶ギフト](/images/oseibo-koucha-gift-erabikata/products/1.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Ftwgtea%2Fpacktb9001%2F)
+[![TWG Tea クラシックティーバッグセレクション紅茶ギフト](/images/oseibo-koucha-gift-erabikata/products/1.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824e8e7.7ccc6931.5824e8e8.e80274d1/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Ftwgtea%2Fpacktb9001%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.77（162件） [TWG Tea クラシックティーバッグセレクションはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Ftwgtea%2Fpacktb9001%2F)
+★4.77（162件） [TWG Tea クラシックティーバッグセレクションはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824e8e7.7ccc6931.5824e8e8.e80274d1/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Ftwgtea%2Fpacktb9001%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 格式と実績を兼ね備えたブランドなので、相手を選ばず筆頭候補にしやすい一本です。
 
@@ -72,9 +72,9 @@ category: gift
 
 スリランカの紅茶ブランド、バシラーティーのブック型缶ギフトです。8種類のフレーバーから好きな組み合わせを選べるため、相手の好みがつかめない場合でも渡しやすい選択肢です。レビュー件数が617件と3点の中で最も多く、実際に贈り物として選ばれている実績がうかがえます。
 
-[![バシラーティー BOOK缶紅茶ギフト 8種から選べる ティーバッグ32袋入り](/images/oseibo-koucha-gift-erabikata/products/2.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fbasilurtea%2F70334%2F)
+[![バシラーティー BOOK缶紅茶ギフト 8種から選べる ティーバッグ32袋入り](/images/oseibo-koucha-gift-erabikata/products/2.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824dffd.c5328271.5824dffe.40bf1ffd/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fbasilurtea%2F70334%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.77（617件） [バシラーティー BOOK缶紅茶ギフトはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fbasilurtea%2F70334%2F)
+★4.77（617件） [バシラーティー BOOK缶紅茶ギフトはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824dffd.c5328271.5824dffe.40bf1ffd/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fbasilurtea%2F70334%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 レビュー件数の多さは、贈り物として選ばれてきた実績の表れといえます。
 
@@ -82,9 +82,9 @@ category: gift
 
 同じくバシラーティーの、人気フレーバー4種をティーバッグ32袋に詰め合わせたセットです。量が多めなので、大人数のご家庭やオフィスへの贈り物にも向いています。水出しアイスティーにも対応しており、年間通して楽しんでもらえる構成です。
 
-[![バシラーティー 人気4種アソート缶入り ティーバッグ32袋](/images/oseibo-koucha-gift-erabikata/products/3.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fbasilurtea%2F70333%2F)
+[![バシラーティー 人気4種アソート缶入り ティーバッグ32袋](/images/oseibo-koucha-gift-erabikata/products/3.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824dffd.c5328271.5824dffe.40bf1ffd/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fbasilurtea%2F70333%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.78（424件） [バシラーティー 人気4種アソート缶入りはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fbasilurtea%2F70333%2F)
+★4.78（424件） [バシラーティー 人気4種アソート缶入りはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824dffd.c5328271.5824dffe.40bf1ffd/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fbasilurtea%2F70333%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 評価・レビュー件数ともに高く、量を重視する贈り方にはこちらが適しています。
 

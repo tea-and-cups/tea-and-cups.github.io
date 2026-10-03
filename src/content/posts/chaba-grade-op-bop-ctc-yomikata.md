@@ -65,25 +65,23 @@ category: tea-leaves
 
 **リーフグレードを試すなら**
 
-[![セイロンティー 有機JAS 高地栽培 ヌワラエリヤ リーフ 100g](/images/chaba-grade-op-bop-ctc-yomikata/products/2.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Ftomoshop-honten%2Fsp-888043%2F)
+[![セイロンティー 有機JAS 高地栽培 ヌワラエリヤ リーフ 100g](/images/chaba-grade-op-bop-ctc-yomikata/products/2.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824d785.9fe8c8b2.5824d786.c43de289/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Ftomoshop-honten%2Fsp-888043%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.85（27件） [セイロンティー 有機JAS ヌワラエリヤ リーフ 100gはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Ftomoshop-honten%2Fsp-888043%2F)
+★4.85（27件） [セイロンティー 有機JAS ヌワラエリヤ リーフ 100gはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824d785.9fe8c8b2.5824d786.c43de289/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Ftomoshop-honten%2Fsp-888043%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 高地栽培のセイロン茶葉を大きめのリーフの状態で味わえます。ストレートで3〜5分ほどかけて抽出し、香りの立ち方を確かめてみてください。
 
 **ブロークングレードを試すなら**
 
-[![セイロン紅茶 BOP 2大産地セット ウバ・ディンブラ 各200g](/images/chaba-grade-op-bop-ctc-yomikata/products/3.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fgourmetcoffee%2F3301-04-02%2F)
+[![セイロン紅茶 BOP 2大産地セット ウバ・ディンブラ 各200g](/images/chaba-grade-op-bop-ctc-yomikata/products/3.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824d791.473474c4.5824d792.836cb3ab/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fgourmetcoffee%2F3301-04-02%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.49（70件） [セイロン紅茶 BOP 2大産地セット（ウバ・ディンブラ）はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fgourmetcoffee%2F3301-04-02%2F)
+★4.49（70件） [セイロン紅茶 BOP 2大産地セット（ウバ・ディンブラ）はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824d791.473474c4.5824d792.836cb3ab/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fgourmetcoffee%2F3301-04-02%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 BOP表記の代表的な2産地をまとめて試せるセットです。2〜3分の短めの抽出でも濃い水色が出るので、リーフとの違いを比べやすい組み合わせです。
 
 **CTCを試すなら**
 
-[![サンタローサ 有機JAS アッサム CTC 100g](/images/chaba-grade-op-bop-ctc-yomikata/products/1.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsantarosa%2Fsr_assam%2F)
-
-★4.63（981件） [サンタローサ 有機JAS アッサム CTC 100gはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsantarosa%2Fsr_assam%2F)
+★4.63（981件） [サンタローサ 有機JAS アッサム CTC 100gはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824d6ad.80b48201.5824d6ae.97ea73a9/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fsantarosa%2Fsr_assam%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 粒状に加工したアッサムのCTCです。少なめの湯で濃く出してミルクを多めに合わせると、CTCらしいコクが分かりやすくなります。
 

@@ -42,7 +42,7 @@ category: tea-leaves
 
 最近はアールグレイだけでなく、アップルやピーチなどのフレーバーもデカフェで展開されています。いくつかの味が入ったアソートを選ぶと、その日の気分で選ぶ楽しみが増えます。
 
-★4.66（128件） [デカフェ紅茶ティーバッグ お徳セット30包（アーマッドティー）はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fnenrin%2Fdecafe-tb30p-msm%2F)
+★4.66（128件） [デカフェ紅茶ティーバッグ お徳セット30包（アーマッドティー）はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824d5f2.401c77db.5824d5f3.a71c3dc2/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fnenrin%2Fdecafe-tb30p-msm%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 アールグレイのデカフェ10包に、アップル・ストロベリー・ピーチ＆パッションフルーツ・レモン＆ライムのフルーツティーが各5包入ったアソートです。1包ずつアルミパックで個包装されているため、開けてから時間が経っても香りが落ちにくいのは、夜に少しずつ飲む使い方と相性がよい点です。デカフェは種類の選択肢が限られがちですが、これ1つで5種類を試せます。
 
@@ -52,9 +52,9 @@ category: tea-leaves
 
 味わいは、じっくり発酵させた赤い茶葉から出る、ほんのり甘くまろやかなもの。紅茶に近い色合いなので、ティーカップに注いだときの見た目が寂しくならないのも、夜のティータイムには嬉しいところです。ミルクを合わせても成立します。
 
-[![オーガニックルイボスティー ティーバッグ 80包入り](/images/aki-no-yonaga-caffeineless-herbtea-hikaku/products/2.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Frooibosfactory%2Frbs-sp-80p%2F)
+[![オーガニックルイボスティー ティーバッグ 80包入り](/images/aki-no-yonaga-caffeineless-herbtea-hikaku/products/2.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824d5f4.337353dc.5824d5f5.79d9372e/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Frooibosfactory%2Frbs-sp-80p%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.71（6,116件） [オーガニックルイボスティー 80包入りはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Frooibosfactory%2Frbs-sp-80p%2F)
+★4.71（6,116件） [オーガニックルイボスティー 80包入りはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824d5f4.337353dc.5824d5f5.79d9372e/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Frooibosfactory%2Frbs-sp-80p%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 有機ルイボス茶葉のみを原材料とする有機JAS認証のティーバッグで、1包3gの80包入り。レビュー6,000件を超えて★4.7台を保っている点は、味の当たり外れの少なさを推し量る材料になります。ジップ付き袋なので、まとめ買いしても最後まで湿気させにくい形です。煮出しでも水出しでも使えるため、夜はホット、翌日は冷蔵庫で水出し、といった使い分けができます。
 
@@ -64,9 +64,9 @@ category: tea-leaves
 
 ここで一点、正確に押さえておきたいことがあります。**ほうじ茶は緑茶を焙じたものなので、カフェインを含みます**。この商品も緑茶をブレンドしている以上、ノンカフェインではありません。カフェインを完全に避けたい場合はタイプ2のルイボスを、香りの切り替えを優先したい場合はこちらを、という選び方になります。
 
-[![オーガニック カモミールほうじ茶 ティーバッグ 35包入り](/images/aki-no-yonaga-caffeineless-herbtea-hikaku/products/3.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fchatsuminosato%2F1353%2F)
+[![オーガニック カモミールほうじ茶 ティーバッグ 35包入り](/images/aki-no-yonaga-caffeineless-herbtea-hikaku/products/3.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824d608.8dfc09a3.5824d609.33d3060f/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fchatsuminosato%2F1353%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.78（682件） [オーガニック カモミールほうじ茶 35包入りはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fchatsuminosato%2F1353%2F)
+★4.78（682件） [オーガニック カモミールほうじ茶 35包入りはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824d608.8dfc09a3.5824d609.33d3060f/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fchatsuminosato%2F1353%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 静岡県産の有機緑茶と有機カモミールをブレンドした、有機JAS認証のティーバッグです。三角のテトラ型で糸付きのため、マグカップに直接入れて引き上げるだけで淹れられます。淹れ方の目安は90℃程度のお湯250mlに1包で約1分。3タイプの中では最も「和」に寄った味わいで、夜に緑茶を飲む習慣がある方には切り替えの負担が小さい一杯です。
 

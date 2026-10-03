@@ -14,11 +14,19 @@
 // 伏せるため、リンクは「リンクID（パスの一部）」、画像は「パス」だけを返し、
 // クエリ（pc・link_type・ut、画像の _ex）は Python 側で組み立てる。
 // 連続取得は1件ごとに1.2秒の間隔を空ける（1秒以上・D-0260）。
+//
+// check 列は「seq・item_url・link_id・image_path をタブでつないだ文字列」のSHA-256先頭12桁。
+// 戻り値をWriteツールで書き写す際の写し間違いを、Python側（build-rakuten-affiliate-products.py）が
+// 同じ計算で照合して検出する（D-0261）。
 
 async function kohakuFreelink(urls) {
   const WAIT_MS = 1200;
-  const rows = [['seq', 'item_url', 'link_id', 'image_path', 'created_at', 'item_name'].join('\t')];
+  const rows = [['seq', 'item_url', 'link_id', 'image_path', 'created_at', 'item_name', 'check'].join('\t')];
   const clean = (s) => String(s ?? '').replace(/[\t\r\n]+/g, ' ').trim();
+  const check = async (fields) => {
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(fields.join('\t')));
+    return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, '0')).join('').slice(0, 12);
+  };
   for (let i = 0; i < urls.length; i++) {
     if (i > 0) await new Promise((r) => setTimeout(r, WAIT_MS));
     const seq = i + 1;
@@ -27,6 +35,11 @@ async function kohakuFreelink(urls) {
       res = await fetch('/freelink?u=' + encodeURIComponent(urls[i]), { credentials: 'include' });
     } catch (e) {
       rows.push([seq, 'ERROR', 'fetch_failed', '', '', ''].join('\t'));
+      continue;
+    }
+    if (/\/error\/item_down/.test(res.url)) {
+      // 「こちらの商品は削除されたか、ページが移動された可能性があります」のエラーページ（2026-10-03実測）
+      rows.push([seq, 'ERROR', 'item_down(商品が削除・移動された)', '', '', ''].join('\t'));
       continue;
     }
     const html = await res.text();
@@ -60,13 +73,12 @@ async function kohakuFreelink(urls) {
       rows.push([seq, 'ERROR', 'item_url_has_query(クエリなしの商品URLで作り直す)', '', '', ''].join('\t'));
       continue;
     }
+    const fields = [String(seq), clean(itemUrl), id, imgPath || 'NO_IMAGE'];
     rows.push([
-      seq,
-      clean(itemUrl),
-      id,
-      imgPath || 'NO_IMAGE',
+      ...fields,
       new Date().toISOString(),
       clean(info.item_name),
+      await check(fields),
     ].join('\t'));
   }
   return rows.join('\n');

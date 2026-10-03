@@ -59,11 +59,11 @@ category: seasons
 
 季節を問わず楽しめる、アールグレイベースのフレーバーアソートを1点ご紹介します。
 
-[![バシラーティー アールグレイ アソート ティーバッグ 20袋](/images/koucha-nenkan-calendar-gyoji-kisetsu/products/1.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fbasilurtea%2F72170%2F)
+[![バシラーティー アールグレイ アソート ティーバッグ 20袋](/images/koucha-nenkan-calendar-gyoji-kisetsu/products/1.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824dffd.c5328271.5824dffe.40bf1ffd/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fbasilurtea%2F72170%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 **バシラーティー アールグレイ アソート ティーバッグ 20袋（4種×5袋）**
 
-★4.91（117件） [バシラーティー アールグレイ アソートはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fbasilurtea%2F72170%2F)
+★4.91（117件） [バシラーティー アールグレイ アソートはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824dffd.c5328271.5824dffe.40bf1ffd/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fbasilurtea%2F72170%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 アールグレイをベースにした4種のフレーバーが個包装で楽しめるアソートです。1袋ずつ違う香りを試せるため、月替わりで気分を変えたいときや、来客時に何種類かを飲み比べてもらいたいときにも使いやすい構成です。評価・レビュー件数ともに高く、自信を持っておすすめできる一点です。
 

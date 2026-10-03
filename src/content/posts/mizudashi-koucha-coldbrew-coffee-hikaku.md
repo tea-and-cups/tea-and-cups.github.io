@@ -40,9 +40,9 @@ category: how-to
 
 水出し紅茶とコールドブリューコーヒーは抽出の仕組みが近いため、フィルター付きのボトルであれば同じ道具で両方作れます。すでにコールドブリューを作っている方なら、新しく専用の茶器を揃えなくても、手持ちの道具で水出し紅茶を試すことができます。
 
-[![HARIO フィルターインコーヒーボトル FIC-70](/images/mizudashi-koucha-coldbrew-coffee-hikaku/products/1.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fmaru-mall%2F2039-2041-91084%2F)
+[![HARIO フィルターインコーヒーボトル FIC-70](/images/mizudashi-koucha-coldbrew-coffee-hikaku/products/1.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824e722.f0a6c3d5.5824e723.3b47656b/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fmaru-mall%2F2039-2041-91084%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.58（50件） [HARIO フィルターインコーヒーボトル FIC-70はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fmaru-mall%2F2039-2041-91084%2F)
+★4.58（50件） [HARIO フィルターインコーヒーボトル FIC-70はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824e722.f0a6c3d5.5824e723.3b47656b/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fmaru-mall%2F2039-2041-91084%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 コールドブリューコーヒー用として設計されたフィルターインボトルですが、茶こしとしても使える構造のため、水出し紅茶づくりにも活用できます。食洗機対応で日々のお手入れもしやすく、コーヒーと紅茶の両方を水出しで楽しみたい方に向いています。茶葉専用の道具にこだわりたくなった場合は、[水出し紅茶用ポット・ピッチャー比較](/posts/mizudashi-pitcher-hikaku/) で茶こしの目の細かさを重視したタイプを紹介しています。
 

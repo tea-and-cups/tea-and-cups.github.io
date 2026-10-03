@@ -44,9 +44,9 @@ category: how-to
 
 下の商品は、ペパーミントにルイボスをブレンドしたものです。ルイボスは南アフリカ原産のマメ科の植物で、こちらもカフェインを含みません。ミントの清涼感はそのままに、ルイボスのやさしい甘みとコクが加わることで、ミント特有の刺すような印象がやわらぎます。色もほんのり赤みが出るため、ティーカップに注いだときの見た目が寂しくなりません。
 
-[![nichie オーガニック ミントティー ルイボスブレンド ティーバッグ 2g×50個](/images/seitai-yoga-ato-noncaffeine-herbtea/products/1.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fcollagenkirei%2Frooibosmint-01%2F)
+[![nichie オーガニック ミントティー ルイボスブレンド ティーバッグ 2g×50個](/images/seitai-yoga-ato-noncaffeine-herbtea/products/1.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824eaa5.c029d249.5824eaa6.1148206d/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fcollagenkirei%2Frooibosmint-01%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.67（89件） [nichie オーガニック ミントティー ルイボスブレンド 2g×50個はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fcollagenkirei%2Frooibosmint-01%2F)
+★4.67（89件） [nichie オーガニック ミントティー ルイボスブレンド 2g×50個はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824eaa5.c029d249.5824eaa6.1148206d/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fcollagenkirei%2Frooibosmint-01%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 有機のペパーミントとルイボスをブレンドした、2g入りのティーバッグ50個入りです。1杯あたりの単価が抑えめで、毎日飲んでも気兼ねしにくい容量です。煮出しでも熱湯を注ぐだけでも淹れられるため、施術院から帰ってマグカップにお湯を注ぐだけ、という使い方に向きます。ミント系を試すのが初めての方は、まずこうしたブレンドタイプから入ると飲みやすく感じられるはずです。
 
@@ -56,9 +56,9 @@ category: how-to
 
 カモミール単体は香りに独特のクセがあり、好みが分かれます。花の部分だけを使ったものは雑味が少なく、はじめてでも飲みやすいので、まずはシンプルな「カモミールフラワー」から試すのがおすすめです。
 
-[![ポンパドール カモミールフラワー ティーバッグ 1.5g×20TB×5箱セット](/images/seitai-yoga-ato-noncaffeine-herbtea/products/2.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Flifucoco-shop%2F0764-005591%2F)
+[![ポンパドール カモミールフラワー ティーバッグ 1.5g×20TB×5箱セット](/images/seitai-yoga-ato-noncaffeine-herbtea/products/2.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824e461.4d69b36c.5824e462.0427653f/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Flifucoco-shop%2F0764-005591%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.85（67件） [ポンパドール カモミールフラワー ティーバッグ（5箱セット）はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Flifucoco-shop%2F0764-005591%2F)
+★4.85（67件） [ポンパドール カモミールフラワー ティーバッグ（5箱セット）はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824e461.4d69b36c.5824e462.0427653f/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Flifucoco-shop%2F0764-005591%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 ドイツの老舗ブランド、ポンパドールのカモミールフラワーティーです。無香料でカモミールの花そのものの香りが立ち、はちみつを少し落としたりミルクを合わせたりしても成立します。1.5gのティーバッグが1箱に20個、それが5箱のまとめ買いセットなので、家族でも飲む場合や職場にも置いておきたい場合にちょうどよい分量です。ティーバッグは個包装で、香りが飛びにくいのも扱いやすい点です。
 
@@ -68,9 +68,9 @@ category: how-to
 
 酸味がはっきりしているので、そのままだと強く感じる場合は、少し薄めに淹れるか、はちみつを加えると飲みやすくなります。アイスにしても色がきれいなので、暑い時期はホットで淹れて冷ましておくのもおすすめです。
 
-[![nichie オーガニック ローズヒップ ハイビスカス ブレンド ティーバッグ 3g×70個](/images/seitai-yoga-ato-noncaffeine-herbtea/products/3.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fcollagenkirei%2Froselle-02%2F)
+[![nichie オーガニック ローズヒップ ハイビスカス ブレンド ティーバッグ 3g×70個](/images/seitai-yoga-ato-noncaffeine-herbtea/products/3.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824eaa5.c029d249.5824eaa6.1148206d/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fcollagenkirei%2Froselle-02%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.68（113件） [nichie オーガニック ローズヒップ ハイビスカス ブレンド 3g×70個はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fcollagenkirei%2Froselle-02%2F)
+★4.68（113件） [nichie オーガニック ローズヒップ ハイビスカス ブレンド 3g×70個はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824eaa5.c029d249.5824eaa6.1148206d/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fcollagenkirei%2Froselle-02%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 有機のローズヒップとハイビスカスをブレンドした、3g入りのティーバッグ70個入りです。1杯分の茶葉がしっかり入っているので、マグカップでも味がぼやけにくく、水出しにも対応しています。容量が多く単価が抑えめなので、ホットとアイスを気分で使い分けても続けやすい一品です。レビュー件数も多く、味の安定感を見込みやすいのも選びやすい点です。
 

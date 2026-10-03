@@ -40,9 +40,9 @@ TWG Teaの茶缶やティーバッグの箱は、金と黒を基調にした落�
 
 アールグレイ、カモミール、ブラックティーなど、定番フレーバーをひとつのボックスにまとめたアソートギフトです。初めてTWG Teaを贈る方にも受け取る方にも、選びやすいセットです。個包装のティーバッグなので淹れる手間がなく、職場へのお土産や気軽な内祝いにも向いています。
 
-[![TWG Tea クラシックティーバッグセレクション](/images/twg-tea-gift-koucha-erabikata/products/1.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Ftwgtea%2Fpacktb9001%2F)
+[![TWG Tea クラシックティーバッグセレクション](/images/twg-tea-gift-koucha-erabikata/products/1.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824e8e7.7ccc6931.5824e8e8.e80274d1/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Ftwgtea%2Fpacktb9001%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.76（155件） [TWG Tea クラシックティーバッグセレクションはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Ftwgtea%2Fpacktb9001%2F)
+★4.76（155件） [TWG Tea クラシックティーバッグセレクションはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824e8e7.7ccc6931.5824e8e8.e80274d1/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Ftwgtea%2Fpacktb9001%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 レビュー件数が最も多く、TWG Teaのギフトとして最初に試しやすい選択肢です。
 
@@ -50,9 +50,9 @@ TWG Teaの茶缶やティーバッグの箱は、金と黒を基調にした落�
 
 「1837」はTWG Teaの看板フレーバーで、フルーティーで華やかな香りが特徴とされています。TWG Teaを象徴するフレーバーであるため、「贈り物にTWG Teaを選んだ」という意図が伝わりやすく、相手がブランドを知っていれば特別感がより増します。ティーバッグタイプなので茶葉に不慣れな方にも楽しんでもらいやすい形です。
 
-[![TWG Tea 1837ブラックティーバッグ](/images/twg-tea-gift-koucha-erabikata/products/2.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Ftwgtea%2Fpacktb6033%2F)
+[![TWG Tea 1837ブラックティーバッグ](/images/twg-tea-gift-koucha-erabikata/products/2.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824e8e7.7ccc6931.5824e8e8.e80274d1/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Ftwgtea%2Fpacktb6033%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.76（124件） [TWG Tea 1837ブラックティーバッグはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Ftwgtea%2Fpacktb6033%2F)
+★4.76（124件） [TWG Tea 1837ブラックティーバッグはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824e8e7.7ccc6931.5824e8e8.e80274d1/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Ftwgtea%2Fpacktb6033%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 フラグシップとしての知名度があり、TWG Teaをすでに知っている方への贈り物としても選ばれやすい商品です。
 
@@ -60,9 +60,9 @@ TWG Teaの茶缶やティーバッグの箱は、金と黒を基調にした落�
 
 定番フレーバーのアールグレイをTWG Tea流に仕上げた選択肢です。ベルガモットのフルーティーな香りが際立ち、紅茶に詳しくない方にも「いい香り」と感じてもらいやすい香りの個性があります。アールグレイは世界的に知名度の高いフレーバーなので、贈り物として共通言語になりやすいのも利点です。
 
-[![TWG Tea フレンチアールグレイティーバッグ](/images/twg-tea-gift-koucha-erabikata/products/3.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Ftwgtea%2Fpacktb3005%2F)
+[![TWG Tea フレンチアールグレイティーバッグ](/images/twg-tea-gift-koucha-erabikata/products/3.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824e8e7.7ccc6931.5824e8e8.e80274d1/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Ftwgtea%2Fpacktb3005%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.93（58件） [TWG Tea フレンチアールグレイティーバッグはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Ftwgtea%2Fpacktb3005%2F)
+★4.93（58件） [TWG Tea フレンチアールグレイティーバッグはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824e8e7.7ccc6931.5824e8e8.e80274d1/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Ftwgtea%2Fpacktb3005%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 評価が高く、アールグレイ好きへの贈り物としてはとくに喜ばれやすい選択です。
 

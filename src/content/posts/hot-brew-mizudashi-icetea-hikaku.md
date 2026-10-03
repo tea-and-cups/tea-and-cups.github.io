@@ -46,9 +46,9 @@ category: how-to
 
 ホットブリューでは、熱湯を注いでそのまま急冷するため、**耐熱ガラス製で急冷にも耐えられるジャグ**が欠かせません。耐熱性の低い容器に熱湯を注ぐと破損の原因になるため、「急冷式対応」と明記された製品を選ぶことが重要です。
 
-[![KINTO SEPIA ジャグ 600mL アンバー](/images/hot-brew-mizudashi-icetea-hikaku/products/1.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Feclity%2Fthc-kinto-sep21749%2F)
+[![KINTO SEPIA ジャグ 600mL アンバー](/images/hot-brew-mizudashi-icetea-hikaku/products/1.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824e1c8.57d819ef.5824e1c9.d2453c6c/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Feclity%2Fthc-kinto-sep21749%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.79（34件） [KINTO SEPIA ジャグ 600mLはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Feclity%2Fthc-kinto-sep21749%2F)
+★4.79（34件） [KINTO SEPIA ジャグ 600mLはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824e1c8.57d819ef.5824e1c9.d2453c6c/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Feclity%2Fthc-kinto-sep21749%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 耐熱ガラス製で急冷式アイスティー・アイスコーヒーの両方に対応したジャグで、レビュー評価も高く、コーヒー用としてだけでなく紅茶の急冷にも使いやすいシンプルな形状です。取っ手付きで注ぎやすく、洗いやすい広口設計も日々の作り置きに向いています。
 

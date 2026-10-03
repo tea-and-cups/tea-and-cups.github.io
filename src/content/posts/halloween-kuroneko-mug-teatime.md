@@ -42,7 +42,7 @@ category: seasons
 
 チョコレートブランドCACAOCATの公式ショップが、3人のアーティストと組んで作ったマグカップです。「CAT」は写真家・木野聡子さんの黒猫の作品を写したもので、首輪をつけた黒猫がカップに大きく描かれています。1つ置くだけでハロウィンのテーブルが締まる、絵柄の強いタイプです。素材は陶器、容量は350mlで、電子レンジに対応しています。ラッピングサービスは行っていないため、贈り物にする場合は自分で包む前提で考えてください。
 
-★4.78（18件） [CACAOCAT マグカップ CATはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fdadaca-onlinestore%2Fgoods-087-088-089%2F)
+★4.78（18件） [CACAOCAT マグカップ CATはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824e07e.25ed70c1.5824e07f.9b33d8ec/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fdadaca-onlinestore%2Fgoods-087-088-089%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 3種類の中でレビュー件数がいちばん多く、評価も安定しています。黒猫の顔をはっきり見せたい人にはこれがおすすめです。
 
@@ -50,9 +50,9 @@ category: seasons
 
 美濃焼の窯元・丸モ高木陶器が作る、温度で絵柄が変わるマグです。常温ではクールグレーのマットな器に黒猫のシルエットが見えるだけですが、45℃以上の飲み物を注ぐと猫の柄に色がつきます。注いだ瞬間の変化そのものが楽しみになるタイプで、ハロウィンの来客時にも話題になります。
 
-[![丸モ高木陶器 色が変わる 温感マグカップ 捜す猫](/images/halloween-kuroneko-mug-teatime/products/1.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fbabynews%2Ftakagi-05b%2F)
+[![丸モ高木陶器 色が変わる 温感マグカップ 捜す猫](/images/halloween-kuroneko-mug-teatime/products/1.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824e09f.7d5d8781.5824e0a0.b7600024/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fbabynews%2Ftakagi-05b%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.83（6件） [温感マグカップ 捜す猫はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fbabynews%2Ftakagi-05b%2F)
+★4.83（6件） [温感マグカップ 捜す猫はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824e09f.7d5d8781.5824e0a0.b7600024/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fbabynews%2Ftakagi-05b%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 注意点として、絵柄が転写のため電子レンジと食洗機には対応せず、柔らかいスポンジでの手洗いが推奨されています。転写は強く擦ると剥がれることがあるため、扱いに少し気を配れる人向けです。レビュー件数はまだ多くありませんが、この価格帯では手堅い選択肢です。
 
@@ -60,7 +60,7 @@ category: seasons
 
 キャラクター「ネコマンジュウ」の公式ショップが作る、日本製・美濃焼のマグです。今回の3つの中では絵柄がいちばん控えめで、黒い器に猫の顔をあしらったデザインなどが選べます。満水で330mlとやや大きめで、たっぷり飲みたい朝の1杯に向きます。電子レンジと食洗機に対応しているので、普段づかいのハードルが低いのが強みです（直火とオーブンは不可）。
 
-★4.80（10件） [ネコマンジュウ 美濃焼マグカップはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Ffriendshill-store%2Ffhs-07600002%2F)
+★4.80（10件） [ネコマンジュウ 美濃焼マグカップはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824e0a5.ce9e962a.5824e0a6.f6c7c53b/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Ffriendshill-store%2Ffhs-07600002%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 柄の主張が弱いぶん、ハロウィンの飾りつけの中に置いても浮かず、シーズンが終わっても使い続けやすいバランスの取れた選択肢です。
 

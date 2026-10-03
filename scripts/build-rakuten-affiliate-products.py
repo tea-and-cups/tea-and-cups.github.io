@@ -15,7 +15,8 @@
 使い方:
   python site/scripts/build-rakuten-affiliate-products.py <slug> <freelink.tsv>
       freelink.tsv は rakuten-freelink-extract.js の戻り値をそのまま保存したもの
-      （見出し行: seq item_url link_id image_path created_at item_name）。
+      （見出し行: seq item_url link_id image_path created_at item_name check）。
+      check 列は写し間違いの照合用で、一致しない行があれば何もせずに終了する（D-0261）。
       行ごとに次を行う（画像のダウンロードは1件ごとに1秒以上の間隔を空ける）。
         1. リンク（picttext・400x400）を組み立てる
         2. 画像を ?_ex=400x400 でダウンロードし、原本を output/product-images/ に残す
@@ -114,13 +115,28 @@ def image_url(image_path):
     return "%s%s?_ex=%dx%d" % (IMAGE_HOST, image_path, IMAGE_SIZE, IMAGE_SIZE)
 
 
+def row_check(row):
+    """rakuten-freelink-extract.js の check 列と同じ値（seq・item_url・link_id・image_path をタブで
+    つないだ文字列のSHA-256先頭12桁）を返す。"""
+    fields = [(row.get(k) or "").strip() for k in ("seq", "item_url", "link_id", "image_path")]
+    return hashlib.sha256("\t".join(fields).encode("utf-8")).hexdigest()[:12]
+
+
 def read_rows(tsv_path):
     with open(tsv_path, encoding="utf-8", newline="") as f:
         reader = csv.DictReader(f, delimiter="\t")
         need = {"seq", "item_url", "link_id", "image_path", "created_at", "item_name"}
         if not reader.fieldnames or not need.issubset(set(reader.fieldnames)):
             sys.exit("TSVの見出し行が違います（必要: %s）: %s" % (" ".join(sorted(need)), tsv_path))
-        return [row for row in reader if any((v or "").strip() for v in row.values())]
+        rows = [row for row in reader if any((v or "").strip() for v in row.values())]
+    # check 列があれば、Chromeの戻り値を書き写したときの写し間違いを照合する（D-0261）。
+    # ERROR行は check 列を持たないため照合しない。
+    if "check" in reader.fieldnames:
+        bad = [r.get("seq") for r in rows
+               if (r.get("item_url") or "").strip() != "ERROR" and (r.get("check") or "").strip() != row_check(r)]
+        if bad:
+            sys.exit("TSVの check 列が一致しない行があります（写し間違いの可能性・seq=%s）: %s" % (",".join(bad), tsv_path))
+    return rows
 
 
 def download(url, dst_path):

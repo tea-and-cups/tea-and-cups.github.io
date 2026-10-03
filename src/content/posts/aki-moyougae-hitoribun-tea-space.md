@@ -81,9 +81,9 @@ category: how-to
 
 和紙を貼った日本製（静岡県）の茶筒です。本体はブリキに和紙、内蓋はプラスチックの二重構造で、外寸は直径75mm×高さ120mm。ショップの表記では**茶葉150g・珈琲豆100gの保存に適したサイズ**とされています。棚の奥にしまうのではなく、出しておくことを前提にできる見た目なのが、この用途では効いてきます。
 
-[![星燈社 茶筒（小）150g茶葉用 和紙貼りのキャニスター](/images/aki-moyougae-hitoribun-tea-space/products/1.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fmercadomercado%2Fseic%2F)
+[![星燈社 茶筒（小）150g茶葉用 和紙貼りのキャニスター](/images/aki-moyougae-hitoribun-tea-space/products/1.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824d54d.4903fb62.5824d54e.20d72377/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fmercadomercado%2Fseic%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.90（88件） [星燈社 茶筒（小）はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fmercadomercado%2Fseic%2F)
+★4.90（88件） [星燈社 茶筒（小）はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824d54d.4903fb62.5824d54e.20d72377/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fmercadomercado%2Fseic%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 評価・レビュー件数ともに高く、この価格帯ではイチ押しの選択肢です。柄の展開が多く、在庫のある柄から部屋の色に合わせて選べます（和紙の裁断位置によって柄の出方に個体差があり、ショップの案内では柄の指定はできないとされています。売り切れの柄もあります）。紙を貼ったブリキ缶なので、水に濡れたまま放置するとサビの原因になる点と、直射日光を避けたい点は押さえておいてください。茶葉の保存で気をつけたい点は[賞味期限が切れた紅茶の見極め方](/posts/koucha-shomikigen-kireta-fuumi-mikiwame/)でも触れています。
 
@@ -91,9 +91,9 @@ category: how-to
 
 岐阜県の美濃焼のマグカップです。口径9.3×高さ10.3cm、満水時370ccと、一般的なマグ（250〜300ml前後）より大きめで、ティーバッグ一つでゆっくり飲みたいときや、ミルクティーを多めに作るときに向きます。色はグレーとブルーの2色。素地の質感を残した仕上げで、木のトレーに載せたときになじみます。
 
-[![美濃焼 大きいマグカップ 370ml 北欧風の陶器マグ](/images/aki-moyougae-hitoribun-tea-space/products/2.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fmanmos-house%2Fhokkori-mugcup-782-27-28-8g%2F)
+[![美濃焼 大きいマグカップ 370ml 北欧風の陶器マグ](/images/aki-moyougae-hitoribun-tea-space/products/2.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824d575.8ae4cbdc.5824d576.5e0b9edf/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fmanmos-house%2Fhokkori-mugcup-782-27-28-8g%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.71（100件） [美濃焼 大きいマグカップ 370mlはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fmanmos-house%2Fhokkori-mugcup-782-27-28-8g%2F)
+★4.71（100件） [美濃焼 大きいマグカップ 370mlはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824d575.8ae4cbdc.5824d576.5e0b9edf/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fmanmos-house%2Fhokkori-mugcup-782-27-28-8g%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 レビュー件数が多く、この価格帯では手堅い選択肢です。**電子レンジは対応と明記されていますが、食洗機の可否はページに記載がありません**。食洗機で洗いたい人は、購入前にショップへ確認してください。容量が大きいぶん、満水まで注ぐと重くなります。持ちやすさが気になる人は、口径9.3cmという表示を手持ちのマグと比べてみてください。
 
@@ -101,9 +101,9 @@ category: how-to
 
 天然木（ウィローの積層材・ウレタン塗装）のトレイです。外寸は265×215×12mm、重量は約160gと軽く、角に丸みのある楕円形。**表面にノンスリップ加工がしてある**ので、カップを載せて持ち運ぶときに滑りにくいのが利点です。厚みは12mmと薄く、商品画像で見るかぎり縁がわずかに立ち上がる形で、テーブルに置いたままの定位置としても、そのまま運ぶお盆としても使えます。同じシリーズに210×145mmの小さいサイズもあるため、置き場所の奥行きに合わせて選べます。
 
-[![KINTO UNITEA ノンスリップトレイ 265×215mm 天然木のウッドトレイ](/images/aki-moyougae-hitoribun-tea-space/products/3.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Ffavras%2Ffn00982%2F)
+[![KINTO UNITEA ノンスリップトレイ 265×215mm 天然木のウッドトレイ](/images/aki-moyougae-hitoribun-tea-space/products/3.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824d5ca.d70782de.5824d5cb.105ee5e7/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Ffavras%2Ffn00982%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.84（32件） [KINTO UNITEA ノンスリップトレイはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Ffavras%2Ffn00982%2F)
+★4.84（32件） [KINTO UNITEA ノンスリップトレイはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824d5ca.d70782de.5824d5cb.105ee5e7/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Ffavras%2Ffn00982%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 レビュー件数はまだ多くありませんが、評価は高めです。木製なので**食洗機・乾燥機は不可**とされ、水やお湯に浸すのも避けるようショップが案内しています。こぼしたら固く絞ったふきんで拭き、直射日光を避けて保管してください。買う前に、置き場所の奥行きが21.5cm以上あるかを一度メジャーで測っておくと寸法選びで迷いません。
 

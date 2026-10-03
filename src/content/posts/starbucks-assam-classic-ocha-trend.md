@@ -30,21 +30,19 @@ category: tea-leaves
 
 カフェの新作を試すのはもちろん楽しみですが、まずは通販でアッサムそのものの味わいをじっくり試してみるのもおすすめです。今回ご紹介する3点はいずれもコクのしっかりしたCTC製法（製法の違いは[茶葉のグレードの読み方](/posts/chaba-grade-op-bop-ctc-yomikata/)で解説しています）。アッサムの基本的な特徴や淹れ方をあらためて知りたい方は、[アッサムティー入門](/posts/assam-tea-nyumon/)もあわせてご覧ください。
 
-[![アッサムCTC ハティマラ茶園BPS セカンドフラッシュ2025年（シルバーポット）](/images/starbucks-assam-classic-ocha-trend/products/1.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fhatimara2006%2F)
+[![アッサムCTC ハティマラ茶園BPS セカンドフラッシュ2025年（シルバーポット）](/images/starbucks-assam-classic-ocha-trend/products/1.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824d670.57eb77b3.5824d671.e3a6cb31/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fhatimara2006%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.73（748件） [アッサムCTC ハティマラ茶園BPSはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fhatimara2006%2F)
+★4.73（748件） [アッサムCTC ハティマラ茶園BPSはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824d670.57eb77b3.5824d671.e3a6cb31/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fhatimara2006%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 特定の茶園の摘みたてを使ったセカンドフラッシュで、評価・レビュー件数のバランスが良くイチ押しできる一点です。専門店ならではの茶園情報付きで、産地の個性を意識しながら選びたい方に向いています。
 
-[![アッサムCTC 350g チャイ用茶葉（アールティ）](/images/starbucks-assam-classic-ocha-trend/products/2.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Faarti%2F10002001%2F)
+[![アッサムCTC 350g チャイ用茶葉（アールティ）](/images/starbucks-assam-classic-ocha-trend/products/2.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824ec2d.875fc778.5824ec2e.4fbb96f9/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Faarti%2F10002001%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.41（233件） [アッサムCTC 350gはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Faarti%2F10002001%2F)
+★4.41（233件） [アッサムCTC 350gはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824ec2d.875fc778.5824ec2e.4fbb96f9/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Faarti%2F10002001%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 たっぷり入って価格帯も手ごろな点が高く評価されており、ミルクティーやチャイでアッサムを日常的に飲みたい方には有力な候補です。しっかりしたコクが持ち味のCTC製法で、牛乳を加えても味が負けにくいのが特徴です。
 
-[![アッサムCTC 有機JASオーガニック100g（サンタローサ）](/images/starbucks-assam-classic-ocha-trend/products/3.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsantarosa%2Fsr_assam%2F)
-
-★4.63（982件） [有機JASアッサムCTCはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsantarosa%2Fsr_assam%2F)
+★4.63（982件） [有機JASアッサムCTCはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824d6ad.80b48201.5824d6ae.97ea73a9/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fsantarosa%2Fsr_assam%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 香料・着色料・保存料不使用の有機JASアッサムで、レビュー件数の多さも安心材料のひとつです。原材料にこだわりたい方や、はじめてオーガニック紅茶を試してみたい方に向いています。
 

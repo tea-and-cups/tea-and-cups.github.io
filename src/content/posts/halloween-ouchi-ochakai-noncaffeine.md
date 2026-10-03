@@ -38,7 +38,7 @@ category: seasons
 
 大容量のティーバッグタイプを選んでおくと、人数が増えても足りなくなりにくく、当日以外の普段使いにも回せます。煮出しでも熱湯を注ぐだけでも淹れられるため、来客前にポットでまとめて用意しておく使い方に向きます。
 
-★4.80（2,913件） [ティーライフ ルイボスティー ティーバッグ 101包入はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Ftealife-cafe%2F90576%2F)
+★4.80（2,913件） [ティーライフ ルイボスティー ティーバッグ 101包入はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824d766.75c6572a.5824d768.aaef66a5/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Ftealife-cafe%2F90576%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 1箱に101包入った大容量のルイボスティーです。1杯あたりの単価が抑えめなので、お茶会でたっぷり淹れても、残りを毎日の1杯に使ってもかまいません。レビュー件数が多く、味の傾向を事前につかみやすいのも選ぶうえで安心できます。個包装なので、湿気を気にせず食器棚に置いておけます。
 
@@ -48,7 +48,7 @@ category: seasons
 
 ただし、デカフェ紅茶はカフェインをゼロにしたものではなく、ごく微量が残ります。小さな子どもや、カフェインを完全に避けたい人には、デカフェではなく無地のルイボスなどカフェインを含まないものをすすめてください。個包装のアソートは、余っても日持ちし、次の来客やおすそ分けにも使えます。種類が多いぶん、子どもはフルーツ系やルイボス、大人はデカフェ紅茶、と自然に分かれます。
 
-★4.61（450件） [アーマッドティー デカフェ紅茶＆ノンカフェインハーブティー お試しセット 24包はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fnenrin%2Fdecafe-noncafe-tea-msm%2F)
+★4.61（450件） [アーマッドティー デカフェ紅茶＆ノンカフェインハーブティー お試しセット 24包はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824d5f2.401c77db.5824d5f3.a71c3dc2/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fnenrin%2Fdecafe-noncafe-tea-msm%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 デカフェ紅茶とノンカフェインのハーブティーが12種類、各2包ずつ入ったお試しセットです。1回のお茶会で全種類を並べても、半分残して次に取っておいてもよい分量です。ティーバッグは個包装なので、そのまま「選べるコーナー」のかごに入れられます。
 
@@ -58,7 +58,7 @@ category: seasons
 
 商品ページの説明では酸味は控えめとされており、そのまま飲みやすいタイプです。大人が飲むときは、ミルクを少し落とすと、ミルクティー風のやさしい味に寄ります。
 
-★4.55（141件） [ティーライフ ぜいたくルイボスティー みつりんご 15個入はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Ftea-life%2F93441%2F)
+★4.55（141件） [ティーライフ ぜいたくルイボスティー みつりんご 15個入はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824e0fe.2e7edf31.5824e0ff.18c5a61c/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Ftea-life%2F93441%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 りんごの果肉や花弁をブレンドした、フレーバードのルイボスティーです。2gのティーバッグが15個入りで、お茶会で1種類だけ「甘い香りのお茶」を用意したいときにちょうどよい分量です。水出しにも対応しているので、前日の夜にポットで作っておくこともできます。
 

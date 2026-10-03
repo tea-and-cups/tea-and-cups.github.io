@@ -37,13 +37,12 @@ category: how-to
 
 上品な柄物でティータイムを華やかにしたい方には、イギリスの老舗ブランドのティーコゼが選択肢になります。
 
-[![Ulster Weavers ティーコゼー ドットシープ](/images/tea-cozy-samenikui-koucha-ireta-erabikata/products/1.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fwelly%2F1002146%2F)
 ★5.00（10件） [Ulster Weavers ティーコゼー ドットシープ（クッションカバーランチョンマット）はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fwelly%2F1002146%2F)
 
 やわらかい花柄でテーブルを明るくしたい方には、リバティプリントのティーコジーも合わせやすい候補です。
 
-[![リバティプリント ティーコジー](/images/tea-cozy-samenikui-koucha-ireta-erabikata/products/2.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Ffabrics-fabrics%2Ftea-cosy-fabrics-lib%2F)
-★4.72（43件） [リバティプリント ティーコジー（FABRIC'S楽天市場店）はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Ffabrics-fabrics%2Ftea-cosy-fabrics-lib%2F)
+[![リバティプリント ティーコジー](/images/tea-cozy-samenikui-koucha-ireta-erabikata/products/2.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824ecb9.35e374d2.5824ecba.5ba6c791/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Ffabrics-fabrics%2Ftea-cosy-fabrics-lib%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
+★4.72（43件） [リバティプリント ティーコジー（FABRIC'S楽天市場店）はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824ecb9.35e374d2.5824ecba.5ba6c791/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Ffabrics-fabrics%2Ftea-cosy-fabrics-lib%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 ## まとめ
 

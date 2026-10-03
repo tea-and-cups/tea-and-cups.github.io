@@ -83,25 +83,21 @@ category: tea-leaves
 
 ### 1. TEARTH はちみつ紅茶（ブレンド型）
 
-[![TEARTH はちみつ紅茶 個包装ティーバッグ](/images/hachimitsu-koucha-teabag-erabikata/products/1.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Ftorisetsu%2Fte-hachi02%2F)
+[![TEARTH はちみつ紅茶 個包装ティーバッグ](/images/hachimitsu-koucha-teabag-erabikata/products/1.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824e026.7a667165.5824e027.5c73ee7f/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Ftorisetsu%2Fte-hachi02%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.65（323件） [TEARTH はちみつ紅茶はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Ftorisetsu%2Fte-hachi02%2F)
+★4.65（323件） [TEARTH はちみつ紅茶はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824e026.7a667165.5824e027.5c73ee7f/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Ftorisetsu%2Fte-hachi02%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 蜂蜜のパックと紅茶のパックを別々に仕上げてからブレンドしているタイプで、紅茶の香りを残しつつ後味にやわらかな甘みが乗ります。2g×25包×2箱の個包装で、毎日少しずつ飲む人や職場用に向いています。甘さは強すぎず、ミルクを少し足すアレンジの土台にもなります。高評価が集まっており、はじめてブレンド型を試す一つ目としても選びやすい商品です。
 
 ### 2. ラクシュミー 極上はちみつ紅茶 各種2箱セット（専門店型）
 
-[![ラクシュミー 極上はちみつ紅茶 フレーバー個包装セット](/images/hachimitsu-koucha-teabag-erabikata/products/2.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fcheeky%2Fu504773%2F)
-
-★4.79（3361件） [ラクシュミー 極上はちみつ紅茶はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fcheeky%2Fu504773%2F)
+★4.79（3361件） [ラクシュミー 極上はちみつ紅茶はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824e032.904f3379.5824e033.3a005453/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fcheeky%2Fu504773%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 紅茶専門店Lakshimiのはちみつ紅茶で、プレーンのほかフルーティやミントなど複数のフレーバーから2箱を選べます。個包装のデザインが整っていて、飲み比べにも手土産にも使いやすい構成です。「すべてのレビューを見る」の総件数が3,000件を超え、評価も高い水準で安定しています。相手の好みが読めないギフトや、いろいろな味を試してみたい人に向いています。
 
 ### 3. GRANJA SanFrancisco はちみつ紅茶 20袋（海外ブランド・ホット/アイス両対応）
 
-[![GRANJA SanFrancisco はちみつ紅茶 スペイン直輸入ティーバッグ](/images/hachimitsu-koucha-teabag-erabikata/products/3.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fgranjapon%2Fte_01%2F)
-
-★4.57（383件） [GRANJA SanFrancisco はちみつ紅茶はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fgranjapon%2Fte_01%2F)
+★4.57（383件） [GRANJA SanFrancisco はちみつ紅茶はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824e038.00f5033f.5824e039.ab27d3d3/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fgranjapon%2Fte_01%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 スペインから直輸入されているはちみつ紅茶で、20袋入りと少なめの容量です。商品ページではホットとアイスの両方の淹れ方が案内されていて、暑い時期はアイスでも楽しめます。3タイプの分類にはきれいに収まらない海外ブランドですが、商品説明からは甘さを強く前に出したタイプではなさそうで、まず20袋の少量で好みを確かめられるのが利点です。国内の定番とは違う風味を探している人向けの選択肢です。「すべてのレビューを見る」の総件数は383件で、スコアは中立寄り、好みが分かれる余地はあります。
 

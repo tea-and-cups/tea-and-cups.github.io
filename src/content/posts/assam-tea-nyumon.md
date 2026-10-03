@@ -86,21 +86,21 @@ CTCは「Crush（つぶす）・Tear（引き裂く）・Curl（丸める）」�
 
 インド紅茶専門店シルバーポットの、アッサムのCTC茶葉を使った三角ティーバッグです。濃厚ミルクティー用として、パッケージでは5分ほどの長めの抽出が案内されています。1個ずつの個包装ではありませんが、専門店の茶葉を手軽な形で試せる一箱で、レビュー評価も高く、はじめの一箱としておすすめできます。
 
-[![シルバーポット アッサムCTC ティーバッグ 15個入](/images/assam-tea-nyumon/products/1.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fteabag30-assamctc%2F)
+[![シルバーポット アッサムCTC ティーバッグ 15個入](/images/assam-tea-nyumon/products/1.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824d670.57eb77b3.5824d671.e3a6cb31/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fteabag30-assamctc%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.75（110件） [アッサムCTC ティーバッグ 15個入 はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fteabag30-assamctc%2F)
+★4.75（110件） [アッサムCTC ティーバッグ 15個入 はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824d670.57eb77b3.5824d671.e3a6cb31/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fteabag30-assamctc%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 ### 2. 手に入れやすい定番ブランド
 
 トワイニングの「ゴールデン アッサム」のティーバッグです。大手ブランドでスーパーや通販でも入手しやすく、アッサムらしいコクとまろやかさがあり、ストレートでもミルクでも楽しめます。まず身近な定番でアッサムの味の傾向を知りたい方に向いた一箱です。
 
-★4.66（70件） [トワイニング ゴールデン アッサム 2g×20袋 はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Frakuten24%2Fe272128h%2F)
+★4.66（70件） [トワイニング ゴールデン アッサム 2g×20袋 はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824d697.c793c0db.5824d698.dbe81f68/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Frakuten24%2Fe272128h%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 ### 3. 茶葉から淹れたい人に
 
 有機JAS認証を受けた、香料・保存料などを使わないアッサムCTCの茶葉です。CTCタイプなので短時間で濃く出て、ミルクティーやチャイ、アイスティーに使いやすい100g。ポットで淹れて自分で濃さを調整したい方、オーガニックの茶葉を選びたい方におすすめの、レビュー件数の多い定番です。
 
-★4.63（981件） [サンタローサ 有機JAS アッサムCTC 100g はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsantarosa%2Fsr_assam%2F)
+★4.63（981件） [サンタローサ 有機JAS アッサムCTC 100g はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824d6ad.80b48201.5824d6ae.97ea73a9/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fsantarosa%2Fsr_assam%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 商品2・3の画像は掲載していません。テキストのリンクから商品ページをご確認ください。
 

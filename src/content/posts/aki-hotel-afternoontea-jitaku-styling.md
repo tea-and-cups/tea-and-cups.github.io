@@ -46,8 +46,8 @@ category: seasons
 
 形については、四角より**半月形や丸**のほうが柔らかい印象になります。カップとポットと菓子皿を載せるなら、直径や辺で30cm台のものが、この記事の目安です。小さすぎると載せきれず、大きすぎると一人分には余ります。
 
-[![半月盆 木製 36cm トレイ](/images/aki-hotel-afternoontea-jitaku-styling/products/1.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fnaniwa-select%2Ftray7%2F)
-★4.71（140件） [半月盆 木製 36cm トレイはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fnaniwa-select%2Ftray7%2F)
+[![半月盆 木製 36cm トレイ](/images/aki-hotel-afternoontea-jitaku-styling/products/1.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824d4a3.e469d7ac.5824d4a4.6fa1f1e6/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fnaniwa-select%2Ftray7%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
+★4.71（140件） [半月盆 木製 36cm トレイはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824d4a3.e469d7ac.5824d4a4.6fa1f1e6/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fnaniwa-select%2Ftray7%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 天然木の半月盆です。販売ページによるとサイズは36×33×1.5cmで、ナチュラル（ウレタン塗装）とブラウン（漆塗り）の2色から選べます。秋のテーブルに寄せるなら後者です。販売ページでは、半月形は四角いテーブルにも丸いテーブルにも合うと説明されています。天然木のため色や木目には個体差があるとの断りがあり、収納は立てかけずに平置きするよう案内されています。
 
@@ -69,8 +69,7 @@ category: seasons
 - **色が生成りに近いか** — 純白よりクリーム系のほうが、暖色の菓子となじみます
 - **普段使いできるか** — 秋の一か月だけ出す器は、出番が少ないまま終わりがちです
 
-[![ウェッジウッド フェスティビティ ティーカップ＆ソーサー ラズベリー](/images/aki-hotel-afternoontea-jitaku-styling/products/2.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fle-noble%2F003267770338%2F)
-★4.72（75件） [ウェッジウッド フェスティビティ ティーカップ＆ソーサーはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fle-noble%2F003267770338%2F)
+★4.72（75件） [ウェッジウッド フェスティビティ ティーカップ＆ソーサーはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824d4d5.e1788149.5824d4d6.eb68f29f/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fle-noble%2F003267770338%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 「フェスティビティ」は祝祭を意味する名前で、果実や花を縄でつないだ花綱をかたどった立体的な型押しが、シリーズの特徴とされています。実りをモチーフにしている点で、この季節のテーブルとは相性のよいシリーズです。販売ページでは商品名に160mlとある一方、仕様欄には口径10cm・高さ6.3cm、ソーサー直径14cm、満水容量250mlと記載されています。数字が2つある理由は販売ページに書かれていないため、容量は購入前にご確認ください。個数は1客です。クイーンズウェアという同ブランドの陶器のラインで、電子レンジと食器洗い乾燥機に対応していると明記されている一方、長時間のつけ置き洗いはしみやむらの原因になるため避けるよう案内があります（[販売ページ](https://item.rakuten.co.jp/le-noble/003267770338/)）。
 
@@ -89,8 +88,8 @@ category: seasons
 
 買い足さずに済ませたい場合は、手持ちの紅茶にシナモンスティックを一片添えるだけでも香りの方向は変わります。茶葉そのものを替えるより戻しやすいので、様子を見たいときの入口としても使えます。
 
-[![カレルチャペック デイリーシリーズ 20p](/images/aki-hotel-afternoontea-jitaku-styling/products/3.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fkarelcapek%2F01100920r%2F)
-★4.90（387件） [カレルチャペック デイリーシリーズ（種類が選べるティーバッグ）はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fkarelcapek%2F01100920r%2F)
+[![カレルチャペック デイリーシリーズ 20p](/images/aki-hotel-afternoontea-jitaku-styling/products/3.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824d4e5.f8d823d3.5824d4e6.9525a349/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fkarelcapek%2F01100920r%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
+★4.90（387件） [カレルチャペック デイリーシリーズ（種類が選べるティーバッグ）はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824d4e5.f8d823d3.5824d4e6.9525a349/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fkarelcapek%2F01100920r%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 種類を選んで買えるカップ用ティーバッグの箱入りシリーズです。販売ページの画像では季節限定フレーバーとしてマロンティー、パンプキンキャラメルティー、グレープティーが案内されており、先ほどのホテルの素材リストとそのまま重なります（[販売ページ](https://item.rakuten.co.jp/karelcapek/01100920r/)）。定番のアールグレイやアッサム、ダージリンも同じ形で選べるので、まずは**季節限定を1箱**から試し、気に入ったら通年の定番も選ぶ、という買い方ができます。個包装のため、1袋ずつ取り出して使えます。
 

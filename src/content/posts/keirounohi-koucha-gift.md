@@ -34,25 +34,23 @@ category: gift
 
 ### 1. 国産フレーバー和紅茶 — 味わいのバランスを重視するなら
 
-[![喜作園 フレーバーティー3袋（アールグレイ・ジャスミン・ベルガモット）](/images/keirounohi-koucha-gift/products/1.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fgunma5783%2F20230320-03%2F)
+[![喜作園 フレーバーティー3袋（アールグレイ・ジャスミン・ベルガモット）](/images/keirounohi-koucha-gift/products/1.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824e29e.fea0265e.5824e29f.425ea16d/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fgunma5783%2F20230320-03%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.85（34件） [喜作園 フレーバーティー3袋はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fgunma5783%2F20230320-03%2F)
+★4.85（34件） [喜作園 フレーバーティー3袋はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824e29e.fea0265e.5824e29f.425ea16d/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fgunma5783%2F20230320-03%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 アールグレイ・ジャスミン・ベルガモットの3種がそろった国産ブレンドティーです。国産茶葉ならではの渋みの穏やかさがあり、紅茶を普段あまり飲まない方にも受け入れられやすい味わいです。評価・レビュー件数のバランスも良く、この価格帯ではバランスの取れた選択肢といえます。
 
 ### 2. フルーツ和紅茶セット — 幅広い世代に一度に贈るなら
 
-[![話題の和紅茶セット 3種のフルーツ和紅茶ティーバッグ（りんご・桃・ぶどう）](/images/keirounohi-koucha-gift/products/2.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fujitawara-seichajyo%2F27275%2F)
+[![話題の和紅茶セット 3種のフルーツ和紅茶ティーバッグ（りんご・桃・ぶどう）](/images/keirounohi-koucha-gift/products/2.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824e2c0.23cd38b1.5824e2c1.ba56fd56/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fujitawara-seichajyo%2F27275%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.59（315件） [話題の和紅茶セット（3種のフルーツ和紅茶ティーバッグ）はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fujitawara-seichajyo%2F27275%2F)
+★4.59（315件） [話題の和紅茶セット（3種のフルーツ和紅茶ティーバッグ）はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824e2c0.23cd38b1.5824e2c1.ba56fd56/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fujitawara-seichajyo%2F27275%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 りんご・桃・ぶどうの果物の香りをまとった和紅茶で、渋みが穏やかなため紅茶に馴染みのない方にも親しみやすい味わいです。個包装で分量も無理がなく、祖父母から親世代まで家族みんなで少しずつ楽しんでもらえます。レビュー件数の多さは、幅広い層に受け入れられてきた実績のあらわれともいえ、贈り先を選びにくい定番として選びやすい一品です。
 
 ### 3. 華やかな缶入りギフトセット — 贈り物としての特別感を添えるなら
 
-[![NINA'S ロイヤルBOXギフトセット（マリー・アントワネット ティー2缶）](/images/keirounohi-koucha-gift/products/3.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fbellevie-harima%2Ffood-01055%2F)
-
-★4.7（10件） [NINA'S ロイヤルBOXギフトセットはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fbellevie-harima%2Ffood-01055%2F)
+★4.7（10件） [NINA'S ロイヤルBOXギフトセットはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824e2c4.7c8b86f2.5824e2c5.9f44df59/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fbellevie-harima%2Ffood-01055%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 フランスの紅茶ブランドによる、落ち着いた色合いの缶が2つ並ぶギフトセットです。ダージリンとアールグレイの2種が楽しめ、缶自体が保存容器としても使えるため、飲み終えた後も茶葉や小物入れとして活用してもらえます。まだレビュー件数は他の2つほど多くありませんが、平均評価は高く、贈り物としての華やかさを添えたいときに向いています。
 

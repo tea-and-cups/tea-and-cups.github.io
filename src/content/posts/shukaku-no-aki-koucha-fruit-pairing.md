@@ -57,7 +57,7 @@ category: seasons
 
 フルーツによって向く紅茶のタイプは変わります。そのつど茶葉を1種類ずつ買いそろえるのは大変なので、いろいろなタイプが少しずつ入った「選べるセット」から始めると無駄がありません。
 
-★4.67（3,475件） [選べるティーバッグ マーケットセットはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2F1017951%2F)
+★4.67（3,475件） [選べるティーバッグ マーケットセットはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824d670.57eb77b3.5824d671.e3a6cb31/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2F1017951%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 好きな種類を選んで組み合わせられるティーバッグのセットです。産地別のすっきりした紅茶から、フルーツ系のフレーバーティー、コクのあるタイプまで幅広く選べるので、この記事で挙げたどの方向にも寄せられます。冷たくしても楽しめるので、残暑のうちはアイスで、涼しくなったらホットで、と使い分けられます。レビュー件数が多く★4.6台と高評価を保っており、はじめに選ぶ一つとして手を出しやすいセットです。どんな種類が選べるかは商品ページでご確認ください。
 
@@ -67,13 +67,13 @@ category: seasons
 
 まずは中身の見えるガラスのティーポット。ぶどうやカットした梨を入れて湯を注ぐと、色と香りが移っていく様子がそのまま楽しめ、茶葉が開くジャンピングも見えます。テーブルに置くだけで華やかになります。
 
-★4.63（351件） [KINTO UNITEA ワンタッチティーポット 720mlはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fzakkashop%2F42281%2F)
+★4.63（351件） [KINTO UNITEA ワンタッチティーポット 720mlはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824eb60.a5ef7492.5824eb61.d2a84052/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fzakkashop%2F42281%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 食器やインテリアを手がけるKINTOのティーポットで、容量は720ml。ふたに茶こしが組み込まれていて、注ぐときに別途ストレーナーを用意しなくて済みます。本体は耐熱ガラスなので中身が見え、フルーツを入れたときの色の移り変わりも楽しめます。食洗機や電子レンジが使えるかは、商品ページの取り扱い表示を確認してください。ポットの選び方全般は[ティーポットの選び方・比較](/posts/koucha-teapot-erabikata-hikaku/)も参考にしてください。
 
 もう一つは、フルーツをのせる取り皿。紅茶のカップとおそろいにする必要はなく、素朴な質感の一枚があると、切った果物がぐっとおいしそうに見えます。
 
-★4.63（137件） [カネコ小兵 土物風マット ケーキ皿 16cmはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fhana2primitive%2Fkhd4%2F)
+★4.63（137件） [カネコ小兵 土物風マット ケーキ皿 16cmはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824e895.7a45ae20.5824e896.da85893f/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fhana2primitive%2Fkhd4%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 岐阜県の美濃焼の窯元、カネコ小兵製陶所のケーキ皿です。直径16cmで、カットした梨や柿、ぶどうをひと盛りするのにちょうどよい大きさ。土物風のマットな質感で、粉引・アメ・鉄黒の3色があります。焼き菓子やお団子をのせても様になります。
 

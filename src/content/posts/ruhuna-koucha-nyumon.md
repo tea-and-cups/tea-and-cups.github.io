@@ -81,25 +81,25 @@ category: tea-leaves
 
 スリランカ・キルワーナガンガ茶園で摘まれた単一茶園（シングルエステート）のルフナです。産地の個性をそのまま味わいたい方に向いています。
 
-[![紅茶 ルフナ 100g 袋入 キルワーナガンガ茶園 スリランカ フレッシュティー](/images/ruhuna-koucha-nyumon/products/1.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fteaisobuchi%2F10000014%2F)
+[![紅茶 ルフナ 100g 袋入 キルワーナガンガ茶園 スリランカ フレッシュティー](/images/ruhuna-koucha-nyumon/products/1.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824e5ae.4ad7f194.5824e5b1.70f8f6e0/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fteaisobuchi%2F10000014%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.77（26件） [紅茶 ルフナ 100g 袋入 キルワーナガンガ茶園 スリランカ フレッシュティー はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fteaisobuchi%2F10000014%2F)
+★4.77（26件） [紅茶 ルフナ 100g 袋入 キルワーナガンガ茶園 スリランカ フレッシュティー はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824e5ae.4ad7f194.5824e5b1.70f8f6e0/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fteaisobuchi%2F10000014%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 ### 2. 普段使いの定番として
 
 送料無料・ネコポス便で気軽に試せる、スリランカ産ルフナOPグレードの茶葉です。バランスの取れた選択肢で、日常使いの一袋として向いています。
 
-[![紅茶が好き！紅茶葉100g「ルフナ　OP」](/images/ruhuna-koucha-nyumon/products/2.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsummit%2Ftea202-11%2F)
+[![紅茶が好き！紅茶葉100g「ルフナ　OP」](/images/ruhuna-koucha-nyumon/products/2.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824ea69.da3f2474.5824ea6a.5a542c2f/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fsummit%2Ftea202-11%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.38（13件） [紅茶が好き！紅茶葉100g「ルフナ　OP」 はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsummit%2Ftea202-11%2F)
+★4.38（13件） [紅茶が好き！紅茶葉100g「ルフナ　OP」 はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824ea69.da3f2474.5824ea6a.5a542c2f/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fsummit%2Ftea202-11%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 ### 3. 濃厚な甘みを重視したい人に
 
 デラワ茶園で摘まれたBOPグレードのルフナです。濃厚な甘みが魅力とされ、ミルクティー向けの一点として試す価値があります。
 
-[![セイロン紅茶：2025年ルフナ・デラワ茶園Dellawa T.E.BOP (100g)](/images/ruhuna-koucha-nyumon/products/3.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Ftsclover%2Ftea0029_100%2F)
+[![セイロン紅茶：2025年ルフナ・デラワ茶園Dellawa T.E.BOP (100g)](/images/ruhuna-koucha-nyumon/products/3.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824e2dd.87a946d4.5824e2de.1a9e9048/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Ftsclover%2Ftea0029_100%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.80（10件） [セイロン紅茶：2025年ルフナ・デラワ茶園Dellawa T.E.BOP (100g) はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Ftsclover%2Ftea0029_100%2F)
+★4.80（10件） [セイロン紅茶：2025年ルフナ・デラワ茶園Dellawa T.E.BOP (100g) はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824e2dd.87a946d4.5824e2de.1a9e9048/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Ftsclover%2Ftea0029_100%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 ## よくある質問
 

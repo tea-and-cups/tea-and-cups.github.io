@@ -83,17 +83,17 @@ category: how-to
 
 下はインド・アッサムのハティマラ茶園でとれた夏摘み（セカンドフラッシュ）のCTCです。粒がそろっていて出方が安定しているので、割合と時間を決めて繰り返し作るこの飲み方と合わせやすい茶葉です。100g前後の袋なら、2杯分を週に数回作って1〜2か月ほど楽しめます。
 
-[![シルバーポット アッサムCTC セカンドフラッシュ ハティマラ茶園](/images/nabe-hot-royal-milktea-warihai-kotsu/products/1.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fhatimara2006%2F)
+[![シルバーポット アッサムCTC セカンドフラッシュ ハティマラ茶園](/images/nabe-hot-royal-milktea-warihai-kotsu/products/1.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824d670.57eb77b3.5824d671.e3a6cb31/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fhatimara2006%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.73（746件） [アッサムCTC（ハティマラ茶園・シルバーポット）はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fhatimara2006%2F)
+★4.73（746件） [アッサムCTC（ハティマラ茶園・シルバーポット）はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824d670.57eb77b3.5824d671.e3a6cb31/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fhatimara2006%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 ### 目盛付きの小鍋があると割合が決めやすい
 
 この飲み方は割合がすべてなので、**内側に目盛のあるミルクパン**があると計量カップを出さずに作れます。14cm・容量0.8Lほどのものなら、2杯分（水と牛乳で合わせて400ml前後）を煮出しても吹きこぼれまでに余裕があり、注ぎ口がついていればカップへ移すときもこぼれにくくなります。ホーロー製はにおいや色がつきにくく、紅茶とミルクを繰り返し煮る用途に合います。取っ手も本体と同じホーローで加熱中は熱くなるので、鍋つかみを用意しておくと安心です。
 
-[![富士ホーロー 目盛付きミルクパン 14cm](/images/nabe-hot-royal-milktea-warihai-kotsu/products/3.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fcooking-clocca%2F10000175%2F)
+[![富士ホーロー 目盛付きミルクパン 14cm](/images/nabe-hot-royal-milktea-warihai-kotsu/products/3.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824e78e.19fed044.5824e78f.62ca1b70/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fcooking-clocca%2F10000175%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.46（177件） [目盛付きミルクパン 14cm（富士ホーロー）はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fcooking-clocca%2F10000175%2F)
+★4.46（177件） [目盛付きミルクパン 14cm（富士ホーロー）はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824e78e.19fed044.5824e78f.62ca1b70/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fcooking-clocca%2F10000175%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 ### 甘みを控えたいなら、香りのついた茶葉という手も
 
@@ -101,9 +101,9 @@ category: how-to
 
 生姜やカルダモンなどのスパイスを足して本格的なチャイに寄せていくやり方は、[アイスチャイの作り方とスパイスの選び方](/posts/ice-chai-tsukurikata-spice-erabikata/)で温冷両方の考え方を紹介しています。
 
-[![シルバーポット キャラメルチャイ 茶葉](/images/nabe-hot-royal-milktea-warihai-kotsu/products/2.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fcaramelchai2006%2F)
+[![シルバーポット キャラメルチャイ 茶葉](/images/nabe-hot-royal-milktea-warihai-kotsu/products/2.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824d670.57eb77b3.5824d671.e3a6cb31/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fcaramelchai2006%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.65（1722件） [キャラメルチャイの茶葉（シルバーポット）はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fcaramelchai2006%2F)
+★4.65（1722件） [キャラメルチャイの茶葉（シルバーポット）はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824d670.57eb77b3.5824d671.e3a6cb31/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fcaramelchai2006%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 ## 味を微調整する2つの選択
 

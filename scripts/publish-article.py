@@ -106,6 +106,32 @@ Edit/Writeによるpublished化は .claude/hooks/check-publish-gate.py で拒否
        ステージに対象以外のファイルが載っていれば中断する。
   --dry-run は1〜3の内容（対象・飛ばす記事）を表示するだけで、ファイルを書かず、4〜5もしない。
   prune-used-ideas・Pin/Buffer投稿・production runのstep記録は行わない（--reviseと同じ）。
+
+【楽天アフィリエイトへの一括移行（--migrate-rakuten・D-0261。D-0239の例外）】
+  公開済み記事の もしもアフィリエイトのリンク（af.moshimo.com）を、リンク作成ページで作った
+  楽天アフィリエイトのリンクへ一括で置き換え、商品画像をリンク作成ページの画像（400×400）へ差し替える。
+  python site/scripts/publish-article.py --migrate-rakuten <plan.tsv> [--dry-run] [--with <siteからの相対パス> ...]
+  plan.tsv は migrate-rakuten-assets.py prepare が作る移行計画
+  （slug・item_url_raw・affiliate_url・mode・image_seqs・reason。mode は image／text／keep）。
+    image: リンクを置き換え、画像を _migration/candidates/<slug>/<連番>.webp で上書きする
+    text : リンクを置き換え、画像の行（と直後の空行）を消し、画像ファイルを git rm する
+    keep : 何もしない（リンク作成ページで取得できなかった画像の無い商品。もしものリンクのまま残る）
+    keep-text: リンクは変えず（もしものまま）、画像の行（と直後の空行）を消し、画像ファイルを git rm する
+          （リンク作成ページで取得できなかった画像のある商品。APIから取った画像を残さないため）
+
+  動き:
+    1. 計画の検査（slugが公開済み・リンクの形・差し替え画像が400×400で実在）。対象に未commitの変更があれば中断。
+    2. 各記事の本文を書き換える。変えてよいのは、もしものURLを楽天のリンクにすること（同じ商品のもの）と、
+       mode=text の商品の画像の行・直後の空行の削除だけ。行単位で照合し、それ以外が1文字でも変われば全体を中断する。
+       updated は変えない。
+    3. 下書きは、商品リンクの部分（af.moshimo.com・/products/ を含む行）が公開中と同じ記事にだけ同じ置き換えを行う。
+       異なる記事は飛ばして報告する。下書きが無ければ何もしない。
+    4. 画像を上書きし、check-article-portability.py・check-product-link-presence.py を全対象に、astro build を1回かける。
+       落ちたら本文・画像をすべて元に戻して中断する。
+    5. mode=text の画像を git rm し、対象（記事・画像・--with のファイル）だけを add して、
+       commit「migrate-rakuten: N記事」を1回、push を1回行う。ステージに対象以外が載っていれば中断する。
+  --dry-run は1〜3の内容（件数・飛ばす下書き・消す画像）を表示するだけで、ファイルを書かず、4〜5もしない。
+  prune-used-ideas・Pin/Buffer投稿・production runのstep記録は行わない（--reviseと同じ）。
 """
 
 import difflib
@@ -191,7 +217,7 @@ def publish_checks(draft_path):
 
     初回公開に限り --new を付け、もしもアフィリエイトのリンクを含む記事を不合格にする
     （新規記事は楽天アフィリエイトのみ・D-0260）。--revise はこの関数を通らないため、
-    既存記事のもしものリンクは第2段（一括移行）の完了まで従来どおり通る。
+    既存記事のもしものリンクは、第2段（D-0261）で移せなかった商品の分だけ残るため従来どおり通る。
     """
     n = required_products(read_category(draft_path))
     checks = []
@@ -840,6 +866,367 @@ def _run_recategorize(rest_args):
     return 0
 
 
+# --- 楽天アフィリエイトへの一括移行（--migrate-rakuten・D-0261） ---------------
+
+MIGRATION_DIR = os.path.join(ROOT, "output", "product-images", "_migration")
+PUBLIC_IMAGES_DIR = os.path.join(SITE, "public", "images")
+RE_MOSHIMO_URL = re.compile(r"https?://[^\s\)\"'\]<>]*af\.moshimo\.com[^\s\)\"'\]<>]*")
+RE_RAKUTEN_LINK = re.compile(
+    r"https://hb\.afl\.rakuten\.co\.jp/ichiba/[0-9a-f]{8}(?:\.[0-9a-f]{8}){3}/"
+    r"\?pc=([A-Za-z0-9%._~!*'()-]+)&link_type=picttext&ut=[A-Za-z0-9%]+"
+)
+RE_ANY_PRODUCT_URL = re.compile(
+    r"https?://[^\s\)\"'\]<>]*(?:af\.moshimo\.com|hb\.afl\.rakuten\.co\.jp)[^\s\)\"'\]<>]*"
+)
+RE_PRODUCT_IMAGE_LINE = re.compile(r"\[!\[[^\]]*\]\(/images/([a-z0-9-]+)/products/(\d+)\.webp\)\]\(([^)]+)\)")
+MIGRATE_MODES = ("image", "text", "keep", "keep-text")
+KEEP_LINK_MODES = ("keep", "keep-text")      # もしものリンクを残す
+DROP_IMAGE_MODES = ("text", "keep-text")     # 画像の行を消して文字リンクにする
+
+
+def _moshimo_item(url):
+    """もしものURLの url= にある楽天の商品URL（無ければ None）。"""
+    from urllib.parse import parse_qs, urlparse
+
+    values = parse_qs(urlparse(url).query).get("url")
+    return values[0] if values else None
+
+
+def _strip_query(url):
+    from urllib.parse import urlsplit, urlunsplit
+
+    p = urlsplit(url)
+    return urlunsplit((p.scheme, p.netloc, p.path, "", ""))
+
+
+def _parse_migrate_plan(plan_path):
+    """移行計画を読む。({slug: {item_url_raw: dict}}, エラー文言) を返す。"""
+    if not os.path.isfile(plan_path):
+        return None, "移行計画が見つかりません: %s" % plan_path
+    lines = read_text(plan_path).splitlines()
+    header = lines[0].split("\t") if lines else []
+    need = ["slug", "item_url_raw", "affiliate_url", "mode", "image_seqs", "reason"]
+    if header != need:
+        return None, "移行計画の見出し行が違います（必要: %s）" % " ".join(need)
+    plan = {}
+    for no, raw in enumerate(lines[1:], start=2):
+        if not raw.strip():
+            continue
+        cols = raw.split("\t")
+        if len(cols) != len(need):
+            return None, "移行計画 %d行目の列数が違います" % no
+        row = dict(zip(need, cols))
+        if row["mode"] not in MIGRATE_MODES:
+            return None, "移行計画 %d行目の mode が不正です: %s" % (no, row["mode"])
+        if row["mode"] not in KEEP_LINK_MODES:
+            m = RE_RAKUTEN_LINK.fullmatch(row["affiliate_url"])
+            if not m:
+                return None, "移行計画 %d行目のリンクが楽天アフィリエイトの形ではありません" % no
+            from urllib.parse import unquote
+
+            if unquote(m.group(1)) != _strip_query(row["item_url_raw"]):
+                return None, "移行計画 %d行目のリンクの pc が商品URLと違います" % no
+        row["seqs"] = [s for s in row["image_seqs"].split(",") if s]
+        items = plan.setdefault(row["slug"], {})
+        if row["item_url_raw"] in items:
+            return None, "移行計画に同じ記事×商品が2回あります: %s %s" % (row["slug"], row["item_url_raw"])
+        items[row["item_url_raw"]] = row
+    if not plan:
+        return None, "移行計画に有効な行がありません"
+    return plan, None
+
+
+def _product_lines(text):
+    return [l for l in text.splitlines() if "af.moshimo.com" in l or "/products/" in l or "hb.afl.rakuten.co.jp" in l]
+
+
+def _migrate_text(text, slug, items):
+    """本文を書き換える。(新しい本文, 置き換えたURL数, 消した画像の連番, エラー文言) を返す。
+
+    変えてよいのは「もしものURLを同じ商品の楽天のリンクにする」「mode=text の商品の画像の行と
+    直後の空行を消す」だけ。書き換えた後に、元の本文と行単位で照合し直す（_verify_migration）。
+    """
+    unknown = []
+    count = [0]
+
+    def sub(mm):
+        item = _moshimo_item(mm.group(0))
+        row = items.get(item)
+        if row is None:
+            unknown.append(item or mm.group(0))
+            return mm.group(0)
+        if row["mode"] in KEEP_LINK_MODES:
+            return mm.group(0)
+        count[0] += 1
+        return row["affiliate_url"]
+
+    out_lines_ = []
+    removed = []  # (元の行番号, 連番)
+    drop_blank_after = None
+    for no, line in enumerate(text.splitlines(keepends=True)):
+        if drop_blank_after is not None and no == drop_blank_after + 1 and line.strip() == "":
+            removed.append((no, None))
+            continue
+        m = RE_PRODUCT_IMAGE_LINE.fullmatch(line.strip())
+        if m and "af.moshimo.com" in m.group(3):
+            row = items.get(_moshimo_item(m.group(3)))
+            if row is not None and row["mode"] in DROP_IMAGE_MODES:
+                if m.group(1) != slug or m.group(2) not in row["seqs"]:
+                    return None, 0, [], "%d行目の画像の連番が計画と違います" % (no + 1)
+                removed.append((no, m.group(2)))
+                drop_blank_after = no
+                continue
+        out_lines_.append(RE_MOSHIMO_URL.sub(sub, line))
+    if unknown:
+        return None, 0, [], "計画に無い商品のもしものリンクがあります: %s" % ", ".join(sorted(set(unknown)))
+    new_text = "".join(out_lines_)
+    err = _verify_migration(text, new_text, slug, items, removed)
+    if err:
+        return None, 0, [], err
+    return new_text, count[0], [seq for _no, seq in removed if seq], None
+
+
+def _verify_migration(old_text, new_text, slug, items, removed):
+    """書き換えの前後を行単位で照合する。外れていればエラー文言、問題なければ None。"""
+    from urllib.parse import unquote
+
+    old_lines = old_text.splitlines(keepends=True)
+    new_lines = new_text.splitlines(keepends=True)
+    removed_nos = {no for no, _seq in removed}
+    for no, seq in removed:
+        line = old_lines[no]
+        if seq is None:
+            if line.strip() != "" or (no - 1) not in removed_nos:
+                return "%d行目: 消してよいのは画像の行の直後の空行だけです" % (no + 1)
+            continue
+        m = RE_PRODUCT_IMAGE_LINE.fullmatch(line.strip())
+        if not m or items.get(_moshimo_item(m.group(3)), {}).get("mode") not in DROP_IMAGE_MODES:
+            return "%d行目: 消してよいのは文字リンクにする商品の画像の行だけです" % (no + 1)
+    kept = [l for no, l in enumerate(old_lines) if no not in removed_nos]
+    if len(kept) != len(new_lines):
+        return "行数が合いません（元 %d行・消した %d行・後 %d行）" % (len(old_lines), len(removed_nos), len(new_lines))
+    for i, (a, b) in enumerate(zip(kept, new_lines)):
+        if RE_ANY_PRODUCT_URL.sub("<AFF>", a) != RE_ANY_PRODUCT_URL.sub("<AFF>", b):
+            return "商品リンク以外の文字が変わった行があります: %s" % b.strip()[:80]
+        ua = RE_ANY_PRODUCT_URL.findall(a)
+        ub = RE_ANY_PRODUCT_URL.findall(b)
+        if len(ua) != len(ub):
+            return "商品リンクの数が変わった行があります: %s" % b.strip()[:80]
+        for x, y in zip(ua, ub):
+            if x == y:
+                continue
+            item = _moshimo_item(x)
+            m = RE_RAKUTEN_LINK.fullmatch(y)
+            if item is None or not m or unquote(m.group(1)) != _strip_query(item):
+                return "別の商品のリンクに置き換わった行があります: %s" % b.strip()[:80]
+    return None
+
+
+def _image_size(path):
+    from PIL import Image
+
+    with Image.open(path) as im:
+        return im.size
+
+
+def _run_check(script, args):
+    result = subprocess.run(
+        [sys.executable, os.path.join(SCRIPTS_DIR, script)] + args,
+        cwd=ROOT,
+        capture_output=True,
+        timeout=CHECK_TIMEOUT,
+    )
+    return result.returncode == 0, (result.stdout or b"").decode("utf-8", errors="replace")
+
+
+def _run_migrate_rakuten(rest_args):
+    """--migrate-rakuten <plan.tsv> [--dry-run] [--with <path> ...]（D-0261）。"""
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
+
+    dry_run = "--dry-run" in rest_args
+    args = [a for a in rest_args if a != "--dry-run"]
+    with_paths = []
+    if "--with" in args:
+        i = args.index("--with")
+        with_paths = args[i + 1 :]
+        args = args[:i]
+        if not with_paths:
+            out(__doc__)
+            return 1
+    if len(args) != 1 or args[0].startswith("-"):
+        out(__doc__)
+        return 1
+    for p in with_paths:
+        if p.startswith("-") or ".." in p.replace("\\", "/").split("/") or os.path.isabs(p):
+            return abort("--with には site からの相対パスを指定してください: %s" % p)
+
+    out("=== publish-article.py --migrate-rakuten %s%s ===" % (args[0], "（--dry-run）" if dry_run else ""))
+
+    out("1. 計画の検査")
+    plan, err = _parse_migrate_plan(args[0])
+    if err:
+        return abort(err)
+    for slug, items in plan.items():
+        if not os.path.isfile(os.path.join(POSTS_DIR, "%s.md" % slug)):
+            return abort("site/src/content/posts/%s.md が見つかりません" % slug)
+        for row in items.values():
+            if row["mode"] != "image":
+                continue
+            for seq in row["seqs"]:
+                cand = os.path.join(MIGRATION_DIR, "candidates", slug, "%s.webp" % seq)
+                if not os.path.isfile(cand):
+                    return abort("差し替え画像がありません: %s" % os.path.relpath(cand, ROOT))
+                if _image_size(cand) != (400, 400):
+                    return abort("差し替え画像が400×400ではありません: %s" % os.path.relpath(cand, ROOT))
+    rel_posts = ["src/content/posts/%s.md" % s for s in plan]
+    rel_images_dirs = ["public/images/%s/products" % s for s in plan]
+    status = git("status", "--porcelain", "--", *(rel_posts + rel_images_dirs))
+    if status.returncode != 0:
+        return abort("git status に失敗しました: %s" % (status.stderr or status.stdout).strip())
+    if status.stdout.strip():
+        return abort("対象に未commitの変更があります。先に片付けてください:\n" + status.stdout.rstrip())
+    out("  OK  %d記事・記事×商品 %d組" % (len(plan), sum(len(v) for v in plan.values())))
+
+    out("2. 本文の書き換え（行単位で照合）")
+    jobs = []  # (slug, old, new, n_urls, removed_seqs, draft_action, draft_new)
+    total_urls = 0
+    for slug in sorted(plan):
+        items = plan[slug]
+        published_path = os.path.join(POSTS_DIR, "%s.md" % slug)
+        old = read_text(published_path)
+        new, n_urls, removed_seqs, err = _migrate_text(old, slug, items)
+        if err:
+            return abort("%s: %s。何も書き換えていません" % (slug, err))
+        draft_path = os.path.join(DRAFTS_DIR, "%s.md" % slug)
+        draft_action, draft_new = "なし", None
+        if os.path.isfile(draft_path):
+            draft_old = read_text(draft_path)
+            if draft_old == old:
+                draft_action, draft_new = "揃える", new
+            elif _product_lines(draft_old) == _product_lines(old):
+                draft_new, _n, _r, err = _migrate_text(draft_old, slug, items)
+                if err:
+                    return abort("%s の下書き: %s。何も書き換えていません" % (slug, err))
+                draft_action = "置き換え"
+            else:
+                draft_action = "飛ばす"
+        total_urls += n_urls
+        jobs.append((slug, old, new, n_urls, removed_seqs, draft_action, draft_new))
+    keep = [(s, r) for s, items in plan.items() for r in items.values() if r["mode"] in KEEP_LINK_MODES]
+    replace_images = [(s, seq) for s, items in plan.items() for r in items.values() if r["mode"] == "image" for seq in r["seqs"]]
+    removed_images = [(j[0], seq) for j in jobs for seq in j[4]]
+    moshimo_left = sum(len(RE_MOSHIMO_URL.findall(j[2])) for j in jobs)
+    out("  置き換えるもしものURL: %d件（残すもの %d件）" % (total_urls, moshimo_left))
+    out("  上書きする画像: %d件 / 画像の行を消して文字リンクにする: %d件" % (len(replace_images), len(removed_images)))
+    for s, seq in removed_images:
+        out("    文字リンク化: %s 連番%s（%s）" % (s, seq, next(r["reason"] for r in plan[s].values() if seq in r["seqs"])))
+    for s, r in keep:
+        out("    取得できず残す: %s %s（%s）" % (s, r["item_url_raw"], r["reason"]))
+    counts = {}
+    for j in jobs:
+        counts[j[5]] = counts.get(j[5], 0) + 1
+    out("  下書き: %s" % " / ".join("%s %d件" % (k, v) for k, v in sorted(counts.items())))
+    skipped = [j[0] for j in jobs if j[5] == "飛ばす"]
+    if skipped:
+        out("  下書きの商品リンクの部分が公開中と異なるため触らない記事: %s" % ", ".join(skipped))
+
+    if dry_run:
+        out("3. [dry-run] 書き換え・画像の上書き・チェック・ビルド・commit・push は実行していません")
+        out("=== dry-run 完了（%d記事） ===" % len(jobs))
+        return 0
+
+    # 3. 書き換えと画像の上書き（失敗時に戻せるよう元の中身を持っておく）
+    written = []  # (path, old_bytes or old_text, is_binary)
+
+    def rollback():
+        for path, old_value, is_binary in reversed(written):
+            if is_binary:
+                with open(path, "wb") as f:
+                    f.write(old_value)
+            else:
+                write_text(path, old_value)
+
+    for slug, old, new, _n, _r, draft_action, draft_new in jobs:
+        published_path = os.path.join(POSTS_DIR, "%s.md" % slug)
+        write_text(published_path, new)
+        written.append((published_path, old, False))
+        if draft_new is not None:
+            draft_path = os.path.join(DRAFTS_DIR, "%s.md" % slug)
+            written.append((draft_path, read_text(draft_path), False))
+            write_text(draft_path, draft_new)
+    for slug, seq in replace_images:
+        dst = os.path.join(PUBLIC_IMAGES_DIR, slug, "products", "%s.webp" % seq)
+        with open(dst, "rb") as f:
+            written.append((dst, f.read(), True))
+        shutil.copyfile(os.path.join(MIGRATION_DIR, "candidates", slug, "%s.webp" % seq), dst)
+    out("3. 書き換え完了（公開済み %d件・下書き %d件・画像 %d件）" % (
+        len(jobs), sum(1 for j in jobs if j[6] is not None), len(replace_images)))
+
+    # 4. チェックとビルド
+    out("4. チェックとビルド")
+    ng = None
+    for slug, *_rest in jobs:
+        ok, text = _run_check("check-article-portability.py", [slug])
+        if not ok:
+            ng = ("check-article-portability.py %s" % slug, text)
+            break
+        ok, text = _run_check("check-product-link-presence.py", [slug])
+        if not ok:
+            ng = ("check-product-link-presence.py %s" % slug, text)
+            break
+    if ng is None:
+        out("  OK  check-article-portability.py・check-product-link-presence.py（%d件）" % len(jobs))
+        ok, tail = _run_build()
+        if not ok:
+            ng = ("astro build", tail)
+        else:
+            out("  OK  astro build")
+    if ng is not None:
+        out("  NG  %s" % ng[0])
+        out_lines(ng[1])
+        rollback()
+        return abort("チェックまたはビルドに失敗したため、本文・画像をすべて元に戻しました（commit・pushは実行していません）")
+
+    # 5. git rm・add・commit（1回）・push（1回）
+    staged_before = git("diff", "--cached", "--name-only")
+    if staged_before.returncode != 0 or staged_before.stdout.strip():
+        rollback()
+        return abort("すでにステージされているファイルがあります（%s）。書き換えを元に戻しました"
+                     % ", ".join(staged_before.stdout.split()))
+    rm_targets = ["public/images/%s/products/%s.webp" % (s, seq) for s, seq in removed_images]
+    if rm_targets:
+        result = git("rm", "-q", "--", *rm_targets)
+        if result.returncode != 0:
+            rollback()
+            return abort("git rm に失敗しました: %s" % (result.stderr or result.stdout).strip())
+    add_targets = [p for j in jobs for p in ["src/content/posts/%s.md" % j[0]]]
+    add_targets += ["public/images/%s/products/%s.webp" % (s, seq) for s, seq in replace_images]
+    add_targets += with_paths
+    result = git("add", "-A", "--", *add_targets)
+    if result.returncode != 0:
+        return abort("git add に失敗しました: %s" % (result.stderr or result.stdout).strip())
+    staged = git("diff", "--cached", "--name-only")
+    allowed = set(add_targets) | set(rm_targets)
+    foreign = [f for f in staged.stdout.split() if f not in allowed]
+    if foreign:
+        return abort("対象以外のファイルがステージされました（%s）。commit していません" % ", ".join(foreign))
+    out("5. git rm: %d件 / git add: %d件" % (len(rm_targets), len(add_targets)))
+    message = "migrate-rakuten: %d記事" % len(jobs)
+    result = git("commit", "-m", message)
+    if result.returncode != 0:
+        return abort("git commit に失敗しました: %s" % (result.stderr or result.stdout).strip())
+    out("   git commit: %s" % message)
+    result = git("push")
+    if result.returncode != 0:
+        return abort("git push に失敗しました: %s" % (result.stderr or result.stdout).strip())
+    out("6. git push 完了")
+    for line in (result.stdout + result.stderr).strip().splitlines():
+        out("   " + line)
+    out("=== 楽天アフィリエイトへの一括移行完了: %d記事 ===" % len(jobs))
+    return 0
+
+
 def main():
     """本体（_run）を呼び、その結果を production run の step として1件だけ記録する。
 
@@ -859,6 +1246,9 @@ def main():
 
     if args[:1] == ["--recategorize"]:
         return _run_recategorize(args[1:])
+
+    if args[:1] == ["--migrate-rakuten"]:
+        return _run_migrate_rakuten(args[1:])
 
     attempt = {"slug": None, "dry_run": False, "failed_check": None}
     rc = _run(attempt)

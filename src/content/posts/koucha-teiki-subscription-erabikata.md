@@ -51,9 +51,9 @@ category: tea-leaves
 
 「定期便に興味はあるけれど、まず自分がいろいろな茶葉を飲み比べる感覚に合うか試したい」という方には、複数の茶葉が少量ずつ入ったお試しセットから始めてみるのもひとつの方法です。定期便の「毎回違う茶葉が届く」感覚を、まずは1回分だけ体験できます。
 
-[![ジョイオブティー 12種類パック（ロンネフェルト）](/images/koucha-teiki-subscription-erabikata/products/1.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fronnefeldt-salon%2F10000159%2F)
+[![ジョイオブティー 12種類パック（ロンネフェルト）](/images/koucha-teiki-subscription-erabikata/products/1.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824dbfc.25ed8cfc.5824dbfd.f8271e68/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fronnefeldt-salon%2F10000159%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.77（13件） [ジョイオブティー 12種類パック（ロンネフェルト）はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fronnefeldt-salon%2F10000159%2F)
+★4.77（13件） [ジョイオブティー 12種類パック（ロンネフェルト）はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824dbfc.25ed8cfc.5824dbfd.f8271e68/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fronnefeldt-salon%2F10000159%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 ドイツの紅茶ブランド、ロンネフェルトの茶葉が12種類ティーバッグで楽しめるセットです。1回で複数の銘柄を飲み比べられるため、「自分は毎回違う茶葉が届く感覚を楽しめるタイプか」を確かめる入り口として向いています。
 

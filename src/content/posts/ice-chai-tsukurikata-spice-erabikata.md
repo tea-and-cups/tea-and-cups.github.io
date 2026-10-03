@@ -43,9 +43,9 @@ category: how-to
 
 スパイスを一つずつ揃えて配合を決めるのは手間がかかるため、慣れないうちは市販のチャイ用スパイスセットを使うと失敗が少なくなります。
 
-[![マサラチャイセット 150g](/images/ice-chai-tsukurikata-spice-erabikata/products/1.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fmaya%2Fteaset-4%2F)
+[![マサラチャイセット 150g](/images/ice-chai-tsukurikata-spice-erabikata/products/1.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824d7ea.97d6cc75.5824d7eb.bb94aed2/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fmaya%2Fteaset-4%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.82（189件） [マサラチャイセット 150gはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fmaya%2Fteaset-4%2F)
+★4.82（189件） [マサラチャイセット 150gはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824d7ea.97d6cc75.5824d7eb.bb94aed2/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fmaya%2Fteaset-4%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 茶葉とスパイスがあらかじめブレンドされたセットで、レビュー評価・件数ともに高く、初めてチャイを仕込む方でも配合の失敗が少ないのが魅力です。まずはこの配合で基本の味を確認し、慣れてきたらジンジャーやシナモンを足し引きして自分好みに調整していくとよい入り口になります。
 

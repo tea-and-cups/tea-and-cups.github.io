@@ -79,19 +79,19 @@ category: how-to
 
 有機JAS認証のアッサムCTCです。粒状で短時間でも濃く出るので、りんごを煮た鍋に加えて2〜3分蒸らすだけでコクが出ます。牛乳を足してアップルミルクティーにするのにも向くタイプです。香料が入っていないぶん、りんごやスパイスの香りを邪魔しません。レビュー件数が多く評価も安定していて、煮出しアレンジのベースとして手堅い一袋です。
 
-★4.63（981件） [サンタローサ 有機JAS アッサムCTC 100g はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsantarosa%2Fsr_assam%2F)
+★4.63（981件） [サンタローサ 有機JAS アッサムCTC 100g はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824d6ad.80b48201.5824d6ae.97ea73a9/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fsantarosa%2Fsr_assam%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 ### 2. 煮出す時間がない日の手軽なアップルティー
 
 紅茶専門店の個包装ティーバッグで、20種類から好きな味を選べるシリーズです。アップルティーもラインナップにあるので、これ1つでりんごの香りのついたホットティーがすぐ作れます。無糖のりんごジュースを少し足せば香りがさらに前に出ます。個包装で湿気にくく、いろいろな味を少しずつ試したい方にも向きます。評価・レビュー件数ともに高く、はじめに選ぶ一箱として選びやすいシリーズです。どの味が選べるかは商品ページでご確認ください。
 
-★4.90（389件） [カレルチャペック デイリーシリーズ 20種類から選べる 20p はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fkarelcapek%2F01100920r%2F)
+★4.90（389件） [カレルチャペック デイリーシリーズ 20種類から選べる 20p はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824d4e5.f8d823d3.5824d4e6.9525a349/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fkarelcapek%2F01100920r%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 ### 3. スパイスでアレンジする日に
 
 スリランカ産のセイロンシナモンを、有機JAS認証で仕上げたスティックタイプです。りんごを煮る段階で1本いっしょに入れると、甘い香りがやさしく移ります。セイロンシナモン（真正シナモン）はカシアより香りが穏やかで、紅茶やりんごの香りと重ねやすいのが利点。スティックなら煮出したあとに取り出せて、粉のように濁りません。ホットワインや焼き菓子にも使えます。
 
-★4.79（118件） [サンタローサ セイロンシナモンスティック 50g はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsantarosa%2Fsr_spice_cinnamonst50%2F)
+★4.79（118件） [サンタローサ セイロンシナモンスティック 50g はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824d6ad.80b48201.5824d6ae.97ea73a9/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fsantarosa%2Fsr_spice_cinnamonst50%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 商品1〜3の画像は掲載していません。テキストのリンクから商品ページをご確認ください。
 

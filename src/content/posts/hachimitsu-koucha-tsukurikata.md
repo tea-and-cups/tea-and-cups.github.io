@@ -34,7 +34,7 @@ category: how-to
 
 はちみつのコクのある甘さは、渋みがしっかりした濃いめの紅茶と合わせると、互いの風味が引き立ちやすいといわれています。ミルクティーやチャイのベースとしても定番の、コクの強い茶葉を選ぶとよいでしょう。
 
-★4.63（981件） [アッサムCTC茶葉はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsantarosa%2Fsr_assam%2F)
+★4.63（981件） [アッサムCTC茶葉はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824d6ad.80b48201.5824d6ae.97ea73a9/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fsantarosa%2Fsr_assam%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 インド・アッサム産のCTC製法茶葉で、水色が濃く、コクのある力強い味わいが特徴です。有機JAS認証を受けた無添加の茶葉のため、はちみつだけで甘さを足すシンプルな飲み方にも向いています。ストレートでもミルクを加えても風味がしっかり残るため、はちみつ入り紅茶の入門として選びやすい一品です。
 
@@ -42,9 +42,9 @@ category: how-to
 
 はちみつは非加熱・純粋のものを選ぶと、風味を活かしやすいといわれています。加熱処理されたはちみつや水あめが混ざった加工品は、香りが飛んでしまっていることがあるため、ラベルの表示を確認してから選ぶとよいでしょう。市販のはちみつ入り紅茶飲料のタイプ別の違いが気になる方は、[はちみつ紅茶とは？タイプ別の選び方の記事](/posts/honey-koucha-erabikata/)もあわせてご覧ください。
 
-[![国産純粋はちみつ300g 瓶入り](/images/hachimitsu-koucha-tsukurikata/products/1.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fmaruka-foods%2Fdomestic300%2F)
+[![国産純粋はちみつ300g 瓶入り](/images/hachimitsu-koucha-tsukurikata/products/1.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824e041.803e7d1c.5824e042.b06fe152/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fmaruka-foods%2Fdomestic300%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.66（3,566件） [国産純粋はちみつはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fmaruka-foods%2Fdomestic300%2F)
+★4.66（3,566件） [国産純粋はちみつはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824e041.803e7d1c.5824e042.b06fe152/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fmaruka-foods%2Fdomestic300%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 国産の花から採れた非加熱の純粋はちみつです。瓶入りで扱いやすい300gサイズのため、紅茶に日常的に使う量としてもちょうどよいでしょう。レビュー件数が非常に多く、幅広い層から長く支持されてきた実績のある一品です。
 
@@ -52,7 +52,7 @@ category: how-to
 
 瓶からそのままスプーンですくうと、たれて周りが汚れてしまうことがあります。はちみつ専用のディッパー（スプーン）を使うと、糸を引きにくく、カップの上まで運びやすくなります。
 
-★4.53（125件） [leyeくるりとハチミツスプーンはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fauc-fine-dream%2F100003899%2F)
+★4.53（125件） [leyeくるりとハチミツスプーンはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824e05a.8d99dd0a.5824e05b.6823f297/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fauc-fine-dream%2F100003899%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 らせん状の溝にはちみつを絡ませてすくうタイプのステンレス製スプーンで、たらしても糸が切れやすく、テーブルを汚しにくいのが特徴です。日本製で、食洗機対応の商品も多く手入れがしやすいのも扱いやすいポイントです。
 

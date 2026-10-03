@@ -47,9 +47,9 @@ category: how-to
 
 3.5Lの大容量タイプなら、家族分をまとめて作り置きしても数日分をカバーしやすく、冷蔵庫内で横に倒して収納できるモデルも扱いやすいポイントです。
 
-[![麦茶ポット 冷水筒 3.5L 密封性 横置き](/images/mizudashi-koucha-hozon-eisei-qa/products/1.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsmile-net001%2Fpitcher-01%2F)
+[![麦茶ポット 冷水筒 3.5L 密封性 横置き](/images/mizudashi-koucha-hozon-eisei-qa/products/1.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824e728.ae1e9d07.5824e729.0098c3cb/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fsmile-net001%2Fpitcher-01%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.46（24件） [麦茶ポット 冷水筒 3.5L 密封性 横置きタイプはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsmile-net001%2Fpitcher-01%2F) — 密封性の高い蛇口付きタイプで、冷蔵庫内で横置きにも対応できるこの価格帯では手堅い選択肢
+★4.46（24件） [麦茶ポット 冷水筒 3.5L 密封性 横置きタイプはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824e728.ae1e9d07.5824e729.0098c3cb/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fsmile-net001%2Fpitcher-01%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D) — 密封性の高い蛇口付きタイプで、冷蔵庫内で横置きにも対応できるこの価格帯では手堅い選択肢
 
 抽出そのものに使うピッチャー選びは、[水出し紅茶用ポット・ピッチャー比較](/posts/mizudashi-pitcher-hikaku/)も参考にしてみてください。
 

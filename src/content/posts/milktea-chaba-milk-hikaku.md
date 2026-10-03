@@ -39,9 +39,7 @@ category: tea-leaves
 
 インド北東部アッサム地方の紅茶で、麦芽のような香ばしさと強いコクが持ち味です。粒状のCTC茶葉は成分が早く出るため、少ない蒸らし時間でも濃く仕上がり、鍋で煮出すロイヤルミルクティーにも向きます。ミルクティーの「これぞ王道」という味を求めるなら、まず試したいタイプです。
 
-[![サンタローサ 有機JAS アッサムCTC 100g](/images/milktea-chaba-milk-hikaku/products/1.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsantarosa%2Fsr_assam%2F)
-
-★4.63（981件） [サンタローサ 有機JAS アッサムCTC 100gはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsantarosa%2Fsr_assam%2F)
+★4.63（981件） [サンタローサ 有機JAS アッサムCTC 100gはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824d6ad.80b48201.5824d6ae.97ea73a9/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fsantarosa%2Fsr_assam%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 有機JAS認証で香料や酸化防止剤を使っていない、シンプルなアッサムCTCです。レビュー件数が多く評価も安定しており、はじめてミルクティー用の茶葉を買う方にも選びやすい高評価の1点です。100gと使い切りやすい量で、湯を注いで3分ほど蒸らすだけでもしっかり色と味が出ます。
 
@@ -49,9 +47,7 @@ category: tea-leaves
 
 スリランカの高地産、ウバの紅茶です。メントールのような清涼感のある香りと、キリッとした渋みが特徴で、世界三大紅茶のひとつにも数えられます。牛乳を加えるとコクが出つつも後味が重くなりすぎず、「濃いのにすっきり」というミルクティーに仕上がります。渋みが立ちやすいので、蒸らし時間はやや短めから試すのがおすすめです。
 
-[![サンタローサ 有機JAS セイロン ウバ 80g](/images/milktea-chaba-milk-hikaku/products/2.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsantarosa%2Fwindfarm_ceylon_tea1%2F)
-
-★4.62（78件） [サンタローサ 有機JAS セイロン ウバ 80gはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsantarosa%2Fwindfarm_ceylon_tea1%2F)
+★4.62（78件） [サンタローサ 有機JAS セイロン ウバ 80gはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824d6ad.80b48201.5824d6ae.97ea73a9/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fsantarosa%2Fwindfarm_ceylon_tea1%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 こちらも有機JAS認証のシングルオリジンで、ウバらしい香りとコクのバランスがとれた高評価の1点です。ストレートでもレモンティーでもおいしく、ミルクを入れる日と入れない日で飲み分けたい方に使い回しやすい茶葉です。
 
@@ -59,9 +55,9 @@ category: tea-leaves
 
 アッサムを主体に飲みやすく整えたブレンドです。単一産地の茶葉は個性がはっきりしている分、季節や茶園によって印象が変わることもありますが、ブレンドは味が安定していて、いつ買っても大きく外れません。銘柄にこだわらず「毎朝のミルクティー用にストックしておく1袋」として気軽に使えます。
 
-[![シルバーポット アッサム ハウスブレンド Sweet&Strong 100g](/images/milktea-chaba-milk-hikaku/products/3.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fassamhouseblend%2F)
+[![シルバーポット アッサム ハウスブレンド Sweet&Strong 100g](/images/milktea-chaba-milk-hikaku/products/3.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824d670.57eb77b3.5824d671.e3a6cb31/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fassamhouseblend%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.66（35件） [シルバーポット アッサム ハウスブレンド Sweet&Strong 100gはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fassamhouseblend%2F)
+★4.66（35件） [シルバーポット アッサム ハウスブレンド Sweet&Strong 100gはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824d670.57eb77b3.5824d671.e3a6cb31/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fassamhouseblend%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 その名のとおり、甘さを感じる香りとしっかりしたコクをねらったアッサムブレンドです。リーフとCTCを組み合わせているため、ホットのカップ淹れでも煮出しでも扱いやすく、評価も高めに安定しています。レビュー件数はまだ多くありませんが、ミルクティー用の常備ブレンドとして手堅い選択肢です。
 

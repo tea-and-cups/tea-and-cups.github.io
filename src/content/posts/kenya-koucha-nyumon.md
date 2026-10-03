@@ -81,25 +81,25 @@ category: tea-leaves
 
 ケニア紅茶の味をまず知りたい方向けの、4杯分（6g）のお試しサイズです。1個から送料無料で気軽に試せるので、産地の違いを飲み比べてみたいときの入り口に向いています。
 
-[![おためし紅茶！ケニア サンプル紅茶リーフ4杯分(6g)](/images/kenya-koucha-nyumon/products/1.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Ftsclover%2Ftea_sample013%2F)
+[![おためし紅茶！ケニア サンプル紅茶リーフ4杯分(6g)](/images/kenya-koucha-nyumon/products/1.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824e2dd.87a946d4.5824e2de.1a9e9048/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Ftsclover%2Ftea_sample013%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.22（49件） [おためし紅茶！ケニア サンプル紅茶リーフ4杯分(6g) はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Ftsclover%2Ftea_sample013%2F)
+★4.22（49件） [おためし紅茶！ケニア サンプル紅茶リーフ4杯分(6g) はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824e2dd.87a946d4.5824e2de.1a9e9048/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Ftsclover%2Ftea_sample013%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 ### 2. 普段使いのティーバッグとして
 
 農薬を使わずに育てたケニア産茶葉のティーバッグです。20袋入りで日常使いしやすく、レビュー件数も多いバランスの取れた選択肢です。
 
-[![ひしわ 農薬を使わずに育てた紅茶TBケニア(20袋入)](/images/kenya-koucha-nyumon/products/2.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Frakuten24%2Fe068650h%2F)
+[![ひしわ 農薬を使わずに育てた紅茶TBケニア(20袋入)](/images/kenya-koucha-nyumon/products/2.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824d697.c793c0db.5824d698.dbe81f68/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Frakuten24%2Fe068650h%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.51（137件） [ひしわ 農薬を使わずに育てた紅茶TBケニア(20袋入) はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Frakuten24%2Fe068650h%2F)
+★4.51（137件） [ひしわ 農薬を使わずに育てた紅茶TBケニア(20袋入) はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824d697.c793c0db.5824d698.dbe81f68/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Frakuten24%2Fe068650h%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 ### 3. ミルクティー向けのコクを試したい人に
 
 農薬不使用で育てられたケニア山の紅茶で、コロコロとした粒状のCTC茶葉です。深いコクと旨みを謳っており、ミルクティー向けのコクを重視する方向けの一点です。
 
-[![ケニア山の紅茶【BP1】コロコロ茶葉(80g)](/images/kenya-koucha-nyumon/products/3.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Faf-sq%2F410519%2F)
+[![ケニア山の紅茶【BP1】コロコロ茶葉(80g)](/images/kenya-koucha-nyumon/products/3.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824e314.e5950ac7.5824e315.97ea4aff/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Faf-sq%2F410519%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.76（45件） [ケニア山の紅茶【BP1】コロコロ茶葉(80g) はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Faf-sq%2F410519%2F)
+★4.76（45件） [ケニア山の紅茶【BP1】コロコロ茶葉(80g) はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824e314.e5950ac7.5824e315.97ea4aff/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Faf-sq%2F410519%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 ## よくある質問
 

@@ -55,9 +55,9 @@ category: how-to
 
 南インド・ニルギリ高地の単一茶園から、リーフの形を残して仕上げたホールリーフです。ニルギリは渋みが穏やかで香りが明るい産地とされ、ストレートでも飲みやすいのが特徴です。茶葉が大きいぶん一煎目で開ききらないことがあり、二煎目でも軽い香りが残りやすいタイプです。
 
-[![ニルギリ カイルベッタ茶園 SFTGFOP1 リーフティー](/images/koucha-nisenme-degarashi-tanoshimikata/products/1.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fkaribetta%2F)
+[![ニルギリ カイルベッタ茶園 SFTGFOP1 リーフティー](/images/koucha-nisenme-degarashi-tanoshimikata/products/1.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824d670.57eb77b3.5824d671.e3a6cb31/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fkaribetta%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★5.00（18件） [ニルギリ カイルベッタ茶園はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fkaribetta%2F)
+★5.00（18件） [ニルギリ カイルベッタ茶園はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824d670.57eb77b3.5824d671.e3a6cb31/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fkaribetta%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 レビュー件数はまだ多くありませんが、この価格帯では手堅い選択肢です。クセが少ないので、二煎目の味の違いを確かめる練習にも向きます。
 
@@ -65,9 +65,9 @@ category: how-to
 
 セカンドフラッシュ（夏摘み）以降の茶葉を主体にした、ダージリンのホールリーフブレンドです。単一茶園ものより価格が落ち着いていて、日常づかいしやすいのが利点。ダージリンのセカンドフラッシュはマスカテルと呼ばれる甘い香りで知られ、一煎目でその香りを味わい、二煎目は渋みを控えめにいれて軽く楽しむ、という使い方ができます。
 
-[![ダージリン ハウスブレンド ブルーミングバレー リーフティー](/images/koucha-nisenme-degarashi-tanoshimikata/products/2.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fbloomingvalley100g%2F)
+[![ダージリン ハウスブレンド ブルーミングバレー リーフティー](/images/koucha-nisenme-degarashi-tanoshimikata/products/2.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824d670.57eb77b3.5824d671.e3a6cb31/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fbloomingvalley100g%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.73（22件） [ダージリン ブルーミングバレーはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fbloomingvalley100g%2F)
+★4.73（22件） [ダージリン ブルーミングバレーはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824d670.57eb77b3.5824d671.e3a6cb31/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fbloomingvalley100g%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 評価とレビュー件数のバランスがとれた、この価格帯では手堅いブレンドです。まず1袋ダージリンを試すなら候補になります。
 
@@ -75,9 +75,9 @@ category: how-to
 
 春摘み（ファーストフラッシュ）の単一茶園ダージリンです。SFTGFOP1は、若い芽（ゴールデンチップ）を多く含むことを示す上位等級で、茶葉は大きいまま仕上げられています。春摘みのダージリンは緑がかった水色と若々しい香りで知られ、一煎目・二煎目で香りの出方が変わっていくのを追いやすい茶葉です。季節ものなので、気に入った年のものを早めに、という楽しみ方になります。
 
-[![ダージリン ファーストフラッシュ シンブリ茶園 SFTGFOP1 リーフティー](/images/koucha-nisenme-degarashi-tanoshimikata/products/3.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fsingbulli-firstflush2%2F)
+[![ダージリン ファーストフラッシュ シンブリ茶園 SFTGFOP1 リーフティー](/images/koucha-nisenme-degarashi-tanoshimikata/products/3.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824d670.57eb77b3.5824d671.e3a6cb31/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fsingbulli-firstflush2%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.78（27件） [ダージリン シンブリ茶園 ファーストフラッシュはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fsingbulli-firstflush2%2F)
+★4.78（27件） [ダージリン シンブリ茶園 ファーストフラッシュはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824d670.57eb77b3.5824d671.e3a6cb31/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fsingbulli-firstflush2%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 春摘みは繊細で、淹れ方の影響が出やすい茶葉です。二煎目は特に、蒸らしを長めにとらないと香りが立ちにくいので、時間で調整してみてください。
 

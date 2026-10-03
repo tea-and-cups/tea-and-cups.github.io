@@ -34,9 +34,9 @@ category: how-to
 
 炭酸水と紅茶を注ぐときにグラスの内側の氷に沿わせるようにすると、層が混ざりにくくなります。ストローを底まで差し込んでひと混ぜすれば、味が均一になって飲みやすくなります。
 
-[![サントリー グレナデン シロップ 780ml](/images/koucha-mocktail-natsu-arrange-recipe/products/1.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fledled%2F11-suntory-grenadin%2F)
+[![サントリー グレナデン シロップ 780ml](/images/koucha-mocktail-natsu-arrange-recipe/products/1.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824e4f4.2e6710d6.5824e4f5.5882a25a/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fledled%2F11-suntory-grenadin%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.93（15件） [サントリー グレナデン シロップはこちらから（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fledled%2F11-suntory-grenadin%2F)
+★4.93（15件） [サントリー グレナデン シロップはこちらから（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824e4f4.2e6710d6.5824e4f5.5882a25a/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fledled%2F11-suntory-grenadin%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 ザクロを思わせる甘酸っぱさが紅茶の渋みと合わさり、すっきりとした後味に仕上がります。開封後も常温保存できるものが多く、少量ずつ使えるのでモクテル作りの常備品として置いておくと便利です。
 

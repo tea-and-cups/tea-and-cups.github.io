@@ -92,19 +92,19 @@ category: tea-leaves
 
 祁門紅茶の茶葉を使ったティーバッグです。1杯分ずつ淹れられるので、キームンの甘い香りが自分の好みに合うかをまず確かめたい方向け。この価格帯では手堅い選択肢です。ホットでストレートから試すのがおすすめです。
 
-★4.67（50件） [わが家のちゃぶ台 キームン 2g×10P はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Ftea-agent%2F10000136%2F)
+★4.67（50件） [わが家のちゃぶ台 キームン 2g×10P はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824e326.e66a2fd2.5824e327.e7502435/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Ftea-agent%2F10000136%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 ### 2. 中国茶専門店のリーフ
 
 中国茶を扱う専門店の、祁門紅茶のリーフ50gです。ポットで淹れて、澄んだ赤褐色の水色と祁門香をゆっくり楽しみたい方に。中国紅茶の中では標準的な工夫紅茶タイプで、レビューの評価・件数ともにバランスの取れた一袋です。95℃前後の熱湯で3分前後を目安に。
 
-★4.39（31件） [彩香 祁門（キーマン）紅茶 茶葉 50g はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fchinatea%2Ft11-002-050-r%2F)
+★4.39（31件） [彩香 祁門（キーマン）紅茶 茶葉 50g はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824e330.10c1aecf.5824e331.f1c076f4/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fchinatea%2Ft11-002-050-r%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 ### 3. もう一段上の特級リーフ
 
 台湾茶・中国茶を扱う店が仕入れている、キームンの特級リーフ60gです。祁門香をより豊かに感じたい方向けのタイプ。レビュー件数はまだ少なめですが評価自体は高く、工夫紅茶を気に入った次の一歩として候補になります。ストレートで、少し長めに蒸らして香りを引き出すとよさそうです。
 
-★5.00（6件） [梅花茶楼 キーマン紅茶 特級 60g はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fumehana%2Fte-071%2F)
+★5.00（6件） [梅花茶楼 キーマン紅茶 特級 60g はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824e338.7bf7994c.5824e339.0265317a/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fumehana%2Fte-071%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 商品1〜3の画像は掲載していません。テキストのリンクから商品ページをご確認ください。
 

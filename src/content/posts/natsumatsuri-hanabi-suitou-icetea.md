@@ -31,9 +31,7 @@ category: seasons
 
 「ビタントニオ ツイスティープラス」は、フィルター部分に茶葉を入れてお湯（または水）を注ぎ、好みの濃さになったらボトルをひねって抽出を止められるティーボトルです。直径67mm×高さ215mm・重さ約345gとハンドバッグ程度のサイズ感で、使用可能容量は290ml。長時間の花火大会や、複数杯飲みたい場合に頼りになる容量です。レビュー件数32件・評価4.41と、比較候補の中でも実績が豊富な点も安心材料です。カラーは限定カーネーションレッド・限定サクラピンク・グリーン・クリームの4色から選べるので、浴衣の色柄に合わせて選びやすいのも魅力です。
 
-[![Vitantonio TWISTEA PLUS VTW-50 茶こし付きティーボトル](/images/natsumatsuri-hanabi-suitou-icetea/products/1.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Froomy-garden%2Fmhe19feb13h01%2F)
-
-★4.41（32件） [Vitantonio TWISTEA PLUS VTW-50はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Froomy-garden%2Fmhe19feb13h01%2F)
+★4.41（32件） [Vitantonio TWISTEA PLUS VTW-50はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824e804.d39e98cb.5824e805.f8b07143/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Froomy-garden%2Fmhe19feb13h01%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 高評価かつレビュー件数も多く、初めての1本として選びやすい定番です。花火大会のように長時間滞在する予定があるなら、容量に余裕のあるこちらが安心です。
 
@@ -41,9 +39,7 @@ category: seasons
 
 同じくビタントニオのシリーズから、ひとまわり小さい「ツイスティー ミニ」です。直径4.7cm×高さ20.9cm・重さ約190gと、PLUSよりもさらにコンパクトで、浴衣の小さめの巾着にも収まりやすいサイズ感です。使用可能容量は130mlとカップ1杯分ほどで、飲み切りサイズを想定した設計になっています。レビュー件数はまだ6件と少なめですが、評価は4.33と高く、荷物を極力軽くしたい方に向いています。
 
-[![Vitantonio TWISTEA ミニ VTW-1 コンパクトティーボトル](/images/natsumatsuri-hanabi-suitou-icetea/products/2.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fe-goods%2Fry1102395%2F)
-
-★4.33（6件） [Vitantonio TWISTEA ミニ VTW-1はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fe-goods%2Fry1102395%2F)
+★4.33（6件） [Vitantonio TWISTEA ミニ VTW-1はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824e81a.3985113f.5824e81b.8ead21f4/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fe-goods%2Fry1102395%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 まだレビュー件数は少ないですが、評価自体は高く、身軽さを優先したい日帰りの夏祭りにちょうどよいサイズです。
 

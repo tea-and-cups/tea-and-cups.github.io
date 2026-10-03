@@ -40,9 +40,9 @@ category: how-to
 
 氷は、急冷法では溶けて薄まる分も計算に入れてたっぷり使うので、製氷皿で多めに作っておくと手順が止まりません。
 
-[![製氷器アイストレー3点セット 蓋付き](/images/creamdown-boushi/products/1.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fshimoyama-onlineshop%2F2210sd370%2F)
+[![製氷器アイストレー3点セット 蓋付き](/images/creamdown-boushi/products/1.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824dbc6.488c6e1b.5824dbc7.1f899757/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fshimoyama-onlineshop%2F2210sd370%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.77（61件） [製氷皿・氷トレイはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fshimoyama-onlineshop%2F2210sd370%2F)
+★4.77（61件） [製氷皿・氷トレイはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824dbc6.488c6e1b.5824dbc7.1f899757/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fshimoyama-onlineshop%2F2210sd370%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 日本紅茶協会のニュースレターでは、ティーバッグ4つに熱湯300mlを注いで1〜2分蒸らし、2倍の濃さにする手順が示されています。注ぎ方は、同ニュースレターが「氷に当たるように静かに」、All Aboutが「一気に」と、資料によって表現が違います。どちらも共通するのは、氷を入れたグラスへ注ぐことです。ここでは、表現の違う2資料を踏まえ、ためらわず続けて、ただし勢いはつけすぎない注ぎ方を、記事としての推奨にしています。「熱湯を半量にする」点は、All Aboutの別の解説にある「ホットで入れるときの半分程度の量の熱湯」という記述とも対応します。
 

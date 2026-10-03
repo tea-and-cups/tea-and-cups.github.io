@@ -102,19 +102,19 @@ category: how-to
 
 すりおろす手間なく試したい方向けに、国産の生姜入りティーバッグを3点ご紹介します。内容量や産地・原材料の説明がそれぞれ異なるので、優劣ではなく違いで選んでみてください。他のブランドとの網羅的な比較は行っていません。
 
-[![川本屋 しょうが紅茶 ティーバッグ](/images/shoga-koucha-tsukurikata/products/1.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fkawamotoya%2F10000864%2F)
+[![川本屋 しょうが紅茶 ティーバッグ](/images/shoga-koucha-tsukurikata/products/1.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824eb14.c803294e.5824eb15.6f6b8263/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fkawamotoya%2F10000864%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.41（109件） [川本屋 しょうが紅茶ティーバッグはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fkawamotoya%2F10000864%2F)
+★4.41（109件） [川本屋 しょうが紅茶ティーバッグはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824eb14.c803294e.5824eb15.6f6b8263/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fkawamotoya%2F10000864%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 砂糖不使用のティーパックタイプで、基本タイプは2g×20包です。同じ商品ページにまとめ買い向けのセットもあるため、まず1袋で試して、好みに合えば買い足す使い方ができます。
 
-[![水車むら農園 しょうが紅茶ティーバッグ](/images/shoga-koucha-tsukurikata/products/2.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsuisya%2F10001458%2F)
+[![水車むら農園 しょうが紅茶ティーバッグ](/images/shoga-koucha-tsukurikata/products/2.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824d73f.ef6150e5.5824d740.f86ed557/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fsuisya%2F10001458%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.67（227件） [水車むら農園 しょうが紅茶ティーバッグはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsuisya%2F10001458%2F)
+★4.67（227件） [水車むら農園 しょうが紅茶ティーバッグはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824d73f.ef6150e5.5824d740.f86ed557/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fsuisya%2F10001458%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 無農薬栽培の国産紅茶と鹿児島県産の黄金しょうがを使った無添加のティーバッグで、3g×30包の2袋セットです。産地や栽培方法の説明が具体的で、まとまった量を用意しておきたい方に合います。
 
-★4.26（127件） [森のこかげ 国産 しょうが紅茶（ティーバッグ）はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fe-picot%2F1511667%2F)
+★4.26（127件） [森のこかげ 国産 しょうが紅茶（ティーバッグ）はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824eb5c.df3b3fd2.5824eb5d.6bb10797/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fe-picot%2F1511667%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 大分県産の手作り紅茶に、高知や鹿児島などの国内産しょうがパウダーをブレンドした国産の生姜紅茶です。ティーバッグ1袋に熱湯を注ぎ、3〜5分蒸らす飲み方が案内されています。内容量違いの複数のタイプがあり、商品ページには砂糖やはちみつ、ミルクを加えてもよいとの案内もあります。
 

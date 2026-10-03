@@ -43,9 +43,9 @@ category: teaware
 
 40〜100℃を8段階で設定でき、紅茶は高温、緑茶やハーブティーは低めと、飲みたいお茶に合わせて切り替えやすいタイプです。1.2Lと容量にゆとりがあり、来客時や家族での使用にも対応します。約60分の保温機能付きで、二杯目を淹れたいときも沸かし直さずに済みます。倒れてもお湯がこぼれにくいロック機能を備えています。
 
-[![ティファール ジャスティン ロック コントロール 1.2L KO823AJP](/images/ondo-chosei-kettle-erabikata/products/1.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Ftoolandmeal%2F105070040%2F)
+[![ティファール ジャスティン ロック コントロール 1.2L KO823AJP](/images/ondo-chosei-kettle-erabikata/products/1.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824e8cd.5887087b.5824e8ce.8d1c07bd/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Ftoolandmeal%2F105070040%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.71（49件） [ティファール ジャスティン ロック コントロール 1.2L KO823AJPはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Ftoolandmeal%2F105070040%2F)
+★4.71（49件） [ティファール ジャスティン ロック コントロール 1.2L KO823AJPはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824e8cd.5887087b.5824e8ce.8d1c07bd/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Ftoolandmeal%2F105070040%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 温度設定の幅と容量のバランスがよく、家族で紅茶も緑茶も楽しむ家庭の1台目として選びやすい定番タイプです。
 
@@ -53,9 +53,9 @@ category: teaware
 
 現在の湯温や設定温度をデジタル表示で確認できるタイプです。0.8Lと卓上で扱いやすいサイズで、保温機能・空だき防止・転倒時のお湯もれ防止ロックを備えています。「今何℃か」が見えるので、低めの温度で淹れたいハーブティーや緑茶のときに温度の目安をつかみやすいのが利点です。
 
-[![ティファール ディスプレイ ロック コントロール 0.8L KO8568JP](/images/ondo-chosei-kettle-erabikata/products/2.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fdaily-3%2Ftfa9840-201%2F)
+[![ティファール ディスプレイ ロック コントロール 0.8L KO8568JP](/images/ondo-chosei-kettle-erabikata/products/2.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824e106.b1c8457d.5824e107.40e918b3/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fdaily-3%2Ftfa9840-201%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.56（27件） [ティファール ディスプレイ ロック コントロール 0.8L KO8568JPはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fdaily-3%2Ftfa9840-201%2F)
+★4.56（27件） [ティファール ディスプレイ ロック コントロール 0.8L KO8568JPはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824e106.b1c8457d.5824e107.40e918b3/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fdaily-3%2Ftfa9840-201%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 温度を数字で見ながら淹れたい方や、キッチンではなく卓上に置いて使いたい方に向いたサイズ感です。
 
@@ -63,9 +63,7 @@ category: teaware
 
 最大容量が約330mlと小ぶりで、細めの注ぎ口からゆっくり注げるタイプです。本体が軽く、スリムな形状で置き場所を選びません。60〜90℃とMAXの温度設定に対応し、一人分の紅茶やハーブティーをそのつど適温で淹れたいときに使いやすいモデルです。海外の電圧にも対応しており、旅行や出張に持って行きたい方の選択肢にもなります。
 
-[![レコルト スマートケトル スリム REK-1](/images/ondo-chosei-kettle-erabikata/products/3.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fimportshopaqua%2F100001431%2F)
-
-★4.42（137件） [レコルト スマートケトル スリム REK-1はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fimportshopaqua%2F100001431%2F)
+★4.42（137件） [レコルト スマートケトル スリム REK-1はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824e8e5.b528fa33.5824e8e6.472f80ac/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fimportshopaqua%2F100001431%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 レビュー件数が多く使用感を確かめやすいのも安心材料です。一人分をこまめに淹れる暮らし方に合ったコンパクトタイプです。
 

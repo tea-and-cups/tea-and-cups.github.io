@@ -33,9 +33,9 @@ category: gift
 
 イギリスの名窯ウェッジウッドの「フェスティビティ」は、ラズベリー色の花柄をあしらった華やかなシリーズです。ブランドボックス付きで届くため、贈答用としてそのまま渡せる仕上がりになっています。レビュー件数が273件と比較して多く、贈り物として選ばれてきた実績を確認しやすいのも安心材料です。
 
-[![ウェッジウッド フェスティビティ ティーカップ&ソーサー ラズベリー ペア](/images/pair-cup-saucer-kekkonjoshii-tanjoubi-hikaku/products/1.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fle-noble%2Fww3267fe0002%2F)
+[![ウェッジウッド フェスティビティ ティーカップ&ソーサー ラズベリー ペア](/images/pair-cup-saucer-kekkonjoshii-tanjoubi-hikaku/products/1.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824d4d5.e1788149.5824d4d6.eb68f29f/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fle-noble%2Fww3267fe0002%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.58（273件） [ウェッジウッド フェスティビティ ティーカップ&ソーサー(ラズベリー)ペアはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fle-noble%2Fww3267fe0002%2F)
+★4.58（273件） [ウェッジウッド フェスティビティ ティーカップ&ソーサー(ラズベリー)ペアはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824d4d5.e1788149.5824d4d6.eb68f29f/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fle-noble%2Fww3267fe0002%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 価格・評価・実績のバランスが取れており、はじめてブランド食器を贈る場面で迷ったらまず候補に入れやすい1組です。
 
@@ -43,9 +43,7 @@ category: gift
 
 「ワイルドストロベリー」はウェッジウッドを代表する看板柄のひとつで、いちごと草花を描いた愛らしいデザインが特徴です。フェスティビティより価格帯は上がりますが、結婚祝いや内祝いなど、特別な節目にふさわしい存在感があります。評価も4.75と高く、長く愛されてきた柄であることがうかがえます。
 
-[![ウェッジウッド ワイルドストロベリー ティーカップ&ソーサー ピオニー ペア](/images/pair-cup-saucer-kekkonjoshii-tanjoubi-hikaku/products/2.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fle-noble%2Fww000011011p%2F)
-
-★4.75（172件） [ウェッジウッド ワイルドストロベリー ティーカップ&ソーサー(ピオニー)ペアはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fle-noble%2Fww000011011p%2F)
+★4.75（172件） [ウェッジウッド ワイルドストロベリー ティーカップ&ソーサー(ピオニー)ペアはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824d4d5.e1788149.5824d4d6.eb68f29f/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fle-noble%2Fww000011011p%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 予算に余裕があり、結婚祝いや引き出物など「特別感」を重視したい場面で選びたい1組です。
 
@@ -53,9 +51,9 @@ category: gift
 
 日本のブランドKINTOが手がける「PEBBLE」は、丸みのあるフォルムと無地の落ち着いた色合いが特徴のシリーズです。カップ&ソーサーに加えてティーポットもセットになっているため、これから2人でティータイムの習慣を始める新生活のお祝いにも向いています。花柄が強すぎない分、相手の好みが分からない場合にも選びやすいデザインです。
 
-[![KINTO PEBBLE ティーポット&カップ&ソーサーセット](/images/pair-cup-saucer-kekkonjoshii-tanjoubi-hikaku/products/3.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Ffavras%2Ffs00111%2F)
+[![KINTO PEBBLE ティーポット&カップ&ソーサーセット](/images/pair-cup-saucer-kekkonjoshii-tanjoubi-hikaku/products/3.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824d5ca.d70782de.5824d5cb.105ee5e7/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Ffavras%2Ffs00111%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.75（67件） [KINTO PEBBLE ティーポット&カップ&ソーサーセットはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Ffavras%2Ffs00111%2F)
+★4.75（67件） [KINTO PEBBLE ティーポット&カップ&ソーサーセットはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824d5ca.d70782de.5824d5cb.105ee5e7/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Ffavras%2Ffs00111%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 ティーポットまでセットで揃うため、これから紅茶の道具を揃え始める2人への贈り物として一式が完結するのも魅力です。
 
@@ -63,9 +61,9 @@ category: gift
 
 大阪の吉谷硝子が手がける耐熱ガラス製のペアセットです。陶磁器のブランド品に比べて価格を抑えやすく、透明感のある見た目は紅茶の水色（すいしょく）そのものを楽しめるのも特徴です。レビュー件数は他候補よりまだ少ないものの、評価は4.20と安定しており、気軽な贈り物や自宅用の買い足しにも向いています。
 
-[![吉谷硝子 耐熱ガラス ティーカップ&ソーサー ペアセット](/images/pair-cup-saucer-kekkonjoshii-tanjoubi-hikaku/products/4.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fcosmo-style%2F05-yf-1003w%2F)
+[![吉谷硝子 耐熱ガラス ティーカップ&ソーサー ペアセット](/images/pair-cup-saucer-kekkonjoshii-tanjoubi-hikaku/products/4.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824ea09.4da0c7d3.5824ea0a.28ddbbcf/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fcosmo-style%2F05-yf-1003w%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.20（65件） [吉谷硝子 耐熱ガラス ティーカップ&ソーサー ペアセットはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fcosmo-style%2F05-yf-1003w%2F)
+★4.20（65件） [吉谷硝子 耐熱ガラス ティーカップ&ソーサー ペアセットはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824ea09.4da0c7d3.5824ea0a.28ddbbcf/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fcosmo-style%2F05-yf-1003w%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 ブランド食器ほどの予算をかけずに、涼しげな見た目のペアカップを贈りたいときの選択肢になります。
 

@@ -37,9 +37,9 @@ category: tea-leaves
 
 新商品の動向を見たうえで、まず手軽に試すなら定番の水出しタイプがおすすめです。たとえば日東紅茶の「水出しアイスティー アールグレイ」です。
 
-[![日東紅茶 水出しアイスティー アールグレイ ティーバッグ](/images/2026-natsu-koucha-shinshouhin-gentei-flavor-matome/products/1.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fquickfactory%2Fr005040%2F)
+[![日東紅茶 水出しアイスティー アールグレイ ティーバッグ](/images/2026-natsu-koucha-shinshouhin-gentei-flavor-matome/products/1.webp)](https://hb.afl.rakuten.co.jp/ichiba/58247dba.56ae1ea1.58247dbb.124b386b/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fquickfactory%2Fr005040%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.79（34件） [日東紅茶 水出しアイスティー アールグレイはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fquickfactory%2Fr005040%2F)
+★4.79（34件） [日東紅茶 水出しアイスティー アールグレイはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/58247dba.56ae1ea1.58247dbb.124b386b/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fquickfactory%2Fr005040%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 500ml抽出用の三角ティーバッグで、水出しでもお湯出しでも使える点が扱いやすいポイントです。ベルガモットの香りが立つアールグレイタイプで、100袋入りのため、たっぷり試したい方に向く商品です。マイボトルに1袋入れて冷蔵庫で数時間置いておくだけなので、忙しい朝でも仕込みやすいのが魅力です。
 

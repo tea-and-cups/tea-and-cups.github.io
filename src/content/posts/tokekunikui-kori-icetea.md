@@ -35,9 +35,9 @@ category: how-to
 - **蓋（フタ）付きかどうか** — 冷凍庫内で他の食品の匂いが氷に移るのを防げます。作り置きして重ねておけるのも便利です
 - **取り出しやすい柔らかい素材か** — シリコン製は力を入れずに氷を押し出せ、変形の心配もありません
 
-[![シリコン製氷皿2個セット10ピース（霜山・小物専科しもやま）](/images/tokekunikui-kori-icetea/products/1.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fshimoyama-onlineshop%2F2107sd319-set%2F)
+[![シリコン製氷皿2個セット10ピース（霜山・小物専科しもやま）](/images/tokekunikui-kori-icetea/products/1.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824dbc6.488c6e1b.5824dbc7.1f899757/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fshimoyama-onlineshop%2F2107sd319-set%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.51（167件） [大きい氷が作れるシリコン製氷皿はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fshimoyama-onlineshop%2F2107sd319-set%2F)
+★4.51（167件） [大きい氷が作れるシリコン製氷皿はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824dbc6.488c6e1b.5824dbc7.1f899757/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fshimoyama-onlineshop%2F2107sd319-set%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 ## 2倍濃度の急冷抽出：基本の手順
 
@@ -51,9 +51,7 @@ category: how-to
 
 大きな氷をたっぷり使うなら、器の口の広さも重要です。口が狭いグラスやポットでは、大きな氷を入れづらく、洗うときにも手が届きにくくなります。作り置きしてストックするなら、広口タイプの耐熱ガラスピッチャーが扱いやすくおすすめです。
 
-[![ガラスピッチャー蓋付き1L（L広場）](/images/tokekunikui-kori-icetea/products/2.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Flonglife-global%2Ftp2022032501%2F)
-
-★4.57（449件） [広口タイプの耐熱ガラスピッチャーはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Flonglife-global%2Ftp2022032501%2F)
+★4.57（449件） [広口タイプの耐熱ガラスピッチャーはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824e758.f1efbeef.5824e759.9fcd2570/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Flonglife-global%2Ftp2022032501%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 ## この淹れ方に向いている茶葉
 

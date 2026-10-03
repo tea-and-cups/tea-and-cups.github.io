@@ -63,9 +63,7 @@ category: how-to
 
 冷蔵庫のドアポケットにも入る、ポット型の浄水器です。水道水を注いでカートリッジを通すと、カルキ臭や細かな不純物が抑えられるとされ、紅茶の香りが立ちやすくなります。水道水がベースなのでミネラルウォーターを買い続けるよりコストを抑えやすく、毎日ポットで何杯も淹れる家庭には現実的な底上げ策です。
 
-[![ブリタ ポット型浄水器 リクエリ マクストラプロ カートリッジ付](/images/koucha-mizu-nansui-kousui/products/1.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fbrita%2Fliquelli-2c%2F)
-
-★4.67（10079件） [ブリタ 浄水ポット リクエリはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fbrita%2Fliquelli-2c%2F)
+★4.67（10079件） [ブリタ 浄水ポット リクエリはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824e47f.80a97b0c.5824e480.046b8c6f/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fbrita%2Fliquelli-2c%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 レビュー件数が非常に多く評価も安定した、高評価のイチ押しです。カートリッジの交換時期を知らせる機能付きで、ろ過性能を保ちやすい点も扱いやすさにつながります。
 
@@ -73,9 +71,9 @@ category: how-to
 
 スーパーやドラッグストアでも見かける、定番の海外産ナチュラルウォーターです。硬度は低めの軟水で、そのまま沸かして紅茶に使えます。ペットボトルなので常温で置いておけ、災害用の備蓄も兼ねられます。「水道水の味が気になる」「引っ越し先の水が合わない」というときにまず試しやすい選択肢です。
 
-[![クリスタルガイザー 500ml×48本 天然水 軟水](/images/koucha-mizu-nansui-kousui/products/2.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fdrinkshop%2F1337939%2F)
+[![クリスタルガイザー 500ml×48本 天然水 軟水](/images/koucha-mizu-nansui-kousui/products/2.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824e4b3.c060d03b.5824e4b4.f7573be6/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fdrinkshop%2F1337939%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.62（23973件） [クリスタルガイザー 500ml×48本はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fdrinkshop%2F1337939%2F)
+★4.62（23973件） [クリスタルガイザー 500ml×48本はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824e4b3.c060d03b.5824e4b4.f7573be6/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fdrinkshop%2F1337939%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 長く売れ続けている定番で、レビュー件数も豊富です。500mlサイズはポット1杯分ずつ使い切りやすく紅茶向きです。
 
@@ -83,9 +81,9 @@ category: how-to
 
 硬度が非常に低い、国産の天然水です。ミネラルの主張が少ないぶん茶葉そのものの香りや味の輪郭が分かりやすく、飲み比べで水の影響を確かめたいときの基準にも使えます。ラベルレスで飲み終わったあとのボトル処理も手軽です。
 
-[![ピュアの森 ミネラルウォーター 500ml×48本 軟水 天然水](/images/koucha-mizu-nansui-kousui/products/3.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsktadv%2Fpure500water48labelless%2F)
+[![ピュアの森 ミネラルウォーター 500ml×48本 軟水 天然水](/images/koucha-mizu-nansui-kousui/products/3.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824e4c5.50316438.5824e4c6.930df55b/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fsktadv%2Fpure500water48labelless%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.79（5920件） [ピュアの森 500ml×48本はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsktadv%2Fpure500water48labelless%2F)
+★4.79（5920件） [ピュアの森 500ml×48本はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824e4c5.50316438.5824e4c6.930df55b/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fsktadv%2Fpure500water48labelless%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 3点の中では硬度がもっとも低い部類で、評価も高い水です。香りの繊細なダージリンやフレーバーティーを、水のクセに邪魔されずに味わいたい方に向きます。
 

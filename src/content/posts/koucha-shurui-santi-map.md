@@ -67,9 +67,7 @@ category: tea-leaves
 
 産地ごとの味わいの違いは、文章で読むよりも実際に飲み比べてみるのが一番わかりやすい方法です。スリランカ国内の5大産地（ディンブラ・ウバ・ヌワラエリヤ・キャンディ・ルフナ）を一度に飲み比べられるセットをご紹介します。
 
-[![スリランカ5大産地飲み比べ 茶葉リーフ（ディンブラ・ウバ・ヌワラエリア・キャンディ・ルフナ）](/images/koucha-shurui-santi-map/products/1.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fteaisobuchi%2F10000087%2F)
-
-★4.88（67件） [スリランカ5大産地飲み比べセットはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fteaisobuchi%2F10000087%2F)
+★4.88（67件） [スリランカ5大産地飲み比べセットはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824e5ae.4ad7f194.5824e5b1.70f8f6e0/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fteaisobuchi%2F10000087%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 評価・レビュー件数ともに高く、1つの産地区分の中でも味わいが変わることを実感しやすいセットです。[セイロン紅茶の産地区分](/posts/seiron-koucha-santi-kubun/)を読んでから飲み比べると、違いがより分かりやすくなります。
 

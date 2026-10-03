@@ -54,7 +54,7 @@ category: seasons
 
 「紅茶らしい紅茶」をあらためて味わうなら、コクのしっかりしたアッサムが選びやすい候補です。ストレートでも飲めますが、ミルクを合わせるとコクと香りが引き立ちやすく、寒くなる季節にも向いています。
 
-★4.63（981件） [紅茶 茶葉 アッサム CTC 100g オーガニック 有機JAS（サンタローサ）はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsantarosa%2Fsr_assam%2F)
+★4.63（981件） [紅茶 茶葉 アッサム CTC 100g オーガニック 有機JAS（サンタローサ）はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824d6ad.80b48201.5824d6ae.97ea73a9/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fsantarosa%2Fsr_assam%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 有機JAS認証の茶葉で、レビュー件数も多く評価が安定しているため、はじめてリーフのアッサムを買う人にも選びやすい一品です。ミルクティーの割合や淹れ方に迷う場合は[鍋で作るホットのロイヤルミルクティー](/posts/nabe-hot-royal-milktea-warihai-kotsu/)もあわせてどうぞ。
 
@@ -62,8 +62,8 @@ category: seasons
 
 記念日らしい華やかさがほしいときは、香りづけをしたフレーバードティーが分かりやすい選択です。なかでもアールグレイは、ベルガモット（柑橘）の香りで午後のひとときに合わせやすく、ギフトにも定番です。
 
-[![シルバーポット アールグレイブルー 50g](/images/koucha-no-hi-yurai/products/2.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fearlgrey-bleu%2F)
-★4.63（312件） [紅茶 茶葉 アールグレイブルー ニルギリとダージリン使用（シルバーポット）はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fearlgrey-bleu%2F)
+[![シルバーポット アールグレイブルー 50g](/images/koucha-no-hi-yurai/products/2.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824d670.57eb77b3.5824d671.e3a6cb31/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fearlgrey-bleu%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
+★4.63（312件） [紅茶 茶葉 アールグレイブルー ニルギリとダージリン使用（シルバーポット）はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824d670.57eb77b3.5824d671.e3a6cb31/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fearlgrey-bleu%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 南インドのニルギリとダージリンを土台にした専門店のオリジナルブレンドで、ベースの茶葉にこだわったぶん、ストレートでも楽しみやすいアールグレイに仕上げられています。アールグレイをブランドごとに飲み比べたい人は[アールグレイのブランド・香り比較](/posts/earl-grey-koucha-brand-kaori-hikaku/)も参考にしてください。
 
@@ -71,8 +71,8 @@ category: seasons
 
 「どれを選べばいいか決めきれない」「いろいろ試してみたい」という日には、フレーバー違いの詰め合わせが向いています。1杯分ずつ個包装になっているものなら、その日の気分で選べて、来客時にも出しやすくなります。
 
-[![JAF TEA セイロンファミリー 選べる90包](/images/koucha-no-hi-yurai/products/3.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fgiftland-showa%2F48236-01%2F)
-★4.73（333件） [紅茶 ティーバッグ 選べる90包 jaftea セイロンファミリー（ギフトランドショーワ）はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fgiftland-showa%2F48236-01%2F)
+[![JAF TEA セイロンファミリー 選べる90包](/images/koucha-no-hi-yurai/products/3.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824e522.dafd748b.5824e523.56faa89c/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fgiftland-showa%2F48236-01%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
+★4.73（333件） [紅茶 ティーバッグ 選べる90包 jaftea セイロンファミリー（ギフトランドショーワ）はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824e522.dafd748b.5824e523.56faa89c/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fgiftland-showa%2F48236-01%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 セイロンティーをベースにしたアールグレイやフルーツ系フレーバーに加え、ノンカフェインのルイボスやカモミール、ペパーミントも組み合わせから選べます。夜の時間帯に飲みたい人や、カフェインを控えたい人と一緒に楽しむ場合にも対応しやすいセットです。カフェインが気になる人は[紅茶のカフェイン量Q&A](/posts/koucha-caffeine-ryou-qa/)もどうぞ。
 

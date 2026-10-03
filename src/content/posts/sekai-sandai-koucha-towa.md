@@ -96,23 +96,23 @@ category: tea-leaves
 
 インド紅茶専門店シルバーポットが、セカンドフラッシュ以降の茶葉をブレンドしたハウスブレンドです。渋みが少なく透明感のある味わいで、余韻にほのかな桃のような甘さがあると案内されています。ダージリンらしい華やかな香りを、飲みやすいバランスで楽しめる一袋で、産地の個性を知る入り口として高評価のイチ押しです。ストレートでどうぞ。
 
-[![ダージリン ハウスブレンド ブルーミングバレー 50g](/images/sekai-sandai-koucha-towa/products/1.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fbloomingvalley100g%2F)
+[![ダージリン ハウスブレンド ブルーミングバレー 50g](/images/sekai-sandai-koucha-towa/products/1.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824d670.57eb77b3.5824d671.e3a6cb31/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fbloomingvalley100g%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.73（22件） [ブルーミングバレー 50g はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fbloomingvalley100g%2F)
+★4.73（22件） [ブルーミングバレー 50g はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824d670.57eb77b3.5824d671.e3a6cb31/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fbloomingvalley100g%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 ### 2. ウバ — キレと清涼感を試したい
 
 紅茶研究で知られるティー・イソブチカンパニーが、スリランカのバンダラエリヤ茶園から直輸入しているウバのリーフティーです。メントール系の爽やかな香りと、はっきりした渋み・コクが持ち味で、ストレートでもミルクティーでも楽しめると案内されています。個性派のウバフレーバーを一度味わってみたい方に、レビュー評価も高くおすすめできる一袋です。
 
-★4.75（20件） [TEA ISOBUCHI ウバ 100g はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fteaisobuchi%2F10000011%2F)
+★4.75（20件） [TEA ISOBUCHI ウバ 100g はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824e5ae.4ad7f194.5824e5b1.70f8f6e0/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fteaisobuchi%2F10000011%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 ### 3. キームン — 甘い香りでくつろぎたい
 
 台湾茶・中国茶を扱う天香茶行が仕入れている祁門紅茶です。渋みや苦みは控えめで、甘い香りとコクを感じやすいタイプ。ショップのページでは、95℃の湯で茶葉5g・湯300ml・1分ほどの抽出、磁器やガラスの茶器がおすすめと案内されています。渋い紅茶が苦手な方や、夜にゆっくり飲みたい方に向いた、バランスの取れた一袋です。
 
-[![天香茶行 祁門紅茶 キーマン 40g](/images/sekai-sandai-koucha-towa/products/3.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Ftian-xiang%2F10000024%2F)
+[![天香茶行 祁門紅茶 キーマン 40g](/images/sekai-sandai-koucha-towa/products/3.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824eaf2.7d5e9dc0.5824eaf3.2166f6b5/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Ftian-xiang%2F10000024%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★5.00（14件） [天香茶行 祁門紅茶 40g はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Ftian-xiang%2F10000024%2F)
+★5.00（14件） [天香茶行 祁門紅茶 40g はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824eaf2.7d5e9dc0.5824eaf3.2166f6b5/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Ftian-xiang%2F10000024%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 ウバは商品画像を掲載していません。テキストのリンクから商品ページをご確認ください。
 

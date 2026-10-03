@@ -84,21 +84,21 @@ category: how-to
 
 インド紅茶専門店シルバーポットの、種類を選べるティーバッグのアソートです。ダージリンやセイロン、アッサム系のブレンドなど幅広くそろい、スコーンに合う濃いめの紅茶を探すのに使いやすい一箱です。水出し用の茶葉も選べ、レビュー件数も多く、はじめの一箱として選びやすい高評価のセットです。
 
-[![シルバーポット 選べるティーバッグ マーケットセット](/images/scone-koucha-pairing/products/1.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2F1017951%2F)
+[![シルバーポット 選べるティーバッグ マーケットセット](/images/scone-koucha-pairing/products/1.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824d670.57eb77b3.5824d671.e3a6cb31/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2F1017951%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.67（3477件） [選べるティーバッグ マーケットセットはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2F1017951%2F)
+★4.67（3477件） [選べるティーバッグ マーケットセットはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824d670.57eb77b3.5824d671.e3a6cb31/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2F1017951%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 ### 2. 本式のクロテッドクリームを試すなら
 
 英国ロダス社の、伝統製法で作られたクロテッドクリームです。28gの小分けが10個入りで、少しずつ使えて使い切りやすいのが利点です。代用アイデアで近づけたコクと、本式の香ばしさ・口当たりを比べてみたい方に向いた、レビュー件数の安定した定番です。要冷蔵なので、届いたら早めに楽しんでください。
 
-★4.57（143件） [ロダス社 クロテッドクリーム 28g×10個はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fmangos%2F10000158%2F)
+★4.57（143件） [ロダス社 クロテッドクリーム 28g×10個はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824ea98.d77efa78.5824ea99.1d4ed7d6/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fmangos%2F10000158%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 ### 3. フルーツ入りスコーンに合わせるアールグレイ
 
 フランス生まれのブランド、ジャンナッツのアールグレイです。スリランカのディンブラ茶葉にベルガモットの香りをつけたティーバッグで、100袋入りと大容量です。レーズンやオレンジピール入りのスコーンに合わせると、柑橘の香りと焼き込まれた果実が響き合います。ふだん使いしやすく、レビュー評価も高めです。
 
-★4.64（87件） [ジャンナッツ アールグレイ ティーバッグ 100袋はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Flifucoco-shop%2F0764-005457%2F)
+★4.64（87件） [ジャンナッツ アールグレイ ティーバッグ 100袋はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824e461.4d69b36c.5824e462.0427653f/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Flifucoco-shop%2F0764-005457%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 商品2・3の画像は掲載していません。テキストのリンクから商品ページをご確認ください。
 

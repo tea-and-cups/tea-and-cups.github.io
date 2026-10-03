@@ -22,9 +22,9 @@ category: teaware
 
 ## おすすめの一品：強化ガラスのグラス
 
-[![デュラレックス DURALEX ピカルディアンバー 250cc グラス](/images/shinseikatsu-hitorigurashi-warenikui-teaware/products/1.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fk-online%2Fdx_1027db%2F)
+[![デュラレックス DURALEX ピカルディアンバー 250cc グラス](/images/shinseikatsu-hitorigurashi-warenikui-teaware/products/1.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824eb0a.b69c3594.5824eb0b.1a044c6f/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fk-online%2Fdx_1027db%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.90（20件） [デュラレックス ピカルディアンバー 250ccはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fk-online%2Fdx_1027db%2F)
+★4.90（20件） [デュラレックス ピカルディアンバー 250ccはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824eb0a.b69c3594.5824eb0b.1a044c6f/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fk-online%2Fdx_1027db%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 ガラスブランド「デュラレックス」のピカルディシリーズのグラスです。強化ガラス製で衝撃に強く、熱湯を注いでも急激な温度変化に耐えやすいレンジ対応仕様のため、ホットの紅茶からアイスティーまで一つで使い回せます。シンプルな形は積み重ねやすく、収納スペースが限られる一人暮らしの部屋にも取り入れやすい価格帯の一品です。バランスの取れた選択肢で、はじめに選ぶ一客として検討しやすい商品といえるでしょう。
 

@@ -41,9 +41,7 @@ category: care
 
 風味を補う工夫をしても本来の香りには戻らないため、次に紅茶を買うときは飲み切れる量を選ぶことも、賞味期限切れを防ぐうえで役立ちます。
 
-[![選べる紅茶ティーバッグ12p お試しセット（カレルチャペック紅茶店）](/images/koucha-shomikigen-kireta-fuumi-mikiwame/products/1.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fkarelcapek%2F01600776r%2F)
-
-★4.72（1,152件） [選べる紅茶ティーバッグ12p お試しセット（カレルチャペック紅茶店）はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fkarelcapek%2F01600776r%2F) — 好みの茶葉を少量ずつ選べるお試しセットで、飲み切れる量を見極めながら新しい茶葉を試したい方に高評価の一品です（掲載画像内の評価表示は販売ページの取得時点により、上記の数値と若干異なる場合があります）
+★4.72（1,152件） [選べる紅茶ティーバッグ12p お試しセット（カレルチャペック紅茶店）はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824d4e5.f8d823d3.5824d4e6.9525a349/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fkarelcapek%2F01600776r%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D) — 好みの茶葉を少量ずつ選べるお試しセットで、飲み切れる量を見極めながら新しい茶葉を試したい方に高評価の一品です（掲載画像内の評価表示は販売ページの取得時点により、上記の数値と若干異なる場合があります）
 
 ## Q4. 飲用に不安が残る場合の活用法は？
 

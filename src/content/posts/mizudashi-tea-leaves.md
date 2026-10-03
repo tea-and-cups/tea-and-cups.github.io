@@ -41,31 +41,31 @@ category: tea-leaves
 
 レモンやミントを添えるアレンジとも相性がよく、最初の一袋として安心しておすすめできる茶葉です。南インド産のニルギリは渋みが少なく透明感のある味わいで、水出しにするとその長所がいっそう際立ちます。
 
-[![紅茶 茶葉 ニルギリ カイルベッタ茶園（シルバーポット）](/images/mizudashi-tea-leaves/products/1.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fkaribetta%2F)
+[![紅茶 茶葉 ニルギリ カイルベッタ茶園（シルバーポット）](/images/mizudashi-tea-leaves/products/1.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824d670.57eb77b3.5824d671.e3a6cb31/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fkaribetta%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★5.0（18件） [ニルギリのリーフ茶葉はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fkaribetta%2F)
+★5.0（18件） [ニルギリのリーフ茶葉はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824d670.57eb77b3.5824d671.e3a6cb31/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fkaribetta%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 ### 2. キャンディ — 渋みが苦手な方への答え
 
 甘いお菓子との相性も良好です。スリランカ中部のキャンディは、セイロンティーの中でもとりわけ穏やかな性格の茶葉で、水出しにすると角のない、すっと喉を通る味わいになるため渋みが苦手な方でも飲みやすいのが魅力です。
 
-[キャンディ（セイロン）の茶葉はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fteaisobuchi%2F10000013%2F)
+[キャンディ（セイロン）の茶葉はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824e5ae.4ad7f194.5824e5b1.70f8f6e0/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fteaisobuchi%2F10000013%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 ### 3. ダージリン — 香りのごちそうを冷たいまま
 
 特別な日の食卓や、来客のおもてなしにも映える一杯です。「紅茶のシャンパン」とも呼ばれるダージリンは、水出しにすると若々しい香りがすっと立ち上がり、じっくり味わいたくなる香り高さがあります。春摘み（ファーストフラッシュ）の軽やかなものなら、緑茶のような爽やかさも感じられます。
 
-[![ダージリン ファーストフラッシュ シンブリ茶園（シルバーポット）](/images/mizudashi-tea-leaves/products/2.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fsingbulli-firstflush2%2F)
+[![ダージリン ファーストフラッシュ シンブリ茶園（シルバーポット）](/images/mizudashi-tea-leaves/products/2.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824d670.57eb77b3.5824d671.e3a6cb31/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fsingbulli-firstflush2%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.78（27件） [ダージリンの茶葉はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fsingbulli-firstflush2%2F)
+★4.78（27件） [ダージリンの茶葉はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824d670.57eb77b3.5824d671.e3a6cb31/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fsingbulli-firstflush2%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 ### 4. アールグレイ — 氷に負けない香りの輪郭
 
 炭酸水で割るアレンジもよく合います。ベルガモットで香りづけされたアールグレイは、氷で薄まっても風味の輪郭がぼやけにくいのが強みで、水出しにすると柑橘の香りが穏やかに広がり、甘くないのにどこか華やかな一杯になります。
 
-[![アールグレイブルー（シルバーポット）](/images/mizudashi-tea-leaves/products/3.webp)](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fearlgrey-bleu%2F)
+[![アールグレイブルー（シルバーポット）](/images/mizudashi-tea-leaves/products/3.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824d670.57eb77b3.5824d671.e3a6cb31/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fearlgrey-bleu%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.63（312件） [アールグレイの茶葉はこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fearlgrey-bleu%2F)
+★4.63（312件） [アールグレイの茶葉はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824d670.57eb77b3.5824d671.e3a6cb31/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fsilverpot%2Fearlgrey-bleu%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 ## 基本の水出しレシピ
 
