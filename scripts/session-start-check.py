@@ -75,10 +75,7 @@ CHILD_SCRIPTS = [
     # check-published-pins-missing.py: 0=正常判定（検知の有無を問わない）。
     # 検知時は【警告】を本文に含めて出力する仕様のため、フック自体は失敗扱いにしない。
     ("check-published-pins-missing.py", {0}),
-    # production-run.py open: このセッション＝1 production run の開始記録を作る
-    # （D-0235）。正常時は何も出力しない。代理確定・区間の重なりがあった時だけ
-    # 【警告】を1行出す。0=正常。
-    ("production-run.py", {0}, ["open"]),
+    # production-run.py open は D-0264 で停止したため登録しない。
 ]
 
 TIMEOUT_SECONDS = 30

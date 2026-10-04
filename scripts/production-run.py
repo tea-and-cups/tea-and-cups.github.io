@@ -89,6 +89,11 @@ GIT_TIMEOUT = 120
 
 RUNS_HEADER = "# run_id\tsession_id\tevent\ttimestamp\tclose_reason"
 
+# D-0264 で production run を停止した。False の間、record_step は何も書かずに戻る
+# （SessionStart の open・SessionEnd の finalize はフックから外してある）。
+# 本体・既存データ・test-production-run.py の処遇は S-0021 で決める。
+RECORDING_ENABLED = False
+
 
 # --------------------------------------------------------------------------
 # パスと小道具
@@ -488,7 +493,10 @@ def record_step(kind, root=None, **fields):
 
     記録の失敗で呼び出し元の本来の処理を止めない（例外は外へ出さない）。
     runを1つに特定できない場合は _unbound.jsonl と _errors.log に残す。
+    RECORDING_ENABLED が False の間は何もしない（D-0264）。
     """
+    if not RECORDING_ENABLED:
+        return False
     try:
         base = root or PROJECT_ROOT
         entry = {"kind": kind, "ts": iso(now_jst())}
