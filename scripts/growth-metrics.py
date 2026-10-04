@@ -25,6 +25,19 @@ Codex からシェル実行される前提で、標準出力に契約JSONを1個
   python site/scripts/growth-metrics.py gsc --operation gsc.search_analytics_by_query --lookback-days 28 --limit 20
   python site/scripts/growth-metrics.py gsc --operation gsc.search_analytics_by_page --lookback-days 28 --limit 20
   python site/scripts/growth-metrics.py gsc --operation gsc.search_analytics_by_query_page --lookback-days 28 --limit 20
+  python site/scripts/growth-metrics.py ga4 --operation ga4.page_traffic --since 2026-09-21 --until 2026-09-27 --limit 100
+  python site/scripts/growth-metrics.py pins --operation pins.daily_totals --since 2026-08-24 --until 2026-09-27 --compare-weeks 4
+
+期間の指定（D-0265）:
+  --since/--until（日本時間の日付 YYYY-MM-DD・両方必須・--lookback-days とは併用不可）で
+  期間を固定できる。指定が無いときは従来どおり実行日基準の --lookback-days 窓。
+  GA4・GSC・pins.daily_totals が受け付ける（他は警告つきで無視）。範囲は 1..90 日・未来日は不可。
+  GSC の日付は Search Console 側の基準日（米国太平洋時間）で、日本時間の日付とは最大1日ずれうる。
+  ga4.daily_traffic・gsc.search_analytics・pins.daily_totals は --compare-weeks N（1..11）で
+  data.comparison（対象週=until で終わる7日・前週・N週前・直前N週の週平均）を足せる。
+  窓が 7×(N+1) 日未満ならエラー。欠損日（系列に無い日・pinsは欠損フラグの日）は合計から除外し
+  その日数を明示する。GA4・GSC の出力には data.totals（行数・指標の合計）が付く。
+  これらは data 直下への追加のみで、data.series の行の形・既存キー・coverage は変えない。
 
 終了コード: 0=正常（status ok）/ 1=エラー（status error・許可外・範囲外・secretガード作動）
 """
@@ -36,6 +49,7 @@ import datetime as dt
 import json
 import os
 import re
+import statistics
 import sys
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -75,7 +89,17 @@ BUFFER_SOURCE = "buffer_graphql"
 PIN_DAILY_METRICS_TSV = os.path.join(PROJECT_ROOT, "data", "pin-daily-metrics.tsv")
 PIN_EXCLUSION_REASONS = ("identity_unavailable", "aspect_ratio_not_2_3", "duplicate_detected")
 
+# pins.daily_totals（D-0265）: 同じTSVを日別に合算し、欠損日を印する。
+PINS_TOTALS_SOURCE = "pin_daily_metrics_tsv"
+PINS_TOTALS_ENTITY_ID = "pinterest:account"
+PIN_TOTALS_METRICS = ("impressions", "saves", "outbound_clicks", "pin_clicks")
+PIN_PROCESSING_STATUS = "PROCESSING"
+# 欠損フラグ: 行数が前後 PIN_NEIGHBOR_DAYS 日ずつの行数の中央値の PIN_MISSING_RATIO 未満の日。
+PIN_NEIGHBOR_DAYS = 3
+PIN_MISSING_RATIO = 0.9
+
 LOOKBACK_MIN, LOOKBACK_MAX = 1, 90
+COMPARE_WEEKS_MIN, COMPARE_WEEKS_MAX = 1, 11
 LIMIT_MIN, LIMIT_MAX = 1, 100
 DEFAULT_LOOKBACK_DAYS = 7
 
@@ -306,6 +330,112 @@ def _int_in_range(label: str, value, low: int, high: int) -> int:
     return parsed
 
 
+def _period_bounds(params: dict) -> tuple[dt.date, dt.date]:
+    """取得期間 (start, end) を返す。--since/--until があればそれ（日本時間の日付）、
+    無ければ従来どおり実行日基準の lookback_days 窓。
+    """
+    if params.get("since") and params.get("until"):
+        return dt.date.fromisoformat(params["since"]), dt.date.fromisoformat(params["until"])
+    end_date = dt.date.today()
+    return end_date - dt.timedelta(days=params["lookback_days"] - 1), end_date
+
+
+def _series_totals(series: list, metric_names, lower_bound: bool, scope_note: str | None = None,
+                   lower_bound_note: str | None = None) -> dict:
+    """data.totals: 返した行数と、整数指標の合計。lower_bound が真なら合計は下限値と明示する。"""
+    sums = {name: 0 for name in metric_names}
+    for record in series:
+        for name in metric_names:
+            value = record.get(name)
+            if isinstance(value, (int, float)) and not isinstance(value, bool):
+                sums[name] += value
+    totals = {"row_count": len(series), "metrics": sums, "is_lower_bound": bool(lower_bound)}
+    if lower_bound:
+        totals["note"] = lower_bound_note or (
+            "合計は下限値（取得行が --limit などの上限に達したため、これより下位の行は"
+            "合計に含まれない / the sums are lower bounds: the row cap was reached)"
+        )
+    if scope_note:
+        totals["scope"] = scope_note
+    return totals
+
+
+def _week_summary(daily: dict, excluded_dates, metric_names, until: dt.date, weeks_ago: int) -> dict:
+    end = until - dt.timedelta(days=7 * weeks_ago)
+    start = end - dt.timedelta(days=6)
+    sums = {name: 0 for name in metric_names}
+    used = 0
+    excluded: list[str] = []
+    for offset in range(7):
+        day = (start + dt.timedelta(days=offset)).isoformat()
+        if day in daily and day not in excluded_dates:
+            used += 1
+            for name in metric_names:
+                sums[name] += daily[day].get(name) or 0
+        else:
+            excluded.append(day)
+    return {
+        "start": start.isoformat(), "end": end.isoformat(), "weeks_ago": weeks_ago,
+        "totals": sums, "days_used": used, "excluded_days": excluded,
+    }
+
+
+def _build_comparison(daily: dict, excluded_dates, metric_names, until: dt.date, compare_weeks: int) -> dict:
+    """data.comparison（D-0265）。対象週=until で終わる7日、前週、N週前、直前N週の週平均。
+
+    daily: {YYYY-MM-DD: {指標名: 値}}。excluded_dates と daily に無い日は欠損日として
+    合計から除外し、週ごとの excluded_days と全体の excluded_missing_days に明示する。
+    欠損日を除いた分だけ週の合計は小さくなる（補完・按分はしない）。
+    """
+    weeks = [_week_summary(daily, excluded_dates, metric_names, until, k)
+             for k in range(compare_weeks + 1)]
+    prior = weeks[1:]
+    averages = {
+        name: round(sum(w["totals"][name] for w in prior) / len(prior), 2)
+        for name in metric_names
+    }
+    return {
+        "definition": (
+            "target_week is the 7 days ending at the window end (until); previous_week is the 7 "
+            "days before it; n_weeks_ago is the week compare_weeks weeks before target_week; "
+            "prior_weeks_average is the mean of the weekly totals of the compare_weeks weeks "
+            "before target_week. Missing days are excluded from the sums, not imputed."
+        ),
+        "compare_weeks": compare_weeks,
+        "metrics": list(metric_names),
+        "target_week": weeks[0],
+        "previous_week": weeks[1],
+        "n_weeks_ago": weeks[compare_weeks],
+        "prior_weeks_average": {
+            "weeks": compare_weeks, "averages": averages,
+            "days_used": sum(w["days_used"] for w in prior),
+        },
+        "excluded_missing_days": sum(len(w["excluded_days"]) for w in weeks),
+    }
+
+
+def _daily_from_series(series: list, metric_names) -> dict:
+    """date 付きで unknown_reason が無い行だけを {日付: {指標: 値}} にする（比較用）。"""
+    daily: dict = {}
+    for record in series:
+        day = record.get("date")
+        if not day or record.get("unknown_reason"):
+            continue
+        if all(isinstance(record.get(name), (int, float)) for name in metric_names):
+            daily[day] = {name: record[name] for name in metric_names}
+    return daily
+
+
+def _attach_comparison_if_requested(payload: dict, params: dict, series: list, metric_names) -> None:
+    compare_weeks = params.get("compare_weeks")
+    if not compare_weeks:
+        return
+    _, end_date = _period_bounds(params)
+    payload["data"]["comparison"] = _build_comparison(
+        _daily_from_series(series, metric_names), set(), metric_names, end_date, compare_weeks
+    )
+
+
 # --- GA4 ------------------------------------------------------------------
 
 
@@ -323,8 +453,7 @@ def run_ga4_daily_traffic(params: dict) -> dict:
     lookback_days = params["lookback_days"]
     limit = params["limit"]
 
-    end_date = dt.date.today()
-    start_date = end_date - dt.timedelta(days=lookback_days - 1)
+    start_date, end_date = _period_bounds(params)
     params["period"] = {"start_date": start_date.isoformat(), "end_date": end_date.isoformat()}
 
     if not os.path.exists(TOKEN_PATH):
@@ -437,6 +566,8 @@ def run_ga4_daily_traffic(params: dict) -> dict:
     )
     payload["data"]["series"] = series
     payload["data"]["snapshot"] = {}
+    payload["data"]["totals"] = _series_totals(series, GA4_METRICS, limit < lookback_days)
+    _attach_comparison_if_requested(payload, params, series, GA4_METRICS)
     return payload
 
 
@@ -447,8 +578,7 @@ def run_ga4_page_traffic(params: dict) -> dict:
     lookback_days = params["lookback_days"]
     limit = params["limit"]
 
-    end_date = dt.date.today()
-    start_date = end_date - dt.timedelta(days=lookback_days - 1)
+    start_date, end_date = _period_bounds(params)
     params["period"] = {"start_date": start_date.isoformat(), "end_date": end_date.isoformat()}
 
     if not os.path.exists(TOKEN_PATH):
@@ -548,6 +678,8 @@ def run_ga4_page_traffic(params: dict) -> dict:
     )
     payload["data"]["series"] = series
     payload["data"]["snapshot"] = {}
+    payload["data"]["totals"] = _series_totals(
+        series, GA4_PAGE_METRICS, len(rows) >= limit, "sum of the returned pagePath rows")
     return payload
 
 
@@ -563,8 +695,7 @@ def run_gsc_search_analytics(params: dict) -> dict:
     lookback_days = params["lookback_days"]
     limit = params["limit"]
 
-    end_date = dt.date.today()
-    start_date = end_date - dt.timedelta(days=lookback_days - 1)
+    start_date, end_date = _period_bounds(params)
     params["period"] = {"start_date": start_date.isoformat(), "end_date": end_date.isoformat()}
 
     if not os.path.exists(TOKEN_PATH):
@@ -685,6 +816,8 @@ def run_gsc_search_analytics(params: dict) -> dict:
     )
     payload["data"]["series"] = series
     payload["data"]["snapshot"] = {}
+    payload["data"]["totals"] = _series_totals(series, GSC_INT_METRICS, limit < lookback_days)
+    _attach_comparison_if_requested(payload, params, series, GSC_INT_METRICS)
     return payload
 
 
@@ -705,8 +838,7 @@ def _run_gsc_dimension_report(params: dict, operation: str, dimensions: list[str
     limit = params["limit"]
     dimension = "-".join(dimensions)  # 出力文言用（単一次元では従来と同一の文字列）
 
-    end_date = dt.date.today()
-    start_date = end_date - dt.timedelta(days=lookback_days - 1)
+    start_date, end_date = _period_bounds(params)
     params["period"] = {"start_date": start_date.isoformat(), "end_date": end_date.isoformat()}
 
     if not os.path.exists(TOKEN_PATH):
@@ -823,6 +955,11 @@ def _run_gsc_dimension_report(params: dict, operation: str, dimensions: list[str
     )
     payload["data"]["series"] = series
     payload["data"]["snapshot"] = {}
+    payload["data"]["totals"] = _series_totals(
+        series, GSC_INT_METRICS,
+        len(all_rows) > limit or len(all_rows) >= GSC_DIMENSION_FETCH_ROW_LIMIT,
+        "sum of the returned %s rows (queries Google withholds for privacy are not in the API rows)"
+        % dimension)
     return payload
 
 
@@ -1226,19 +1363,141 @@ def run_pins_daily_metrics(params: dict) -> dict:
     return payload
 
 
+# --- pins.daily_totals（TSVの日別合算・D-0265）------------------------------------
+
+
+def _int_or_zero(raw) -> int:
+    try:
+        return int(raw)
+    except (TypeError, ValueError):
+        return 0
+
+
+def _neighbor_median(counts: dict, day: dt.date, first: dt.date, last: dt.date):
+    """day の前後 PIN_NEIGHBOR_DAYS 日ずつ（TSVの日付範囲内）の行数の中央値。無ければ None。"""
+    values = []
+    for offset in range(-PIN_NEIGHBOR_DAYS, PIN_NEIGHBOR_DAYS + 1):
+        if offset == 0:
+            continue
+        neighbor = day + dt.timedelta(days=offset)
+        if first <= neighbor <= last:
+            values.append(counts.get(neighbor.isoformat(), 0))
+    return statistics.median(values) if values else None
+
+
+def run_pins_daily_totals(params: dict) -> dict:
+    start_date, end_date = _period_bounds(params)
+    params["period"] = {"start_date": start_date.isoformat(), "end_date": end_date.isoformat()}
+
+    all_rows, _columns = _read_pin_daily_metrics_tsv()
+    fetched_at = iso_now()
+
+    per_date: dict = {}
+    for row in all_rows:
+        day = row.get("date") or ""
+        if not day:
+            continue
+        agg = per_date.setdefault(day, {"row_count": 0, "processing_rows": 0,
+                                        **{name: 0 for name in PIN_TOTALS_METRICS}})
+        agg["row_count"] += 1
+        if (row.get("data_status") or "") == PIN_PROCESSING_STATUS:
+            agg["processing_rows"] += 1
+        for name in PIN_TOTALS_METRICS:
+            agg[name] += _int_or_zero(row.get(name))
+
+    counts = {day: agg["row_count"] for day, agg in per_date.items()}
+    first_day = dt.date.fromisoformat(min(per_date)) if per_date else None
+    last_day = dt.date.fromisoformat(max(per_date)) if per_date else None
+
+    series: list[dict] = []
+    flagged: list[str] = []
+    day = start_date
+    while day <= end_date:
+        key = day.isoformat()
+        agg = per_date.get(key)
+        reasons: list[str] = []
+        if agg is None:
+            agg = {"row_count": 0, "processing_rows": 0, **{name: 0 for name in PIN_TOTALS_METRICS}}
+        if first_day is None or day < first_day or day > last_day:
+            reasons.append("no rows: the date is outside the range of data/pin-daily-metrics.tsv")
+        else:
+            if agg["processing_rows"] > 0:
+                reasons.append("%d rows have data_status PROCESSING (values are not final)"
+                               % agg["processing_rows"])
+            median = _neighbor_median(counts, day, first_day, last_day)
+            if median is not None and agg["row_count"] < PIN_MISSING_RATIO * median:
+                reasons.append(
+                    "row_count %d is below %d%% of the median (%s) of the surrounding days"
+                    % (agg["row_count"], int(PIN_MISSING_RATIO * 100), median))
+        record = {
+            "source": PINS_TOTALS_SOURCE,
+            "fetched_at": fetched_at,
+            "entity_id": PINS_TOTALS_ENTITY_ID,
+            "observed_at": key + "T00:00:00+00:00",
+            "date": key,
+            "row_count": agg["row_count"],
+            "processing_rows": agg["processing_rows"],
+            "missing_flag": bool(reasons),
+            "unknown_reason": "; ".join(reasons) if reasons else None,
+        }
+        for name in PIN_TOTALS_METRICS:
+            record[name] = agg[name]
+        if reasons:
+            flagged.append(key)
+        series.append(record)
+        day += dt.timedelta(days=1)
+
+    payload = _base_payload("pins", "pins.daily_totals", params)
+    payload["generated_at"] = fetched_at
+    warnings: list[str] = []
+    if not all_rows:
+        warnings.append(
+            "data/pin-daily-metrics.tsv was not found or is empty; run "
+            "site/scripts/fetch-pin-daily-metrics.py first"
+        )
+    if flagged:
+        warnings.append(
+            "%d of %d days are flagged missing_flag (PROCESSING rows, or row_count below %d%% of "
+            "the surrounding days' median); their sums are partial: %s"
+            % (len(flagged), len(series), int(PIN_MISSING_RATIO * 100), ", ".join(flagged))
+        )
+    payload["warnings"] = warnings
+    payload["coverage"]["reason"] = (
+        "daily sums of the pin x day rows in data/pin-daily-metrics.tsv (the Pinterest "
+        "daily_metrics API via fetch-pin-daily-metrics.py); no external API call is made here. "
+        "missing_flag marks days whose sums are likely incomplete; the file carries no finality "
+        "flag of its own beyond data_status"
+    )
+    payload["data"]["series"] = series
+    payload["data"]["snapshot"] = {}
+    totals = _series_totals(
+        series, PIN_TOTALS_METRICS, bool(flagged),
+        "sum over all days in the window, including flagged days",
+        "合計は下限値（missing_flag の日は PROCESSING または行の取りこぼしで、その日の値は一部のみ"
+        " / the sums are lower bounds: flagged days carry partial values)")
+    totals["missing_days"] = len(flagged)
+    payload["data"]["totals"] = totals
+    compare_weeks = params.get("compare_weeks")
+    if compare_weeks:
+        daily = {rec["date"]: {name: rec[name] for name in PIN_TOTALS_METRICS} for rec in series}
+        payload["data"]["comparison"] = _build_comparison(
+            daily, set(flagged), PIN_TOTALS_METRICS, end_date, compare_weeks)
+    return payload
+
+
 # --- 操作テーブル ---------------------------------------------------------
 
 ALLOWED_OPERATIONS = {
     "ga4.daily_traffic": {
         "service": "ga4",
         "description": "GA4 daily sessions / activeUsers / screenPageViews over a trailing window",
-        "accepts": frozenset(["lookback_days", "limit"]),
+        "accepts": frozenset(["lookback_days", "limit", "since_until", "compare_weeks"]),
         "handler": run_ga4_daily_traffic,
     },
     "gsc.search_analytics": {
         "service": "gsc",
         "description": "GSC daily clicks / impressions / ctr / position over a trailing window",
-        "accepts": frozenset(["lookback_days", "limit"]),
+        "accepts": frozenset(["lookback_days", "limit", "since_until", "compare_weeks"]),
         "handler": run_gsc_search_analytics,
     },
     "ga4.page_traffic": {
@@ -1247,7 +1506,7 @@ ALLOWED_OPERATIONS = {
             "GA4 screenPageViews / sessions / activeUsers by pagePath over a trailing window, "
             "top-N by screenPageViews"
         ),
-        "accepts": frozenset(["lookback_days", "limit"]),
+        "accepts": frozenset(["lookback_days", "limit", "since_until"]),
         "handler": run_ga4_page_traffic,
     },
     "gsc.search_analytics_by_query": {
@@ -1256,7 +1515,7 @@ ALLOWED_OPERATIONS = {
             "GSC clicks / impressions / ctr / position by query over a trailing window (period "
             "total, not daily), top-N by impressions"
         ),
-        "accepts": frozenset(["lookback_days", "limit"]),
+        "accepts": frozenset(["lookback_days", "limit", "since_until"]),
         "handler": run_gsc_search_analytics_by_query,
     },
     "gsc.search_analytics_by_page": {
@@ -1265,7 +1524,7 @@ ALLOWED_OPERATIONS = {
             "GSC clicks / impressions / ctr / position by page over a trailing window (period "
             "total, not daily), top-N by impressions"
         ),
-        "accepts": frozenset(["lookback_days", "limit"]),
+        "accepts": frozenset(["lookback_days", "limit", "since_until"]),
         "handler": run_gsc_search_analytics_by_page,
     },
     "gsc.search_analytics_by_query_page": {
@@ -1274,7 +1533,7 @@ ALLOWED_OPERATIONS = {
             "GSC clicks / impressions / ctr / position by (query, page) pair over a trailing "
             "window (period total, not daily), top-N by impressions"
         ),
-        "accepts": frozenset(["lookback_days", "limit"]),
+        "accepts": frozenset(["lookback_days", "limit", "since_until"]),
         "handler": run_gsc_search_analytics_by_query_page,
     },
     "buffer.account": {
@@ -1311,6 +1570,16 @@ ALLOWED_OPERATIONS = {
         "accepts": frozenset(["lookback_days"]),
         "handler": run_pins_daily_metrics,
     },
+    "pins.daily_totals": {
+        "service": "pins",
+        "description": (
+            "Per-day sums (impressions / saves / outbound_clicks / pin_clicks), row counts, "
+            "PROCESSING row counts and a missing_flag, aggregated from "
+            "data/pin-daily-metrics.tsv (D-0265; no external API call)"
+        ),
+        "accepts": frozenset(["lookback_days", "since_until", "compare_weeks"]),
+        "handler": run_pins_daily_totals,
+    },
 }
 
 
@@ -1322,7 +1591,20 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--operation", required=True, help="one of ALLOWED_OPERATIONS")
     parser.add_argument("--lookback-days", type=str, default=None, help="integer 1..90")
     parser.add_argument("--limit", type=str, default=None, help="integer 1..100")
+    parser.add_argument("--since", type=str, default=None,
+                        help="period start, YYYY-MM-DD (JST date); requires --until, excludes --lookback-days")
+    parser.add_argument("--until", type=str, default=None,
+                        help="period end, YYYY-MM-DD (JST date); requires --since")
+    parser.add_argument("--compare-weeks", type=str, default=None,
+                        help="integer 1..11; adds data.comparison to daily series operations")
     return parser
+
+
+def _parse_iso_date(label: str, value: str) -> dt.date:
+    try:
+        return dt.date.fromisoformat(value)
+    except (TypeError, ValueError):
+        raise BrokerError("param_out_of_range", "%s must be a date in YYYY-MM-DD form (got %s)" % (label, value))
 
 
 def main() -> None:
@@ -1355,6 +1637,35 @@ def main() -> None:
         params: dict = {}
         warnings: list[str] = []
 
+        if args.since is not None or args.until is not None:
+            if args.since is None or args.until is None:
+                raise BrokerError("param_out_of_range", "--since and --until must be given together")
+            if args.lookback_days is not None:
+                raise BrokerError(
+                    "param_conflict", "--lookback-days cannot be combined with --since/--until")
+            since = _parse_iso_date("--since", args.since)
+            until = _parse_iso_date("--until", args.until)
+            if since > until:
+                raise BrokerError("param_out_of_range", "--since must not be after --until")
+            if until > dt.date.today():
+                raise BrokerError("param_out_of_range", "--until must not be in the future")
+            span = _int_in_range("--since/--until span (days)", (until - since).days + 1,
+                                 LOOKBACK_MIN, LOOKBACK_MAX)
+            if "since_until" in accepts:
+                params["since"] = since.isoformat()
+                params["until"] = until.isoformat()
+                params["lookback_days"] = span
+            else:
+                warnings.append("--since/--until are ignored by operation '%s'" % operation)
+
+        if args.compare_weeks is not None:
+            weeks_value = _int_in_range("--compare-weeks", args.compare_weeks,
+                                        COMPARE_WEEKS_MIN, COMPARE_WEEKS_MAX)
+            if "compare_weeks" in accepts:
+                params["compare_weeks"] = weeks_value
+            else:
+                warnings.append("--compare-weeks is ignored by operation '%s'" % operation)
+
         if args.lookback_days is not None:
             value = _int_in_range("--lookback-days", args.lookback_days, LOOKBACK_MIN, LOOKBACK_MAX)
             if "lookback_days" in accepts:
@@ -1372,6 +1683,13 @@ def main() -> None:
             params["lookback_days"] = DEFAULT_LOOKBACK_DAYS
         if "limit" in accepts and "limit" not in params:
             params["limit"] = min(params.get("lookback_days", DEFAULT_LOOKBACK_DAYS), LIMIT_MAX)
+
+        if params.get("compare_weeks") and params["lookback_days"] < 7 * (params["compare_weeks"] + 1):
+            raise BrokerError(
+                "param_out_of_range",
+                "--compare-weeks %d needs a window of at least %d days (got %d)"
+                % (params["compare_weeks"], 7 * (params["compare_weeks"] + 1), params["lookback_days"]),
+            )
 
         payload = spec["handler"](params)
         payload["params"] = params

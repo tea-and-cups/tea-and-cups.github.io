@@ -43,8 +43,15 @@ r"""投稿済みPinの「ピン単位 × 日次」実績をPinterest APIから�
 
 差分更新の対象（--full-refresh 指定時を除く）:
   (1) 保存ファイルに存在しないPin（新規ピン）… 取得可能な全期間
-  (2) 全Pinの直近 RECENT_REFETCH_DAYS 日分 … PROCESSING が READY へ変わるため再取得する
-  それ以前の確定済みの日は再取得しない。
+  (2) 既知のPin … 次の3つのうち最も早い日から実行日まで取り直す（D-0265）
+        a. 実行日の (RECENT_REFETCH_DAYS - 1) 日前（PROCESSING が READY へ変わるため）
+        b. そのPinで最も古い READY 以外（PROCESSING 等）の日
+        c. そのPinの保存済みの最終日の翌日（実行間隔が空いた分の欠損を埋める）
+      ただし作成日より前・MAX_LOOKBACK_DAYS より前には戻らない。
+  上記の開始日より前にある確定済み（READY）の日は再取得しない。
+  (3) 保存済みだが今回の GET /v5/pins の一覧から外れた既知のPin … 保存済みの pin_id で個別に
+      (2) と同じ開始日から取り直す（一覧の取りこぼしで PROCESSING のまま固まるのを防ぐ・D-0265）。
+      Pin番号・board・identity 等の列は保存済みの最新行から引き継ぐ。
 
 使い方:
   python site/scripts/fetch-pin-daily-metrics.py              # 通常の差分更新
@@ -309,6 +316,54 @@ def read_existing():
     return rows
 
 
+def summarize_pin_rows(rows):
+    """既存行を pin_id ごとに要約する: {pin_id: (最も古い READY 以外の日 or None, 保存済みの最終日)}。
+
+    日付は 'YYYY-MM-DD' の文字列のまま比較する（ISO 形式のため辞書順が日付順）。
+    """
+    oldest_not_ready = {}
+    last_date = {}
+    for (pin_id, date_key), row in rows.items():
+        if date_key > last_date.get(pin_id, ""):
+            last_date[pin_id] = date_key
+        if (row.get("data_status") or "") != "READY":
+            if pin_id not in oldest_not_ready or date_key < oldest_not_ready[pin_id]:
+                oldest_not_ready[pin_id] = date_key
+    return {pid: (oldest_not_ready.get(pid), last) for pid, last in last_date.items()}
+
+
+def refetch_start_for_known_pin(stats, today):
+    """既知のピンを取り直す開始日（作成日・MAX_LOOKBACK_DAYS による下限は呼び出し側で掛ける）。
+
+    実行日の (RECENT_REFETCH_DAYS - 1) 日前・最も古い READY 以外の日・保存済みの最終日の翌日の
+    うち最も早い日。stats は summarize_pin_rows() の1件（無ければ None）。
+    """
+    candidates = [today - datetime.timedelta(days=RECENT_REFETCH_DAYS - 1)]
+    if stats:
+        not_ready, last = stats
+        if not_ready:
+            candidates.append(datetime.date.fromisoformat(not_ready))
+        if last:
+            candidates.append(datetime.date.fromisoformat(last) + datetime.timedelta(days=1))
+    return min(candidates)
+
+
+def _safe_int(value):
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def latest_row_by_pin(rows):
+    """既存行を pin_id ごとに最新の日付の1行へまとめる: {pin_id: row}。"""
+    latest = {}
+    for (pin_id, date_key), row in rows.items():
+        if pin_id not in latest or date_key > latest[pin_id].get("date", ""):
+            latest[pin_id] = row
+    return latest
+
+
 def write_atomic(rows):
     """一時ファイルへ書いてから置き換える。
 
@@ -527,6 +582,7 @@ def main():
     board_names = apm.load_board_names()
     rows = read_existing()
     known_pin_ids = set(pin_id for pin_id, _ in rows.keys())
+    pin_stats = summarize_pin_rows(rows)
     print("既存TSV: %d行（既知のpin_id %d件）" % (len(rows), len(known_pin_ids)))
 
     today = datetime.date.today()
@@ -537,6 +593,7 @@ def main():
     fail_count = 0
     written_rows = 0
     duplicate_numbers = []
+    processed_ids = set()
 
     for pin_num in pin_numbers:
         assigned = pins_by_num.get(pin_num) or []
@@ -552,16 +609,19 @@ def main():
             pin_id = str(pin.get("id") or "")
             if not pin_id:
                 continue
+            processed_ids.add(pin_id)
             created = pin.get("_created")
             created_date = created.date() if created else earliest_allowed
 
             if args.full_refresh or pin_id not in known_pin_ids:
                 start = max(created_date, earliest_allowed)
             else:
-                # 既知のピンは直近 RECENT_REFETCH_DAYS 日だけ取り直す
-                # （それ以前の確定済みの日は再取得しない）
+                # 既知のピンは「最近の固定窓」「最も古い READY 以外の日」
+                # 「保存済みの最終日の翌日」のうち最も早い日から取り直す
+                # （それ以前の確定済みの日は再取得しない・D-0265）
                 start = max(created_date, earliest_allowed,
-                            today - datetime.timedelta(days=RECENT_REFETCH_DAYS - 1))
+                            refetch_start_for_known_pin(
+                                pin_stats.get(pin_id), today))
             if start > today:
                 start = today
 
@@ -596,6 +656,42 @@ def main():
                     row[column] = str(int(value)) if isinstance(value, (int, float)) else ""
                 rows[(pin_id, date_key)] = row
                 written_rows += 1
+
+    # --- 一覧（GET /pins）から外れた既知のピンを、保存済みの pin_id で個別に取り直す（D-0265） ---
+    latest_rows = latest_row_by_pin(rows)
+    pin_number_set = set(pin_numbers)
+    extra_ids = sorted(
+        pid for pid in known_pin_ids - processed_ids
+        if _safe_int(latest_rows.get(pid, {}).get("pin_number")) in pin_number_set)
+    if extra_ids:
+        print("一覧に出てこない既知のピン: %d件（保存済みの pin_id で個別に取り直します）" % len(extra_ids))
+    for pin_id in extra_ids:
+        template = latest_rows[pin_id]
+        created_text = template.get("created_at") or ""
+        try:
+            created_date = datetime.date.fromisoformat(created_text)
+        except ValueError:
+            created_date = earliest_allowed
+        start = max(created_date, earliest_allowed,
+                    refetch_start_for_known_pin(pin_stats.get(pin_id), today))
+        if start > today:
+            start = today
+        day_map, error = fetch_daily(pin_id, access_token, start, today)
+        time.sleep(ANALYTICS_INTERVAL_SECONDS)
+        if day_map is None:
+            fail_count += 1
+            print("  Pin%s (%s): 取得失敗 - %s" % (template.get("pin_number"), pin_id, error))
+            continue
+        ok_count += 1
+        for date_key in sorted(day_map.keys()):
+            data_status, metrics = day_map[date_key]
+            row = dict(template)
+            row.update({"date": date_key, "fetched_at": fetched_at, "data_status": data_status})
+            for column, api_name in METRIC_COLUMNS:
+                value = metrics.get(api_name)
+                row[column] = str(int(value)) if isinstance(value, (int, float)) else ""
+            rows[(pin_id, date_key)] = row
+            written_rows += 1
 
     if duplicate_numbers:
         print("【注意】同一Pin番号に複数のピンが割り当たりました: %s" % duplicate_numbers)

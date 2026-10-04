@@ -18,6 +18,9 @@
                      --mode weekly --since YYYY-MM-DD --until YYYY-MM-DD
                      または --mode monthly [--month YYYY-MM]
                      [--dry-run]（Codexを起動せず、区切りの実行計画だけを表示して終了する）
+                     [--render-only <出力先ディレクトリ>]（Codexを起動せず、全区切りの部分監査
+                       プロンプトとまとめのプロンプトを置換済みで書き出して終了する・D-0265）
+                     [--only-part <区切り名>]（その区切りだけ実行し、まとめは実行しない・D-0265）
                実行: <codexの実体パス> exec -C <プロジェクトルート> -s read-only --json -o <出力先>
                （GROWTH_AUDIT_HARDENING_ARGS で外部遮断を上乗せし、windows.sandbox="elevated"・
                model_reasoning_effort・tool_output_token_limit=30000 を追加で渡す・2026-09-28）
@@ -43,7 +46,7 @@
                プロンプトは標準入力で渡す（Windows のコマンドライン長上限 約3.2万文字を避けるため）。
                -o のファイルが書かれなかった場合は、--json の出力から最終の agent_message を
                gateway が取り出して出力先へ書く（Codex に書き込み権限は与えない）。
-               成功時のJSONには truncated_outputs（rolloutの"Warning: truncated output"件数）・
+               成功時のJSONには truncated_outputs（rolloutの"Warning: truncated output (original token count: N)"行の件数・D-0265）・
                view_image_calls（同ロールアウトの画像閲覧呼び出し件数）・区切りごと/全体の
                トークン内訳（token_usage）を含める（いずれも全区切り＋まとめの合計・D-0255）。
 
@@ -873,6 +876,15 @@ def _rollout_last_token_usage(thread_id):
 
 
 _VIEW_IMAGE_CALL_RE = re.compile(r"view_image\s*\(")
+# Codex が出力を切り詰めたときの警告行（実測: "Warning: truncated output (original token count: N)"）。
+# 文言だけの部分一致だと、ツール出力に載った別の文書中の同じ文字列を数えてしまうため、
+# 件数付きの完全な形に一致する行だけを数える（D-0265）。
+_TRUNCATED_OUTPUT_RE = re.compile(r"Warning: truncated output \(original token count: \d+\)")
+
+
+def _count_truncated_lines(text):
+    """text のうち _TRUNCATED_OUTPUT_RE に一致する行の数。"""
+    return sum(1 for line in text.splitlines() if _TRUNCATED_OUTPUT_RE.search(line))
 
 
 def _count_rollout_signals(thread_id):
@@ -880,7 +892,7 @@ def _count_rollout_signals(thread_id):
     (truncated_outputs, view_image_calls) を数える。見つからなければ (0, 0) を返す。
 
     truncated_outputs: custom_tool_call_output の出力テキストに含まれる
-      "Warning: truncated output" の件数（実測フォーマット確認済み・2026-09-28）。
+      _TRUNCATED_OUTPUT_RE に一致する行の件数（実測フォーマット確認済み・2026-09-28／D-0265）。
     view_image_calls: view_image という名前の直接のツール呼び出し、または
       exec 等のツール呼び出し内で view_image(...) を実行しているものの件数
       （実測で view_image は exec の JS コード内から呼ばれる形を確認・2026-09-28）。
@@ -911,7 +923,7 @@ def _count_rollout_signals(thread_id):
                     for item in payload.get("output") or []:
                         text = item.get("text") if isinstance(item, dict) else None
                         if isinstance(text, str):
-                            truncated += text.count("Warning: truncated output")
+                            truncated += _count_truncated_lines(text)
                 elif ptype in ("custom_tool_call", "function_call", "local_shell_call"):
                     name = payload.get("name") or ""
                     if name == "view_image":
@@ -1523,8 +1535,59 @@ def _step_failure_message(step):
     return _STEP_FAILURE_REASONS.get(reason, "不明な失敗")
 
 
+def _render_part_prompt(template, part):
+    return (template
+            .replace("{{PART_NAME}}", part["name"])
+            .replace("{{TARGETS}}", "\n".join(part["lines"])))
+
+
+def _emit_render_only(purpose, method, target, render_dir, files):
+    emit("rendered", purpose, method, str(target), None,
+         "プロンプトを %d件書き出しました（Codexは起動していません）: %s"
+         % (len(files), render_dir),
+         extra={"render_dir": str(render_dir), "files": files})
+    return EXIT_OK
+
+
+def _render_audit_prompts(purpose, method, prompt_file, mode, target, parts_dir,
+                          partitions, render_dir):
+    """全区切りの部分監査プロンプトと、まとめのプロンプトを置換済みで render_dir へ書く。
+
+    Codex を起動しない（codex の有無も見ない）。区切りの出力ファイルが既にあるかどうかに
+    関わらず全区切りを書く（growth/outputs/ へは何も書かない）。
+    """
+    prompt_path = Path(prompt_file)
+    if not prompt_path.is_file():
+        return fail(EXIT_PRECONDITION, purpose, method,
+                    "--prompt-file が存在しません: %s" % prompt_path)
+    prompt = prompt_path.read_text(encoding="utf-8")
+    if not prompt.strip():
+        return fail(EXIT_PRECONDITION, purpose, method,
+                    "--prompt-file の内容が空です: %s" % prompt_path)
+    part_prompt_path = PART_PROMPT_PATHS[mode]
+    try:
+        part_prompt_template = part_prompt_path.read_text(encoding="utf-8")
+    except OSError as exc:
+        return fail(EXIT_PRECONDITION, purpose, method,
+                    "部分監査プロンプトを読み込めません: %s（%s）" % (part_prompt_path, exc))
+    out_dir = Path(render_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    files = []
+    for part in partitions:
+        path = out_dir / ("part-%s.md" % part["name"])
+        path.write_text(_render_part_prompt(part_prompt_template, part), encoding="utf-8")
+        files.append(str(path))
+    summary_path = out_dir / "summary.md"
+    summary_path.write_text(
+        prompt.replace("{{TARGETS}}", _format_parts_reference(parts_dir, partitions)),
+        encoding="utf-8")
+    files.append(str(summary_path))
+    return _emit_render_only(purpose, method, target, out_dir, files)
+
+
 def run_growth_audit(purpose, prompt_file, output_file, model_override=None,
-                      mode=None, since=None, until=None, month=None, dry_run=False):
+                      mode=None, since=None, until=None, month=None, dry_run=False,
+                      render_only=None, only_part=None):
     """全コンテンツの監査（D-0251）。区切りごとの部分監査を順に実行し、最後にまとめを
     1回実行する（D-0255）。Codex は常に -s read-only のまま、各回の最終メッセージを
     保存する。
@@ -1543,6 +1606,12 @@ def run_growth_audit(purpose, prompt_file, output_file, model_override=None,
     if mode == "weekly" and (not since or not until):
         return fail(EXIT_PRECONDITION, purpose, method,
                     "--mode weekly には --since と --until（YYYY-MM-DD）が必要です。")
+    if render_only and (dry_run or only_part):
+        return fail(EXIT_PRECONDITION, purpose, method,
+                    "--render-only は --dry-run・--only-part と同時に指定できません。")
+    if dry_run and only_part:
+        return fail(EXIT_PRECONDITION, purpose, method,
+                    "--dry-run と --only-part は同時に指定できません。")
     effective_month = month
     if mode == "monthly" and not effective_month:
         effective_month = _previous_month(datetime.now().strftime("%Y-%m"))
@@ -1552,6 +1621,17 @@ def run_growth_audit(purpose, prompt_file, output_file, model_override=None,
 
     if dry_run:
         return _emit_dry_run(purpose, method, target, parts_dir, partitions)
+
+    if render_only:
+        return _render_audit_prompts(purpose, method, prompt_file, mode, target, parts_dir,
+                                     partitions, render_only)
+
+    if only_part:
+        names = [p["name"] for p in partitions]
+        if only_part not in names:
+            return fail(EXIT_PRECONDITION, purpose, method,
+                        "--only-part の区切り名が計画にありません: %s（計画: %s）"
+                        % (only_part, "、".join(names) or "なし"))
 
     prompt, err_code = _read_prompt(purpose, method, prompt_file)
     if prompt is None:
@@ -1587,16 +1667,16 @@ def run_growth_audit(purpose, prompt_file, output_file, model_override=None,
     token_by_part = {}
     any_timed_out = False
 
-    for part in partitions:
+    run_partitions = [p for p in partitions if not only_part or p["name"] == only_part]
+    for part in run_partitions:
         part_path = parts_dir / (part["name"] + ".md")
-        if _valid_partial_output(part_path):
+        # --only-part は明示指定なので、有効な出力が既にあっても実行して上書きする。
+        if not only_part and _valid_partial_output(part_path):
             eprint("区切り %s は有効な出力が既にあるため飛ばします: %s" % (part["name"], part_path))
             part_reports.append({"name": part["name"], "status": "skipped"})
             continue
 
-        part_prompt = (part_prompt_template
-                       .replace("{{PART_NAME}}", part["name"])
-                       .replace("{{TARGETS}}", "\n".join(part["lines"])))
+        part_prompt = _render_part_prompt(part_prompt_template, part)
         build_cmd = _build_audit_cmd(real_exe, part_path, reasoning_effort, config_model)
         try:
             step = _run_one_audit_step(build_cmd, part_prompt, part_path, model_override,
@@ -1620,6 +1700,20 @@ def run_growth_audit(purpose, prompt_file, output_file, model_override=None,
                         % (part["name"], _step_failure_message(step), step["log_path"],
                            step["elapsed"], step["stderr"].strip()[:400]))
         part_reports.append({"name": part["name"], "status": "ok", "elapsed_sec": step["elapsed"]})
+
+    if only_part:
+        # 区切り1つだけの実行（まとめは実行しない）。
+        elapsed_total = int(time.time() - overall_started)
+        emit("ok", purpose, method, str(parts_dir / (only_part + ".md")), None,
+             "区切り %s のみ実行しました（まとめは実行していません） ／ 所要 %d秒 ／ reasoning effort: %s"
+             " ／ truncated_outputs: %d ／ view_image_calls: %d"
+             % (only_part, elapsed_total, reasoning_effort, truncated_total, view_image_total),
+             extra={"elapsed_sec": elapsed_total, "timed_out": any_timed_out,
+                    "truncated_outputs": truncated_total, "view_image_calls": view_image_total,
+                    "reasoning_effort": reasoning_effort,
+                    "token_usage": {"total": token_totals, "parts": token_by_part},
+                    "parts": part_reports, "only_part": only_part})
+        return EXIT_OK
 
     # 最後のまとめ（1回）: 全区切りの出力一覧を {{TARGETS}} へ差し込む。
     summary_prompt = prompt.replace("{{TARGETS}}", _format_parts_reference(parts_dir, partitions))
@@ -1692,6 +1786,13 @@ def main():
     parser.add_argument("--dry-run", action="store_true",
                         help="growth-audit: Codexを起動せず、区切りの実行計画（対象・字数・"
                              "画像枚数・スキップ有無）だけを表示して終了する（D-0255）")
+    parser.add_argument("--render-only", default=None, metavar="OUT_DIR",
+                        help="growth-audit: Codexを起動せず、全区切りの部分監査プロンプトと"
+                             "まとめのプロンプトを置換済みの状態で OUT_DIR へ書き出して終了する"
+                             "（part-<区切り名>.md と summary.md・D-0265）")
+    parser.add_argument("--only-part", default=None, metavar="NAME",
+                        help="growth-audit: 指定した区切り（例 R-1・O-2）だけを実行し、"
+                             "まとめは実行しない。有効な出力が既にあっても実行して上書きする（D-0265）")
     args = parser.parse_args()
     # image-gen の --out-name 必須は従来どおり argparse のエラー（終了コード2）で止める
     if args.purpose == "image-gen" and not args.out_name:
@@ -1715,7 +1816,8 @@ def main():
             return fail(EXIT_PRECONDITION, purpose, method, "--output-file が指定されていません。")
         return run_growth_audit(purpose, args.prompt_file, args.output_file, args.model,
                                 mode=args.mode, since=args.since, until=args.until,
-                                month=args.month, dry_run=args.dry_run)
+                                month=args.month, dry_run=args.dry_run,
+                                render_only=args.render_only, only_part=args.only_part)
     return run_exec(purpose, args.prompt_file, args.out_name, args.model)
 
 
