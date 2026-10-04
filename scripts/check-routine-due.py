@@ -30,9 +30,11 @@ check-image-gen-needed-today.py（D-0078）と同じ方針で、あいまいな�
   2. 月次レポート
      基準日が当月1日以降（=常に真）で、前月分の reports/monthly-YYYY-MM.md が
      存在しなければ通知する。
-  3. 月次実績の催促（D-0036をこのスクリプトへ移管）
-     基準日が当月4日以降で、docs/kpi.md の表に前月（YYYY-MM形式）の行が
-     存在しなければ通知する。
+  3. 月次実績の催促（D-0036をこのスクリプトへ移管・D-0267で2行に分割）
+     基準日が当月4日以降で、docs/kpi.md の表の前月（YYYY-MM形式）の行について、
+     次の2つを別々に通知する（行が無い場合は両方）。
+       - PV列が空: GA4・Pinterestの月間値をAIがAPIで取得して記入する旨（オーナーの作業なし）
+       - 発生／確定の列のどちらかが空: ASP成果CSVをオーナーへ依頼する旨
 
 出力:
   該当項目があればその通知行を1行以上、1件も無ければ "ROUTINE_NONE" の1行のみ。
@@ -131,28 +133,32 @@ def previous_month(base):
 EMPTY_CELL_VALUES = ("", "-", "ー", "—", "未入力")
 
 
-def has_kpi_row(month_key):
-    """docs/kpi.md の表に month_key（YYYY-MM）の行があり、かつPV列に実数値が
-    入っているか。行の絞り込みは「月列（cells[1]）をstripした値がmonth_keyと
-    完全一致するか」で行う（特記事項欄等、月列以外のセルにmonth_key文字列が
-    含まれるだけの行を誤ってヒットさせないため。D-0094）。行の存在だけでなく、
-    PV列の中身が空文字・「-」等の未記載を表す値でないことまで見る
-    （空値行を先に作った場合の silent failure を防ぐため。D-0091）。"""
+def kpi_row_gaps(month_key):
+    """docs/kpi.md の表の month_key（YYYY-MM）の行について、未記入の列を
+    (pv_missing, asp_missing) で返す。行が無ければ両方 True。
+    行の絞り込みは「月列（cells[1]）をstripした値がmonth_keyと完全一致するか」で
+    行う（特記事項欄等、月列以外のセルにmonth_key文字列が含まれるだけの行を
+    誤ってヒットさせないため。D-0094）。行の存在だけでなく、各列の中身が空文字・
+    「-」等の未記載を表す値でないことまで見る（空値行を先に作った場合の
+    silent failure を防ぐため。D-0091）。
+    列の構成: cells[0] は "|" の前の空文字、cells[1]=月、cells[2]=PV、
+    cells[3]=クリック、cells[4]=発生（円）、cells[5]=確定（円）。
+    asp_missing は発生・確定のどちらかが未記載のとき True（D-0267）。"""
     for raw in read_text(KPI_MD).split("\n"):
         line = raw.strip()
         if not line.startswith("|"):
             continue
         cells = line.split("|")
-        # cells[0] は "|" の前の空文字。cells[1] が月列、cells[2] がPV列。
         if len(cells) < 3:
             continue
         if cells[1].strip() != month_key:
             continue
-        pv_cell = cells[2].strip()
-        if pv_cell in EMPTY_CELL_VALUES:
-            continue
-        return True
-    return False
+
+        def missing(index):
+            return index >= len(cells) or cells[index].strip() in EMPTY_CELL_VALUES
+
+        return missing(2), missing(4) or missing(5)
+    return True, True
 
 
 def main():
@@ -195,11 +201,18 @@ def main():
         messages.append("前月分の月次レポート未生成（reports/%s がありません）" % monthly_name)
 
     # 3. 月次実績の催促（当月4日以降・D-0036）
-    if base.day >= KPI_REMINDER_DAY and not has_kpi_row(month_key):
-        messages.append(
-            "前月分（%s）の実績（GA4月間PV・ASP月間成果・Pinterest Analytics月間CSV）が"
-            "未提供です。オーナーへ提出を依頼してください" % month_key
-        )
+    if base.day >= KPI_REMINDER_DAY:
+        pv_missing, asp_missing = kpi_row_gaps(month_key)
+        if pv_missing:
+            messages.append(
+                "前月（%s）の GA4・Pinterest の月間値を、AI が API で取得して kpi.md に記入する"
+                "（オーナーの作業なし）" % month_key
+            )
+        if asp_missing:
+            messages.append(
+                "前月（%s）の ASP 成果CSV（もしもの日次・楽天のレポート）をオーナーへ依頼する"
+                % month_key
+            )
 
     if messages:
         for message in messages:

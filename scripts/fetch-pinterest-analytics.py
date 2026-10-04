@@ -28,14 +28,22 @@ r"""週次レポート用のPinterest実績数値を、対象期間の算出ご�
   3) fetch-ga4-metrics.py に渡すべきコマンド行（--start/--end を埋めた完全な形）
   4) 4指標の期間合計と日次内訳（data_status 付き）
 
+月次など任意の期間（--since / --until・D-0267）:
+  --since YYYY-MM-DD --until YYYY-MM-DD を必ず2つ一緒に指定すると、その期間（両端を含む）
+  の合計を出す。この場合、基準日・週次レポート書き込み先・GA4取得コマンドは出さない
+  （週次専用の情報のため）。両方とも省いた場合の動作・出力は変更前と同じ。
+  口座単位の合計であり、ピン単位の日次実績（data/pin-daily-metrics.tsv）の合計とは
+  定義が異なるため混ぜない。
+
 終了コード:
-  0 = 対象期間の7日すべて READY
+  0 = 対象期間のすべての日が READY
   1 = READYでない日がある（値は出力したうえで警告する）
   2 = 取得・認証・import等に失敗した（数値を作らずそのまま止める）
 
 使い方:
   python site/scripts/fetch-pinterest-analytics.py
   python site/scripts/fetch-pinterest-analytics.py --date 2026-08-23   # 検証用
+  python site/scripts/fetch-pinterest-analytics.py --since 2026-09-01 --until 2026-09-30   # 月次
 """
 
 import argparse
@@ -62,7 +70,6 @@ METRIC_TYPES = ["IMPRESSION", "SAVE", "OUTBOUND_CLICK", "PIN_CLICK"]
 
 API_TIMEOUT_SECONDS = 20
 DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
-PERIOD_DAYS = 7
 
 
 def load_routine_due_functions():
@@ -88,9 +95,27 @@ def load_routine_due_functions():
 def parse_args():
     parser = argparse.ArgumentParser(description="週次レポート用Pinterest実績の取得（対象期間も算出）")
     parser.add_argument("--date", help="基準日 YYYY-MM-DD（省略時は今日・検証用）")
+    parser.add_argument("--since", help="期間の開始日 YYYY-MM-DD（--until と一緒に指定・月次用）")
+    parser.add_argument("--until", help="期間の終了日 YYYY-MM-DD（--since と一緒に指定・月次用）")
     args = parser.parse_args()
     if args.date and not DATE_RE.match(args.date):
         parser.error("--date は YYYY-MM-DD 形式で指定してください: %s" % args.date)
+    if bool(args.since) != bool(args.until):
+        parser.error("--since と --until は必ず2つ一緒に指定してください")
+    if args.since:
+        for name in ("since", "until"):
+            value = getattr(args, name)
+            if not DATE_RE.match(value):
+                parser.error("--%s は YYYY-MM-DD 形式で指定してください: %s" % (name, value))
+        if args.date:
+            parser.error("--date と --since/--until は同時に指定できません")
+        try:
+            since = datetime.date.fromisoformat(args.since)
+            until = datetime.date.fromisoformat(args.until)
+        except ValueError as e:
+            parser.error("日付として解釈できません: %s" % e)
+        if since > until:
+            parser.error("--since は --until 以前の日付にしてください")
     return args
 
 
@@ -141,26 +166,36 @@ def main():
         sys.stdout.reconfigure(encoding="utf-8")
 
     args = parse_args()
-    base = datetime.date.fromisoformat(args.date) if args.date else datetime.date.today()
 
-    try:
-        last_complete_week, weekly_filename = load_routine_due_functions()
-    except Exception as e:
-        print("【エラー】check-routine-due.py の関数を読み込めませんでした: %s" % e)
-        return 2
+    if args.since:
+        # 任意期間（月次用・D-0267）。週次専用の出力（基準日・書き込み先・GA4コマンド）は出さない。
+        start_monday = datetime.date.fromisoformat(args.since)
+        end_sunday = datetime.date.fromisoformat(args.until)
+        print("対象期間: %s 〜 %s（--since/--until 指定・口座単位）" % (
+            start_monday.isoformat(), end_sunday.isoformat()))
+        print("")
+    else:
+        base = datetime.date.fromisoformat(args.date) if args.date else datetime.date.today()
 
-    start_monday, end_sunday = last_complete_week(base)
-    report_name = weekly_filename(end_sunday)
-    ga4_command = "python site/scripts/fetch-ga4-metrics.py --start %s --end %s" % (
-        start_monday.isoformat(), end_sunday.isoformat(),
-    )
+        try:
+            last_complete_week, weekly_filename = load_routine_due_functions()
+        except Exception as e:
+            print("【エラー】check-routine-due.py の関数を読み込めませんでした: %s" % e)
+            return 2
 
-    print("基準日: %s" % base.isoformat())
-    print("対象期間: %s 〜 %s（直近に終わった週の月〜日）" % (
-        start_monday.isoformat(), end_sunday.isoformat()))
-    print("週次レポート書き込み先: reports/%s" % report_name)
-    print("GA4取得コマンド: %s" % ga4_command)
-    print("")
+        start_monday, end_sunday = last_complete_week(base)
+        report_name = weekly_filename(end_sunday)
+        ga4_command = "python site/scripts/fetch-ga4-metrics.py --start %s --end %s" % (
+            start_monday.isoformat(), end_sunday.isoformat(),
+        )
+
+        print("基準日: %s" % base.isoformat())
+        print("対象期間: %s 〜 %s（直近に終わった週の月〜日）" % (
+            start_monday.isoformat(), end_sunday.isoformat()))
+        print("週次レポート書き込み先: reports/%s" % report_name)
+        print("GA4取得コマンド: %s" % ga4_command)
+        print("")
+    period_days = (end_sunday - start_monday).days + 1
 
     try:
         status = pinterest_token.ensure_fresh()
@@ -187,7 +222,7 @@ def main():
     totals = dict((m, 0) for m in METRIC_TYPES)
     not_ready = []
     rows = []
-    for i in range(PERIOD_DAYS):
+    for i in range(period_days):
         day = start_monday + datetime.timedelta(days=i)
         key = day.isoformat()
         if key not in day_map:
@@ -209,7 +244,7 @@ def main():
     print("【期間合計】（data_status が READY の日のみ集計）")
     for m in METRIC_TYPES:
         print("  %-15s %s" % (m, totals[m]))
-    print("  集計採用日数: %d / %d 日" % (PERIOD_DAYS - len(not_ready), PERIOD_DAYS))
+    print("  集計採用日数: %d / %d 日" % (period_days - len(not_ready), period_days))
     print("")
 
     print("【日次内訳】")
@@ -228,7 +263,7 @@ def main():
             print("  %s: %s" % (key, data_status))
         return 1
 
-    print("対象期間の7日すべてが READY です。")
+    print("対象期間の%d日すべてが READY です。" % period_days)
     return 0
 
 
