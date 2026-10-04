@@ -74,7 +74,8 @@ record-lesson.py check を実行し、標準出力に LESSON_NOT_RECORDED が含
 教訓の記録（add / bump / none）を促す文言を既存のreason統合へ合流させる。
 日次セッションかどうかの判別はマーカー方式（data/lessons-session.txt に書かれた
 セッションIDと現在の CLAUDE_CODE_SESSION_ID の一致）で行い、日次フローでしか
-実行されないスクリプト（check-topic-duplicate.py・publish-article.py）がマーカーを作る。
+実行されないスクリプト（check-topic-duplicate.py・publish-article.py・
+publish-article.py --prepare-revise。D-0268）がマーカーを作る。
 改善・修正セッションではマーカーが作られないため、この検知は何も要求しない。
 追加する子プロセスはこの1本のみで、処理はファイル1本の読み比べに留める。
 

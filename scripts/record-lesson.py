@@ -8,8 +8,9 @@ r"""教訓リスト機構（D-0163）。日次セッションで得られた教�
 
 【日次セッションの判別＝マーカー方式】
 「今日は日次セッションか」をAIの自己申告に頼らず、日次フローでしか実行されない
-スクリプト（check-topic-duplicate.py＝題材選定・publish-article.py＝公開処理）の
-冒頭から `mark` を呼ぶことで判定する。改善・修正セッションではこの2本が動かないため
+スクリプト（check-topic-duplicate.py＝題材選定・publish-article.py＝公開処理・
+publish-article.py --prepare-revise＝既存記事の改修の着手。D-0268）の冒頭から
+`mark` を呼ぶことで判定する。改善・修正セッションではこれらが動かないため
 マーカーが作られず、`check` は何も要求しない（＝誤爆しない）。
 
 マーカーの同一セッション判定には環境変数 CLAUDE_CODE_SESSION_ID を使う。

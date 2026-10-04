@@ -80,12 +80,19 @@ Edit/Writeによるpublished化は .claude/hooks/check-publish-gate.py で拒否
     公開中が0点の記事は商品リンクのチェックを省く（減らしようが無いため）。
     本番実行時は下書きの updated を再公開日（日本時間）へ書き換えたうえで、
     site/src/content/posts/<slug>.md への上書きコピー→
-    記事ファイルのみの git add→commit「revise: <slug>」→push まで行う（D-0250。
-    初回の公開では updated を触らない）。--dry-run の差分にも updated の書き換えを含める。
+    git add（記事ファイルと、変更のあった public/images/<slug>/ の hero.webp・
+    thumb.webp。未追跡・変更・削除を含む。変更が無ければ記事ファイルのみ。
+    Pin画像は対象外）→commit「revise: <slug>」→push まで行う（D-0250・D-0268。
+    初回の公開では updated を触らない）。--dry-run の表示にも updated の書き換えと、
+    git add の対象（記事ファイル＋変更のあった画像）の一覧を含める。
     下書きが公開済みと updated の行以外で同一なら「差分なし」で中断する。
     prune-used-ideas・post-pins-to-pinterest・post-pins-to-buffer の実行や
-    production runのstep記録・record-lessonのセッションマーカーは行わない
-    （再公開はネタ帳消費・SNS新規投稿・日次生産のいずれにも当たらないため）。
+    production runのstep記録は行わない（再公開はネタ帳消費・SNS新規投稿に
+    当たらないため）。
+
+  record-lessonのセッションマーカーは --prepare-revise で作る（D-0268）。改修は
+  新規記事の枠と置き換えて日次で回すため、改修だけの日にも教訓記録の催促が働く。
+  マーカー作成に失敗しても --prepare-revise は止めない。--revise は作らない。
 
 【カテゴリの一括変更（--recategorize・D-0247。D-0239の例外）】
   公開済み記事の category の行だけを、対応表に従って一括で書き換える。
@@ -416,6 +423,21 @@ def untracked_images(slug):
     return [line for line in result.stdout.splitlines() if line.strip()]
 
 
+REVISE_IMAGE_NAMES = ("hero.webp", "thumb.webp")
+
+
+def changed_revise_images(slug):
+    """--revise で記事と一緒に add する画像を返す（siteからの相対パス）。
+    public/images/<slug>/ の hero.webp・thumb.webp のうち、git status で変更あり
+    （未追跡・変更・削除）のものだけ。Pin画像・他の画像は対象にしない。
+    """
+    paths = ["public/images/%s/%s" % (slug, name) for name in REVISE_IMAGE_NAMES]
+    result = git("status", "--porcelain", "--", *paths)
+    if result.returncode != 0:
+        return []
+    return [line[3:].strip() for line in result.stdout.splitlines() if len(line) > 3]
+
+
 def diff_text(old_text, new_text, old_label, new_label):
     """unified diffを1つの文字列で返す（difflib）。"""
     return "".join(
@@ -471,6 +493,10 @@ def _run_prepare_revise(rest_args):
     """--prepare-revise <slug>: posts側の内容を下書きとして用意する。"""
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
+
+    # 改修は新規記事の枠と置き換えて日次で回すため、日次フロー実行の記録を残す（D-0268）。
+    # 失敗しても処理は止めない（mark_daily_session は例外を握りつぶす）。
+    mark_daily_session()
 
     if len(rest_args) != 1 or rest_args[0].startswith("-"):
         out(__doc__)
@@ -618,12 +644,17 @@ def _run_revise(rest_args):
     out("3. 変更差分")
     out_lines(diff)
 
+    add_targets = ["src/content/posts/%s.md" % slug] + changed_revise_images(slug)
+
     if dry_run:
         out("4. [dry-run] updated を %s へ更新し、site/src/content/posts/%s.md へ上書きコピーする" % (revised_date, slug))
         out(
-            "5. [dry-run] git add src/content/posts/%s.md → git commit -m \"revise: %s\""
-            % (slug, slug)
+            "5. [dry-run] git add -- %s → git commit -m \"revise: %s\""
+            % (" ".join(add_targets), slug)
         )
+        out("   add 対象: 記事ファイル + 変更のあった hero・thumb 画像（%d件）" % (len(add_targets) - 1))
+        for target in add_targets:
+            out("   - %s" % target)
         out("6. [dry-run] git push")
         out("=== dry-run 完了（4〜6は実行していません） ===")
         return 0
@@ -634,12 +665,11 @@ def _run_revise(rest_args):
     shutil.copyfile(draft_path, published_path)
     out("   コピー完了: site/src/content/posts/%s.md" % slug)
 
-    # 5. add・commit（記事ファイルのみ。Pin画像はrevise対象外）
-    add_target = "src/content/posts/%s.md" % slug
-    result = git("add", "--", add_target)
+    # 5. add・commit（記事ファイルと、変更のあった hero・thumb 画像。Pin画像はrevise対象外）
+    result = git("add", "--", *add_targets)
     if result.returncode != 0:
         return abort("git add に失敗しました: %s" % (result.stderr or result.stdout).strip())
-    out("5. git add: %s" % add_target)
+    out("5. git add: %s" % " ".join(add_targets))
 
     staged = git("diff", "--cached", "--quiet")
     if staged.returncode == 0:
@@ -1428,8 +1458,9 @@ def main():
     標準出力・終了コードは _run() のものをそのまま返す（D-0235で追加した記録は
     公開処理の挙動を変えない）。
 
-    --prepare-revise / --revise はここで分岐し、_run() を一切経由しない
-    （mark_daily_session・record_production_stepのいずれも呼ばない。D-0239）。
+    --prepare-revise / --revise はここで分岐し、_run() を経由しない
+    （record_production_step は呼ばない。D-0239）。mark_daily_session は
+    --prepare-revise が自分で呼ぶ（改修も日次の生産に数えるため。D-0268）。
     """
     args = list(sys.argv[1:])
 

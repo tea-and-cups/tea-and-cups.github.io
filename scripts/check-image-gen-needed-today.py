@@ -13,8 +13,11 @@ r"""今回のセッションでChatGPT経由の画像生成が発生するかを
 
 判定対象:
   1. docs/status.md の全文に「【画像生成持ち越しあり】」という文字列が完全一致で含まれるか
-  2. docs/tasks.md の「## 今日」節（次の「## 」見出しの直前まで）に
-     「[新規記事執筆]」という文字列が完全一致で含まれるか
+  2. docs/tasks.md の「## 今日」節（次の「## 」見出しの直前まで）の未完了行に
+     TASKS_TAGS のいずれか（「[新規記事執筆]」「[改修+画像]」）が完全一致で含まれるか
+     （D-0268）。[改修+画像]＝画像を作り直す改修。文章だけの改修「[改修]」は
+     画像生成が発生しないため判定に使わない（「[改修]」は「[改修+画像]」の部分文字列に
+     ならないので、完全一致の判定で取り違えない）。
   3. （2026-08-15・D-0126）ファイル実在からの導出判定: 対象記事（下記）のhero画像・Pin画像の
      実ファイルが揃っているか。1・2は文章ベースのため、list-latest-reports.pyが読ませる範囲を
      外れたりtasks.mdの完了行がrotate-today-tasks.pyで削除されたりすると、日をまたいだ・
@@ -38,6 +41,8 @@ r"""今回のセッションでChatGPT経由の画像生成が発生するかを
 
 使い方:
   python site/scripts/check-image-gen-needed-today.py
+  python site/scripts/check-image-gen-needed-today.py --tasks-file <tasks.md相当のパス>
+    --tasks-file は検証用。省略時は docs/tasks.md を読む（従来どおり）。
 """
 
 import datetime
@@ -56,7 +61,8 @@ PINS_DIR = os.path.join(ROOT, "output", "pins")
 PIN_IMAGES_DIR = os.path.join(ROOT, "output", "Pin-images")
 
 STATUS_TAG = "【画像生成持ち越しあり】"
-TASKS_TAG = "[新規記事執筆]"
+# 画像生成が発生する行の固定タグ。[改修]（文章だけの改修）は含めない（D-0268）。
+TASKS_TAGS = ("[新規記事執筆]", "[改修+画像]")
 
 RECENT_DAYS = 14
 MAX_REPORT_LINES = 10
@@ -240,14 +246,23 @@ def main():
     if STATUS_TAG in status_text:
         reasons.append("NEEDED: docs/status.md に「%s」あり" % STATUS_TAG)
 
-    tasks_today_lines = extract_today_section(read_text(TASKS_MD))
+    tasks_path = TASKS_MD
+    args = sys.argv[1:]
+    if args[:1] == ["--tasks-file"] and len(args) == 2:
+        tasks_path = args[1]
+    elif args:
+        print("使い方: check-image-gen-needed-today.py [--tasks-file <パス>]", file=sys.stderr)
+        sys.exit(1)
+
+    tasks_today_lines = extract_today_section(read_text(tasks_path))
     for line in tasks_today_lines:
         if is_checked_line(line):
             continue
-        if TASKS_TAG in line:
-            reasons.append(
-                "NEEDED: docs/tasks.md「今日」欄に「%s」あり（該当行: %s）" % (TASKS_TAG, line.strip())
-            )
+        for tag in TASKS_TAGS:
+            if tag in line:
+                reasons.append(
+                    "NEEDED: docs/tasks.md「今日」欄に「%s」あり（該当行: %s）" % (tag, line.strip())
+                )
 
     image_reasons = check_missing_images()
     if len(image_reasons) > MAX_REPORT_LINES:
