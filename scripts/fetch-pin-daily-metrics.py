@@ -43,10 +43,12 @@ r"""投稿済みPinの「ピン単位 × 日次」実績をPinterest APIから�
 
 差分更新の対象（--full-refresh 指定時を除く）:
   (1) 保存ファイルに存在しないPin（新規ピン）… 取得可能な全期間
-  (2) 既知のPin … 次の3つのうち最も早い日から実行日まで取り直す（D-0265）
+  (2) 既知のPin … 次の4つのうち最も早い日から実行日まで取り直す（D-0265・d は D-0266）
         a. 実行日の (RECENT_REFETCH_DAYS - 1) 日前（PROCESSING が READY へ変わるため）
         b. そのPinで最も古い READY 以外（PROCESSING 等）の日
         c. そのPinの保存済みの最終日の翌日（実行間隔が空いた分の欠損を埋める）
+        d. そのPinの作成日から保存済みの最終日までの間で、行が無い最古の日
+           （途中の抜けた日を埋める。MAX_LOOKBACK_DAYS より前の抜けは探さない・D-0266）
       ただし作成日より前・MAX_LOOKBACK_DAYS より前には戻らない。
   上記の開始日より前にある確定済み（READY）の日は再取得しない。
   (3) 保存済みだが今回の GET /v5/pins の一覧から外れた既知のPin … 保存済みの pin_id で個別に
@@ -316,35 +318,80 @@ def read_existing():
     return rows
 
 
-def summarize_pin_rows(rows):
-    """既存行を pin_id ごとに要約する: {pin_id: (最も古い READY 以外の日 or None, 保存済みの最終日)}。
+def _oldest_missing_date(dates, created_text, last, floor_date):
+    """作成日（読めなければ保存済みの最初の日）から保存済みの最終日までの間で、行が無い最古の日。
+
+    floor_date（実行日の MAX_LOOKBACK_DAYS - 1 日前）より前は API で取り直せないため探さない
+    （取り直せない古い抜けがあるピンを毎回 MAX_LOOKBACK_DAYS 分取り直さないため・D-0266）。
+    無ければ None。日付は 'YYYY-MM-DD' の文字列。
+    """
+    if not dates or not last:
+        return None
+    try:
+        start = datetime.date.fromisoformat(created_text) if created_text else None
+    except ValueError:
+        start = None
+    if start is None:
+        start = datetime.date.fromisoformat(min(dates))
+    if floor_date is not None and start < floor_date:
+        start = floor_date
+    end = datetime.date.fromisoformat(last)
+    day = start
+    while day <= end:
+        key = day.isoformat()
+        if key not in dates:
+            return key
+        day += datetime.timedelta(days=1)
+    return None
+
+
+def summarize_pin_rows(rows, floor_date=None):
+    """既存行を pin_id ごとに要約する:
+    {pin_id: (最も古い READY 以外の日 or None, 保存済みの最終日, 途中で行が無い最古の日 or None)}。
 
     日付は 'YYYY-MM-DD' の文字列のまま比較する（ISO 形式のため辞書順が日付順）。
+    途中で行が無い最古の日は、作成日（created_at 列）から保存済みの最終日までの間で探し、
+    floor_date より前は探さない（D-0266）。
     """
     oldest_not_ready = {}
     last_date = {}
+    dates_by_pin = {}
+    created_by_pin = {}
     for (pin_id, date_key), row in rows.items():
+        dates_by_pin.setdefault(pin_id, set()).add(date_key)
+        created = (row.get("created_at") or "").strip()
+        if created and pin_id not in created_by_pin:
+            created_by_pin[pin_id] = created
         if date_key > last_date.get(pin_id, ""):
             last_date[pin_id] = date_key
         if (row.get("data_status") or "") != "READY":
             if pin_id not in oldest_not_ready or date_key < oldest_not_ready[pin_id]:
                 oldest_not_ready[pin_id] = date_key
-    return {pid: (oldest_not_ready.get(pid), last) for pid, last in last_date.items()}
+    return {
+        pid: (oldest_not_ready.get(pid), last,
+              _oldest_missing_date(dates_by_pin.get(pid, set()), created_by_pin.get(pid, ""),
+                                   last, floor_date))
+        for pid, last in last_date.items()
+    }
 
 
 def refetch_start_for_known_pin(stats, today):
     """既知のピンを取り直す開始日（作成日・MAX_LOOKBACK_DAYS による下限は呼び出し側で掛ける）。
 
-    実行日の (RECENT_REFETCH_DAYS - 1) 日前・最も古い READY 以外の日・保存済みの最終日の翌日の
-    うち最も早い日。stats は summarize_pin_rows() の1件（無ければ None）。
+    実行日の (RECENT_REFETCH_DAYS - 1) 日前・最も古い READY 以外の日・保存済みの最終日の翌日・
+    作成日から保存済みの最終日までの間で行が無い最古の日（D-0266）のうち最も早い日。
+    stats は summarize_pin_rows() の1件（無ければ None）。
     """
     candidates = [today - datetime.timedelta(days=RECENT_REFETCH_DAYS - 1)]
     if stats:
-        not_ready, last = stats
+        not_ready, last = stats[0], stats[1]
+        gap = stats[2] if len(stats) > 2 else None
         if not_ready:
             candidates.append(datetime.date.fromisoformat(not_ready))
         if last:
             candidates.append(datetime.date.fromisoformat(last) + datetime.timedelta(days=1))
+        if gap:
+            candidates.append(datetime.date.fromisoformat(gap))
     return min(candidates)
 
 
@@ -582,11 +629,11 @@ def main():
     board_names = apm.load_board_names()
     rows = read_existing()
     known_pin_ids = set(pin_id for pin_id, _ in rows.keys())
-    pin_stats = summarize_pin_rows(rows)
     print("既存TSV: %d行（既知のpin_id %d件）" % (len(rows), len(known_pin_ids)))
 
     today = datetime.date.today()
     earliest_allowed = today - datetime.timedelta(days=MAX_LOOKBACK_DAYS - 1)
+    pin_stats = summarize_pin_rows(rows, earliest_allowed)
     fetched_at = datetime.datetime.now().astimezone().replace(microsecond=0).isoformat()
 
     ok_count = 0
