@@ -25,18 +25,32 @@ check-image-gen-needed-today.py（D-0078）・check-routine-due.py（D-0087）�
 
 安全策:
   - 未完了行（- [ ]）は年月日にかかわらず絶対に削除しない
-  - 「## 今日」以外の節（## 今週・## バックログ等）には一切触れない
-  - 「## 今日」節そのものが見つからない場合は何も書き込まず終了する
+  - 「## 今日」「## 今月」以外の節（## 今週・## バックログ等）には一切触れない
+  - 「## 今日」節そのものが見つからない場合は今日節に何も書き込まない（今月節の処理は行う）
+
+「## 今月」節（D-0269）:
+  - 見出し直下付近の `<!-- month: YYYY-MM -->` を月マーカーとして読む
+  - 今日節から削除する完了行に `[M-nn]` があれば、今月節の同じIDの未完了行を [x] にする
+  - 月マーカーが基準日の月より古ければ、今月節の完了行を退避先へ移し（未完了行は残す）、
+    マーカーを基準日の月へ更新する。退避先の日付見出しはマーカー月の末日とする
+    （退避先の見出し形式 `## YYYY-MM-DD` と14日保持の仕組みをそのまま使うため）
+  - 処理の最後に必ず1行、`MONTHLY_NEXT: <最初の未完了行>` か `MONTHLY_NONE` を出す
+    （どの位置で終わっても出す。日次の題材選びに使う）
 
 出力:
-  終了コードは常に0（情報提供のみ・ブロックしない）。
+  終了コードは0。退避先への書き込みに失敗した場合のみ1（tasks.md は書き換えない）。
 
 使い方:
   python site/scripts/rotate-today-tasks.py               # docs/tasks.md に対して実行
   python site/scripts/rotate-today-tasks.py --dry-run      # 書き込みなしの事前確認
   python site/scripts/rotate-today-tasks.py --file <パス>  # 対象ファイルを差し替え
+  検証用（省略時は従来どおり）:
+    --tasks-file <パス>    対象ファイル（--file と同じ。両方あれば --tasks-file を優先）
+    --archive-file <パス>  退避先（既定 docs/tasks-archive.md）
+    --date YYYY-MM-DD      基準日（既定 実行日）
 """
 
+import calendar
 import datetime
 import io
 import os
@@ -49,6 +63,10 @@ ARCHIVE_MD = os.path.join(ROOT, "docs", "tasks-archive.md")
 
 TODAY_HEADING = "## 今日"
 DATE_MARKER_RE = re.compile(r"^<!--\s*date:\s*(\d{4}-\d{2}-\d{2})\s*-->\s*$")
+
+MONTH_HEADING = "## 今月"
+MONTH_MARKER_RE = re.compile(r"^<!--\s*month:\s*(\d{4}-\d{2})\s*-->\s*$")
+MONTHLY_ID_RE = re.compile(r"\[(M-\d+)\]")
 
 ARCHIVE_HEADER = (
     "# tasks-archive.md — tasks.md「今日」欄の削除行アーカイブ（自動生成・参照専用）\n"
@@ -106,36 +124,38 @@ def render_archive(preamble, blocks):
     return text
 
 
-def archive_removed_lines(marker_date, removed_lines):
-    """削除された行（マーカーの日付に属していた行）を docs/tasks-archive.md へ追記する。
+def archive_removed_lines(archive_path, entries):
+    """削除された行を退避先（既定 docs/tasks-archive.md）へ追記する。
+    entries は [(見出しの日付, [行, ...]), ...]。全件を1回の書き込みで反映する
+    （途中で失敗して一部だけ退避された状態を作らないため）。
     追記後、日付見出しブロックが上限を超えていれば古い日付から削除する。
-    成功したら追記件数を返す。失敗したら例外を送出する（呼び出し側で tasks.md への書き込みを止めるため）。
+    失敗したら例外を送出する（呼び出し側で tasks.md への書き込みを止めるため）。
     """
-    if os.path.isfile(ARCHIVE_MD):
-        existing = read_text(ARCHIVE_MD)
+    if os.path.isfile(archive_path):
+        existing = read_text(archive_path)
     else:
         existing = ARCHIVE_HEADER
 
     preamble, blocks = parse_archive(existing)
 
-    target_block = None
-    for block in blocks:
-        if block[0] == marker_date:
-            target_block = block
-            break
+    for marker_date, removed_lines in entries:
+        target_block = None
+        for block in blocks:
+            if block[0] == marker_date:
+                target_block = block
+                break
 
-    if target_block is None:
-        blocks.append([marker_date, list(removed_lines)])
-    else:
-        target_block[1].extend(removed_lines)
+        if target_block is None:
+            blocks.append([marker_date, list(removed_lines)])
+        else:
+            target_block[1].extend(removed_lines)
 
     if len(blocks) > ARCHIVE_MAX_BLOCKS:
         blocks.sort(key=lambda b: b[0])
         blocks = blocks[-ARCHIVE_MAX_BLOCKS:]
 
     new_text = render_archive(preamble, blocks)
-    write_text(ARCHIVE_MD, new_text)
-    return len(removed_lines)
+    write_text(archive_path, new_text)
 
 
 def read_text(path):
@@ -171,30 +191,132 @@ def find_today_sections(lines):
     return sections
 
 
+def find_month_section(lines):
+    """「## 今月」で始まる最初の節を (start, end) で返す。無ければ None。
+    end は次の「## 」見出し直前（無ければファイル末尾）のindex。
+    """
+    for start, line in enumerate(lines):
+        if line.strip().startswith(MONTH_HEADING):
+            end = len(lines)
+            for i in range(start + 1, len(lines)):
+                if lines[i].startswith("## "):
+                    end = i
+                    break
+            return start, end
+    return None
+
+
+def complete_monthly_ids(lines, ids):
+    """今月節の、ids に含まれるIDを持つ未完了行を [x] にする（lines をその場で書き換える）。
+    戻り値は (完了にしたID, 今月節に未完了行として見つからなかったID)。
+    """
+    section = find_month_section(lines)
+    done, missing = [], []
+    for mid in ids:
+        hit = False
+        if section:
+            start, end = section
+            for i in range(start + 1, end):
+                stripped = lines[i].strip()
+                if stripped.startswith("- [ ]") and mid in MONTHLY_ID_RE.findall(stripped):
+                    lines[i] = lines[i].replace("- [ ]", "- [x]", 1)
+                    hit = True
+                    break
+        (done if hit else missing).append(mid)
+    return done, missing
+
+
+def roll_month(lines, run_date):
+    """月マーカーが基準日の月より古ければ、今月節の完了行を取り除きマーカーを更新する
+    （lines をその場で書き換える）。
+    戻り値は None（何もしない）か (旧月, 新月, 退避先の見出し日付, 取り除いた行のリスト)。
+    マーカーが読めない場合は文字列（表示用メッセージ）を返し、何もしない。
+    """
+    section = find_month_section(lines)
+    if section is None:
+        return None
+    start, end = section
+    marker_idx = None
+    for i in range(start + 1, end):
+        if MONTH_MARKER_RE.match(lines[i].strip()):
+            marker_idx = i
+            break
+    if marker_idx is None:
+        return "今月節の月マーカー（<!-- month: YYYY-MM -->）が読み取れないため繰越しません"
+    old_month = MONTH_MARKER_RE.match(lines[marker_idx].strip()).group(1)
+    new_month = run_date[:7]
+    if old_month >= new_month:
+        return None
+
+    year, month = int(old_month[:4]), int(old_month[5:7])
+    archive_date = "%s-%02d" % (old_month, calendar.monthrange(year, month)[1])
+
+    kept, removed = [], []
+    for i in range(start + 1, end):
+        if i == marker_idx:
+            kept.append("<!-- month: %s -->" % new_month)
+        elif is_checked_line(lines[i]):
+            removed.append(lines[i])
+        else:
+            kept.append(lines[i])
+    lines[start + 1 : end] = kept
+    return old_month, new_month, archive_date, removed
+
+
+def monthly_next_line(lines):
+    """今月節の最初の未完了行を MONTHLY_NEXT として、無ければ MONTHLY_NONE を返す。"""
+    section = find_month_section(lines) if lines else None
+    if section:
+        start, end = section
+        for i in range(start + 1, end):
+            stripped = lines[i].strip()
+            if stripped.startswith("- [ ]"):
+                return "MONTHLY_NEXT: %s" % stripped
+    return "MONTHLY_NONE"
+
+
+def get_arg(name):
+    if name in sys.argv:
+        idx = sys.argv.index(name)
+        if idx + 1 < len(sys.argv):
+            return sys.argv[idx + 1]
+    return None
+
+
 def main():
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
 
-    dry_run = "--dry-run" in sys.argv
-    target = TASKS_MD
-    if "--file" in sys.argv:
-        idx = sys.argv.index("--file")
-        if idx + 1 < len(sys.argv):
-            target = sys.argv[idx + 1]
+    # どの位置で終わっても、最後に MONTHLY_NEXT / MONTHLY_NONE を1行だけ出す。
+    # state["lines"] は「最後にファイルへ反映された（dry-runなら反映されるはずの）内容」。
+    state = {"lines": None}
+    code = 0
+    try:
+        code = run(state)
+    finally:
+        print(monthly_next_line(state["lines"]))
+    sys.exit(code)
 
-    today = datetime.date.today().isoformat()
+
+def run(state):
+    dry_run = "--dry-run" in sys.argv
+    target = get_arg("--tasks-file") or get_arg("--file") or TASKS_MD
+    archive_path = get_arg("--archive-file") or ARCHIVE_MD
+    date_arg = get_arg("--date")
+    today = date_arg if date_arg else datetime.date.today().isoformat()
+    datetime.date.fromisoformat(today)  # 形式が不正なら例外で止める
 
     if not os.path.isfile(target):
         print("対象ファイルが見つかりません: %s" % target)
-        sys.exit(0)
+        return 0
 
     text = read_text(target)
     lines = text.split("\n")
+    state["lines"] = list(lines)
 
     sections = find_today_sections(lines)
     if not sections:
-        print("「## 今日」節が見つかりません。何も書き込みません。")
-        sys.exit(0)
+        print("「## 今日」節が見つかりません。今日節には何も書き込みません。")
 
     new_marker_line = "<!-- date: %s -->" % today
 
@@ -244,9 +366,8 @@ def main():
         for h in unreadable_headings:
             print("日付マーカーが読み取れないため触れません: %s" % h)
 
-    if not touched_reports:
+    if sections and not touched_reports:
         print("NO_ROTATE")
-        sys.exit(0)
 
     # 表示は元の並び順（ファイル上から下）にしたいので開始indexの降順で積んだ
     # touched_reports を反転する。
@@ -256,17 +377,55 @@ def main():
         for line in removed_lines:
             print(line)
 
+    # 今月節: 今日節から消した完了行の [M-nn] を、今月節の同じIDの行へ反映する
+    done_ids_input = []
+    for report in reversed(touched_reports):
+        for line in report[5]:
+            for mid in MONTHLY_ID_RE.findall(line):
+                if mid not in done_ids_input:
+                    done_ids_input.append(mid)
+    done_ids, missing_ids = complete_monthly_ids(lines, done_ids_input)
+    for mid in done_ids:
+        print("今月節: [%s] を完了にしました" % mid)
+    for mid in missing_ids:
+        print("今月節: [%s] は未完了行として見つからないため変更しません" % mid)
+
+    # 今月節: 月が替わっていれば完了行を退避し、月マーカーを更新する
+    rolled = roll_month(lines, today)
+    month_archive = None
+    if isinstance(rolled, str):
+        print(rolled)
+        rolled = None
+    elif rolled:
+        old_month, new_month, archive_date, month_removed = rolled
+        print("見出し: %s / 月マーカー更新: %s -> %s / 退避件数: %d件"
+              % (MONTH_HEADING, old_month, new_month, len(month_removed)))
+        for line in month_removed:
+            print(line)
+        if month_removed:
+            month_archive = (archive_date, list(month_removed))
+
+    if not touched_reports and not done_ids and not rolled:
+        return 0
+
     if not dry_run:
-        for marker_date, removed_lines in pending_archives:
+        entries = list(pending_archives)
+        if month_archive:
+            entries.append(month_archive)
+        if entries:
             try:
-                archived_count = archive_removed_lines(marker_date, removed_lines)
+                archive_removed_lines(archive_path, entries)
             except Exception as e:
                 print("退避に失敗したため tasks.md への書き込みを中止します: %s" % e)
-                sys.exit(1)
-            print("退避先: %s（%s・%d件）" % (ARCHIVE_MD, marker_date, archived_count))
+                return 1
+        for marker_date, removed_lines in pending_archives:
+            print("退避先: %s（%s・%d件）" % (archive_path, marker_date, len(removed_lines)))
+        if month_archive:
+            print("退避先: %s（%s・%d件・今月節）" % (archive_path, month_archive[0], len(month_archive[1])))
         write_text(target, "\n".join(lines))
 
-    sys.exit(0)
+    state["lines"] = lines
+    return 0
 
 
 if __name__ == "__main__":
