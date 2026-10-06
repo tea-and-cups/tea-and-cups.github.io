@@ -17,9 +17,13 @@ r"""日付起点の1回限りの予定（data/scheduled-items.tsv）の期日到
     該当なし: "SCHEDULED_NONE" の1行のみ。
     該当あり: 1行目に "SCHEDULED_DUE: N件"、続けて各行、最後に固定の案内1行。
     終了コードは常に0（情報提供のみ。ブロックはしない）。
-    出力に【警告】という文字列は使わない。stop-hook-check.py が
-    check-doc-governance.py の標準出力から【警告】で始まる行を抽出しており、
-    そちらと混同されることを避けるため。
+    台帳の壊れた行（列数が5でない／status が open・done 以外／due が YYYY-MM-DD でない）
+    は、不正な行ごとに「【警告】scheduled-items.tsv の行が不正: <id> <理由>」を
+    通知の前に1行ずつ出す（壊れた行は通知対象から黙って落ちるため。S-0020で発生）。
+    警告の有無で終了コードは変えない（常に0）。stop-hook-check.py が【警告】を抽出するのは
+    check-doc-governance.py の標準出力のみで、本スクリプトの出力は読まないため衝突しない。
+    報告対象になるのは session-start-check.py のヘッダーの規定どおり
+    （ROUTINE_NONE・SCHEDULED_NONE・MONTHLY_NONE 以外の出力＝【警告】行）。
 
   add --due YYYY-MM-DD --title "..." --ref "..."
     末尾に1行追記する。id は既存の最大値+1で自動採番（S-0001形式）。
@@ -42,6 +46,7 @@ import argparse
 import datetime
 import io
 import os
+import re
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -59,6 +64,9 @@ GUIDE_LINE = (
 
 STATUS_OPEN = "open"
 STATUS_DONE = "done"
+
+COLUMN_COUNT = 5
+DUE_PATTERN = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 
 def parse_date(text):
@@ -123,6 +131,41 @@ def next_id(lines):
     return "S-%04d" % (max_n + 1)
 
 
+def validate_lines(lines):
+    """壊れた行を検出し、警告文のリストを返す（読み取り専用・台帳は変更しない）。
+
+    対象: 列数が5でない行／status が open・done 以外の行／due が YYYY-MM-DD でない行。
+    列数が違う行は列の対応が不明なため、列数のみを理由に出す。
+    """
+    warnings = []
+    for i, line in enumerate(lines):
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        parts = line.split("\t")
+        first = parts[0].strip()
+        label = first if first else "%d行目" % (i + 1)
+        reasons = []
+        if len(parts) != COLUMN_COUNT:
+            reasons.append("列数が%dではなく%d" % (COLUMN_COUNT, len(parts)))
+        else:
+            status = parts[2].strip()
+            if status not in (STATUS_OPEN, STATUS_DONE):
+                reasons.append("status が open・done のどちらでもない（%s）" % status)
+            due = parts[1].strip()
+            try:
+                if not DUE_PATTERN.match(due):
+                    raise ValueError(due)
+                parse_date(due)
+            except ValueError:
+                reasons.append("due が YYYY-MM-DD 形式でない（%s）" % due)
+        if reasons:
+            warnings.append(
+                "【警告】scheduled-items.tsv の行が不正: %s %s" % (label, "／".join(reasons))
+            )
+    return warnings
+
+
 def cmd_notify(args, out):
     try:
         base = parse_date(args.today) if args.today else datetime.date.today()
@@ -131,6 +174,9 @@ def cmd_notify(args, out):
         return 1
 
     lines = read_lines()
+    for warning in validate_lines(lines):
+        out.write(warning + "\n")
+
     due_rows = []
     for _, row in iter_rows(lines):
         if row["status"] != STATUS_OPEN:
