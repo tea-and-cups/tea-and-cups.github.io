@@ -42,11 +42,11 @@ category: gift
 
 ★4.81（32件） [ロンネフェルト ティーベロップ12種類 メール便限定パックはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824dbfc.25ed8cfc.5824dbfd.f8271e68/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fronnefeldt-salon%2F10000181%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-32件のレビューで4.81と高く、今回の3つの中ではいちばん評価の高い商品です。1種類ずつ味が違うので、相手の好みが分からないときでも選ぶ楽しさを贈れます。12袋なので、少人数の職場なら、ひとり1袋ずつ分けて渡すこともできます。
+32件のレビューで4.81と高く、今回の3つの中ではいちばん評価の高い商品です。1種類ずつ味が違うので、相手の好みが分からないときでも選ぶ楽しさを贈れます。12種類入りなので、袋数が人数分あれば、ひとり1袋ずつ分けて渡せます。
 
 ### 2. 和紅茶セレクトパック 選べる3個セット — 国産の和紅茶を家族へ
 
-紅茶専門店きごころの「和紅茶セレクトパック」を、3個選んで組み合わせるセットです。国産・無添加・無糖の個包装で、メール便に対応しています。商品画像では、台紙つきの袋に入った状態で見え、そのままプチギフトとして渡せそうです。
+紅茶専門店きごころの「和紅茶セレクトパック」を、3個選んで組み合わせるセットです。国産・無添加・無糖の個包装で、メール便に対応しています。商品画像では、台紙つきの袋に入った状態で見えます。
 
 [![和紅茶セレクトパック 選べる3個セット きごころ](/images/kinrou-kansha-no-hi-koucha-petit-gift/products/2.webp)](https://hb.afl.rakuten.co.jp/ichiba/585c5b6c.e2f8ec41.585c5b6d.58ec6dc3/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fkigocoro%2F4p-003%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
@@ -71,13 +71,13 @@ category: gift
 ## よくある質問
 
 **Q. 職場で配る場合、個包装でないとだめですか？**
-個包装でなくても渡せますが、配る相手が多いほど個包装のほうが手間がかかりません。衛生面でも安心感があります。
+個包装でなくても渡せますが、配る相手が多いほど個包装のほうが手間がかかりません。
 
 **Q. 勤労感謝の日に贈るのに、のしは必要ですか？**
 気軽なお礼なら、のしを付けないことも多いといわれます。目上の方へ丁寧に贈る場合は、のしや包装に対応した商品かどうかを選ぶ段階で見ておくと安心です。
 
 **Q. いつまでに用意すればよいですか？**
-11月23日に合わせるなら、メール便や取り寄せの商品は、早めに注文しておくと安心です。発送の目安は購入前に確認してください。
+11月23日に合わせるなら、メール便や取り寄せの商品は、早めの注文がおすすめです。発送の目安は購入前に商品ページで確かめてください。
 
 ## まとめ：渡しやすさで選ぶ
 
