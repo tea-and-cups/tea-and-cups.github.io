@@ -26,7 +26,8 @@
     出典URL（アフィリエイト除く）も適用条件の語（SAFETY_CONDITION_WORDS）も無ければNG。
     型1 安全の保証（鉛・カドミウム等＋気にせず・安心等） 型2 使用可否の断定（電子レンジ・食洗機等
     ＋使える・OK等。「対応」は可の語に含めない） 型3 期間の断定（保存・賞味期限等＋期間）。
-    語の単独出現では止めない。割れ・やけど・カビは対象にしない。
+    語の単独出現では止めない。割れ・やけど・カビは対象にしない。リンク文字・URL・見出し行・疑問文は
+    照合しない。型2の可の語は対象語の後20字以内のみ。型3は日付（N月N日）と年号（4桁＋年）を期間とみなさない。
   --survey-xy: 公開済み全記事にX・Yだけをかける読み取り専用モード。
 
 出典とみなすもの（カテゴリA・C〜Gのみ）:
@@ -154,8 +155,16 @@ SAFETY_TYPE1_GUARANTEE = [
     "気にせず", "心配ない", "心配なく", "安心", "問題ない", "問題なく", "大丈夫", "安全",
 ]
 SAFETY_TYPE2_SUBJECT = ["電子レンジ", "食洗機", "オーブン", "直火", "煮沸", "漂白", "熱湯"]
+# 型2: 可の語は対象語のあと SAFETY_TYPE2_WINDOW 字以内にあるときだけ数える
 SAFETY_TYPE2_OK = ["使える", "使用できる", "OK", "問題ない", "問題なく", "大丈夫"]
-SAFETY_TYPE3_SUBJECT = ["保存", "日持ち", "賞味期限", "もつ", "持つ", "風味が落ちる"]
+SAFETY_TYPE2_WINDOW = 20
+# 「もつ」「持つ」は対象語から外した（慣用の「余裕を持つ」等を拾うため）。「日持ち」は残す
+SAFETY_TYPE3_SUBJECT = ["保存", "日持ち", "賞味期限", "風味が落ちる"]
+# 期間とみなさない表記: 「N月N日」「4桁の数字＋年」（日付・年号）
+RE_SAFETY_NOT_PERIOD = re.compile(r"[0-9０-９]{1,2}月[0-9０-９]{1,2}日|[0-9０-９]{4}年")
+# 照合から除く記法: Markdownリンク（[文字](URL)）全体、見出し行、疑問文
+RE_MD_LINK_FULL = re.compile(r"!?\[[^\]\n]*\]\([^)\n]*\)")
+RE_SENTENCE_PARTS = re.compile(r"[^。！？!?\n]+[。！？!?]?")
 SAFETY_TYPE3_PERIOD = r"(?:[0-9０-９一二三四五六七八九十百]+\s*(?:日|週間|か月|ヶ月|カ月|年)|半年)"
 RE_SAFETY_PERIOD = re.compile(SAFETY_TYPE3_PERIOD)
 RE_SENTENCE_SPLIT = re.compile(r"[。！？!?\n]")
@@ -167,6 +176,7 @@ SAFETY_CONDITION_WORDS = [
     "未開封", "開封後", "表示に従", "表示を確認", "記載に従", "記載を確認", "取扱説明書",
     "取扱表示", "メーカーの指示", "メーカーの案内", "商品ページの表示", "商品ページの記載",
     "パッケージの表示", "パッケージの記載", "製品の表示",
+    "明記", "記載された", "記載されて", "表示されて",
 ]
 RE_LIST_ITEM = re.compile(r"^\s*(?:[-*+]|\d+[.)])\s")
 
@@ -339,11 +349,15 @@ def safety_sentence_types(sentence):
     if t1 and g1:
         out.append(("型1", t1 + g1))
     t2 = [w for w in SAFETY_TYPE2_SUBJECT if w in sentence]
-    g2 = [w for w in SAFETY_TYPE2_OK if w in sentence]
+    g2 = []
+    for subj in t2:
+        for m in re.finditer(re.escape(subj), sentence):
+            window = sentence[m.end():m.end() + SAFETY_TYPE2_WINDOW]
+            g2.extend(w for w in SAFETY_TYPE2_OK if w in window and w not in g2)
     if t2 and g2:
         out.append(("型2", t2 + g2))
     t3 = [w for w in SAFETY_TYPE3_SUBJECT if w in sentence]
-    m3 = RE_SAFETY_PERIOD.search(sentence)
+    m3 = RE_SAFETY_PERIOD.search(RE_SAFETY_NOT_PERIOD.sub(" ", sentence))
     if t3 and m3:
         out.append(("型3", t3 + [m3.group(0)]))
     return out
@@ -355,12 +369,16 @@ def safety_advice_hits(text):
     if has_valid_source(text) or any(w in plain for w in SAFETY_CONDITION_WORDS):
         return []
     hits = []
-    for sentence in RE_SENTENCE_SPLIT.split(plain):
-        sentence = sentence.strip()
-        if not sentence:
-            continue
-        for typ, words in safety_sentence_types(sentence):
-            hits.append((typ, words, sentence))
+    for line in plain.split("\n"):
+        if line.lstrip().startswith("#"):
+            continue  # 見出し行は照合しない
+        line = RE_MD_LINK_FULL.sub(" ", line)  # リンク文字・URLは照合しない
+        for sentence in RE_SENTENCE_PARTS.findall(line):
+            sentence = sentence.strip()
+            if not sentence or sentence[-1] in "？?":
+                continue  # 疑問文は照合しない
+            for typ, words in safety_sentence_types(sentence):
+                hits.append((typ, words, sentence))
     return hits
 
 
