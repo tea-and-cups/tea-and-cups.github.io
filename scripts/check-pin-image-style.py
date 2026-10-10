@@ -56,6 +56,48 @@ KANJI_QUANTITY_RE = re.compile(
 )
 
 
+# Pinの先頭文言＝画像指示書「- テキストオーバーレイ:」行の最初の「…」（GD-0036・前半）。
+# 末尾が「？」「?」の疑問形はNG。既存ピンを止めないため、ピン352以降だけを対象にする。
+HEAD_QUESTION_FROM_PIN = 352
+RE_PIN_NUMBER = re.compile(r"-pin-(\d+)-")
+RE_OVERLAY_LINE = re.compile(r"^- テキストオーバーレイ:\s*(.*)$", re.M)
+RE_FIRST_QUOTED = re.compile(r"「([^」]*)」")
+
+
+def head_text_of(content):
+    """ピンmdの先頭文言（最初の「…」の中身）を返す。無ければ None。"""
+    m = RE_OVERLAY_LINE.search(content)
+    if not m:
+        return None
+    q = RE_FIRST_QUOTED.search(m.group(1))
+    return q.group(1).strip() if q else None
+
+
+def is_head_question(text):
+    return text is not None and text.endswith(("？", "?"))
+
+
+def check_head_question(slug):
+    """ピン352以降の先頭文言が疑問形でないかを検査する。戻り値: NGメッセージのリスト。"""
+    files = find_pin_files(slug)
+    ng_messages = []
+    checked = 0
+    for path in files:
+        name = os.path.basename(path)
+        m = RE_PIN_NUMBER.search(name)
+        if not m or int(m.group(1)) < HEAD_QUESTION_FROM_PIN:
+            continue
+        checked += 1
+        with open(path, encoding="utf-8") as f:
+            head = head_text_of(f.read())
+        if is_head_question(head):
+            print("  [NG] %s: 先頭文言「%s」が疑問形です（答えの文言にする・GD-0036）" % (name, head))
+            ng_messages.append("%s: 先頭文言「%s」が疑問形" % (name, head))
+    if not ng_messages:
+        print("  OK: ピン%d以降の対象%d件に疑問形の先頭文言なし" % (HEAD_QUESTION_FROM_PIN, checked))
+    return ng_messages
+
+
 def find_pin_files(slug):
     pattern = os.path.join(PINS_DIR, "*-%s-*.md" % slug)
     return sorted(glob.glob(pattern))
@@ -191,6 +233,10 @@ def main():
     print("=== 3. Pin投稿文の数量表記チェック（漢数字＋単位・D-0126） ===")
     kanji_quantity_ng = check_kanji_quantity(slug)
     ng.extend(kanji_quantity_ng)
+
+    print()
+    print("=== 4. Pin先頭文言の疑問形チェック（GD-0036・ピン352以降） ===")
+    ng.extend(check_head_question(slug))
 
     print()
     if ng:

@@ -19,8 +19,10 @@ github-slugger の同一インスタンスで文書順に slug() を適用し、
   停止: 見出しに「**」「[」「`」が含まれる場合（IDの予測が未実測のため不合格にする）
   停止: astro.config.mjs に experimentalHeadingIdCompat がある場合（末尾"-"除去の前提が崩れる）
   不合格: 本文中の Markdown リンク `](#...)` の指すIDが、本文の見出しIDに存在しない場合のみ
-  「見出しはあるがリンクが無い」は不合格にしない。記事の型による分岐は持たない
-  （ページ内リンクが無い記事は自動的に合格になる）。
+  「見出しはあるがリンクが無い」は一般には不合格にしない。ただし例外として、直前の非空行に
+  「早見表」を含む表（L049）は、各データ行の1列目に `](#…)` が無ければ不合格にする。
+  リンク先の実在は上の一般判定が全リンクに対して行う。公開済み全記事の違反は0件
+  （実測）のため --revise でも同じく不合格にする。
 
 使い方:
   python site/scripts/check-anchor-consistency.py <slug>
@@ -124,6 +126,36 @@ def find_markup_headings(lines):
         if m and RE_HEADING_INLINE_MARKUP.search(m.group(2)):
             result.append((lineno, line.rstrip()))
     return result
+
+
+def find_quick_table_violations(lines):
+    """「早見表」を直前の非空行に持つ表で、1列目にページ内リンクが無い行を返す（L049）。
+
+    戻り値: [(行番号, 1列目のテキスト), ...]
+    """
+    violations = []
+    prev_text = ""
+    i = 0
+    n = len(lines)
+    while i < n:
+        line = lines[i][1]
+        if line.lstrip().startswith("|"):
+            block = []
+            while i < n and lines[i][1].lstrip().startswith("|"):
+                block.append(lines[i])
+                i += 1
+            if "早見表" in prev_text:
+                for ln, row in block[2:]:  # 先頭2行は見出し行・区切り行
+                    cells = row.strip().strip("|").split("|")
+                    first = cells[0] if cells else ""
+                    if not RE_ANCHOR_LINK.search(first):
+                        violations.append((ln, first.strip()))
+            prev_text = ""
+            continue
+        if line.strip():
+            prev_text = line
+        i += 1
+    return violations
 
 
 def check_astro_config():
@@ -258,6 +290,14 @@ def main():
         out("")
         out("Astroが生成するIDの予測と一致するか未実測のため、見出しはプレーンテキストで書いてください")
         out("（「**」「[」「`」を見出しに使わない）。")
+        return 1
+
+    table_violations = find_quick_table_violations(lines)
+    if table_violations:
+        out("早見表のアンカーリンク: NG（%d行の1列目にページ内リンクがありません）" % len(table_violations))
+        for lineno, first in table_violations:
+            out("  %d行目 / 1列目: %s" % (lineno, first))
+        out("早見表の各行は、詳細見出しへの [名前](#見出しID) を1列目に付けてください（L049）。")
         return 1
 
     links = collect_anchor_links(lines)
