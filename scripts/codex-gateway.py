@@ -21,6 +21,7 @@
                      [--render-only <出力先ディレクトリ>]（Codexを起動せず、全区切りの部分監査
                        プロンプトとまとめのプロンプトを置換済みで書き出して終了する・D-0265）
                      [--only-part <区切り名>]（その区切りだけ実行し、まとめは実行しない・D-0265）
+                     [--skip-sns]（週次のみ。sns.md が全項目「未評価」でも Codex を呼ぶ前に止まらない・D-0272）
                実行: <codexの実体パス> exec -C <プロジェクトルート> -s read-only --json -o <出力先>
                （GROWTH_AUDIT_HARDENING_ARGS で外部遮断を上乗せし、windows.sandbox="elevated"・
                model_reasoning_effort・tool_output_token_limit=30000 を追加で渡す・2026-09-28）
@@ -73,6 +74,16 @@
   1回ずつ・判定不能には理由）、まとめに ## 成長の判断に足りなかった情報。月次は上のまま。
   いずれか1つでも欠けた区切り・まとめがあれば、その時点で全体を失敗とする
   （出力ファイルは削除しない・終了コードは成果物なしと同じ EXIT_ARTIFACT_MISSING）。
+
+週次の入力の自動生成・監査範囲の機械集計・SNSチェック（D-0272・--mode weekly のみ）:
+  Codex を呼ぶ前に、(1) sns.md が無い／全項目「未評価」なら終了コード2で止まる（--skip-sns で続行）、
+  (2) growth/inputs/<週>/ へ pins-summary.md・ga4-source-medium.md・buffer-summary.md・
+  buffer-posts.json・buffer-aggregate.json（送信日時が対象期間のもの）を作り、site/scripts/
+  build-site.sh で手元ビルドを1回行って、dist の記事ページ1件とカテゴリページ1件を区切りRの
+  対象に加える。監査の最後に audit.md の「## 監査範囲」節を、各区切り・まとめの実行ログから数えた
+  値（truncated_outputs・view_image_calls・切り詰めたファイル・読めた対象/対象総数）の表で置き換える。
+  --dry-run・--render-only の画面には英数字だけで JSON ファイルのパスと件数を出し、JSON の中身は
+  tmp/codex-gateway/growth-audit-<週>-<dry-run|render-only>.json へ UTF-8 で保存する。
 
 週次の遵守確認（D-0266）:
   growth/ledger/adopted-directives.tsv の採否が「採用」「一部採用」の行を列名で読む。
@@ -253,8 +264,9 @@ REQUIRED_PART_SECTIONS_BY_MODE = {
     "monthly": REQUIRED_PART_SECTIONS,
 }
 REQUIRED_SUMMARY_SECTIONS_BY_MODE = {
+    # 週次の「## 監査範囲」は gateway が実行ログから書くため、Codex の必須節に含めない（D-0272）。
     "weekly": ("## 要約", "## 改善指示", "## 前回採用した指示の遵守確認",
-               "## 評価できなかったもの", GROWTH_GAP_SECTION, "## 監査範囲"),
+               "## 評価できなかったもの", GROWTH_GAP_SECTION),
     "monthly": REQUIRED_SUMMARY_SECTIONS,
 }
 
@@ -938,46 +950,8 @@ def _count_rollout_signals(thread_id):
       exec 等のツール呼び出し内で view_image(...) を実行しているものの件数
       （実測で view_image は exec の JS コード内から呼ばれる形を確認・2026-09-28）。
     """
-    if not thread_id:
-        return 0, 0
-    matches = list(CODEX_SESSIONS_DIR.rglob("*-%s.jsonl" % thread_id))
-    if not matches:
-        return 0, 0
-    rollout_path = matches[0]
-    truncated = 0
-    view_image_calls = 0
-    try:
-        with open(rollout_path, "r", encoding="utf-8", errors="replace") as fh:
-            for line in fh:
-                line = line.strip()
-                if not line.startswith("{"):
-                    continue
-                try:
-                    obj = json.loads(line)
-                except ValueError:
-                    continue
-                payload = obj.get("payload") if isinstance(obj, dict) else None
-                if not isinstance(payload, dict):
-                    continue
-                ptype = payload.get("type")
-                if ptype == "custom_tool_call_output":
-                    for item in payload.get("output") or []:
-                        text = item.get("text") if isinstance(item, dict) else None
-                        if isinstance(text, str):
-                            truncated += _count_truncated_lines(text)
-                elif ptype in ("custom_tool_call", "function_call", "local_shell_call"):
-                    name = payload.get("name") or ""
-                    if name == "view_image":
-                        view_image_calls += 1
-                    else:
-                        call_text = payload.get("input")
-                        if not isinstance(call_text, str):
-                            call_text = payload.get("arguments") or ""
-                        if isinstance(call_text, str) and _VIEW_IMAGE_CALL_RE.search(call_text):
-                            view_image_calls += 1
-    except OSError:
-        return 0, 0
-    return truncated, view_image_calls
+    scan = _scan_rollout(thread_id)
+    return scan["truncated"], scan["view_image"]
 
 
 def _read_frontmatter(path):
@@ -1530,6 +1504,587 @@ def _input_dir_for_output(target):
     return GROWTH_INPUTS_DIR / label
 
 
+# --- 週次の入力の自動生成・監査範囲の機械集計・SNSチェック（2026-10-11・D-0272）---------
+# すべて --mode weekly の中だけで動く。月次（--mode monthly）の区切り・出力には波及させない。
+
+GROWTH_METRICS_SCRIPT = SITE_DIR / "scripts" / "growth-metrics.py"
+BUILD_SITE_SCRIPT = SITE_DIR / "scripts" / "build-site.sh"
+WEEKLY_INPUT_CHAR_CAP = 4000
+BUILD_TIMEOUT_SEC = 900
+METRICS_TIMEOUT_SEC = 300
+# 切り詰めた呼び出しから、対象のファイル名を拾うための表現（ASCIIのパスだけ。日本語のパスは
+# ログ上で壊れていることがあるため拾えなければ「不明」と書く）。
+CALL_PATH_RE = re.compile(
+    r"[A-Za-z0-9_./\\\[\]-]*[A-Za-z0-9_\]]\.(?:md|json|tsv|py|ts|css|html|txt|astro|mjs|js|png|yml|yaml|toml)\b")
+SCOPE_NAMES_MAX = 6
+SNS_VALUE_RE = re.compile(r"^\s*-\s*[^:：]+[:：]\s*(.*)$")
+
+
+def _run_metrics(args):
+    """growth-metrics.py を実行し (契約JSONの辞書, 標準出力そのまま, エラー文) を返す。
+    status が error の契約JSONも辞書のまま返す（呼び出し側が status を見る）。
+    """
+    try:
+        proc = subprocess.run(
+            [sys.executable, str(GROWTH_METRICS_SCRIPT)] + [str(a) for a in args],
+            capture_output=True, text=True, encoding="utf-8", errors="replace",
+            timeout=METRICS_TIMEOUT_SEC, cwd=str(PROJECT_ROOT))
+    except (OSError, subprocess.SubprocessError) as exc:
+        return None, "", type(exc).__name__
+    try:
+        payload = json.loads(proc.stdout)
+    except ValueError:
+        return None, proc.stdout, "invalid JSON (rc=%s)" % proc.returncode
+    return payload, proc.stdout, None
+
+
+def _payload_problem(payload, err):
+    """取得に失敗していれば理由の文字列、成功なら None。"""
+    if err:
+        return err
+    if not isinstance(payload, dict) or payload.get("status") != "ok":
+        info = (payload or {}).get("error") if isinstance(payload, dict) else None
+        if isinstance(info, dict):
+            return "%s: %s" % (info.get("code"), info.get("message"))
+        return "status is not ok"
+    return None
+
+
+def _cap_text(text):
+    """text を WEEKLY_INPUT_CHAR_CAP 字以内にする。超えた分は行単位で切り、省略した行数を明記する。"""
+    if len(text) <= WEEKLY_INPUT_CHAR_CAP:
+        return text
+    lines = text.splitlines()
+    kept = []
+    size = 0
+    for line in lines:
+        if size + len(line) + 1 > WEEKLY_INPUT_CHAR_CAP - 100:
+            break
+        kept.append(line)
+        size += len(line) + 1
+    kept.append("（%d字の目安を超えたため、%d行を省略した）" % (WEEKLY_INPUT_CHAR_CAP, len(lines) - len(kept)))
+    return "\n".join(kept) + "\n"
+
+
+def _sns_unobserved(input_dir):
+    """sns.md が無い、または観察項目がすべて「未評価」（空も含む）なら (True, 理由)。"""
+    path = input_dir / "sns.md"
+    if not path.is_file():
+        return True, "sns.md がありません"
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError:
+        return True, "sns.md を読めません"
+    values = []
+    for line in text.splitlines():
+        m = SNS_VALUE_RE.match(line)
+        if m:
+            values.append(m.group(1).strip())
+    if not values:
+        return True, "sns.md に観察項目の行がありません"
+    if all((not v) or v.startswith("未評価") for v in values):
+        return True, "sns.md の全項目が未評価です"
+    return False, None
+
+
+def _fmt_int(value):
+    return "%d" % value if isinstance(value, int) else "-"
+
+
+def _build_pins_summary(since_date, until_date):
+    """(a) ピン日次実績の要約。対象週と前3週の日別合計・週合計と、対象週のピン別上位10・下位10。"""
+    until = datetime.strptime(until_date, "%Y-%m-%d")
+    start = (until - timedelta(days=27)).strftime("%Y-%m-%d")
+    lines = ["# ピン日次実績の要約（gateway が自動生成・対象期間 %s〜%s と、その前の3週）" % (since_date, until_date), ""]
+    payload, _raw, err = _run_metrics(["pins", "--operation", "pins.daily_totals", "--since", start,
+                                       "--until", until_date, "--compare-weeks", "3"])
+    problem = _payload_problem(payload, err)
+    if problem:
+        lines.append("- 日別合計を取得できなかった: %s" % problem)
+    else:
+        series = payload["data"]["series"]
+        lines += ["## 日別合計（imp=インプレッション・save=保存・out=アウトバウンドクリック・pin=ピンクリック。※は欠損日で一部の値）", "",
+                  "| 日付 | imp | save | out | pin |", "|---|---|---|---|---|"]
+        for rec in series:
+            mark = "※" if rec.get("missing_flag") else ""
+            lines.append("| %s%s | %s | %s | %s | %s |" % (
+                rec["date"], mark, rec["impressions"], rec["saves"], rec["outbound_clicks"], rec["pin_clicks"]))
+        lines += ["", "## 週合計（欠損日を含む・※の日があれば下限値）", "",
+                  "| 週 | imp | save | out | pin | 欠損日数 |", "|---|---|---|---|---|---|"]
+        for i in range(0, len(series), 7):
+            chunk = series[i:i + 7]
+            lines.append("| %s〜%s | %d | %d | %d | %d | %d |" % (
+                chunk[0]["date"], chunk[-1]["date"],
+                sum(r["impressions"] for r in chunk), sum(r["saves"] for r in chunk),
+                sum(r["outbound_clicks"] for r in chunk), sum(r["pin_clicks"] for r in chunk),
+                sum(1 for r in chunk if r.get("missing_flag"))))
+    # ピン別（対象期間・インプレッション順）
+    tsv = PROJECT_ROOT / "data" / "pin-daily-metrics.tsv"
+    per_pin = {}
+    try:
+        with open(tsv, "r", encoding="utf-8") as fh:
+            header = None
+            for raw_line in fh:
+                cells = raw_line.rstrip("\r\n").split("\t")
+                if header is None:
+                    header = cells
+                    continue
+                row = dict(zip(header, cells))
+                day = row.get("date") or ""
+                if not (since_date <= day <= until_date):
+                    continue
+                key = row.get("pin_id") or ""
+                agg = per_pin.setdefault(key, {"pin_number": row.get("pin_number") or "?",
+                                               "slug": row.get("article_slug") or "?",
+                                               "imp": 0, "save": 0, "out": 0, "pin": 0})
+                for name, col in (("imp", "impressions"), ("save", "saves"),
+                                  ("out", "outbound_clicks"), ("pin", "pin_clicks")):
+                    try:
+                        agg[name] += int(row.get(col) or 0)
+                    except ValueError:
+                        pass
+    except OSError:
+        per_pin = {}
+    lines += ["", "## 対象期間のピン別（インプレッション順・全%d本中）" % len(per_pin)]
+    if not per_pin:
+        lines.append("- data/pin-daily-metrics.tsv に対象期間の行が無い")
+    else:
+        ranked = sorted(per_pin.values(), key=lambda a: (-a["imp"], a["pin_number"]))
+        top = ranked[:10]
+        bottom = [a for a in ranked[10:][-10:]]
+        for title, group in (("上位10", top), ("下位10", bottom)):
+            lines += ["", "### %s" % title, "", "| ピン | 記事 | imp | save | out | pin |", "|---|---|---|---|---|---|"]
+            for a in group:
+                lines.append("| %s | %s | %d | %d | %d | %d |" % (
+                    a["pin_number"], a["slug"], a["imp"], a["save"], a["out"], a["pin"]))
+    return _cap_text("\n".join(lines) + "\n")
+
+
+def _build_ga4_source_summary(since_date, until_date):
+    """(b) GA4の参照元（sessionSourceMedium）別の対象期間のセッション数。"""
+    lines = ["# GA4 参照元別（gateway が自動生成・対象期間 %s〜%s・セッション数順）" % (since_date, until_date), ""]
+    payload, _raw, err = _run_metrics(["ga4", "--operation", "ga4.source_medium", "--since", since_date,
+                                       "--until", until_date, "--limit", "100"])
+    problem = _payload_problem(payload, err)
+    if problem:
+        lines.append("- 取得できなかった: %s" % problem)
+        return "\n".join(lines) + "\n"
+    series = sorted(payload["data"]["series"], key=lambda r: -(r.get("sessions") or 0))
+    totals = (payload["data"].get("totals") or {})
+    lines += ["| 参照元 / メディア | sessions | users | PV |", "|---|---|---|---|"]
+    for rec in series:
+        lines.append("| %s | %s | %s | %s |" % (
+            rec.get("session_source_medium") or "（不明）", _fmt_int(rec.get("sessions")),
+            _fmt_int(rec.get("activeUsers")), _fmt_int(rec.get("screenPageViews"))))
+    lines.append("")
+    lines.append("- 行数 %d・合計 sessions %d%s" % (
+        len(series), sum(r.get("sessions") or 0 for r in series),
+        "（--limit に達しており下限値）" if totals.get("is_lower_bound") else ""))
+    return _cap_text("\n".join(lines) + "\n")
+
+
+def _build_buffer_summary(posts_payload, agg_payload, since_date, until_date):
+    """(c) Buffer の要約（生JSONは4,000字を大きく超えるため、読みやすい要約を添える）。"""
+    lines = ["# Buffer 投稿の要約（gateway が自動生成・送信日時が %s〜%s の投稿のみ）" % (since_date, until_date), ""]
+    problem = _payload_problem(posts_payload, None)
+    if problem:
+        lines.append("- 投稿一覧を取得できなかった: %s" % problem)
+    else:
+        series = posts_payload["data"]["series"]
+        by_service = {}
+        for rec in series:
+            by_service[rec.get("service")] = by_service.get(rec.get("service"), 0) + 1
+        lines.append("- 投稿数: %d（%s）" % (len(series), "・".join("%s %d" % kv for kv in sorted(by_service.items()))))
+        lines += ["", "| 送信 | サービス | 本文（先頭30字） | 反応 |", "|---|---|---|---|"]
+        for rec in sorted(series, key=lambda r: r.get("sent_at") or ""):
+            text = (rec.get("text") or "").replace("\n", " ").replace("|", "/")[:30]
+            metrics = "・".join("%s=%s" % (m.get("type"), m.get("value"))
+                               for m in (rec.get("metrics") or []) if m.get("value"))
+            lines.append("| %s | %s | %s | %s |" % ((rec.get("sent_at") or "")[:16], rec.get("service"), text, metrics or "-"))
+    lines += ["", "## チャネル別の集計"]
+    problem = _payload_problem(agg_payload, None)
+    if problem:
+        lines.append("- 取得できなかった: %s" % problem)
+    else:
+        for rec in agg_payload["data"]["series"]:
+            lines.append("- %s: %s" % (rec.get("service"), "・".join(
+                "%s=%s" % (m.get("type"), m.get("value")) for m in (rec.get("metrics") or [])) or "反応なし"))
+    return _cap_text("\n".join(lines) + "\n")
+
+
+def _build_bash_candidates():
+    """Git for Windows の bash を優先する（System32 の bash.exe は WSL の起動口で使えない）。"""
+    found = []
+    for cand in ("C:/Program Files/Git/bin/bash.exe", "C:/Program Files/Git/usr/bin/bash.exe"):
+        if os.path.isfile(cand):
+            found.append(cand)
+    which = shutil.which("bash")
+    if which and "system32" not in which.lower():
+        found.append(which)
+    return found
+
+
+def _build_site_for_audit():
+    """site/scripts/build-site.sh で手元のビルドを1回行う（commit・push・デプロイはしない）。
+    戻り値: {"ok": bool, "elapsed": 秒, "reason": 失敗理由 or None}
+    """
+    started = time.time()
+    candidates = _build_bash_candidates()
+    if not candidates:
+        return {"ok": False, "elapsed": 0, "reason": "bash not found"}
+    try:
+        proc = subprocess.run([candidates[0], BUILD_SITE_SCRIPT.as_posix()], capture_output=True, text=True,
+                              encoding="utf-8", errors="replace", timeout=BUILD_TIMEOUT_SEC,
+                              cwd=str(SITE_DIR))
+    except (OSError, subprocess.SubprocessError) as exc:
+        return {"ok": False, "elapsed": int(time.time() - started), "reason": type(exc).__name__}
+    elapsed = int(time.time() - started)
+    if proc.returncode != 0:
+        tail = (proc.stderr or proc.stdout or "").strip().splitlines()[-1:] or [""]
+        return {"ok": False, "elapsed": elapsed, "reason": "rc=%d %s" % (proc.returncode, tail[0][:120])}
+    return {"ok": True, "elapsed": elapsed, "reason": None}
+
+
+def _dist_built_at():
+    index = SITE_DIST_DIR / "index.html"
+    try:
+        return datetime.fromtimestamp(index.stat().st_mtime).strftime("%Y-%m-%d %H:%M")
+    except OSError:
+        return "不明（dist が無い）"
+
+
+def _pick_dist_pages(since_date, until_date):
+    """(d) GD-0005 の判定用。対象週に公開した最新の記事ページと、そのカテゴリのカテゴリページ。
+    対象週に公開が無ければ全期間で最新の記事を使う。戻り値: (記事ページ, カテゴリページ, 選び方) の
+    表示パス（site/ 起点）。公開記事が無ければ (None, None, 理由)。
+    """
+    entries = []
+    for category, posts in _posts_by_category().items():
+        for slug, _path, date_str in posts:
+            entries.append((date_str or "", slug, category))
+    if not entries:
+        return None, None, "公開記事が見つからない"
+    in_week = [e for e in entries if since_date <= e[0] <= until_date]
+    pool = in_week or entries
+    date_str, slug, category = max(pool, key=lambda e: (e[0], e[1]))
+    how = "対象週（%s〜%s）に公開した最新の記事 date=%s" % (since_date, until_date, date_str) if in_week \
+        else "対象週に公開が無いため全期間で最新の記事 date=%s" % date_str
+    return "site/dist/posts/%s/index.html" % slug, "site/dist/category/%s/index.html" % category, how
+
+
+def _prepare_weekly_inputs(input_dir, since_date, until_date):
+    """Codex を呼ぶ前に、週次の入力 (a)〜(d) を growth/inputs/<週>/ へ作る（D-0272）。
+
+    戻り値: {"items": 区切りRへ足す対象, "files": [{"path", "chars", "note"}], "dist": {...}}
+    """
+    input_dir.mkdir(parents=True, exist_ok=True)
+    label = input_dir.name
+    items = []
+    files = []
+
+    def display(name):
+        return "growth/inputs/%s/%s" % (label, name)
+
+    def add_item(path_display, abs_path, note, extra_lines=None):
+        chars = _text_len(abs_path)
+        lines = ["- %s（%s）" % (path_display, note)] + list(extra_lines or [])
+        items.append({"path": path_display, "chars": chars, "images": 0, "lines": lines, "gd": {}})
+        files.append({"path": path_display, "chars": chars, "note": note})
+
+    # (a) ピン日次実績の要約
+    p = input_dir / "pins-summary.md"
+    p.write_text(_build_pins_summary(since_date, until_date), encoding="utf-8")
+    add_item(display("pins-summary.md"), p, "今週の入力・ピン日次実績の要約（gateway が自動生成）")
+
+    # (b) GA4 参照元別
+    p = input_dir / "ga4-source-medium.md"
+    p.write_text(_build_ga4_source_summary(since_date, until_date), encoding="utf-8")
+    add_item(display("ga4-source-medium.md"), p, "今週の入力・GA4参照元別（gateway が自動生成）")
+
+    # (c) Buffer（対象週の送信日時で絞る。生JSONは加工せず保存し、読みやすい要約を添える）
+    posts_payload, posts_raw, posts_err = _run_metrics(
+        ["buffer", "--operation", "buffer.sent_posts", "--since", since_date, "--until", until_date, "--limit", "25"])
+    agg_payload, agg_raw, agg_err = _run_metrics(
+        ["buffer", "--operation", "buffer.aggregated_metrics", "--since", since_date, "--until", until_date])
+    (input_dir / "buffer-posts.json").write_text(posts_raw or "{}", encoding="utf-8")
+    (input_dir / "buffer-aggregate.json").write_text(agg_raw or "{}", encoding="utf-8")
+    summary = input_dir / "buffer-summary.md"
+    summary.write_text(_build_buffer_summary(
+        posts_payload if not posts_err else None, agg_payload if not agg_err else None,
+        since_date, until_date), encoding="utf-8")
+    add_item(display("buffer-summary.md"), summary, "今週の入力・Buffer投稿の要約（gateway が自動生成）")
+    add_item(display("buffer-posts.json"), input_dir / "buffer-posts.json",
+             "今週の入力・Buffer投稿（送信日時が対象期間のもの・契約JSONを加工せず保存）")
+    add_item(display("buffer-aggregate.json"), input_dir / "buffer-aggregate.json",
+             "今週の入力・Bufferチャネル別集計（契約JSONを加工せず保存）")
+
+    # (d) GD-0005 の判定用: 手元のビルドを1回行い、記事ページ1件とカテゴリページ1件を対象に加える
+    eprint("weekly input (d): building site/dist locally ...")
+    build = _build_site_for_audit()
+    built_at = _dist_built_at()
+    article_page, category_page, how = _pick_dist_pages(since_date, until_date)
+    dist = {"build_ok": build["ok"], "build_seconds": build["elapsed"], "build_reason": build["reason"],
+            "dist_built_at": built_at, "article_page": article_page, "category_page": category_page}
+    if build["ok"]:
+        build_note = "site/dist は今回の手元ビルド（%s・%d秒）" % (built_at, build["elapsed"])
+    else:
+        build_note = "site/dist のビルドに失敗したため既存の dist を使う（dist のビルド日時 %s・ビルド失敗: %s）" % (
+            built_at, build["reason"])
+    first = True
+    for page in (article_page, category_page):
+        if not page:
+            continue
+        abs_path = SITE_DIR / page[len("site/"):]
+        extra = ["  - （注）%s" % build_note] if first else []
+        first = False
+        if not abs_path.is_file():
+            extra.append("  - （注）%s が dist に無い" % page)
+        add_item(page, abs_path, "GD-0005 等の判定用・%s" % how if page == article_page
+                 else "GD-0005 等の判定用・上の記事のカテゴリページ", extra)
+    if not article_page:
+        items.append({"path": "", "chars": 0, "images": 0, "gd": {},
+                      "lines": ["- （注）判定用の dist ページを選べなかった: %s ／ %s" % (how, build_note)]})
+    return {"items": items, "files": files, "dist": dist}
+
+
+# --- 監査範囲の機械集計（ロールアウトログから数える）---------------------------------
+
+
+def _scan_rollout(thread_id):
+    """thread_id の rollout を読み、truncated・view_image・切り詰めた呼び出しのパス・呼び出し一覧を返す。
+    数え方は従来の _count_rollout_signals と同じ（そちらはこの関数の結果から数を返すだけ）。
+    """
+    result = {"found": False, "truncated": 0, "view_image": 0, "truncated_files": [], "calls": []}
+    if not thread_id:
+        return result
+    matches = list(CODEX_SESSIONS_DIR.rglob("*-%s.jsonl" % thread_id))
+    if not matches:
+        return result
+    result["found"] = True
+    calls = {}
+    try:
+        with open(matches[0], "r", encoding="utf-8", errors="replace") as fh:
+            for line in fh:
+                line = line.strip()
+                if not line.startswith("{"):
+                    continue
+                try:
+                    obj = json.loads(line)
+                except ValueError:
+                    continue
+                payload = obj.get("payload") if isinstance(obj, dict) else None
+                if not isinstance(payload, dict):
+                    continue
+                ptype = payload.get("type")
+                if ptype == "custom_tool_call_output":
+                    count = 0
+                    for item in payload.get("output") or []:
+                        text = item.get("text") if isinstance(item, dict) else None
+                        if isinstance(text, str):
+                            count += _count_truncated_lines(text)
+                    if count:
+                        result["truncated"] += count
+                        call = calls.get(payload.get("call_id"))
+                        if call is not None:
+                            call["truncated"] = True
+                            result["truncated_files"].append(_paths_in_call(call["text"]))
+                        else:
+                            result["truncated_files"].append([])
+                elif ptype in ("custom_tool_call", "function_call", "local_shell_call"):
+                    name = payload.get("name") or ""
+                    call_text = payload.get("input")
+                    if not isinstance(call_text, str):
+                        call_text = payload.get("arguments") or ""
+                    if not isinstance(call_text, str):
+                        call_text = ""
+                    if name == "view_image" or _VIEW_IMAGE_CALL_RE.search(call_text):
+                        result["view_image"] += 1
+                    entry = {"text": call_text, "truncated": False}
+                    calls[payload.get("call_id")] = entry
+                    result["calls"].append(entry)
+    except OSError:
+        return {"found": False, "truncated": 0, "view_image": 0, "truncated_files": [], "calls": []}
+    return result
+
+
+def _paths_in_call(call_text):
+    """呼び出しの文字列から、拡張子つきのASCIIパスを重複なしで返す（二重にエスケープされた \\ は / に直す）。"""
+    text = call_text.replace("\\\\", "/").replace("\\", "/")
+    seen = []
+    for m in CALL_PATH_RE.finditer(text):
+        path = m.group(0).strip("./")
+        if path and path not in seen:
+            seen.append(path)
+    return seen
+
+
+def _part_target_paths(part):
+    """区切りの対象一覧（lines）から、対象のパス（行頭の "- " 直後の最初の語）を返す。"""
+    paths = []
+    for line in part.get("lines") or []:
+        m = re.match(r"^\s*-\s+(\S+)", line)
+        if m and "/" in m.group(1) and not m.group(1).startswith("（"):
+            paths.append(m.group(1))
+    return paths
+
+
+def _scope_row(name, scan, part=None):
+    """区切り1つ分の監査範囲の行。scan が None（ログなし）なら不明の行。"""
+    if scan is None or not scan["found"]:
+        return {"name": name, "known": False}
+    names = []
+    for group in scan["truncated_files"]:
+        for p in group:
+            if p not in names:
+                names.append(p)
+    unknown_count = sum(1 for g in scan["truncated_files"] if not g)
+    read = total = None
+    if part is not None:
+        targets = _part_target_paths(part)
+        total = len(targets)
+        read = 0
+        for t in targets:
+            base = t.replace("\\", "/")
+            for call in scan["calls"]:
+                text = call["text"].replace("\\\\", "/").replace("\\", "/")
+                if not call["truncated"] and base in text:
+                    read += 1
+                    break
+    return {"name": name, "known": True, "truncated": scan["truncated"], "view_image": scan["view_image"],
+            "files": names, "unknown_calls": unknown_count, "read": read, "total": total}
+
+
+def _thread_id_from_log(log_path):
+    try:
+        with open(log_path, "r", encoding="utf-8", errors="replace") as fh:
+            for line in fh:
+                tid = extract_thread_id([line])
+                if tid:
+                    return tid
+    except OSError:
+        return None
+    return None
+
+
+def _find_step_log(label, ref_path):
+    """実行ログ（tmp/codex-gateway/*-growth-audit-<label>.jsonl）のうち、出力ファイル ref_path の
+    書き込み時刻より後（120秒の余裕）に終わっていない最新のものを返す。見つからなければ None。
+    """
+    try:
+        ref_mtime = ref_path.stat().st_mtime
+    except OSError:
+        return None
+    best = None
+    for cand in sorted(LOG_DIR.glob("*-growth-audit-%s.jsonl" % label)):
+        try:
+            if cand.stat().st_mtime <= ref_mtime + 120:
+                best = cand
+        except OSError:
+            continue
+    return best
+
+
+def _scan_from_log(label, ref_path):
+    log_path = _find_step_log(label, ref_path)
+    if log_path is None:
+        return None
+    return _scan_rollout(_thread_id_from_log(log_path))
+
+
+def _scope_rows_from_logs(partitions, parts_dir, target):
+    """実行ログだけから全区切り＋まとめの行を作る（render-only・スキップした区切り用）。"""
+    rows = []
+    for part in partitions:
+        scan = _scan_from_log("part-%s" % part["name"], parts_dir / (part["name"] + ".md"))
+        rows.append(_scope_row(part["name"], scan, part))
+    rows.append(_scope_row("まとめ", _scan_from_log("summary", target)))
+    return rows
+
+
+def _format_scope_section(rows, sns_unobserved):
+    """audit.md の「## 監査範囲」節（gateway が書く）。"""
+    lines = ["## 監査範囲", "",
+             "gateway が各区切り・まとめの実行ログ（Codex のロールアウト）から機械集計した。"
+             "Codex の自己申告ではない。", "",
+             "| 区切り | 読めた対象/対象総数 | truncated_outputs | view_image_calls | 切り詰めたファイル |",
+             "|---|---|---|---|---|"]
+    t_total = v_total = r_total = n_total = 0
+    unknown_rows = []
+    for row in rows:
+        if not row["known"]:
+            lines.append("| %s | 不明 | 不明 | 不明 | 不明（実行ログなし） |" % row["name"])
+            unknown_rows.append(row["name"])
+            continue
+        t_total += row["truncated"]
+        v_total += row["view_image"]
+        if row["total"] is None:
+            counted = "—"
+        else:
+            counted = "%d/%d" % (row["read"], row["total"])
+            r_total += row["read"]
+            n_total += row["total"]
+        if row["truncated"] == 0:
+            names = "なし"
+        else:
+            shown = row["files"][:SCOPE_NAMES_MAX]
+            names = "、".join(shown) if shown else ""
+            if len(row["files"]) > SCOPE_NAMES_MAX:
+                names += " ほか%d件" % (len(row["files"]) - SCOPE_NAMES_MAX)
+            if row["unknown_calls"]:
+                names += ("、" if names else "") + "不明（%d呼び出し）" % row["unknown_calls"]
+        lines.append("| %s | %s | %d | %d | %s |" % (row["name"], counted, row["truncated"], row["view_image"], names))
+    lines.append("| 合計 | %d/%d | %d | %d | |" % (r_total, n_total, t_total, v_total))
+    lines += ["",
+              "- 「読めた対象」は、ログ上でその対象のパスが、切り詰めの無い呼び出しに現れた件数。日本語のパスは"
+              "ログ上で壊れて一致しないことがあり、その場合は読めていないと数える。",
+              "- 切り詰めたファイルは、切り詰めの出た呼び出しのパスから拾う。拾えないものは「不明」と書く。"]
+    if unknown_rows:
+        lines.append("- 実行ログが見つからず集計できなかった区切り: %s（合計に含めない）" % "・".join(unknown_rows))
+    if sns_unobserved:
+        lines.append("- SNSプロフィール未観察: sns.md の全項目が未評価のまま --skip-sns で続行した"
+                     "（Pinterest・Threads・X のプロフィールは評価していない）")
+    return "\n".join(lines) + "\n"
+
+
+def _replace_scope_section(audit_text, section_text):
+    """audit_text の「## 監査範囲」節を section_text に置き換える（無ければ末尾へ足す）。"""
+    lines = audit_text.splitlines()
+    start = None
+    for i, line in enumerate(lines):
+        if line.strip() == "## 監査範囲":
+            start = i
+            break
+    if start is None:
+        return audit_text.rstrip("\n") + "\n\n" + section_text
+    end = len(lines)
+    for j in range(start + 1, len(lines)):
+        if lines[j].startswith("## "):
+            end = j
+            break
+    head = "\n".join(lines[:start]).rstrip("\n")
+    tail = "\n".join(lines[end:])
+    out = (head + "\n\n" if head else "") + section_text
+    if tail:
+        out = out.rstrip("\n") + "\n\n" + tail + "\n"
+    return out
+
+
+def _write_weekly_artifact(payload_extra, kind, label, status, message, ascii_extra):
+    """週次の dry-run・render-only: JSON の中身を tmp/codex-gateway/ へ UTF-8 で保存し、
+    画面には英数字だけでファイルのパスと件数を出す（cp932 のコンソールで文字化けさせない）。
+    """
+    LOG_DIR.mkdir(parents=True, exist_ok=True)
+    out_path = LOG_DIR / ("growth-audit-%s-%s.json" % (label, kind))
+    body = {"status": status, "purpose": "growth-audit", "method": "exec", "message": message}
+    body.update(payload_extra)
+    out_path.write_text(json.dumps(body, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    line = {"status": status, "kind": kind, "json_path": str(out_path)}
+    line.update(ascii_extra)
+    sys.stdout.write(json.dumps(line, ensure_ascii=True) + "\n")
+    sys.stdout.flush()
+    return out_path
+
+
 def _format_generation_rule_lines(rule_targets):
     lines = []
     for display, changed in rule_targets:
@@ -1552,7 +2107,7 @@ def _rule_file_path(display):
     return PROJECT_ROOT / display
 
 
-def _weekly_r_items(since_date, until_date, compliance):
+def _weekly_r_items(since_date, until_date, compliance, input_items=None):
     """週次の区切りR（期間内に変更があった生成ルール・恒久アセットの変更・遵守確認に使う
     運営記録）の材料を、1ファイル＝1アイテムで返す（D-0255・変更分のみに絞る扱いは
     2026-09-28・運営記録とGDの割り当ては D-0266）。変更の無い生成ルールはここに入れない。
@@ -1590,6 +2145,8 @@ def _weekly_r_items(since_date, until_date, compliance):
         gd_map = {gd_id: ["%s（運営記録）" % record] for gd_id in record_gds[record]}
         items.append({"chars": _text_len(path) if exists else 0, "images": 0, "lines": lines,
                       "gd": gd_map})
+    # 週次の入力（gateway が自動生成・D-0272）。台帳の運営記録として既に載っているパスは重複させない。
+    items.extend(it for it in (input_items or []) if not it["path"] or it["path"] not in record_gds)
     return items
 
 
@@ -1839,7 +2396,7 @@ def _monthly_p_items(target):
     return items
 
 
-def _build_partitions(mode, since, until, month, target):
+def _build_partitions(mode, since, until, month, target, weekly_inputs=None):
     """mode に応じて区切りの計画（各 {name, chars, images, lines, count}）と、遵守確認の計画
     （週次のみ・月次は None）を返す（D-0255・遵守確認は D-0266）。
     週次の区切りには "gd"（割り当てた GD）と "directives_text"（割り当て文）が入る。
@@ -1850,7 +2407,8 @@ def _build_partitions(mode, since, until, month, target):
         def directives_fn(gd_map):
             return _format_directives_block(compliance, gd_map)
 
-        partitions = (_pack_items(_weekly_r_items(since, until, compliance), "R", directives_fn)
+        input_items = weekly_inputs["items"] if weekly_inputs else None
+        partitions = (_pack_items(_weekly_r_items(since, until, compliance, input_items), "R", directives_fn)
                       + _pack_items(_weekly_o_items(since, until, compliance), "O", directives_fn))
         _finalize_compliance(compliance, partitions)
         return partitions, compliance
@@ -1922,7 +2480,8 @@ def _build_summary_prompt(prompt, mode, parts_dir, partitions, compliance):
     return text.replace("{{SINCE}}", compliance["since"]).replace("{{UNTIL}}", compliance["until"])
 
 
-def _emit_dry_run(purpose, method, target, parts_dir, partitions, mode="monthly", compliance=None):
+def _emit_dry_run(purpose, method, target, parts_dir, partitions, mode="monthly", compliance=None,
+                  weekly_inputs=None, sns_unobserved=False):
     plan = []
     part_sections = REQUIRED_PART_SECTIONS_BY_MODE.get(mode, REQUIRED_PART_SECTIONS)
     for part in partitions:
@@ -1934,11 +2493,26 @@ def _emit_dry_run(purpose, method, target, parts_dir, partitions, mode="monthly"
         }
         if "gd" in part:
             entry["directives"] = sorted(part["gd"])
+        if mode == "weekly":
+            entry["targets"] = list(part["lines"])
         plan.append(entry)
     skip_names = [p["name"] for p in plan if p["skip"]]
     extra = {"partitions": plan, "skip": skip_names}
     if compliance is not None:
         extra.update(_compliance_extra(compliance, partitions))
+    if mode == "weekly":
+        # 週次は JSON の中身を tmp/ へ UTF-8 で保存し、画面には英数字だけを出す（D-0272）。
+        extra["artifact"] = str(target)
+        extra["weekly_inputs"] = weekly_inputs["files"] if weekly_inputs else []
+        extra["dist"] = weekly_inputs["dist"] if weekly_inputs else None
+        extra["sns_unobserved_skipped"] = bool(sns_unobserved)
+        _write_weekly_artifact(
+            extra, "dry-run", target.parent.name, "dry_run",
+            "区切り計画 %d件（スキップ%d件）: %s"
+            % (len(plan), len(skip_names), "、".join(p["name"] for p in plan) or "なし"),
+            {"partitions": len(plan), "skipped": len(skip_names), "inputs": len(extra["weekly_inputs"]),
+             "targets": sum(len(p["targets"]) for p in plan), "skip_sns": bool(sns_unobserved)})
+        return EXIT_OK
     emit("dry_run", purpose, method, str(target), None,
          "区切り計画 %d件（スキップ%d件）: %s"
          % (len(plan), len(skip_names), "、".join(p["name"] for p in plan) or "なし"),
@@ -2018,7 +2592,8 @@ def _run_one_audit_step(build_cmd, prompt_text, output_path, model_override, con
                                        log_path, AUDIT_TIMEOUT_SEC, check,
                                        input_text=prompt_text, prompt_len=len(prompt_text))
     thread_id = extract_thread_id(result["stdout"].splitlines())
-    truncated, view_calls = _count_rollout_signals(thread_id)
+    scan = _scan_rollout(thread_id)
+    truncated, view_calls = scan["truncated"], scan["view_image"]
     token_usage = _rollout_last_token_usage(thread_id)
     ok, info = result["info"]
     return {
@@ -2027,7 +2602,7 @@ def _run_one_audit_step(build_cmd, prompt_text, output_path, model_override, con
         "timed_out": result["timed_out"], "truncated_outputs": truncated,
         "view_image_calls": view_calls, "token_usage": token_usage,
         "stderr": result["stderr"], "returncode": result["returncode"],
-        "written_by": state["written_by"],
+        "written_by": state["written_by"], "scan": scan,
     }
 
 
@@ -2073,7 +2648,8 @@ def _emit_render_only(purpose, method, target, render_dir, files, extra_info=Non
 
 
 def _render_audit_prompts(purpose, method, prompt_file, mode, target, parts_dir,
-                          partitions, render_dir, compliance=None):
+                          partitions, render_dir, compliance=None, weekly_inputs=None,
+                          sns_unobserved=False):
     """全区切りの部分監査プロンプトと、まとめのプロンプトを置換済みで render_dir へ書く。
 
     Codex を起動しない（codex の有無も見ない）。区切りの出力ファイルが既にあるかどうかに
@@ -2107,12 +2683,38 @@ def _render_audit_prompts(purpose, method, prompt_file, mode, target, parts_dir,
         encoding="utf-8")
     files.append(str(summary_path))
     extra_info = _compliance_extra(compliance, partitions) if compliance is not None else None
+    if mode == "weekly":
+        # 監査範囲は gateway が実行ログから機械集計する（D-0272）。Codex を起動しないこのモードでは、
+        # 節だけの audit-scope.md と、target があればその「## 監査範囲」節を置き換えた
+        # audit-with-scope.md を render_dir へ書く（growth/outputs/ へは何も書かない）。
+        rows = _scope_rows_from_logs(partitions, parts_dir, target)
+        section = _format_scope_section(rows, sns_unobserved)
+        scope_path = out_dir / "audit-scope.md"
+        scope_path.write_text(section, encoding="utf-8")
+        files.append(str(scope_path))
+        if target.is_file():
+            replaced = out_dir / "audit-with-scope.md"
+            replaced.write_text(_replace_scope_section(target.read_text(encoding="utf-8"), section),
+                                encoding="utf-8")
+            files.append(str(replaced))
+        extra = {"artifact": str(target), "render_dir": str(out_dir), "files": files,
+                 "weekly_inputs": weekly_inputs["files"] if weekly_inputs else [],
+                 "dist": weekly_inputs["dist"] if weekly_inputs else None,
+                 "sns_unobserved_skipped": bool(sns_unobserved), "scope_rows": rows}
+        if extra_info:
+            extra.update(extra_info)
+        _write_weekly_artifact(
+            extra, "render-only", target.parent.name, "rendered",
+            "プロンプトを %d件書き出しました（Codexは起動していません）: %s" % (len(files), out_dir),
+            {"files": len(files), "render_dir": str(out_dir),
+             "inputs": len(extra["weekly_inputs"]), "skip_sns": bool(sns_unobserved)})
+        return EXIT_OK
     return _emit_render_only(purpose, method, target, out_dir, files, extra_info)
 
 
 def run_growth_audit(purpose, prompt_file, output_file, model_override=None,
                       mode=None, since=None, until=None, month=None, dry_run=False,
-                      render_only=None, only_part=None):
+                      render_only=None, only_part=None, skip_sns=False):
     """全コンテンツの監査（D-0251）。区切りごとの部分監査を順に実行し、最後にまとめを
     1回実行する（D-0255）。Codex は常に -s read-only のまま、各回の最終メッセージを
     保存する。
@@ -2141,17 +2743,33 @@ def run_growth_audit(purpose, prompt_file, output_file, model_override=None,
     if mode == "monthly" and not effective_month:
         effective_month = _previous_month(datetime.now().strftime("%Y-%m"))
 
-    partitions, compliance = _build_partitions(mode, since, until, effective_month, target)
+    # 週次だけ（D-0272）: sns.md が未観察なら Codex を呼ぶ前に止まる（--skip-sns で続行し、
+    # 監査範囲に記録する）。続けて入力 (a)〜(d) を gateway が作る。月次には何もしない。
+    weekly_inputs = None
+    sns_unobserved = False
+    if mode == "weekly":
+        input_dir = _input_dir_for_output(target)
+        sns_unobserved, sns_reason = _sns_unobserved(input_dir)
+        if sns_unobserved and not skip_sns:
+            return fail(EXIT_PRECONDITION, purpose, method,
+                        "SNSプロフィールが未観察のため Codex を呼ぶ前に停止しました（%s: %s）。"
+                        "Chrome でプロフィールを観察して sns.md を更新するか、--skip-sns を付けて再実行してください。"
+                        % (_rel(input_dir / "sns.md"), sns_reason))
+        weekly_inputs = _prepare_weekly_inputs(input_dir, since, until)
+
+    partitions, compliance = _build_partitions(mode, since, until, effective_month, target, weekly_inputs)
     parts_dir = target.parent / "parts"
     part_sections = REQUIRED_PART_SECTIONS_BY_MODE[mode]
     summary_sections = REQUIRED_SUMMARY_SECTIONS_BY_MODE[mode]
 
     if dry_run:
-        return _emit_dry_run(purpose, method, target, parts_dir, partitions, mode, compliance)
+        return _emit_dry_run(purpose, method, target, parts_dir, partitions, mode, compliance,
+                             weekly_inputs, sns_unobserved)
 
     if render_only:
         return _render_audit_prompts(purpose, method, prompt_file, mode, target, parts_dir,
-                                     partitions, render_only, compliance)
+                                     partitions, render_only, compliance, weekly_inputs,
+                                     sns_unobserved)
 
     if only_part:
         names = [p["name"] for p in partitions]
@@ -2193,6 +2811,7 @@ def run_growth_audit(purpose, prompt_file, output_file, model_override=None,
     token_totals = {"tokens_input": 0, "tokens_cached": 0, "tokens_output": 0, "tokens_reasoning": 0}
     token_by_part = {}
     any_timed_out = False
+    scan_by_part = {}
 
     run_partitions = [p for p in partitions if not only_part or p["name"] == only_part]
     for part in run_partitions:
@@ -2221,6 +2840,7 @@ def run_growth_audit(purpose, prompt_file, output_file, model_override=None,
 
         truncated_total += step["truncated_outputs"]
         view_image_total += step["view_image_calls"]
+        scan_by_part[part["name"]] = step["scan"]
         if step["token_usage"]:
             token_by_part[part["name"]] = step["token_usage"]
             for k in token_totals:
@@ -2275,6 +2895,19 @@ def run_growth_audit(purpose, prompt_file, output_file, model_override=None,
                     % (_step_failure_message(summary_step), summary_step["log_path"],
                        elapsed_total, summary_step["stderr"].strip()[:400]))
 
+    if mode == "weekly":
+        # 監査範囲の節は gateway が実行ログから書く。Codex が書いた節は置き換える（D-0272）。
+        rows = []
+        for part in partitions:
+            scan = scan_by_part.get(part["name"])
+            if scan is None:
+                scan = _scan_from_log("part-%s" % part["name"], parts_dir / (part["name"] + ".md"))
+            rows.append(_scope_row(part["name"], scan, part))
+        rows.append(_scope_row("まとめ", summary_step["scan"]))
+        section = _format_scope_section(rows, sns_unobserved)
+        target.write_text(_replace_scope_section(target.read_text(encoding="utf-8"), section),
+                          encoding="utf-8")
+
     ok_parts = sum(1 for r in part_reports if r["status"] == "ok")
     skipped_parts = sum(1 for r in part_reports if r["status"] == "skipped")
     emit("ok", purpose, method, str(target), None,
@@ -2324,6 +2957,9 @@ def main():
                         help="growth-audit: Codexを起動せず、全区切りの部分監査プロンプトと"
                              "まとめのプロンプトを置換済みの状態で OUT_DIR へ書き出して終了する"
                              "（part-<区切り名>.md と summary.md・D-0265）")
+    parser.add_argument("--skip-sns", action="store_true",
+                        help="growth-audit --mode weekly: sns.md が全項目「未評価」でも止まらず続行する。"
+                             "監査範囲に「SNSプロフィール未観察」と記録する（D-0272）")
     parser.add_argument("--only-part", default=None, metavar="NAME",
                         help="growth-audit: 指定した区切り（例 R-1・O-2）だけを実行し、"
                              "まとめは実行しない。有効な出力が既にあっても実行して上書きする（D-0265）")
@@ -2351,7 +2987,8 @@ def main():
         return run_growth_audit(purpose, args.prompt_file, args.output_file, args.model,
                                 mode=args.mode, since=args.since, until=args.until,
                                 month=args.month, dry_run=args.dry_run,
-                                render_only=args.render_only, only_part=args.only_part)
+                                render_only=args.render_only, only_part=args.only_part,
+                                skip_sns=args.skip_sns)
     return run_exec(purpose, args.prompt_file, args.out_name, args.model)
 
 

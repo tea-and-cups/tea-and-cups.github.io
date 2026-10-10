@@ -572,6 +572,23 @@ def run_ga4_daily_traffic(params: dict) -> dict:
 
 
 def run_ga4_page_traffic(params: dict) -> dict:
+    return _run_ga4_dimension_report(
+        params, "ga4.page_traffic", "pagePath", "page_path",
+        "this is a page-level aggregate over the whole lookback window (not a per-day "
+        "breakdown), ranked by screenPageViews via the API's own orderBys",
+        "sum of the returned pagePath rows")
+
+
+def run_ga4_source_medium(params: dict) -> dict:
+    return _run_ga4_dimension_report(
+        params, "ga4.source_medium", "sessionSourceMedium", "session_source_medium",
+        "this is a sessionSourceMedium aggregate over the whole window (not a per-day "
+        "breakdown), ranked by screenPageViews via the API's own orderBys",
+        "sum of the returned sessionSourceMedium rows")
+
+
+def _run_ga4_dimension_report(params: dict, operation: str, dimension: str, record_key: str,
+                              coverage_text: str, totals_label: str) -> dict:
     from google.auth.transport.requests import AuthorizedSession, Request
     from google.oauth2.credentials import Credentials
 
@@ -600,7 +617,7 @@ def run_ga4_page_traffic(params: dict) -> dict:
 
     body = {
         "dateRanges": [{"startDate": params["period"]["start_date"], "endDate": params["period"]["end_date"]}],
-        "dimensions": [{"name": "pagePath"}],
+        "dimensions": [{"name": dimension}],
         "metrics": [{"name": name} for name in GA4_PAGE_METRICS],
         "orderBys": [{"metric": {"metricName": "screenPageViews"}, "desc": True}],
         "limit": str(limit),
@@ -635,7 +652,7 @@ def run_ga4_page_traffic(params: dict) -> dict:
     for row in rows:
         dim_values = row.get("dimensionValues") or []
         metric_values = row.get("metricValues") or []
-        page_path = dim_values[0].get("value") if dim_values else None
+        dim_value = dim_values[0].get("value") if dim_values else None
         reasons: list[str] = []
         record = {
             "source": GA4_SOURCE,
@@ -643,10 +660,10 @@ def run_ga4_page_traffic(params: dict) -> dict:
             "entity_id": GA4_ENTITY_ID,
             "observed_at": fetched_at,
         }
-        if page_path:
-            record["page_path"] = page_path
+        if dim_value:
+            record[record_key] = dim_value
         else:
-            reasons.append("GA4 row had a missing or empty pagePath dimension")
+            reasons.append("GA4 row had a missing or empty %s dimension" % dimension)
         for index, name in enumerate(GA4_PAGE_METRICS):
             value = None
             if index < len(metric_values):
@@ -668,18 +685,16 @@ def run_ga4_page_traffic(params: dict) -> dict:
             % limit
         )
 
-    payload = _base_payload("ga4", "ga4.page_traffic", params)
+    payload = _base_payload("ga4", operation, params)
     payload["generated_at"] = fetched_at
     payload["warnings"] = warnings
     payload["coverage"]["reason"] = (
-        "GA4 Data API v1beta runReport exposes no data-finality field; this is a page-level "
-        "aggregate over the whole lookback window (not a per-day breakdown), ranked by "
-        "screenPageViews via the API's own orderBys"
+        "GA4 Data API v1beta runReport exposes no data-finality field; " + coverage_text
     )
     payload["data"]["series"] = series
     payload["data"]["snapshot"] = {}
     payload["data"]["totals"] = _series_totals(
-        series, GA4_PAGE_METRICS, len(rows) >= limit, "sum of the returned pagePath rows")
+        series, GA4_PAGE_METRICS, len(rows) >= limit, totals_label)
     return payload
 
 
@@ -1121,15 +1136,35 @@ def _read_buffer_channels_tsv() -> list[tuple[str, str, str]]:
     return rows
 
 
-def run_buffer_sent_posts(params: dict) -> dict:
-    lookback_days = params["lookback_days"]
-    page_size = params["limit"]
+def _buffer_window(params: dict, lookback_days: int):
+    """(end, start, upper_bound) を返し、params["period"] を設定する。
+
+    --since/--until 指定時（params に since/until がある）は、日本時間のその日の 00:00:00 から
+    23:59:59.999 までを UTC に直した窓にする（upper_bound は窓の終端・送信日時の絞り込みに使う）。
+    指定が無いときは従来どおり「いま」から lookback_days 日前までで、upper_bound は None。
+    """
+    if params.get("since") and params.get("until"):
+        jst = dt.timezone(dt.timedelta(hours=9))
+        since = dt.date.fromisoformat(params["since"])
+        until = dt.date.fromisoformat(params["until"])
+        start_date = dt.datetime.combine(since, dt.time.min, tzinfo=jst).astimezone(dt.timezone.utc)
+        end_date = (dt.datetime.combine(until, dt.time.min, tzinfo=jst) + dt.timedelta(days=1)
+                    - dt.timedelta(milliseconds=1)).astimezone(dt.timezone.utc)
+        params["period"] = {"start_date": since.isoformat(), "end_date": until.isoformat()}
+        return end_date, start_date, end_date
     end_date = dt.datetime.now(dt.timezone.utc)
     start_date = end_date - dt.timedelta(days=lookback_days)
     params["period"] = {
         "start_date": start_date.date().isoformat(),
         "end_date": end_date.date().isoformat(),
     }
+    return end_date, start_date, None
+
+
+def run_buffer_sent_posts(params: dict) -> dict:
+    lookback_days = params["lookback_days"]
+    page_size = params["limit"]
+    end_date, start_date, upper_bound = _buffer_window(params, lookback_days)
 
     fetched_at = iso_now()
     series: list[dict] = []
@@ -1168,6 +1203,8 @@ def run_buffer_sent_posts(params: dict) -> dict:
             if sent_dt is not None and sent_dt < start_date:
                 reached_period_edge = True
                 break
+            if sent_dt is not None and upper_bound is not None and sent_dt > upper_bound:
+                continue
             service = ((node.get("channel") or {}).get("service") or "").strip().lower()
             if service not in BUFFER_SNS_SERVICES:
                 continue
@@ -1220,12 +1257,7 @@ def run_buffer_sent_posts(params: dict) -> dict:
 
 def run_buffer_aggregated_metrics(params: dict) -> dict:
     lookback_days = params["lookback_days"]
-    end_date = dt.datetime.now(dt.timezone.utc)
-    start_date = end_date - dt.timedelta(days=lookback_days)
-    params["period"] = {
-        "start_date": start_date.date().isoformat(),
-        "end_date": end_date.date().isoformat(),
-    }
+    end_date, start_date, _upper = _buffer_window(params, lookback_days)
 
     channels = [row for row in _read_buffer_channels_tsv() if row[0] in BUFFER_SNS_SERVICES]
     if not channels:
@@ -1509,6 +1541,15 @@ ALLOWED_OPERATIONS = {
         "accepts": frozenset(["lookback_days", "limit", "since_until"]),
         "handler": run_ga4_page_traffic,
     },
+    "ga4.source_medium": {
+        "service": "ga4",
+        "description": (
+            "GA4 screenPageViews / sessions / activeUsers by sessionSourceMedium over the "
+            "period (not daily), top-N by screenPageViews"
+        ),
+        "accepts": frozenset(["lookback_days", "limit", "since_until"]),
+        "handler": run_ga4_source_medium,
+    },
     "gsc.search_analytics_by_query": {
         "service": "gsc",
         "description": (
@@ -1549,7 +1590,7 @@ ALLOWED_OPERATIONS = {
             "per-post metrics); Instagram excluded (D-0240). --limit controls the page size "
             "per Buffer API call, not the total row count"
         ),
-        "accepts": frozenset(["lookback_days", "limit"]),
+        "accepts": frozenset(["lookback_days", "limit", "since_until"]),
         "handler": run_buffer_sent_posts,
     },
     "buffer.aggregated_metrics": {
@@ -1558,7 +1599,7 @@ ALLOWED_OPERATIONS = {
             "Aggregated post metrics per Threads/X channel over a trailing window "
             "(channel ids from data/buffer-channels.tsv; Instagram excluded, D-0240)"
         ),
-        "accepts": frozenset(["lookback_days"]),
+        "accepts": frozenset(["lookback_days", "since_until"]),
         "handler": run_buffer_aggregated_metrics,
     },
     "pins.daily_metrics": {
