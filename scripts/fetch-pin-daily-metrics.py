@@ -434,10 +434,15 @@ def write_atomic(rows):
 
 # ---------------------------------------------------------------- API取得
 
+# 404（Pinterest上で削除済みのピン）を呼び出し側が判別するための理由文字列
+DELETED_PIN_ERROR = "HTTP 404"
+
+
 def fetch_daily(pin_id, access_token, start, end):
     """GET /v5/pins/{id}/analytics の daily_metrics を日付ごとの辞書で返す。
 
     値は (data_status, 指標の辞書)。失敗時は (None, 理由)。
+    HTTP 404 のときの理由は DELETED_PIN_ERROR（削除済みピンの判別用）。
     summary_metrics は使わない（日次の粒度が必要なため）。
     """
     params = urllib.parse.urlencode({
@@ -450,6 +455,8 @@ def fetch_daily(pin_id, access_token, start, end):
         payload = pinterest_api.request(
             "GET", path, access_token, timeout=API_TIMEOUT_SECONDS)
     except pinterest_api.PinterestApiError as e:
+        if e.status_code == 404:
+            return None, DELETED_PIN_ERROR
         return None, "HTTP %s" % e.status_code
     except urllib.error.URLError as e:
         return None, "通信失敗: %s" % e
@@ -539,10 +546,11 @@ def parse_args():
     return parser.parse_args()
 
 
-def summary_line(target_total, identity_total, excluded_total, ok, fail):
-    """Growth Agent が coverage として使う最終行（形式を変えないこと）。"""
+def summary_line(target_total, identity_total, excluded_total, ok, fail, deleted=0):
+    """Growth Agent が coverage として使う最終行（先頭〜失敗件数の形式を変えないこと）。"""
     return ("対象Pin総数 %s / identity利用可能 %s / 除外件数 %s / 取得成功件数 %s / 失敗件数 %s"
-            % (target_total, identity_total, excluded_total, ok, fail))
+            " / 削除済み %s件"
+            % (target_total, identity_total, excluded_total, ok, fail, deleted))
 
 
 def main():
@@ -601,7 +609,7 @@ def main():
     if args.dry_run:
         print("")
         print("--dry-run のためAPIは呼びません（duplicate_detected は実取得時に確定します）。")
-        print(summary_line(len(pin_numbers), len(identity_ok), len(excluded), "-", "-"))
+        print(summary_line(len(pin_numbers), len(identity_ok), len(excluded), "-", "-", "-"))
         return 0
 
     # --- 4. トークンとピン一覧 ---
@@ -638,6 +646,7 @@ def main():
 
     ok_count = 0
     fail_count = 0
+    deleted_count = 0
     written_rows = 0
     duplicate_numbers = []
     processed_ids = set()
@@ -726,6 +735,10 @@ def main():
         day_map, error = fetch_daily(pin_id, access_token, start, today)
         time.sleep(ANALYTICS_INTERVAL_SECONDS)
         if day_map is None:
+            if error == DELETED_PIN_ERROR:
+                deleted_count += 1
+                print("  Pin%s (%s): 削除済み（HTTP 404）" % (template.get("pin_number"), pin_id))
+                continue
             fail_count += 1
             print("  Pin%s (%s): 取得失敗 - %s" % (template.get("pin_number"), pin_id, error))
             continue
@@ -752,7 +765,7 @@ def main():
     print("保存: %s（総 %d行 / 今回の書き込み・更新 %d行）"
           % (os.path.relpath(OUTPUT_TSV, ROOT), len(rows), written_rows))
     print(summary_line(len(pin_numbers), len(identity_ok), len(excluded),
-                       ok_count, fail_count))
+                       ok_count, fail_count, deleted_count))
     return 0
 
 
