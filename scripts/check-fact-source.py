@@ -16,6 +16,17 @@
   読者への呼びかけ（「試してみてください」等）と、AIが実際に行った調査の記述
   （「読み比べて整理した」等）は検知しない。
 
+判定X・Y（D-0270・GD-0002/GD-0015の機械化。新規公開・--revise の両方で効く）:
+  X 調査の材料: 調査方法を述べる行（「なお、この記事は」で始まる行、または「読み比べて」
+    「突き合わせ」を含む行）に、他サイトの記事・解説・ブログ・まとめ・比較サイト・紹介記事等を
+    調査の材料として挙げる語（RESEARCH_MATERIAL_WORDS）があればNG。許容する材料は
+    楽天データの集計・メーカー/公的資料の突き合わせ（D-0245）。メーカー・官公庁の「解説」は
+    RESEARCH_ALLOWED_PREFIXES で除いてから判定する。
+  Y 安全・保存の助言: 食品衛生・保存期間・手入れ・けがに関する語（SAFETY_ADVICE_WORDS）を含む
+    ブロック（箇条書きは1項目ずつ）に、出典URL（アフィリエイト除く）も適用条件の語
+    （SAFETY_CONDITION_WORDS）も無ければNG。
+  --survey-xy: 公開済み全記事にX・Yだけをかける読み取り専用モード。
+
 出典とみなすもの（カテゴリA・C〜Gのみ）:
   同一判定単位内の Markdownリンク [表示文字](http〜) または素のhttp(s) URL。
   ただしホストが af.moshimo.com・hb.afl.rakuten.co.jp のものは出典に数えない
@@ -120,6 +131,30 @@ RE_EXPERIENCE_ACT = "|".join(
     ]
 )
 RE_EXPERIENCE = re.compile(RE_EXPERIENCE_ACT)
+
+# 判定X（調査の材料・D-0270）。調査方法を述べる行に、他サイトの記事等を材料として挙げる語。
+RESEARCH_LINE_START = "なお、この記事は"
+RESEARCH_LINE_WORDS = ["読み比べて", "突き合わせ"]
+RESEARCH_MATERIAL_WORDS = [
+    "解説", "検証記事", "紹介記事", "記事", "ブログ", "まとめ", "比較サイト", "レシピサイト",
+    "個人サイト", "口コミ", "レビュー記事", "レビューサイト", "ウェブ上", "ネット上", "サイト", "メディア",
+]
+# 材料語の前に付いていれば許容する出どころ（メーカー・公的資料・楽天データ）
+RESEARCH_ALLOWED_PREFIXES = [
+    "農林水産省", "厚生労働省", "消費者庁", "経済産業省", "国民生活センター", "公式",
+    "メーカー", "各社", "製造元", "楽天",
+]
+# 判定Y（安全・保存の助言・D-0270）
+SAFETY_ADVICE_WORDS = [
+    "鉛", "カドミウム", "賞味期限", "保存期間", "か月", "ヶ月", "カ月", "年程度", "半年",
+    "カビ", "漂白", "煮沸", "電子レンジ", "食洗機", "やけど", "割れ",
+]
+SAFETY_CONDITION_WORDS = [
+    "未開封", "開封後", "表示に従", "表示を確認", "記載に従", "記載を確認", "取扱説明書",
+    "取扱表示", "メーカーの指示", "メーカーの案内", "商品ページの表示", "商品ページの記載",
+    "パッケージの表示", "パッケージの記載", "製品の表示",
+]
+RE_LIST_ITEM = re.compile(r"^\s*(?:[-*+]|\d+[.)])\s")
 
 CATEGORY_LABELS = {"A": "発売時期", "H": "行為・観察・編集部の記述"}
 CATEGORY_LABELS.update({key: label for key, label, _ in CATEGORIES})
@@ -268,12 +303,73 @@ def price_survives_exceptions(text, title_prices, is_gift=False):
     return bool(RE_PRICE_B.search(RE_URL.sub(" ", masked)))
 
 
+def research_material_hits(line):
+    """調査方法を述べる行なら、他サイトを材料として挙げる語を返す（該当しなければ空）。"""
+    is_research = line.startswith(RESEARCH_LINE_START) or any(
+        w in line for w in RESEARCH_LINE_WORDS
+    )
+    if not is_research:
+        return []
+    masked = RE_URL.sub(" ", line).replace("この記事", " ").replace("記事のヒーロー画像", " ")
+    for prefix in RESEARCH_ALLOWED_PREFIXES:
+        for w in RESEARCH_MATERIAL_WORDS:
+            masked = masked.replace(prefix + "の" + w, " ").replace(prefix + w, " ")
+    return [w for w in RESEARCH_MATERIAL_WORDS if w in masked]
+
+
+def safety_advice_hits(text):
+    """出典も適用条件も無い安全・保存の助言語を返す（問題なければ空）。"""
+    plain = RE_URL.sub(" ", text)
+    hits = [w for w in SAFETY_ADVICE_WORDS if w in plain]
+    if not hits:
+        return []
+    if has_valid_source(text) or any(w in plain for w in SAFETY_CONDITION_WORDS):
+        return []
+    return hits
+
+
+def safety_sub_units(unit):
+    """判定Y用に、箇条書きは1項目ずつ・それ以外はブロック全体を単位にする。"""
+    if not any(RE_LIST_ITEM.match(line) for _, line in unit):
+        return [unit]
+    out, current = [], []
+    for item in unit:
+        if RE_LIST_ITEM.match(item[1]) and current:
+            out.append(current)
+            current = []
+        current.append(item)
+    if current:
+        out.append(current)
+    return out
+
+
+def check_xy(path, slug):
+    """判定X・Yの違反を返す（既存カテゴリの判定とは独立）。"""
+    front, body = split_frontmatter(io_read(path))
+    body_start_line = len(front.splitlines()) + 3 if front else 1
+    out = []
+    for unit in build_units(body, body_start_line):
+        for lineno, line in unit:
+            hits = research_material_hits(line)
+            if hits:
+                out.append({"slug": slug, "line": lineno, "categories": ["X"],
+                            "excerpt": excerpt(line), "hit": "・".join(hits),
+                            "in_product_block": False})
+        for sub in safety_sub_units(unit):
+            hits = safety_advice_hits(unit_text(sub))
+            if hits:
+                out.append({"slug": slug, "line": sub[0][0], "categories": ["Y"],
+                            "excerpt": excerpt(unit_text(sub)), "hit": "・".join(hits),
+                            "in_product_block": False})
+    return out
+
+
 def excerpt(text):
     flat = re.sub(r"\s+", " ", text).strip()
     return flat[:EXCERPT_CHARS]
 
 
-def check_article(path, slug):
+def check_article(path, slug, with_xy=False):
     """1記事を検査し、(違反リスト, 例外適用前のB該当単位数) を返す。"""
     text = io_read(path)
     front, body = split_frontmatter(text)
@@ -311,6 +407,9 @@ def check_article(path, slug):
                 "in_product_block": has_affiliate(text_u),
             }
         )
+    if with_xy:
+        violations.extend(check_xy(path, slug))
+        violations.sort(key=lambda v: v["line"])
     return violations, b_before
 
 
@@ -338,7 +437,7 @@ def run_single(slug):
         print(f"見つかりません: output/articles/{slug}.md / site/src/content/posts/{slug}.md")
         return 1
 
-    violations, _ = check_article(path, slug)
+    violations, _ = check_article(path, slug, with_xy=True)
     if not violations:
         print("FACT_SOURCE_OK")
         return 0
@@ -352,7 +451,32 @@ def run_single(slug):
     if any("H" in v["categories"] for v in violations):
         print("[H] 実物を使った行為・観察・「編集部」の記述は出典を付けても通りません。"
               "資料に基づく表現（〜が目安とされています／出典の記述）に書き換えるか削除してください")
+    if any("X" in v["categories"] for v in violations):
+        print("[X] 調査方法の行に他サイトの記事・解説等を材料として挙げています。実際の調査"
+              "（楽天データの集計・メーカー/公的資料の突き合わせ）どおりに書き直してください。"
+              "検知語一覧: " + "・".join(RESEARCH_MATERIAL_WORDS)
+              + "（許容する出どころ: " + "・".join(RESEARCH_ALLOWED_PREFIXES) + "）")
+    if any("Y" in v["categories"] for v in violations):
+        print("[Y] 安全・保存の助言に出典URLも適用条件もありません。出典を付けるか、適用条件"
+              "（未開封の場合・製品の表示に従う等）を付けるか、断定を削除してください。"
+              "検知語一覧: " + "・".join(SAFETY_ADVICE_WORDS)
+              + " ／ 条件語一覧: " + "・".join(SAFETY_CONDITION_WORDS))
     return 1
+
+
+def run_survey_xy():
+    """公開済み全記事に判定X・Yだけをかける（読み取りのみ）。"""
+    total = 0
+    for path in sorted(glob.glob(os.path.join(POSTS_DIR, "*.md"))):
+        if not is_published(path):
+            continue
+        slug = os.path.splitext(os.path.basename(path))[0]
+        for v in check_xy(path, slug):
+            total += 1
+            print(slug + " L" + str(v["line"]) + " [" + "".join(v["categories"]) + "] "
+                  + v["excerpt"] + " 〔検知語: " + v["hit"] + "〕")
+    print("XY_SURVEY_TOTAL: " + str(total) + "件")
+    return 0
 
 
 def run_calibrate():
@@ -455,6 +579,8 @@ def main():
         return 1
     if args[0] == "--calibrate":
         return run_calibrate()
+    if args[0] == "--survey-xy":
+        return run_survey_xy()
     return run_single(args[0])
 
 
