@@ -22,9 +22,11 @@
     調査の材料として挙げる語（RESEARCH_MATERIAL_WORDS）があればNG。許容する材料は
     楽天データの集計・メーカー/公的資料の突き合わせ（D-0245）。メーカー・官公庁の「解説」は
     RESEARCH_ALLOWED_PREFIXES で除いてから判定する。
-  Y 安全・保存の助言: 食品衛生・保存期間・手入れ・けがに関する語（SAFETY_ADVICE_WORDS）を含む
-    ブロック（箇条書きは1項目ずつ）に、出典URL（アフィリエイト除く）も適用条件の語
-    （SAFETY_CONDITION_WORDS）も無ければNG。
+  Y 安全・保存の断定: 次の型のどれかに当たる文があり、かつ同じブロック（箇条書きは1項目ずつ）に
+    出典URL（アフィリエイト除く）も適用条件の語（SAFETY_CONDITION_WORDS）も無ければNG。
+    型1 安全の保証（鉛・カドミウム等＋気にせず・安心等） 型2 使用可否の断定（電子レンジ・食洗機等
+    ＋使える・OK等。「対応」は可の語に含めない） 型3 期間の断定（保存・賞味期限等＋期間）。
+    語の単独出現では止めない。割れ・やけど・カビは対象にしない。
   --survey-xy: 公開済み全記事にX・Yだけをかける読み取り専用モード。
 
 出典とみなすもの（カテゴリA・C〜Gのみ）:
@@ -144,11 +146,23 @@ RESEARCH_ALLOWED_PREFIXES = [
     "農林水産省", "厚生労働省", "消費者庁", "経済産業省", "国民生活センター", "公式",
     "メーカー", "各社", "製造元", "楽天",
 ]
-# 判定Y（安全・保存の助言・D-0270）
-SAFETY_ADVICE_WORDS = [
-    "鉛", "カドミウム", "賞味期限", "保存期間", "か月", "ヶ月", "カ月", "年程度", "半年",
-    "カビ", "漂白", "煮沸", "電子レンジ", "食洗機", "やけど", "割れ",
+# 判定Y（安全・保存の助言・D-0270。D-0270の調整で「語の出現」から「断定の型」へ変更）
+# 同じ文に「対象語」と「断定語」が揃う文だけを拾う（語の単独出現では止めない）。
+# 割れ・やけど・カビは語単独では対象にしない。「対応」は可の語に含めない（食洗機対応等の仕様表記を止めない）。
+SAFETY_TYPE1_SUBJECT = ["鉛", "カドミウム", "有害", "溶出"]
+SAFETY_TYPE1_GUARANTEE = [
+    "気にせず", "心配ない", "心配なく", "安心", "問題ない", "問題なく", "大丈夫", "安全",
 ]
+SAFETY_TYPE2_SUBJECT = ["電子レンジ", "食洗機", "オーブン", "直火", "煮沸", "漂白", "熱湯"]
+SAFETY_TYPE2_OK = ["使える", "使用できる", "OK", "問題ない", "問題なく", "大丈夫"]
+SAFETY_TYPE3_SUBJECT = ["保存", "日持ち", "賞味期限", "もつ", "持つ", "風味が落ちる"]
+SAFETY_TYPE3_PERIOD = r"(?:[0-9０-９一二三四五六七八九十百]+\s*(?:日|週間|か月|ヶ月|カ月|年)|半年)"
+RE_SAFETY_PERIOD = re.compile(SAFETY_TYPE3_PERIOD)
+RE_SENTENCE_SPLIT = re.compile(r"[。！？!?\n]")
+SAFETY_ADVICE_WORDS = (
+    SAFETY_TYPE1_SUBJECT + SAFETY_TYPE1_GUARANTEE + SAFETY_TYPE2_SUBJECT + SAFETY_TYPE2_OK
+    + SAFETY_TYPE3_SUBJECT + ["半年", "数字＋日・週間・か月・ヶ月・カ月・年"]
+)
 SAFETY_CONDITION_WORDS = [
     "未開封", "開封後", "表示に従", "表示を確認", "記載に従", "記載を確認", "取扱説明書",
     "取扱表示", "メーカーの指示", "メーカーの案内", "商品ページの表示", "商品ページの記載",
@@ -317,14 +331,36 @@ def research_material_hits(line):
     return [w for w in RESEARCH_MATERIAL_WORDS if w in masked]
 
 
+def safety_sentence_types(sentence):
+    """1文が当たる断定の型 [(型, 語...)] を返す。"""
+    out = []
+    t1 = [w for w in SAFETY_TYPE1_SUBJECT if w in sentence]
+    g1 = [w for w in SAFETY_TYPE1_GUARANTEE if w in sentence]
+    if t1 and g1:
+        out.append(("型1", t1 + g1))
+    t2 = [w for w in SAFETY_TYPE2_SUBJECT if w in sentence]
+    g2 = [w for w in SAFETY_TYPE2_OK if w in sentence]
+    if t2 and g2:
+        out.append(("型2", t2 + g2))
+    t3 = [w for w in SAFETY_TYPE3_SUBJECT if w in sentence]
+    m3 = RE_SAFETY_PERIOD.search(sentence)
+    if t3 and m3:
+        out.append(("型3", t3 + [m3.group(0)]))
+    return out
+
+
 def safety_advice_hits(text):
-    """出典も適用条件も無い安全・保存の助言語を返す（問題なければ空）。"""
+    """出典も適用条件も無いブロックの断定文を [(型, 語リスト, 文)] で返す（問題なければ空）。"""
     plain = RE_URL.sub(" ", text)
-    hits = [w for w in SAFETY_ADVICE_WORDS if w in plain]
-    if not hits:
-        return []
     if has_valid_source(text) or any(w in plain for w in SAFETY_CONDITION_WORDS):
         return []
+    hits = []
+    for sentence in RE_SENTENCE_SPLIT.split(plain):
+        sentence = sentence.strip()
+        if not sentence:
+            continue
+        for typ, words in safety_sentence_types(sentence):
+            hits.append((typ, words, sentence))
     return hits
 
 
@@ -354,13 +390,12 @@ def check_xy(path, slug):
             if hits:
                 out.append({"slug": slug, "line": lineno, "categories": ["X"],
                             "excerpt": excerpt(line), "hit": "・".join(hits),
-                            "in_product_block": False})
+                            "sentence": line, "in_product_block": False})
         for sub in safety_sub_units(unit):
-            hits = safety_advice_hits(unit_text(sub))
-            if hits:
+            for typ, words, sentence in safety_advice_hits(unit_text(sub)):
                 out.append({"slug": slug, "line": sub[0][0], "categories": ["Y"],
-                            "excerpt": excerpt(unit_text(sub)), "hit": "・".join(hits),
-                            "in_product_block": False})
+                            "excerpt": excerpt(sentence), "hit": typ + ":" + "・".join(words),
+                            "sentence": sentence, "in_product_block": False})
     return out
 
 
@@ -465,17 +500,27 @@ def run_single(slug):
 
 
 def run_survey_xy():
-    """公開済み全記事に判定X・Yだけをかける（読み取りのみ）。"""
-    total = 0
+    """公開済み全記事に判定X・Yだけをかける（読み取りのみ）。型別件数と該当文（60字まで）を出す。"""
+    found = []
     for path in sorted(glob.glob(os.path.join(POSTS_DIR, "*.md"))):
         if not is_published(path):
             continue
         slug = os.path.splitext(os.path.basename(path))[0]
-        for v in check_xy(path, slug):
-            total += 1
-            print(slug + " L" + str(v["line"]) + " [" + "".join(v["categories"]) + "] "
-                  + v["excerpt"] + " 〔検知語: " + v["hit"] + "〕")
-    print("XY_SURVEY_TOTAL: " + str(total) + "件")
+        found.extend(check_xy(path, slug))
+    counts = {}
+    for v in found:
+        key = "X" if v["categories"] == ["X"] else v["hit"].split(":")[0]
+        counts[key] = counts.get(key, 0) + 1
+    for key in ["X", "型1", "型2", "型3"]:
+        print("XY_SURVEY_" + key + ": " + str(counts.get(key, 0)) + "件")
+    shown = found[:50]
+    for v in shown:
+        label = "X" if v["categories"] == ["X"] else v["hit"].split(":")[0]
+        sentence = re.sub(r"\s+", " ", v["sentence"]).strip()[:60]
+        print(v["slug"] + " [" + label + "] " + sentence)
+    if len(found) > 50:
+        print("（先頭50件のみ表示。総数 " + str(len(found)) + "件）")
+    print("XY_SURVEY_TOTAL: " + str(len(found)) + "件")
     return 0
 
 
