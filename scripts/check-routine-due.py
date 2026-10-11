@@ -35,6 +35,11 @@ check-image-gen-needed-today.py（D-0078）と同じ方針で、あいまいな�
      次の2つを別々に通知する（行が無い場合は両方）。
        - PV列が空: GA4・Pinterestの月間値をAIがAPIで取得して記入する旨（オーナーの作業なし）
        - 発生／確定の列のどちらかが空: ASP成果CSVをオーナーへ依頼する旨
+  4. 月次監査（D-0276）
+     基準日が当月1日以降（=常に真）で、前月分の Growth Agent 月次監査の出力
+     growth/outputs/monthly-YYYY-MM/audit.md（YYYY-MM は対象月＝前月）が無ければ通知する。
+     月次監査はオーナーの数値（ASP成果CSV）を待たずに実行するため、2・3 とは別に判定する
+     （rules/weekly-report.md 4-4節。2・3 の判定と出力は変えない）。
 
 出力:
   該当項目があればその通知行を1行以上、1件も無ければ "ROUTINE_NONE" の1行のみ。
@@ -56,6 +61,7 @@ import sys
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 REPORTS_DIR = os.path.join(ROOT, "reports")
 KPI_MD = os.path.join(ROOT, "docs", "kpi.md")
+GROWTH_OUTPUTS_DIR = os.path.join(ROOT, "growth", "outputs")
 
 # 月次実績の催促を始める日（当月のこの日以降）
 KPI_REMINDER_DAY = 4
@@ -213,6 +219,16 @@ def main():
                 "前月（%s）の ASP 成果CSV（もしもの日次・楽天のレポート）をオーナーへ依頼する"
                 % month_key
             )
+
+    # 4. 月次監査（当月1日以降=常に真・D-0276）。オーナーの数値を待たずに実行するため、
+    # 月次レポート（2）・月次実績（3）とは別に、監査の出力ファイルの有無だけで判定する。
+    audit_rel = "growth/outputs/monthly-%s/audit.md" % month_key
+    audit_path = os.path.join(GROWTH_OUTPUTS_DIR, "monthly-%s" % month_key, "audit.md")
+    if not (os.path.isfile(audit_path) and os.path.getsize(audit_path) > 0):
+        messages.append(
+            "月次監査が未実施（%s がありません。オーナーの数値を待たずに実行する・"
+            "rules/weekly-report.md 4-4節）" % audit_rel
+        )
 
     if messages:
         for message in messages:
