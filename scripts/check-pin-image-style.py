@@ -25,6 +25,12 @@
      ことが多い）は実測（reports/2026-08-15-5.md）で誤検知の主因だったため対象外
      とする。対象記事のPin投稿文ファイルが見つからない場合はこの節をスキップする
      （画像生成前などファイル未作成の段階でこのチェックを走らせるケースがあるため）。
+  4. Pin先頭文言の疑問形チェック（GD-0036前半・ピン352以降）。
+  5. Pin画像の「琥珀時間」合成チェック（GD-0036後半・D-0274・ピン352以降）:
+     output/Pin-images/ の画像（PNG）に、後処理で合成した目印（tEXtチャンク）が
+     入っているかを検査する。目印は copy-pin-image.sh が配置時に入れる。目印が無い・
+     画像が見つからない場合はNG（生の cp で置いた、または配置前の可能性）。
+     目印のキー名と読み取りは hero-to-webp.py を唯一の定義元とする。
 
 使い方:
   python site/scripts/check-pin-image-style.py <slug>
@@ -46,8 +52,16 @@ _spec = importlib.util.spec_from_file_location(
 piv = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(piv)
 
+# 合成済みの目印（キー名・読み取り）は hero-to-webp.py を唯一の定義元とする（D-0274）
+_spec_h2w = importlib.util.spec_from_file_location(
+    "hero_to_webp", os.path.join(SCRIPT_DIR, "hero-to-webp.py")
+)
+h2w = importlib.util.module_from_spec(_spec_h2w)
+_spec_h2w.loader.exec_module(h2w)
+
 ROOT = os.path.dirname(os.path.dirname(SCRIPT_DIR))
 PINS_DIR = os.path.join(ROOT, "output", "pins")
+PIN_IMAGES_DIR = os.path.join(ROOT, "output", "Pin-images")
 
 # 漢数字2文字以上＋単位。1文字（「一杯」「一枚」「十分」等の慣用表現）は誤検知の
 # 主因だったため対象外にする（実測・reports/2026-08-15-5.md、D-0126）。
@@ -95,6 +109,51 @@ def check_head_question(slug):
             ng_messages.append("%s: 先頭文言「%s」が疑問形" % (name, head))
     if not ng_messages:
         print("  OK: ピン%d以降の対象%d件に疑問形の先頭文言なし" % (HEAD_QUESTION_FROM_PIN, checked))
+    return ng_messages
+
+
+# Pin画像のファイル名「ピン{番号} …」（rules/image-generation-flow.md 1-2）から番号を取る。
+RE_PIN_IMAGE_NUMBER = re.compile(r"^ピン(\d+)")
+COPY_PIN_IMAGE_CMD = 'bash "C:/Claude/Tea_TeaCut/site/scripts/copy-pin-image.sh" <Downloads内のファイル名> <配置後のファイル名>'
+
+
+def check_brand_stamp(slug):
+    """ピン352以降のPin画像に「琥珀時間」の合成済みの目印があるかを検査する（GD-0036後半・D-0274）。
+
+    境界は先頭文言の疑問形チェックと同じ HEAD_QUESTION_FROM_PIN を使う。戻り値: NGメッセージのリスト。
+    """
+    targets = []
+    for path in find_pin_files(slug):
+        m = RE_PIN_NUMBER.search(os.path.basename(path))
+        if m and int(m.group(1)) >= HEAD_QUESTION_FROM_PIN:
+            targets.append(int(m.group(1)))
+
+    images = {}
+    if os.path.isdir(PIN_IMAGES_DIR):
+        for name in sorted(os.listdir(PIN_IMAGES_DIR)):
+            m = RE_PIN_IMAGE_NUMBER.match(name)
+            if m and os.path.isfile(os.path.join(PIN_IMAGES_DIR, name)):
+                images.setdefault(int(m.group(1)), []).append(name)
+
+    ng_messages = []
+    for num in targets:
+        names = images.get(num, [])
+        if not names:
+            print("  [NG] ピン%d: output/Pin-images/ に画像が見つかりません（「%s」の合成を確認できません）"
+                  % (num, h2w.BRAND_TEXT))
+            ng_messages.append("ピン%d: Pin画像が見つからない" % num)
+            continue
+        for name in names:
+            if h2w.pin_has_brand_stamp(os.path.join(PIN_IMAGES_DIR, name)):
+                continue
+            print("  [NG] %s: 「%s」の合成済みの目印がありません" % (name, h2w.BRAND_TEXT))
+            ng_messages.append("%s: 「%s」の合成済みの目印がない" % (name, h2w.BRAND_TEXT))
+    if ng_messages:
+        print("       合成前の原本（~/Downloads）から、次のスクリプトで配置し直してください"
+              "（生の cp では合成されません）:")
+        print("       " + COPY_PIN_IMAGE_CMD)
+    else:
+        print("  OK: ピン%d以降の対象%d件すべてに合成済みの目印あり" % (HEAD_QUESTION_FROM_PIN, len(targets)))
     return ng_messages
 
 
@@ -237,6 +296,10 @@ def main():
     print()
     print("=== 4. Pin先頭文言の疑問形チェック（GD-0036・ピン352以降） ===")
     ng.extend(check_head_question(slug))
+
+    print()
+    print("=== 5. Pin画像の「琥珀時間」合成チェック（GD-0036・D-0274・ピン352以降） ===")
+    ng.extend(check_brand_stamp(slug))
 
     print()
     if ng:
