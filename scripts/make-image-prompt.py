@@ -221,6 +221,9 @@ EXCLUDE_RULES = [
     "上に挙げた文言以外の文字・数字・記号・説明文・英字・記入欄は描かない。",
     "実在の商標を思わせるロゴや文字は描かず、缶や箱の面は無地にする。",
 ] + BRAND_MARK_EXCLUDE_RULES
+# hero は右下の印が幅の約73〜83%・下端付近に載る（hero-to-webp.py の HERO_STAMP）ため、空ける範囲を印の位置に合わせる。
+HERO_CORNER_RULE = "右下（右端から幅の約30%・下端から高さの約15%の範囲）には文字や主題を置かない。"
+HERO_EXCLUDE_RULES = EXCLUDE_RULES[:-1] + [HERO_CORNER_RULE]
 
 # 写実の指定（D-0244）。hero画像と、写真系の型（PHOTO_STYLES）のPin画像にだけ付ける。
 # 図解・イラスト系の型（比較グリッド・手順図解等）には付けない（写真の質感を求めると図の可読性が落ちるため）。
@@ -582,7 +585,7 @@ def build_hero_prompt(row, texts):
             REALISM_COMPOSITION_RULE,
         ]),
         hero_text_section(row["text_position"], texts),
-        section(SEC_EXCLUDE, EXCLUDE_RULES + [REALISM_EXCLUDE_RULE]),
+        section(SEC_EXCLUDE, HERO_EXCLUDE_RULES + [REALISM_EXCLUDE_RULE]),
         section(SEC_FINISH, BRAND_FINISH_RULES + [hero_ratio_tail()]),
     ])
 

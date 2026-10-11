@@ -474,6 +474,15 @@ def main():
     if hasattr(sys.stderr, "reconfigure"):
         sys.stderr.reconfigure(encoding="utf-8")
 
+    # 「-」で始まる引数（--help 等）をslugとして台帳へ書く事故を防ぐ。台帳を読む前に止める。
+    if len(sys.argv) >= 2 and sys.argv[1].startswith("-") and sys.argv[1] != "--set-style":
+        sys.stderr.write(
+            "エラー: 「-」で始まる引数はslugとして受け付けません（台帳は書き換えていません）。\n"
+            "usage: pick-image-variation.py <slug>\n"
+            '       pick-image-variation.py --set-style <slug> "pin1=<型名>" "pin2=<型名>" "pin3=<型名>"\n'
+        )
+        sys.exit(1)
+
     if len(sys.argv) >= 2 and sys.argv[1] == "--set-style":
         cmd_set_style(sys.argv[2:])
         return
