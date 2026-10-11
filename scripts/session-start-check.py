@@ -75,6 +75,10 @@ CHILD_SCRIPTS = [
     # check-published-pins-missing.py: 0=正常判定（検知の有無を問わない）。
     # 検知時は【警告】を本文に含めて出力する仕様のため、フック自体は失敗扱いにしない。
     ("check-published-pins-missing.py", {0}),
+    # check-advance-pin-today.py: 判定は常に終了コード0（D-0275）。ADVANCE_PIN_NEXT・
+    # ADVANCE_PIN_INCOMPLETE・ADVANCE_PIN_CALENDAR_MISSING は報告対象、
+    # ADVANCE_PIN_NONE・ADVANCE_PIN_DONE は HEADER で報告対象外にしてある。
+    ("check-advance-pin-today.py", {0}),
     # production-run.py open は D-0264 で停止したため登録しない。
 ]
 
@@ -84,10 +88,11 @@ HEADER = (
     "=== セッション開始時チェック（SessionStartフック・自動実行） ===\n"
     "以下は自動実行された開始時チェックの結果です。CLAUDE.md 10節のセッション開始時チェックは"
     "ここで実行済みのため、AIが同じものを改めて手動実行しないでください（二重報告防止）。\n"
-    "【警告】【エラー】、行頭が ROUTINE_NONE・SCHEDULED_NONE・MONTHLY_NONE・MONTHLY_NEXT で始まる行以外の出力、NEEDED判定のいずれかが含まれる場合は、"
+    "【警告】【エラー】、行頭が ROUTINE_NONE・SCHEDULED_NONE・MONTHLY_NONE・MONTHLY_NEXT・ADVANCE_PIN_NONE・ADVANCE_PIN_DONE で始まる行以外の出力、NEEDED判定のいずれかが含まれる場合は、"
     "その内容を通常の作業に入る前に最初にオーナーへ報告してください。"
-    "行頭がこの4語で始まる行は、行末に「（改修上限 n/4・保留n行）」が付いていても報告対象外です（行頭で判定します）。"
+    "行頭がこの6語で始まる行は、行末に「（改修上限 n/4・保留n行）」等が付いていても報告対象外です（行頭で判定します）。"
     "MONTHLY_NEXT は日次の題材選びに使ってください。"
+    "ADVANCE_PIN_NEXT・ADVANCE_PIN_INCOMPLETE は、日次を行う日に先行ピンを1件作る（作り終える）合図です（rules/image-generation-flow.md 1-4節）。"
     "NEEDEDの場合の対応はCLAUDE.md 10節の記載に従ってください。"
 )
 

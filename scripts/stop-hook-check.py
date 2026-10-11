@@ -21,7 +21,8 @@ session-token-usage.py のサブプロセス起動時には cwd=PROJECT_ROOT を
 Stopフックのcommandから、hook入力JSON（stdin）を受け取って呼ばれる想定。
 stop_hook_active が true の場合（=このフック自身が直前に継続を強制した
 2回目以降のStop発火）は無条件で停止を許可し、無限ループを避ける。この判定は
-governance判定・トークン追記判定のどちらよりも前に行う。
+governance判定・トークン追記判定のどちらよりも前に行う（先行ピンが未完了のときだけ、
+止めずに【警告】を1行出す・D-0275）。
 
 check-doc-governance.py は【警告】が1件でもあれば終了コード1、
 それ以外（【通知】のみ・異常なし・初回実行）は終了コード0を返す
@@ -54,7 +55,9 @@ JSONパースを壊すリスクがあることが判明したため、検知結�
 方式へ変更した（D-0082）。
 
 ■ stdout出力の規律（D-0082）
-このスクリプトがstdoutへ書き出してよいのは block() による1本のJSONのみとする。
+このスクリプトがstdoutへ書き出してよいのは block() による1本のJSONのみとする
+（例外は stop_hook_active が true のときの先行ピンの【警告】で、これも systemMessage の
+JSON1本とし、block() とは同時に出さない・D-0275）。
 平文をstdoutへ出してはならない（人間向けの警告・エラーはすべてstderrへ出す）。
 子プロセスの出力は subprocess.run(capture_output=True) で捕捉しており、
 このスクリプトのstdoutへは素通ししない。
@@ -78,6 +81,21 @@ record-lesson.py check を実行し、標準出力に LESSON_NOT_RECORDED が含
 publish-article.py --prepare-revise。D-0268）がマーカーを作る。
 改善・修正セッションではマーカーが作られないため、この検知は何も要求しない。
 追加する子プロセスはこの1本のみで、処理はファイル1本の読み比べに留める。
+
+■ 先行ピンの未完了による継続の強制（D-0275）
+日次ノルマの先行ピン1件/日（D-0256）を、AIの注意ではなく終了時の検査で守らせる。
+次の両方を満たすときだけ、既存のreason統合へ合流させて終了を止める。
+  (1) 今日が「日次を実施した日」である。docs/tasks.md「## 今日」節の date マーカーが今日
+      （日本時間）で、その節に [新規記事執筆]・[改修]・[改修+画像] のいずれかを含む完了行
+      （- [x]）がある、で判定する（daily_done_on()）。完了行に限るのは、
+      rotate-today-tasks.py が日次の実施に関係なく、その日の最初のセッション開始時に
+      マーカーを今日へ書き換えるため（未完了行が持ち越された日は、日次をしていなくても
+      マーカーが今日になる）。完了行は日付が変わると rotate が消すので、今日のマーカーの
+      下にある完了行は今日完了したものに限られる。
+  (2) check-advance-pin-today.py の判定が ADVANCE_PIN_NEXT か ADVANCE_PIN_INCOMPLETE である。
+(1) を満たさない日（改善・修正だけの日）は子プロセスを起動せず、何も出さない。
+stop_hook_active が true のときは止めない（無限ループを避けるため）。(1)(2) を満たして
+いれば【警告】1行を {"systemMessage": ...} のJSON1本としてstdoutへ出し、同じ行をstderrへも出す。
 
 ■ 所要時間の記録（D-0136）
 4つの子プロセス（governance判定・トークン集計・索引生成・Googleドライブ同期）それぞれの
@@ -104,8 +122,8 @@ Stopフック本体の処理は止めない。
 data/stop-hook-timing.tsv の列構成（D-0136）は一切変更しない。
 
 ■ block()の呼び出し規律（D-0082／D-0142で同期失敗を4項目目として追加）
-ガバナンス警告・トークン未出力・未commit検知・同期失敗・教訓リスト未記録（D-0163）が
-同時に成立しても、block()の
+ガバナンス警告・トークン未出力・未commit検知・同期失敗・教訓リスト未記録（D-0163）・
+先行ピンの未完了（D-0275）が同時に成立しても、block()の
 呼び出しは1回のみ・出力されるJSONも1つのみとし、reasonに全項目をまとめて含める。
 継続強制の回数制御は既存の stop_hook_active 方式（1回だけ強制・2回目以降は無条件で
 終了を許可）をそのまま使い、新しい制御方式は作らない。
@@ -129,6 +147,17 @@ RECORD_LESSON_SCRIPT = os.path.join(SCRIPT_DIR, "record-lesson.py")
 SITE_ROOT = os.path.dirname(SCRIPT_DIR)
 # site/scripts -> site -> プロジェクトルート。__file__基準のためカレントディレクトリに依存しない。
 PROJECT_ROOT = os.path.dirname(SITE_ROOT)
+
+# 先行ピンの未完了による継続の強制（D-0275）。
+ADVANCE_PIN_SCRIPT = os.path.join(SCRIPT_DIR, "check-advance-pin-today.py")
+# 今日節・dateマーカー・完了行の読み方は rotate-today-tasks.py が正本（起動はせず関数だけ使う）。
+TASKS_ROTATE_MODULE = os.path.join(SCRIPT_DIR, "rotate-today-tasks.py")
+TASKS_MD = os.path.join(PROJECT_ROOT, "docs", "tasks.md")
+DAILY_TASK_TAGS = ("[新規記事執筆]", "[改修]", "[改修+画像]")
+ADVANCE_PIN_OPEN_MARKERS = ("ADVANCE_PIN_NEXT", "ADVANCE_PIN_INCOMPLETE")
+ADVANCE_PIN_RULE_SECTION = "rules/image-generation-flow.md 1-4節"
+# 判定に使う「今日」（YYYY-MM-DD）。None のときは日本時間の今日。検証で差し替える。
+ADVANCE_PIN_TODAY = None
 
 SUMMARY_HEADING = "【オーナーが今やること】"
 TOKEN_OUTPUT_MARKER = "このセッションの使用トークン数"
@@ -441,6 +470,87 @@ def build_sync_reason(sync_result, sync_exc):
     )
 
 
+def advance_pin_today():
+    """先行ピンの判定に使う今日の日付（YYYY-MM-DD・日本時間）。"""
+    if ADVANCE_PIN_TODAY:
+        return ADVANCE_PIN_TODAY
+    return time.strftime("%Y-%m-%d", time.gmtime(time.time() + 9 * 3600))
+
+
+def daily_done_on(tasks_path, date_text):
+    """date_text が「日次を実施した日」かを docs/tasks.md から判定する（D-0275）。
+
+    「## 今日」節の date マーカーが date_text で、その節に DAILY_TASK_TAGS のいずれかを含む
+    完了行（- [x]）があれば True。読めない・節が無い場合は False（＝止めない側に倒す）。
+    """
+    if not os.path.isfile(tasks_path):
+        return False
+    try:
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("rotate_today_tasks", TASKS_ROTATE_MODULE)
+        rotate = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(rotate)
+        lines = rotate.read_text(tasks_path).split("\n")
+        for start, end in rotate.find_today_sections(lines):
+            marker = rotate.DATE_MARKER_RE.match(lines[start + 1]) if start + 1 < end else None
+            if not marker or marker.group(1) != date_text:
+                continue
+            for line in lines[start + 2:end]:
+                if rotate.is_checked_line(line) and any(tag in line for tag in DAILY_TASK_TAGS):
+                    return True
+    except Exception as exc:
+        print("警告: 日次の実施判定（docs/tasks.md）に失敗しました: %s" % exc, file=sys.stderr)
+    return False
+
+
+def advance_pin_open_line(child_env):
+    """今日が日次を実施した日で、先行ピンが未完了なら、その判定行を返す。それ以外は None（D-0275）。
+
+    日次を実施していない日は check-advance-pin-today.py を起動しない。
+    所要時間TSV（D-0136）の列は変えないため、キー"advance_pin"は TIMING_KEYS に含めない。
+    """
+    today = advance_pin_today()
+    if not daily_done_on(TASKS_MD, today):
+        return None
+    result, exc = run_child(
+        "advance_pin", [sys.executable, ADVANCE_PIN_SCRIPT, "--date", today], 30, env=child_env
+    )
+    if result is None:
+        print("警告: check-advance-pin-today.pyの実行中にエラーが発生しました: %s" % exc, file=sys.stderr)
+        return None
+    for line in (result.stdout or "").splitlines():
+        if line.startswith(ADVANCE_PIN_OPEN_MARKERS):
+            return line.strip()
+    return None
+
+
+def build_advance_pin_warning(open_line):
+    """先行ピンが未完了であることの【警告】1行（止める・止めないの両方で使う）。"""
+    return (
+        "【警告】今日は日次を実施した日ですが、先行ピン（1件/日・D-0256）が未完了です: %s"
+        % open_line
+    )
+
+
+def build_advance_pin_reason(open_line):
+    """先行ピンの未完了をreason文字列へ組み立てる（D-0275）。未完了でなければ None。
+    判定行（候補の slug か、未完了のピン番号と理由を含む）と手順の節番号を必ず入れる。
+    """
+    if not open_line:
+        return None
+    return (
+        NO_RESUMMARY_PREFIX
+        + build_advance_pin_warning(open_line) + "\n"
+        "取るべき行動: %s の手順で、判定行の slug（ADVANCE_PIN_INCOMPLETE の場合は判定行のピン）の"
+        "先行ピンを1件、--verify・quality-reviewer・post-pins-to-pinterest.py・"
+        "post-pins-to-buffer.py まで終えてください。終えたら "
+        "python site/scripts/check-advance-pin-today.py が ADVANCE_PIN_DONE を出すことを確認し、"
+        "当日のreports/へ追記してください。候補が無い日の免除は、同スクリプトが "
+        "ADVANCE_PIN_NONE を出した場合だけです（AIの判断で見送らない）。"
+        % ADVANCE_PIN_RULE_SECTION
+    )
+
+
 def check_git_dirty(site_root):
     """site/リポジトリの未commit差分を検知する（D-0080）。
     記事ファイル・pin/hero画像ファイルの差分は正常な公開作業中の一時状態として除外する。
@@ -496,11 +606,17 @@ def main():
     except Exception:
         payload = {}
 
-    if payload.get("stop_hook_active"):
-        sys.exit(0)
-
     child_env = dict(os.environ)
     child_env["PYTHONIOENCODING"] = "utf-8"
+
+    if payload.get("stop_hook_active"):
+        # 止めない（無限ループを避ける）。先行ピンが未完了のときだけ【警告】を1行出す（D-0275）。
+        open_line = advance_pin_open_line(child_env)
+        if open_line:
+            warning = build_advance_pin_warning(open_line)
+            print(warning, file=sys.stderr)
+            print(json.dumps({"systemMessage": warning}, ensure_ascii=False))
+        sys.exit(0)
 
     reason_parts = []
 
@@ -551,6 +667,9 @@ def main():
         "lesson", [sys.executable, RECORD_LESSON_SCRIPT, "check"], 15, env=child_env
     )
     reason_parts.append(build_lesson_reason(lesson_result, lesson_exc))
+
+    # 先行ピンの未完了（D-0275）。日次を実施した日だけ子プロセスを起動する。
+    reason_parts.append(build_advance_pin_reason(advance_pin_open_line(child_env)))
 
     # 索引生成・同期は block() より前に実行する（D-0142）。同期の失敗をreasonへ
     # 合流させるため、block()を呼ぶ時点で同期結果が確定している必要がある。

@@ -11,6 +11,9 @@ Edit/Writeによるpublished化は .claude/hooks/check-publish-gate.py で拒否
 【実行順（前段が1つでも失敗したら、以降を一切実行せず終了コード1で中断する）】
   1. output/articles/<slug>.md の存在確認
   2. 公開前チェック群を順に実行（1本でも非ゼロ終了なら中断）
+       check-advance-pin-today.py <slug> --require-row
+         （category が seasons・gift の記事は、季節の山の台帳 data/advance-pin-calendar.tsv に
+           行が無ければ不合格。新規公開だけにかける。D-0275）
        check-article-portability.py <slug>
        check-product-link-presence.py <slug> --min N --new
          （N は category で切り替える。gift・teaware は3点、それ以外は1点。
@@ -74,8 +77,9 @@ Edit/Writeによるpublished化は .claude/hooks/check-publish-gate.py で拒否
   --revise <slug> [--dry-run]:
     posts側に記事が無い場合・下書きが無い場合・下書きの status が published
     でない場合・下書きが posts側と差分なしの場合は、いずれも中断する。
-    公開前チェックは8本から check-pin-image-naming・check-pin-image-style・
-    check-x-post-length を除いた5本（Pin・SNS投稿文は再公開で変わらないため）。
+    公開前チェックは9本から check-pin-image-naming・check-pin-image-style・
+    check-x-post-length（Pin・SNS投稿文は再公開で変わらないため）と
+    check-advance-pin-today --require-row（新規公開だけにかけるため・D-0275）を除いた5本。
     商品リンクの基準は「公開中（posts側）の点数以上・上限3」（--min min(3, N)）。
     公開中が0点の記事は商品リンクのチェックを省く（減らしようが無いため）。
     本番実行時は下書きの updated を再公開日（日本時間）へ書き換えたうえで、
@@ -173,6 +177,9 @@ POSTS_DIR = os.path.join(ROOT, "site", "src", "content", "posts")
 
 # (スクリプト名, slugを引数に取るか, 追加の固定引数)
 PRE_PUBLISH_CHECKS = [
+    # seasons・gift の新規記事は、先行ピンの季節の山の台帳（data/advance-pin-calendar.tsv）に
+    # 行が無ければ止める（D-0275）。行が無い記事は先行ピンの候補から漏れ続けるため。
+    ("check-advance-pin-today.py", True, ["--require-row"]),
     ("check-article-portability.py", True, []),
     # 商品点数の必須数はカテゴリで切り替える（gift・teaware=3、それ以外=1・D-0248）。
     # 実際の --min は publish_checks() が category から決めて差し替える（この3は既定値）。
@@ -188,8 +195,10 @@ PRE_PUBLISH_CHECKS = [
     ("check-x-post-length.py", True, []),
 ]
 
-# --revise 用: Pin・SNS投稿文はrevise（再公開）で内容が変わらないため除外する3本。
+# --revise 用: Pin・SNS投稿文はrevise（再公開）で内容が変わらないため除外する3本と、
+# 新規公開だけにかける季節の山の台帳の行チェック（D-0275）。
 REVISE_EXCLUDED_CHECKS = {
+    "check-advance-pin-today.py",
     "check-pin-image-naming.py",
     "check-pin-image-style.py",
     "check-x-post-length.py",
@@ -313,7 +322,7 @@ def run_checks(slug, attempt=None, checks=None):
 
     attempt は呼び出し元が渡す記録用の辞書で、落ちたチェック名を書き戻す
     （D-0235）。標準出力・終了コードはこの引数の有無で変わらない。
-    checks を省略すると PRE_PUBLISH_CHECKS（8本）を使う。--revise は
+    checks を省略すると PRE_PUBLISH_CHECKS（9本）を使う。--revise は
     REVISE_PUBLISH_CHECKS（5本）を明示的に渡す。
     """
     if checks is None:
@@ -635,7 +644,7 @@ def _run_revise(rest_args):
         "output/articles/%s.md" % slug,
     )
 
-    out("2. 公開前チェック群（Pin・SNS投稿文関連の3本を除いた5本）")
+    out("2. 公開前チェック群（Pin・SNS投稿文関連の3本と季節の山の台帳の行チェックを除いた5本）")
     revise_checks, published_products = _revise_checks(published_path)
     out("  商品リンク基準: 公開中の点数（%d点）以上（上限3）" % published_products)
     if not run_checks(slug, checks=revise_checks):

@@ -90,9 +90,19 @@ hero画像に焼き込む見出し文言の必須指定（D-0173）:
   写実の指定（実物を撮った写真の質感）は hero と PHOTO_STYLES（写真ヒーロー）の Pin にだけ付け、
   図解・イラスト系の型には付けない。構図の4軸・型の選び方は変更しない。
 
+先行ピン1枚用のモード（D-0256・D-0275）:
+  --advance-pin <slug> を付けると、既存記事へ足す先行ピンの依頼文を1枚分だけ出す。
+  番号・構図4軸・型の候補は piv.advance_pin_plan() が決め、台帳（直近8記事の4枚セット用）は
+  読むだけで書き換えない。--style には候補の型（その記事の他のピンの型と、直近の先行ピンの型を
+  除いたもの）だけを渡せる。文言は --pin-text（1〜6件・1件30文字以内）。依頼文の節構成・
+  右下を空ける指示（D-0274）は4枚モードと同じ。条件の分岐（D-0152）とCTA帯は適用しない。
+  4枚モードの引数・出力は変えていない。
+
 使い方:
   python site/scripts/make-image-prompt.py <slug> --hero-text "見出し文言"
     --pin1-text "文言A｜文言B" --pin2-text "文言C" --pin3-text "文言D｜文言E｜文言F"
+  python site/scripts/make-image-prompt.py --advance-pin <slug> --style "<型名>"
+    --pin-text "文言A｜文言B" [--prompt-only pin]
 """
 
 import importlib.util
@@ -703,6 +713,78 @@ def print_js_section(blocks):
     print()
 
 
+# --- 先行ピン1枚用のモード（D-0256・D-0275） ---
+# 既存記事へ足す先行ピンの依頼文を1枚分だけ出す。番号・構図4軸・型の候補は
+# piv.advance_pin_plan() が決め（台帳は書き換えない）、ここでは依頼文に組み立てるだけにする。
+# 依頼文の節構成・右下を空ける指示（D-0274）・文言の検査は4枚モードと同じ関数を通す。
+ADVANCE_PIN_OPT = "--advance-pin"
+ADVANCE_STYLE_OPT = "--style"
+ADVANCE_SLOT = "pin"  # --pin-text・--prompt-only pin のスロット名
+ADVANCE_USAGE = (
+    'usage: make-image-prompt.py %s <slug> %s "<型名>" %s "文言1｜文言2" [%s %s]'
+    % (ADVANCE_PIN_OPT, ADVANCE_STYLE_OPT, pin_text_opt(ADVANCE_SLOT), PROMPT_ONLY_OPT, ADVANCE_SLOT)
+)
+
+
+def _pop_option(argv, opt):
+    """argv から「opt 値」を取り除き、値を返す。opt が無ければ None。値が無ければ exit 1。"""
+    if opt not in argv:
+        return None
+    i = argv.index(opt)
+    if i + 1 >= len(argv):
+        sys.stderr.write("%s の値が指定されていません。\n%s\n" % (opt, ADVANCE_USAGE))
+        sys.exit(1)
+    value = argv[i + 1]
+    del argv[i:i + 2]
+    return value
+
+
+def advance_main(argv):
+    """--advance-pin <slug> --style <型名> --pin-text "…" [--prompt-only pin]"""
+    slug = _pop_option(argv, ADVANCE_PIN_OPT)
+    style_raw = _pop_option(argv, ADVANCE_STYLE_OPT)
+    raw_text = _pop_option(argv, pin_text_opt(ADVANCE_SLOT))
+    prompt_only = _pop_option(argv, PROMPT_ONLY_OPT)
+    if argv or not slug or slug.startswith("-"):
+        sys.stderr.write(ADVANCE_USAGE + "\n")
+        sys.exit(1)
+    if prompt_only is not None and prompt_only != ADVANCE_SLOT:
+        sys.stderr.write("先行ピンのモードでは %s に指定できるのは %s だけです（指定値: %s）。\n"
+                         % (PROMPT_ONLY_OPT, ADVANCE_SLOT, prompt_only))
+        sys.exit(1)
+
+    plan = piv.advance_pin_plan(slug)
+    if not plan["existing_pins"]:
+        sys.stderr.write("output/pins/ に %s へ誘導する既存のピンがありません"
+                         "（先行ピンは既存記事へ足すピンです。slugを確認する）。\n" % slug)
+        sys.exit(1)
+    candidates = "／".join(plan["candidates"])
+    if style_raw is None:
+        sys.stderr.write("%s が指定されていません。選べる型: %s\n" % (ADVANCE_STYLE_OPT, candidates))
+        sys.exit(1)
+    style = piv.resolve_style(style_raw)
+    if style not in plan["candidates"]:
+        sys.stderr.write(
+            "【エラー】型「%s」は、この記事の他のピンか直近の先行ピンで使った型のため選べません。\n"
+            "選べる型: %s\n" % (style, candidates))
+        sys.exit(1)
+    if raw_text is not None:
+        reject_newline_text(pin_text_opt(ADVANCE_SLOT), raw_text)
+    texts = parse_pin_texts(ADVANCE_SLOT, raw_text, style)
+
+    body = build_pin_prompt(plan["row"], style, texts)
+    if prompt_only is not None:
+        print(body)
+        return
+    print("■ 先行ピン1枚用（ピン%d・%s・型「%s」・この行はChatGPTへ貼らない）"
+          % (plan["pin_num"], plan["file_name"], style))
+    print()
+    print("--- %s ---" % ADVANCE_SLOT)
+    print(body)
+    print()
+    print_js_section([(ADVANCE_SLOT, body)])
+
+
 def main():
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
@@ -711,6 +793,10 @@ def main():
         sys.stderr.reconfigure(encoding="utf-8")
 
     argv = sys.argv[1:]
+
+    if ADVANCE_PIN_OPT in argv:
+        advance_main(argv)
+        return
 
     prompt_only = None
     if PROMPT_ONLY_OPT in argv:

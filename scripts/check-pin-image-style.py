@@ -32,8 +32,15 @@
      画像が見つからない場合はNG（生の cp で置いた、または配置前の可能性）。
      目印のキー名と読み取りは hero-to-webp.py を唯一の定義元とする。
 
+先行ピンのモード（--advance-pin <ピン番号>・D-0256・D-0275）:
+  先行ピン（ピンmdに「- 先行ピン作成日:」行があるもの）は既存記事へ足す1枚で、台帳に行を
+  持たない。このモードは台帳の有無を見ず、その1枚だけに次を適用する: 型がピンmdに書かれ、
+  その記事の他のピン・直近の先行ピンと重ならないこと／上の3・4・5（数量表記・先頭文言の
+  疑問形・右下の合成の目印）。記事単位の検査（slug指定）は先行ピンのファイルを対象から外す。
+
 使い方:
   python site/scripts/check-pin-image-style.py <slug>
+  python site/scripts/check-pin-image-style.py --advance-pin <ピン番号>
 """
 
 import glob
@@ -62,6 +69,7 @@ _spec_h2w.loader.exec_module(h2w)
 ROOT = os.path.dirname(os.path.dirname(SCRIPT_DIR))
 PINS_DIR = os.path.join(ROOT, "output", "pins")
 PIN_IMAGES_DIR = os.path.join(ROOT, "output", "Pin-images")
+ADVANCE_PIN_OPT = "--advance-pin"
 
 # 漢数字2文字以上＋単位。1文字（「一杯」「一枚」「十分」等の慣用表現）は誤検知の
 # 主因だったため対象外にする（実測・reports/2026-08-15-5.md、D-0126）。
@@ -91,9 +99,13 @@ def is_head_question(text):
     return text is not None and text.endswith(("？", "?"))
 
 
-def check_head_question(slug):
-    """ピン352以降の先頭文言が疑問形でないかを検査する。戻り値: NGメッセージのリスト。"""
-    files = find_pin_files(slug)
+def check_head_question(slug, files=None):
+    """ピン352以降の先頭文言が疑問形でないかを検査する。戻り値: NGメッセージのリスト。
+
+    files を渡すと、slug から探す代わりにそのファイルだけを検査する（先行ピンのモード用）。
+    """
+    if files is None:
+        files = find_pin_files(slug)
     ng_messages = []
     checked = 0
     for path in files:
@@ -117,13 +129,16 @@ RE_PIN_IMAGE_NUMBER = re.compile(r"^ピン(\d+)")
 COPY_PIN_IMAGE_CMD = 'bash "C:/Claude/Tea_TeaCut/site/scripts/copy-pin-image.sh" <Downloads内のファイル名> <配置後のファイル名>'
 
 
-def check_brand_stamp(slug):
+def check_brand_stamp(slug, files=None):
     """ピン352以降のPin画像に「琥珀時間」の合成済みの目印があるかを検査する（GD-0036後半・D-0274）。
 
     境界は先頭文言の疑問形チェックと同じ HEAD_QUESTION_FROM_PIN を使う。戻り値: NGメッセージのリスト。
+    files を渡すと、slug から探す代わりにそのファイルだけを検査する（先行ピンのモード用）。
     """
+    if files is None:
+        files = find_pin_files(slug)
     targets = []
-    for path in find_pin_files(slug):
+    for path in files:
         m = RE_PIN_NUMBER.search(os.path.basename(path))
         if m and int(m.group(1)) >= HEAD_QUESTION_FROM_PIN:
             targets.append(int(m.group(1)))
@@ -162,9 +177,83 @@ def find_pin_files(slug):
     return sorted(glob.glob(pattern))
 
 
-def check_kanji_quantity(slug):
-    """Pin投稿文（「## 投稿文」節）の数量表記を検査する。戻り値: NGメッセージのリスト。"""
-    files = find_pin_files(slug)
+def is_advance_pin_file(path):
+    """ピンmdが先行ピン（「- 先行ピン作成日:」行あり・D-0256）か。目印の定義は piv が正本。"""
+    try:
+        with open(path, encoding="utf-8") as f:
+            return piv.advance_pin_date(f.read()) is not None
+    except OSError:
+        return False
+
+
+def check_advance_pin(pin_num):
+    """先行ピン1枚（ピン番号 pin_num）の検査。戻り値: NGメッセージのリスト（空なら合格）。
+
+    先行ピンは既存記事へ足す1枚で、4枚セット用の台帳（data/image-variation.tsv）に行を持たない。
+    そのため台帳の有無は見ず、型はピンmdの「- 型:」行で確かめる。数量表記・先頭文言の疑問形・
+    右下の合成の目印は、通常のピンと同じ関数でこの1ファイルだけを検査する。
+    """
+    entries = piv.read_pin_entries(PINS_DIR)
+    entry = next((e for e in entries if e["num"] == pin_num), None)
+    if entry is None:
+        print("  [NG] ピン%d の投稿文ファイルが output/pins/ にありません" % pin_num)
+        return ["ピン%d: 投稿文ファイルが無い" % pin_num]
+    name = entry["file"]
+    path = os.path.join(PINS_DIR, name)
+    print("対象: %s（先行ピン）" % name)
+    if not entry["advance_date"]:
+        print("  [NG] 「%s」行がありません（先行ピンのモードは先行ピンだけを検査します）"
+              % piv.ADVANCE_PIN_LABEL.strip())
+        return ["%s: 先行ピン作成日の行が無い" % name]
+
+    ng = []
+    print()
+    print("=== 1. 型（ピンmdの「- 型:」行・台帳は見ない） ===")
+    style = entry["style"]
+    article_styles, previous = piv.advance_style_exclusions(entry["slug"], pin_num, entries)
+    if style not in piv.IMAGE_STYLES:
+        print("  [NG] 型「%s」は型候補プールにありません。指定できる型: %s"
+              % (style or "（行なし）", "／".join(piv.IMAGE_STYLES)))
+        ng.append("%s: 型が候補プールに無い" % name)
+    else:
+        problems = []
+        if style in article_styles:
+            problems.append("この記事の他のピンと同じ型です")
+        if previous and previous["style"] == style:
+            problems.append("直近の先行ピン（ピン%d）と同じ型です" % previous["num"])
+        # 避ける型を除くと候補が残らない場合は、選ぶ側（piv.advance_pin_plan）と同じく重複を許す。
+        excluded = set(article_styles)
+        if previous and previous["style"] in piv.IMAGE_STYLES:
+            excluded.add(previous["style"])
+        if problems and len(excluded) < len(piv.IMAGE_STYLES):
+            for p in problems:
+                print("  [NG] 型「%s」: %s" % (style, p))
+                ng.append("%s: %s" % (name, p))
+        else:
+            print("  OK: 型=%s（この記事の他のピン: %s／直近の先行ピン: %s）"
+                  % (style, "／".join(sorted(article_styles)) or "型の記録なし",
+                     "%s（ピン%d）" % (previous["style"], previous["num"]) if previous else "なし"))
+
+    print()
+    print("=== 2. Pin投稿文の数量表記チェック（漢数字＋単位・D-0126） ===")
+    ng.extend(check_kanji_quantity(entry["slug"], files=[path]))
+    print()
+    print("=== 3. Pin先頭文言の疑問形チェック（GD-0036・ピン%d以降） ===" % HEAD_QUESTION_FROM_PIN)
+    ng.extend(check_head_question(entry["slug"], files=[path]))
+    print()
+    print("=== 4. Pin画像の「%s」合成チェック（GD-0036・D-0274・ピン%d以降） ==="
+          % (h2w.BRAND_TEXT, HEAD_QUESTION_FROM_PIN))
+    ng.extend(check_brand_stamp(entry["slug"], files=[path]))
+    return ng
+
+
+def check_kanji_quantity(slug, files=None):
+    """Pin投稿文（「## 投稿文」節）の数量表記を検査する。戻り値: NGメッセージのリスト。
+
+    files を渡すと、slug から探す代わりにそのファイルだけを検査する（先行ピンのモード用）。
+    """
+    if files is None:
+        files = find_pin_files(slug)
     if not files:
         print("  （対象のPin投稿文ファイルが見つかりません。未作成の段階の場合はスキップ）")
         return []
@@ -195,9 +284,23 @@ def main():
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
 
-    if len(sys.argv) != 2:
-        sys.exit("usage: check-pin-image-style.py <slug>")
+    if len(sys.argv) == 3 and sys.argv[1] == ADVANCE_PIN_OPT and sys.argv[2].isdigit():
+        ng = check_advance_pin(int(sys.argv[2]))
+        print()
+        if ng:
+            print(f"総合: NG（{len(ng)}件）")
+            sys.exit(1)
+        print("総合: OK")
+        return
+
+    if len(sys.argv) != 2 or sys.argv[1].startswith("-"):
+        sys.exit("usage: check-pin-image-style.py <slug>\n"
+                 "       check-pin-image-style.py %s <ピン番号>" % ADVANCE_PIN_OPT)
     slug = sys.argv[1]
+
+    # 先行ピンは台帳に行を持たず、--advance-pin のモードで1枚ずつ検査する。
+    # 記事単位の検査（3〜5）からは外す（作成途中の先行ピンで新規記事の公開前チェックを止めないため）。
+    pin_files = [p for p in find_pin_files(slug) if not is_advance_pin_file(p)]
 
     rows = piv.read_ledger()
     target = {r["image_type"]: r for r in rows if r["slug"] == slug and r["image_type"] in piv.PIN_SLOTS}
@@ -290,16 +393,16 @@ def main():
 
     print()
     print("=== 3. Pin投稿文の数量表記チェック（漢数字＋単位・D-0126） ===")
-    kanji_quantity_ng = check_kanji_quantity(slug)
+    kanji_quantity_ng = check_kanji_quantity(slug, files=pin_files)
     ng.extend(kanji_quantity_ng)
 
     print()
     print("=== 4. Pin先頭文言の疑問形チェック（GD-0036・ピン352以降） ===")
-    ng.extend(check_head_question(slug))
+    ng.extend(check_head_question(slug, files=pin_files))
 
     print()
     print("=== 5. Pin画像の「琥珀時間」合成チェック（GD-0036・D-0274・ピン352以降） ===")
-    ng.extend(check_brand_stamp(slug))
+    ng.extend(check_brand_stamp(slug, files=pin_files))
 
     print()
     if ng:

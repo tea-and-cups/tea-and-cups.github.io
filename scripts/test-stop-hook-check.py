@@ -265,6 +265,11 @@ def _run_main(module, payload, overrides):
     自体に副作用を残さないため）。標準入力は payload（dict）をJSON化してio.StringIOで
     差し替える。main()はsys.exit(0)/(1)で終了するため、SystemExitを捕捉する。
     """
+    # 先行ピンの検査（D-0275）は本物の docs/tasks.md と実日付を読むため、指定の無いケースでは
+    # 存在しないパスへ差し替えて「日次を実施していない日」に固定する（実日付に結果を左右させない）。
+    overrides = dict(overrides)
+    overrides.setdefault("TASKS_MD", os.path.join(tempfile.gettempdir(), "stophook_test_no_tasks.md"))
+
     original = {key: getattr(module, key) for key in overrides}
     for key, value in overrides.items():
         setattr(module, key, value)
@@ -496,6 +501,130 @@ def run_main_integration_cases(module):
     return results
 
 
+def run_advance_pin_cases(module):
+    """D-0275: 先行ピンの未完了による継続の強制を、実日付に依存しない形で検証する。
+
+    docs/tasks.md・check-advance-pin-today.py・今日の日付をすべて差し替える（TASKS_MD・
+    ADVANCE_PIN_SCRIPT・ADVANCE_PIN_TODAY）。本物の tasks.md・ピン・台帳には触れない。
+    見るのは次の3通り:
+      (A) 日次を実施した日 かつ 判定が NEXT／INCOMPLETE → block()1回・reasonに slug と節番号
+      (B) (A) と同じ状態で stop_hook_active=true → 止めず、【警告】1行（systemMessage）だけ
+      (C) 日次を実施していない日 → 何も出さない（持ち越しの未完了行だけの日・判定が
+          DONE／NONE の日も止めない）
+    戻り値は (説明, 成否, 補足) のリスト。
+    """
+    results = []
+    fake_today = "2031-05-05"  # 実日付と無関係な日付に固定する
+    next_line = "ADVANCE_PIN_NEXT slug=dummy-seasonal-slug peak=06-01 残り27日"
+    incomplete_line = "ADVANCE_PIN_INCOMPLETE pin=9001 画像が未配置"
+
+    workdir = tempfile.mkdtemp(prefix="stophook_test_advance_")
+    try:
+        governance_script = os.path.join(workdir, "dummy_governance.py")
+        token_script = os.path.join(workdir, "dummy_token.py")
+        sync_script = os.path.join(workdir, "dummy_sync.py")
+        _write_dummy_script(governance_script, 0, "異常なし")
+        _write_dummy_script(token_script, 0, "トークン使用量: (テスト値)")
+        _write_dummy_script(sync_script, 0)
+        clean_repo = os.path.join(workdir, "clean_repo")
+        os.makedirs(clean_repo, exist_ok=True)
+        subprocess.run(["git", "init", "-q", clean_repo], capture_output=True, text=True, timeout=15)
+
+        def advance_script(name, line):
+            path = os.path.join(workdir, name)
+            _write_dummy_script(path, 0, line)
+            return path
+
+        def tasks_file(name, marker_date, task_lines):
+            path = os.path.join(workdir, name)
+            with open(path, "w", encoding="utf-8", newline="\n") as f:
+                f.write("# tasks.md\n\n## 今日\n<!-- date: %s -->\n%s\n\n## 今週\n- [x] [新規記事執筆] 今週節の行は判定に使わない\n"
+                        % (marker_date, "\n".join(task_lines)))
+            return path
+
+        daily_new = tasks_file("tasks_daily_new.md", fake_today, ["- [x] [新規記事執筆] ダミーの新規記事"])
+        daily_revise = tasks_file("tasks_daily_revise.md", fake_today, ["- [x] [M-1] [改修] ダミーの改修"])
+        other_day = tasks_file("tasks_other_day.md", "2031-05-04", ["- [x] [新規記事執筆] 前日の完了行"])
+        carried = tasks_file("tasks_carried.md", fake_today, ["- [ ] [新規記事執筆] 持ち越しの未完了行"])
+        no_tag = tasks_file("tasks_no_tag.md", fake_today, ["- [x] タグの無い作業"])
+
+        def run(active, tasks_path, script_path):
+            return _run_main(
+                module,
+                {"stop_hook_active": active, "last_assistant_message": "通常の応答本文です。"},
+                {
+                    "GOVERNANCE_SCRIPT": governance_script,
+                    "TOKEN_USAGE_SCRIPT": token_script,
+                    "GDRIVE_SYNC_SCRIPT": sync_script,
+                    "SITE_ROOT": clean_repo,
+                    "TASKS_MD": tasks_path,
+                    "ADVANCE_PIN_SCRIPT": script_path,
+                    "ADVANCE_PIN_TODAY": fake_today,
+                },
+            )
+
+        script_next = advance_script("advance_next.py", next_line)
+        script_incomplete = advance_script("advance_incomplete.py", incomplete_line)
+        script_done = advance_script("advance_done.py", "ADVANCE_PIN_DONE pin=9001")
+        script_none = advance_script("advance_none.py", "ADVANCE_PIN_NONE 山が21〜60日先に来る記事がありません")
+
+        # --- (A) 日次を実施した日 × NEXT／INCOMPLETE → 止める ---
+        for label, tasks_path, script_path, expect in (
+            ("新規記事の日×NEXT", daily_new, script_next, "dummy-seasonal-slug"),
+            ("改修だけの日×NEXT", daily_revise, script_next, "dummy-seasonal-slug"),
+            ("新規記事の日×INCOMPLETE", daily_new, script_incomplete, "pin=9001"),
+        ):
+            captured = run(False, tasks_path, script_path)
+            ok, detail, obj = _assert_single_json(captured)
+            if ok:
+                reason = obj["reason"]
+                ok = (expect in reason and module.ADVANCE_PIN_RULE_SECTION in reason
+                      and reason.startswith(module.NO_RESUMMARY_PREFIX)
+                      and reason.count(module.NO_RESUMMARY_PREFIX) == 1)
+                detail = "reason=%r" % reason[:160]
+            results.append(("D-0275-A. %s → block()1回・reasonに判定行と手順の節番号" % label, ok, detail))
+
+        # --- (B) stop_hook_active=true → 止めず【警告】1行だけ ---
+        captured = run(True, daily_new, script_next)
+        lines = [line for line in captured.splitlines() if line.strip()]
+        ok = len(lines) == 1
+        detail = "stdout=%r" % captured[:200]
+        if ok:
+            try:
+                obj = json.loads(lines[0])
+                message = obj.get("systemMessage", "")
+                ok = ("decision" not in obj and message.startswith("【警告】")
+                      and "dummy-seasonal-slug" in message and "\n" not in message)
+            except Exception as exc:
+                ok = False
+                detail = "JSONとして読めない: %s" % exc
+        results.append(("D-0275-B. stop_hook_active=true → 止めない（decision無し）・【警告】1行だけ", ok, detail))
+
+        # --- (C) 日次を実施していない日 → 何も出さない ---
+        for label, active, tasks_path, script_path in (
+            ("マーカーが別の日（NEXT）", False, other_day, script_next),
+            ("マーカーが別の日（NEXT・stop_hook_active=true）", True, other_day, script_next),
+            ("持ち越しの未完了行だけの日（NEXT）", False, carried, script_next),
+            ("タグの無い完了行だけの日（NEXT）", False, no_tag, script_next),
+            ("tasks.md が無い（NEXT）", False, os.path.join(workdir, "missing.md"), script_next),
+            ("日次を実施した日×DONE", False, daily_new, script_done),
+            ("日次を実施した日×NONE", False, daily_new, script_none),
+            ("日次を実施した日×DONE（stop_hook_active=true）", True, daily_new, script_done),
+        ):
+            captured = run(active, tasks_path, script_path)
+            results.append(("D-0275-C. %s → 何も出さない" % label, captured == "", "stdout=%r" % captured[:200]))
+
+        # --- daily_done_on() 単体 ---
+        results.append(("D-0275-D. daily_done_on: 今日のマーカー＋タグ付き完了行 → True",
+                        module.daily_done_on(daily_new, fake_today) is True, ""))
+        results.append(("D-0275-D. daily_done_on: 日付が違えば False",
+                        module.daily_done_on(daily_new, "2031-05-06") is False, ""))
+    finally:
+        shutil.rmtree(workdir, ignore_errors=True)
+
+    return results
+
+
 def run_prefix_consistency_cases(module):
     """D-0096: ガバナンス警告【のみ】・トークン追記【のみ】・未commit検知【のみ】の
     それぞれで、build()されたreasonの冒頭がNO_RESUMMARY_PREFIX定数と一致することを
@@ -615,6 +744,15 @@ def main():
         if not ok:
             failures.append(description)
         suffix = " — %s" % detail if detail else ""
+        print("[%s] %s%s" % (status, description, suffix))
+
+    print("\n=== 先行ピンの未完了による継続の強制（D-0275・実日付に依存しない） ===")
+    for description, ok, detail in run_advance_pin_cases(module):
+        total += 1
+        status = "OK" if ok else "NG"
+        if not ok:
+            failures.append(description)
+        suffix = " — %s" % detail if (detail and not ok) else ""
         print("[%s] %s%s" % (status, description, suffix))
 
     if failures:

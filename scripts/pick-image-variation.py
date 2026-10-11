@@ -89,9 +89,15 @@ Pin画像（pin1〜3）については「型」の候補リスト提示も担う
       PowerShellでは `&` 等が解釈されるため、各引数は必ず引用符で囲むこと
       （例: "pin3=Q&A形式" もしくは番号指定の pin3=6）。
       記録漏れは site/scripts/check-pin-image-style.py がエラーとして検知する。
+
+  python site/scripts/pick-image-variation.py --advance-pin <slug>
+      先行ピン（既存の seasons・gift 記事へ足す1枚・D-0256）のピン番号・枝番・構図4軸と、
+      選べる型（その記事の他のピンの型と、直近の先行ピンの型を除いたもの）を表示する。
+      このモードは台帳を読むだけで書き換えない（型・作成日の記録はピンmdが正本・D-0275）。
 """
 
 import os
+import re
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -427,6 +433,179 @@ def pick_combinations(article_seq):
     return combos
 
 
+# --- 先行ピン1枚用のモード（D-0256・D-0275） --------------------------------------
+# 先行ピンは既存記事へ足す4枚目以降のピンで、1日1枚だけ作る。4枚セット用の台帳
+# （data/image-variation.tsv・直近8記事）には書かない。古い記事の行は台帳に残っておらず、
+# 書くと保持上限で新しい記事の行を押し出すため。型・記事・作成日の記録はピンmdを正本にする。
+PINS_DIR = os.path.join(ROOT, "output", "pins")
+STATUS_SCRIPT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "check-pin-posting-status.py")
+
+# ピンmdの行。先行ピンの目印「- 先行ピン作成日: YYYY-MM-DD」はここが唯一の定義元で、
+# check-advance-pin-today.py・check-pin-image-style.py・check-pin-image-naming.py が参照する。
+ADVANCE_PIN_LABEL = "- 先行ピン作成日: "
+ADVANCE_PIN_LINE_RE = re.compile(r"^-\s*先行ピン作成日:\s*(\d{4}-\d{2}-\d{2})\s*$", re.M)
+PIN_MD_STYLE_RE = re.compile(r"^-\s*型:\s*(.+?)\s*$", re.M)
+PIN_MD_SEQ_RE = re.compile(r"^-\s*記事連番:\s*([0-9]+)\s*$", re.M)
+PIN_MD_SLUG_RE = re.compile(r"^-\s*誘導先URL:\s*\S*?/posts/([a-z0-9][a-z0-9-]*)/", re.M)
+# ファイル名「YYYY-MM-DD-pin-<番号>-<slug>-<枝番2桁>.md」の枝番。
+PIN_MD_BRANCH_RE = re.compile(r"-(\d{2})\.md$")
+ADVANCE_PIN_MIN_BRANCH = 4  # 先行ピンの枝番は -04 以降（rules/image-generation-flow.md 1-4節）
+JST_OFFSET_HOURS = 9
+
+
+def advance_pin_date(text):
+    """ピンmdの本文から先行ピン作成日（YYYY-MM-DD）を返す。先行ピンでなければ None。"""
+    m = ADVANCE_PIN_LINE_RE.search(text)
+    return m.group(1) if m else None
+
+
+def today_jst():
+    """日本時間の今日を YYYY-MM-DD で返す。"""
+    from datetime import datetime, timedelta, timezone
+    return datetime.now(timezone(timedelta(hours=JST_OFFSET_HOURS))).strftime("%Y-%m-%d")
+
+
+def read_pin_entries(pins_dir=None):
+    """output/pins/ の全ピンmdを読み、1ファイル1件の一覧をピン番号の昇順で返す。
+
+    各要素: num（ピン番号）／file（ファイル名）／slug（誘導先URLの /posts/<slug>/）／
+    style（「- 型:」の値。IMAGE_STYLES に無い古い表記はそのまま返す）／seq（記事連番）／
+    branch（ファイル名の枝番）／advance_date（先行ピン作成日。先行ピンでなければ None）。
+    ピン番号の読み取りは check-pin-posting-status.py が正本（範囲表記の扱いを二重実装しない）。
+    """
+    import importlib.util
+    pins_dir = pins_dir or PINS_DIR
+    spec = importlib.util.spec_from_file_location("check_pin_posting_status", STATUS_SCRIPT)
+    status = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(status)
+
+    entries = []
+    if not os.path.isdir(pins_dir):
+        return entries
+    for name in sorted(os.listdir(pins_dir)):
+        if not name.endswith(".md"):
+            continue
+        numbers = status.pin_numbers_in_name(name)
+        if not numbers:
+            continue
+        try:
+            with open(os.path.join(pins_dir, name), encoding="utf-8") as f:
+                text = f.read()
+        except OSError:
+            continue
+        style = PIN_MD_STYLE_RE.search(text)
+        seq = PIN_MD_SEQ_RE.search(text)
+        slug = PIN_MD_SLUG_RE.search(text)
+        branch = PIN_MD_BRANCH_RE.search(name)
+        entries.append({
+            "num": max(numbers),
+            "file": name,
+            "slug": slug.group(1) if slug else None,
+            "style": style.group(1) if style else None,
+            "seq": int(seq.group(1)) if seq else None,
+            "branch": int(branch.group(1)) if branch else None,
+            "advance_date": advance_pin_date(text),
+        })
+    entries.sort(key=lambda e: e["num"])
+    return entries
+
+
+def advance_style_exclusions(slug, pin_num, entries=None, rows=None):
+    """先行ピン（ピン番号 pin_num）が避ける型を返す: (この記事の他のピンの型の集合, 直近の先行ピン)。
+
+    記事の型はピンmdの「- 型:」と台帳（残っていれば）の両方から、IMAGE_STYLES にある値だけを拾う
+    （型の導入前のピン・古い表記は拾えないため「取れる範囲」になる）。
+    直近の先行ピンは、pin_num 以外で最も番号の大きい先行ピン1件（無ければ None）。
+    """
+    if entries is None:
+        entries = read_pin_entries()
+    if rows is None:
+        rows = read_ledger()
+    article = {e["style"] for e in entries
+               if e["slug"] == slug and e["num"] != pin_num and e["style"] in IMAGE_STYLES}
+    article |= {r["image_style"].strip() for r in rows
+                if r["slug"] == slug and r["image_style"].strip() in IMAGE_STYLES}
+    previous = [e for e in entries if e["advance_date"] and e["num"] != pin_num]
+    return article, (previous[-1] if previous else None)
+
+
+def advance_pin_plan(slug, today=None, entries=None):
+    """先行ピン1枚分の番号・枝番・構図4軸・型の候補を決める（台帳は読むだけで書かない）。
+
+    今日の日付の先行ピンmdがこの記事に既にあれば、それを作成中の1枚として扱う（番号・枝番を
+    そのまま返す）。無ければ、番号は output/pins/ の最終番号+1、枝番はこの記事の最大+1（最小 -04）。
+    構図4軸はピン番号を開始位置にして各軸の選択肢から1つずつ取る（乱数は使わない）。
+    """
+    if entries is None:
+        entries = read_pin_entries()
+    today = today or today_jst()
+    mine = [e for e in entries if e["slug"] == slug]
+    current = [e for e in mine if e["advance_date"] == today]
+    if current:
+        pin_num = current[-1]["num"]
+        branch = current[-1]["branch"]
+        file_name = current[-1]["file"]
+    else:
+        pin_num = (entries[-1]["num"] if entries else 0) + 1
+        branches = [e["branch"] for e in mine if e["branch"]]
+        branch = max(branches + [ADVANCE_PIN_MIN_BRANCH - 1]) + 1
+        file_name = "%s-pin-%d-%s-%02d.md" % (today, pin_num, slug, branch)
+
+    article_styles, previous = advance_style_exclusions(slug, pin_num, entries)
+    excluded = set(article_styles)
+    if previous and previous["style"] in IMAGE_STYLES:
+        excluded.add(previous["style"])
+    candidates = [s for s in IMAGE_STYLES if s not in excluded]
+    relaxed = not candidates
+    if relaxed:
+        candidates = list(IMAGE_STYLES)
+
+    seqs = [e["seq"] for e in mine if e["seq"] is not None]
+    seq = seqs[0] if seqs else seq_for_slug(slug)
+    row = {axis: values[pin_num % len(values)] for axis, values in AXES.items()}
+    return {
+        "slug": slug, "pin_num": pin_num, "branch": branch, "file_name": file_name,
+        "is_new": not current, "existing_pins": [e["num"] for e in mine if e["num"] != pin_num],
+        "row": row, "article_seq": seq,
+        "article_styles": article_styles, "previous": previous,
+        "candidates": candidates, "relaxed": relaxed,
+    }
+
+
+def cmd_advance_pin(argv):
+    """--advance-pin <slug>: 先行ピン1枚分の番号・構図・型の候補を表示する（台帳は書き換えない）。"""
+    if len(argv) != 1 or argv[0].startswith("-"):
+        sys.exit("usage: pick-image-variation.py --advance-pin <slug>")
+    slug = argv[0]
+    plan = advance_pin_plan(slug)
+    if not plan["existing_pins"]:
+        sys.exit(f"output/pins/ に {slug} へ誘導する既存のピンがありません（先行ピンは既存記事へ足すピンです。slugを確認する）")
+    row = plan["row"]
+    previous = plan["previous"]
+    print("■ 先行ピン1枚用（D-0256・台帳 data/image-variation.tsv は書き換えない）")
+    print(f"記事: {slug}（既存のピン: {'・'.join(str(n) for n in plan['existing_pins'])}）")
+    print(f"ピン番号: {plan['pin_num']}（{'output/pins/ の最終番号+1' if plan['is_new'] else '今日の日付で作成中のピン'}）"
+          f"／記事内の枝番: -{plan['branch']:02d}")
+    print(f"ピンmdのファイル名: output/pins/{plan['file_name']}")
+    print(f"構図: アングル={row['angle']}／フレーミング={row['framing']}／"
+          f"テキスト配置={row['text_position']}／背景小物={row['background']}")
+    if plan["article_seq"] is None:
+        print("記事連番: 既存のピンmd・台帳のどちらにも記載がありません（オーナーへ確認する）")
+    else:
+        print(f"記事連番: {plan['article_seq']}（ピンmdの「- 記事連番:」にこの値を書く）")
+    print("避ける型: この記事の他のピン＝"
+          + ("／".join(sorted(plan["article_styles"])) or "（型の記録なし）")
+          + "、直近の先行ピン＝"
+          + (f"{previous['style'] or '型の記録なし'}（ピン{previous['num']}）" if previous else "なし"))
+    if plan["relaxed"]:
+        print("※避ける型を除くと候補が残らないため、型プール全体を候補にしています")
+    print("選べる型（この中から1つ選ぶ）: " + "／".join(plan["candidates"]))
+    print()
+    print("次の手順（rules/image-generation-flow.md 1-4節）:")
+    print(f'  python site/scripts/make-image-prompt.py --advance-pin {slug} --style "<型名>" '
+          '--pin-text "文言1｜文言2" --prompt-only pin')
+
+
 def cmd_set_style(argv):
     """--set-style <slug> pin1=型名 pin2=型名 pin3=型名"""
     if len(argv) < 2:
@@ -475,16 +654,21 @@ def main():
         sys.stderr.reconfigure(encoding="utf-8")
 
     # 「-」で始まる引数（--help 等）をslugとして台帳へ書く事故を防ぐ。台帳を読む前に止める。
-    if len(sys.argv) >= 2 and sys.argv[1].startswith("-") and sys.argv[1] != "--set-style":
+    if len(sys.argv) >= 2 and sys.argv[1].startswith("-") and sys.argv[1] not in ("--set-style", "--advance-pin"):
         sys.stderr.write(
             "エラー: 「-」で始まる引数はslugとして受け付けません（台帳は書き換えていません）。\n"
             "usage: pick-image-variation.py <slug>\n"
             '       pick-image-variation.py --set-style <slug> "pin1=<型名>" "pin2=<型名>" "pin3=<型名>"\n'
+            "       pick-image-variation.py --advance-pin <slug>\n"
         )
         sys.exit(1)
 
     if len(sys.argv) >= 2 and sys.argv[1] == "--set-style":
         cmd_set_style(sys.argv[2:])
+        return
+
+    if len(sys.argv) >= 2 and sys.argv[1] == "--advance-pin":
+        cmd_advance_pin(sys.argv[2:])
         return
 
     if len(sys.argv) != 2:

@@ -40,6 +40,19 @@ PIN_MD_NUM_RE = re.compile(r"-pin-(\d+)-")
 # 番号突き合わせチェックの対象からも除外する。
 PIN_NUMBER_CUTOVER = 75
 
+# 先行ピンの目印「- 先行ピン作成日: YYYY-MM-DD」。pick-image-variation.py の ADVANCE_PIN_LINE_RE と
+# 同じ書式（あちらが定義元。このスクリプトは他のスクリプトを読み込まない作りのため、ここに写す）。
+ADVANCE_PIN_LINE_RE = re.compile(r"^-\s*先行ピン作成日:\s*\d{4}-\d{2}-\d{2}\s*$", re.M)
+
+
+def is_advance_pin_md(name):
+    """output/pins/ のピンmdが先行ピンか（読めなければ False＝通常のピンとして扱う）。"""
+    try:
+        with open(os.path.join(PINS_DIR, name), encoding="utf-8") as f:
+            return ADVANCE_PIN_LINE_RE.search(f.read()) is not None
+    except OSError:
+        return False
+
 
 def main():
     if hasattr(sys.stdout, "reconfigure"):
@@ -102,6 +115,14 @@ def main():
 
     missing = sorted(n for n in expected_nums if n not in image_nums)
     extra = sorted(n for n in image_nums if n not in expected_nums)
+
+    # 先行ピン（mdに「- 先行ピン作成日:」行がある・D-0256）で画像が未配置のものは、作成途中として
+    # 警告に留める（先行ピンを作っている途中に、新規記事の公開前チェックを止めないため・D-0275）。
+    # 未配置のまま残った場合は check-advance-pin-today.py が INCOMPLETE として止める。
+    in_progress = [n for n in missing if is_advance_pin_md(expected_nums[n])]
+    missing = [n for n in missing if n not in in_progress]
+    for n in in_progress:
+        print(f"  [警告] ピン{n}（{expected_nums[n]}）は先行ピンで、画像が未配置です（作成途中として扱いNGにしません）")
 
     if missing:
         print(f"投稿文はあるが対応する画像が見つからない番号: {len(missing)}件")
