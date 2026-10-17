@@ -28,7 +28,22 @@
     ＋使える・OK等。「対応」は可の語に含めない） 型3 期間の断定（保存・賞味期限等＋期間）。
     語の単独出現では止めない。割れ・やけど・カビは対象にしない。リンク文字・URL・見出し行・疑問文は
     照合しない。型2の可の語は対象語の後20字以内のみ。型3は日付（N月N日）と年号（4桁＋年）を期間とみなさない。
-  --survey-xy: 公開済み全記事にX・Yだけをかける読み取り専用モード。
+  Yの新しい型（W42監査の採用指示・GD-0039）: 同じブロック（箇条書きは1項目）に出典URL（アフィリエイト
+    除く）も適用条件の語も無ければNG。適用条件の語は型1〜3の SAFETY_CONDITION_WORDS に、型4〜7では
+    NEW_TYPE_CONDITION_WORDS（商品ページ・注意書き等、商品ごとの表示に委ねる書き方）を足す。
+    型4 火気: 火・キャンドル・ろうそく・コンロ・ガス＋離れない・置かない・注意等
+    型5 手入れ: 手洗い・つけ置き・研磨・金彩・金縁・漂白＋推奨・禁止の語
+    型6 贈答の慣習: のし・水引・表書き・蝶結び・結び切り・内祝い＋慣習を述べる語（一般的・基本・
+        選びます等）、または お歳暮・お中元・お年賀＋N月N日・N月頃等の時期
+    型7 産地の因果: 季節風・モンスーン・標高・気候・土壌＋もたらす・ため・により等
+    型8 予算の年月: category: gift の記事で、見出し（# 見出し、または太字だけの行）に予算・相場を
+        含む節に「YYYY年M月時点」（「YYYY年M月執筆時点」も可）が無い。「まとめ」・「相手・予算」のような
+        並べた見出し・「予算を抑えたい」のような節約の見出しは対象にしない
+    新規公開（引数 <slug> のみ）ではNG、--revise と --survey-xy（週次）では【警告】にとどめる
+    （公開済みの記事に該当が多く、関係のない改修まで止まるため）。
+  --survey-xy: 公開済み全記事にX・Yだけをかける読み取り専用モード。型4〜8は【警告】の行で件数と該当を出す。
+  --survey-new [N]: 公開済み全記事に型4〜8だけをかけ、型ごとの件数と該当文（等間隔でN件・既定10）を出す
+    調整用の読み取り専用モード。
 
 出典とみなすもの（カテゴリA・C〜Gのみ）:
   同一判定単位内の Markdownリンク [表示文字](http〜) または素のhttp(s) URL。
@@ -54,8 +69,10 @@
       カテゴリ別件数は該当カテゴリごとの延べ数のため、合計は違反総数を超えうる。
 
 使い方:
-  python site/scripts/check-fact-source.py <slug>      通常モード
+  python site/scripts/check-fact-source.py <slug>      通常モード（新規公開用。型4〜8もNG）
+  python site/scripts/check-fact-source.py <slug> --revise   改修用（型4〜8は【警告】で通す）
   python site/scripts/check-fact-source.py --calibrate 較正モード（公開済み全件）
+  python site/scripts/check-fact-source.py --survey-xy / --survey-new [N]（上記）
 
 終了コード: 通常モード OK=0 / 違反あり=1、較正モードは常に0
 """
@@ -179,6 +196,58 @@ SAFETY_CONDITION_WORDS = [
     "明記", "記載された", "記載されて", "表示されて",
 ]
 RE_LIST_ITEM = re.compile(r"^\s*(?:[-*+]|\d+[.)])\s")
+
+# 判定Yの拡張（W42監査の採用指示・GD-0039）。型4〜7は文単位（型1〜3と同じ照合）、型8は節単位。
+# どれも同じブロックに出典URLか適用条件の語（SAFETY_CONDITION_WORDS）があればOK。
+# 新規公開ではNG、--revise と週次（--survey-xy）は【警告】にとどめる（NEW_SAFETY_TYPES）。
+NEW_SAFETY_TYPES = ("型4", "型5", "型6", "型7", "型8")
+# 型4〜7に限り、商品ごとの表示・注意書きに委ねる書き方も適用条件とみなす（型1〜3の条件語は変えない）
+NEW_TYPE_CONDITION_WORDS = ["商品ページ", "注意書き", "商品ごとに", "商品によって", "製品によって", "対応しているか", "対応した商品"]
+# 型4 火気: 火元の語と、注意・禁止の語
+SAFETY_TYPE4_SUBJECT = ["キャンドル", "ろうそく", "ロウソク", "コンロ", "ガス", "火"]
+SAFETY_TYPE4_ADVICE = [
+    "離れない", "離れず", "離さない", "離して", "置かない", "近づけ", "注意", "禁止",
+    "消し", "危険", "気をつけ", "気を付け", "目を離",
+]
+# 「火」は花火・火曜・火傷・火加減など別の語に含まれるため、前後の文字で除く
+RE_TYPE4_FIRE = re.compile(r"(?<![花弱中強大点出発着])火(?![曜傷加力山])")
+# 型5 手入れ: 手入れの語と、推奨・禁止の語
+SAFETY_TYPE5_SUBJECT = ["手洗い", "つけ置き", "漬け置き", "研磨", "金彩", "金縁", "漂白"]
+SAFETY_TYPE5_ADVICE = [
+    "おすすめ", "お勧め", "推奨", "避け", "控え", "禁止", "NG", "ください", "しましょう",
+    "ほうがよ", "ほうが安", "ほうが無難", "ほうがい", "方がよ", "方が安", "方が無難", "方がい",
+    "ゆっくり", "洗う", "使わない", "しない", "不可", "向いて", "適して",
+]
+# 型6 贈答の慣習: 作法の語（単独で対象）、または贈る時期の語と日付
+RE_TYPE6_SUBJECT = re.compile(
+    r"(?:(?<![ぁ-ゖ])|(?<=[のやとはがもをにで]))のし(?:紙|に|の|を|は|が|と|も|で|や(?!す)|、|。|」|）|\s|$)|熨斗|水引|表書き|蝶結び|結び切り|内祝い"
+)
+# 作法の語を挙げるだけの文（導入・リンクの案内・「結婚祝いや内祝いなど」）は止めず、
+# 慣習を述べる・勧める語が同じ文にあるときだけ対象にする
+RE_TYPE6_CONVENTION = re.compile(
+    r"一般的|基本|通例|とされ|といわれ|添え|つける|つけ|付け|かける|かけ|書く|書きま|届け"
+    r"|てかまい|差し支え|失礼|を選びます|を選ぶ|選びます"
+)
+# 贈る時期の語（お歳暮等）は、日付・時期の具体（N月N日／N月頃・初旬・上旬・中旬・下旬・末／N日頃・まで）と組んだときだけ対象にする
+RE_TYPE6_SEASON_DATE = re.compile(
+    r"[0-9０-９]{1,2}月[0-9０-９]{1,2}日|[0-9０-９]{1,2}月(?:初旬|上旬|中旬|下旬|頃|ごろ|末)"
+    r"|[0-9０-９]{1,2}日(?:頃|ごろ|まで)"
+)
+SAFETY_TYPE6_SUBJECT = ["のし", "熨斗", "水引", "表書き", "蝶結び", "結び切り", "内祝い"]
+SAFETY_TYPE6_SEASON = ["お歳暮", "お中元", "お年賀", "御歳暮", "御中元", "御年賀"]
+# 型7 産地の因果: 産地の自然条件の語と、因果の語
+SAFETY_TYPE7_SUBJECT = ["季節風", "モンスーン", "標高", "気候", "土壌"]
+SAFETY_TYPE7_CAUSE = ["もたらす", "もたらし", "ため", "により", "によって", "から生まれる"]
+# 型8 予算の年月: category: gift の記事で、見出しに予算・相場を含む節に「YYYY年M月時点」が無い
+RE_TYPE8_HEADING_WORD = re.compile(r"予算|相場")
+RE_TYPE8_YM = re.compile(r"[0-9０-９]{4}年[0-9０-９]{1,2}月(?:執筆)?時点")
+# 判断要素を並べるだけの見出し（「相手・場面・予算」「予算・相手を問わず」）とまとめ見出しは対象にしない
+# 金額を述べない節約の見出し（「予算を抑えたい場合は」）も対象にしない
+RE_TYPE8_HEADING_SKIP = re.compile(
+    r"^[#\s*]*(?:Q\.\s*)?まとめ|・(?:予算|相場)|(?:予算|相場)・|(?:予算|相場)を(?:抑|節|削|安)"
+)
+RE_MD_HEADING = re.compile(r"^(#{1,6})\s")
+RE_BOLD_ONLY_LINE = re.compile(r"^\s*\*\*[^*].*\*\*\s*$")
 
 CATEGORY_LABELS = {"A": "発売時期", "H": "行為・観察・編集部の記述"}
 CATEGORY_LABELS.update({key: label for key, label, _ in CATEGORIES})
@@ -360,13 +429,37 @@ def safety_sentence_types(sentence):
     m3 = RE_SAFETY_PERIOD.search(RE_SAFETY_NOT_PERIOD.sub(" ", sentence))
     if t3 and m3:
         out.append(("型3", t3 + [m3.group(0)]))
+    t4 = [w for w in SAFETY_TYPE4_SUBJECT if w != "火" and w in sentence]
+    if RE_TYPE4_FIRE.search(sentence):
+        t4.append("火")
+    a4 = [w for w in SAFETY_TYPE4_ADVICE if w in sentence]
+    if t4 and a4:
+        out.append(("型4", t4 + a4))
+    t5 = [w for w in SAFETY_TYPE5_SUBJECT if w in sentence]
+    a5 = [w for w in SAFETY_TYPE5_ADVICE if w in sentence]
+    if t5 and a5:
+        out.append(("型5", t5 + a5))
+    t6 = sorted({"のし" if m.group(0).startswith("のし") else m.group(0)
+                 for m in RE_TYPE6_SUBJECT.finditer(sentence)})
+    if not t6 and any(w in sentence for w in SAFETY_TYPE6_SEASON) and RE_TYPE6_SEASON_DATE.search(sentence):
+        t6 = [w for w in SAFETY_TYPE6_SEASON if w in sentence] + ["日付"]
+    if t6 and (t6[-1] == "日付" or RE_TYPE6_CONVENTION.search(sentence)):
+        out.append(("型6", t6))
+    t7 = [w for w in SAFETY_TYPE7_SUBJECT if w in sentence]
+    c7 = [w for w in SAFETY_TYPE7_CAUSE if w in sentence.replace("資料によって", "")]
+    if t7 and c7:
+        out.append(("型7", t7 + c7))
     return out
 
 
 def safety_advice_hits(text):
     """出典も適用条件も無いブロックの断定文を [(型, 語リスト, 文)] で返す（問題なければ空）。"""
     plain = RE_URL.sub(" ", text)
-    if has_valid_source(text) or any(w in plain for w in SAFETY_CONDITION_WORDS):
+    if has_valid_source(text):
+        return []
+    old_types_exempt = any(w in plain for w in SAFETY_CONDITION_WORDS)
+    new_types_exempt = old_types_exempt or any(w in plain for w in NEW_TYPE_CONDITION_WORDS)
+    if old_types_exempt and new_types_exempt:
         return []
     hits = []
     for line in plain.split("\n"):
@@ -378,6 +471,11 @@ def safety_advice_hits(text):
             if not sentence or sentence[-1] in "？?":
                 continue  # 疑問文は照合しない
             for typ, words in safety_sentence_types(sentence):
+                if typ in NEW_SAFETY_TYPES:
+                    if new_types_exempt:
+                        continue
+                elif old_types_exempt:
+                    continue
                 hits.append((typ, words, sentence))
     return hits
 
@@ -413,8 +511,52 @@ def check_xy(path, slug):
             for typ, words, sentence in safety_advice_hits(unit_text(sub)):
                 out.append({"slug": slug, "line": sub[0][0], "categories": ["Y"],
                             "excerpt": excerpt(sentence), "hit": typ + ":" + "・".join(words),
-                            "sentence": sentence, "in_product_block": False})
+                            "sentence": sentence, "in_product_block": False,
+                            "new_type": typ in NEW_SAFETY_TYPES})
+    if is_gift_article(front):
+        out.extend(budget_year_hits(body, body_start_line, slug))
+    out.sort(key=lambda v: v["line"])
     return out
+
+
+def heading_sections(lines):
+    """(見出しの行index, 節の終わりindex, 見出し文) を返す。
+
+    # 見出しは次の同じ階層以上の見出しまで。太字だけの行（**Q. …**）は次の見出しか太字だけの行まで。
+    コードブロック内は strip_code_blocks で空行になっているので拾わない。
+    """
+    marks = []  # (index, level) level: 見出しの # の数、太字だけの行は 7
+    for i, line in enumerate(lines):
+        m = RE_MD_HEADING.match(line)
+        if m:
+            marks.append((i, len(m.group(1))))
+        elif RE_BOLD_ONLY_LINE.match(line):
+            marks.append((i, 7))
+    out = []
+    for n, (i, level) in enumerate(marks):
+        end = len(lines)
+        for j, lv in marks[n + 1:]:
+            if lv <= level or level == 7:
+                end = j
+                break
+        out.append((i, end, lines[i].strip()))
+    return out
+
+
+def budget_year_hits(body, body_start_line, slug):
+    """型8: gift記事で、見出しに予算・相場を含む節に「YYYY年M月時点」が無ければ違反を返す。"""
+    lines = strip_code_blocks(body.splitlines())
+    hits = []
+    for start, end, heading in heading_sections(lines):
+        if not RE_TYPE8_HEADING_WORD.search(heading) or RE_TYPE8_HEADING_SKIP.search(heading):
+            continue
+        section = "\n".join(lines[start:end])
+        if RE_TYPE8_YM.search(section):
+            continue
+        hits.append({"slug": slug, "line": body_start_line + start, "categories": ["Y"],
+                     "excerpt": excerpt(heading), "hit": "型8:予算・相場の節に「YYYY年M月時点」なし",
+                     "sentence": heading, "in_product_block": False, "new_type": True})
+    return hits
 
 
 def excerpt(text):
@@ -484,13 +626,19 @@ def is_published(path):
 # --- 出力 ----------------------------------------------------------------------
 
 
-def run_single(slug):
+def run_single(slug, revise=False):
     path = resolve_path(slug)
     if path is None:
         print(f"見つかりません: output/articles/{slug}.md / site/src/content/posts/{slug}.md")
         return 1
 
     violations, _ = check_article(path, slug, with_xy=True)
+    if revise:
+        # --revise: 判定Yの新しい型（型4〜8）は公開済みの記事に該当が多いため【警告】にとどめる
+        for v in violations:
+            if v.get("new_type"):
+                print("【警告】L%d [%s] %s 〔%s〕" % (v["line"], "".join(v["categories"]), v["excerpt"], v["hit"]))
+        violations = [v for v in violations if not v.get("new_type")]
     if not violations:
         print("FACT_SOURCE_OK")
         return 0
@@ -514,6 +662,14 @@ def run_single(slug):
               "（未開封の場合・製品の表示に従う等）を付けるか、断定を削除してください。"
               "検知語一覧: " + "・".join(SAFETY_ADVICE_WORDS)
               + " ／ 条件語一覧: " + "・".join(SAFETY_CONDITION_WORDS))
+    if any(v.get("new_type") for v in violations):
+        print("[Y 型4〜8] 火気（型4）・手入れ（型5）・贈答の慣習（型6）・産地の因果（型7）の助言・断定も、"
+              "同じ段落（箇条書きは1項目）に出典URLか適用条件が要ります。"
+              "型4語: " + "・".join(SAFETY_TYPE4_SUBJECT) + " ／ 注意語: " + "・".join(SAFETY_TYPE4_ADVICE)
+              + "。型5語: " + "・".join(SAFETY_TYPE5_SUBJECT) + " ／ 推奨・禁止語: " + "・".join(SAFETY_TYPE5_ADVICE)
+              + "。型6語: " + "・".join(SAFETY_TYPE6_SUBJECT) + "（またはお歳暮・お中元・お年賀＋日付）"
+              + "。型7語: " + "・".join(SAFETY_TYPE7_SUBJECT) + " ／ 因果語: " + "・".join(SAFETY_TYPE7_CAUSE)
+              + "。型8: category: gift の見出しに予算・相場を含む節には「2026年10月時点」の形の年月を書く")
     return 1
 
 
@@ -525,6 +681,9 @@ def run_survey_xy():
             continue
         slug = os.path.splitext(os.path.basename(path))[0]
         found.extend(check_xy(path, slug))
+    # 新しい型（型4〜8）は【警告】として別に出す。週次の単独実行で、公開済みの記事の該当を見る
+    warned = [v for v in found if v.get("new_type")]
+    found = [v for v in found if not v.get("new_type")]
     counts = {}
     for v in found:
         key = "X" if v["categories"] == ["X"] else v["hit"].split(":")[0]
@@ -539,6 +698,38 @@ def run_survey_xy():
     if len(found) > 50:
         print("（先頭50件のみ表示。総数 " + str(len(found)) + "件）")
     print("XY_SURVEY_TOTAL: " + str(len(found)) + "件")
+    warn_counts = {}
+    for v in warned:
+        k = v["hit"].split(":")[0]
+        warn_counts[k] = warn_counts.get(k, 0) + 1
+    for key in NEW_SAFETY_TYPES:
+        print("【警告】XY_SURVEY_WARN_" + key + ": " + str(warn_counts.get(key, 0)) + "件"
+              "（新規公開ではNG・--revise と週次は警告）")
+    for v in warned[:30]:
+        print("【警告】" + v["slug"] + " L" + str(v["line"]) + " [" + v["hit"].split(":")[0] + "] "
+              + re.sub(r"\s+", " ", v["sentence"]).strip()[:60])
+    if len(warned) > 30:
+        print("【警告】（先頭30件のみ表示。総数 " + str(len(warned)) + "件）")
+    return 0
+
+
+def run_survey_new(limit):
+    """公開済み全記事に型4〜8だけをかける読み取り専用モード（調整用）。型ごとの件数と該当文を出す。"""
+    by_type = {k: [] for k in NEW_SAFETY_TYPES}
+    for path in sorted(glob.glob(os.path.join(POSTS_DIR, "*.md"))):
+        if not is_published(path):
+            continue
+        slug = os.path.splitext(os.path.basename(path))[0]
+        for v in check_xy(path, slug):
+            if v.get("new_type"):
+                by_type[v["hit"].split(":")[0]].append(v)
+    for key in NEW_SAFETY_TYPES:
+        hits = by_type[key]
+        print("%s: %d件 / %d記事" % (key, len(hits), len({v["slug"] for v in hits})))
+        step = max(1, len(hits) // limit)
+        for v in hits[::step][:limit]:
+            print("  %s L%d 〔%s〕 %s" % (v["slug"], v["line"], v["hit"].split(":", 1)[1],
+                                      re.sub(r"\s+", " ", v["sentence"]).strip()[:90]))
     return 0
 
 
@@ -637,6 +828,10 @@ def main():
         sys.stdout.reconfigure(encoding="utf-8")
 
     args = sys.argv[1:]
+    if len(args) == 2 and args[1] == "--revise" and not args[0].startswith("-"):
+        return run_single(args[0], revise=True)
+    if args[:1] == ["--survey-new"] and len(args) in (1, 2):
+        return run_survey_new(int(args[1]) if len(args) == 2 else 10)
     if len(args) != 1:
         print(__doc__)
         return 1

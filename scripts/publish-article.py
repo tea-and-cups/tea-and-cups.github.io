@@ -359,6 +359,10 @@ def run_checks(slug, attempt=None, checks=None):
 
         if result.returncode == 0:
             out("  OK  %s" % label)
+            # 通ったチェックが出す【警告】（--revise の判定Y新型など）は隠さず1行ずつ出す
+            for line in stdout_text.splitlines():
+                if line.startswith("【警告】"):
+                    out("    " + line)
             continue
 
         if attempt is not None:
@@ -578,6 +582,9 @@ def _revise_checks(published_path):
                 extra_args = ["--pr-line-only"]
             else:
                 extra_args = ["--min", str(min(3, n))]
+        elif name == "check-fact-source.py":
+            # 判定Yの新型（型4〜8）は公開済みの記事に該当が多いため、--revise では警告にとどめる
+            extra_args = ["--revise"]
         checks.append((name, takes_slug, extra_args))
     return checks, n
 
