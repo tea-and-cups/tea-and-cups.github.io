@@ -45,6 +45,14 @@ Edit/Writeによるpublished化は .claude/hooks/check-publish-gate.py で拒否
   新規公開・--revise・--dry-run のいずれでも、検査の前に output/articles/<slug>.md の CRLF を
   LF にそろえる（そろえたときだけ「CRLFをLFにそろえました」を1行出す。--dry-run でも下書きは書き換わる）。
 
+【週3本の確認（GD-0007・GD-0043）】
+  10〜12月（日本時間の 10/1〜12/31）は、公開前チェック群の前に rotate-today-tasks.py の
+  category_quota_status を使って「今日 gift・seasons の新規記事を出さないと、その週（月〜日）の
+  gift・seasons が3本に届かない日」かを判定する。その日は、新規公開は category が gift・seasons
+  以外なら NG にし、--revise は今日（日本時間）に date がある gift・seasons の新規公開がまだ
+  無ければ NG にする。届く見込みの日・対象期間外は何も変わらない。
+  検証用に --dry-run と一緒に限り --today YYYY-MM-DD で基準日を差し替えられる。
+
 【--revise の判定Y】
   check-fact-source.py には --revise を付ける。判定Yの新しい型（型4〜8）は【警告】にとどめ、
   通ったチェックの【警告】行はそのまま表示する（公開済みの記事に該当が多く、関係のない改修を止めないため）。
@@ -271,6 +279,47 @@ def publish_checks(draft_path):
 def today_jst():
     """今日の日付（日本時間）を YYYY-MM-DD で返す。"""
     return datetime.now(JST).strftime("%Y-%m-%d")
+
+
+RE_DATE_ARG = re.compile(r"\A\d{4}-\d{2}-\d{2}\Z")
+
+
+def pop_today_arg(args):
+    """--today YYYY-MM-DD（週3本の判定の基準日を差し替える検証用）を取り出す。
+    戻り値: (残りの引数, 基準日 or None, エラー文言 or None)。
+    --dry-run と一緒のときだけ使える（本番の公開で判定を迂回させないため）。
+    """
+    if "--today" not in args:
+        return args, None, None
+    i = args.index("--today")
+    value = args[i + 1] if i + 1 < len(args) else ""
+    if not RE_DATE_ARG.match(value):
+        return args, None, "--today には YYYY-MM-DD を1つ指定してください"
+    if "--dry-run" not in args:
+        return args, None, "--today は --dry-run と一緒のときだけ使えます（週3本の判定の検証用）"
+    return args[:i] + args[i + 2 :], value, None
+
+
+def check_category_quota(category, revise, today=None, posts_dir=None):
+    """10〜12月の週3本（GD-0007・GD-0043）の判定を rotate-today-tasks.py の関数で行う。
+    必要な日は、新規公開は gift・seasons 以外を NG にし、--revise は今日 gift・seasons の
+    新規公開がまだ無ければ NG にする。戻り値: (通すか, 表示する1行)。
+    判定の読み込みに失敗したときは通さない（黙って素通りさせない）。
+    """
+    try:
+        path = os.path.join(SCRIPTS_DIR, "rotate-today-tasks.py")
+        spec = importlib.util.spec_from_file_location("rotate_today_tasks", path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        status = module.category_quota_status(today or today_jst(), posts_dir or POSTS_DIR)
+        ok, reason = module.category_quota_gate(category, status, revise)
+    except Exception as e:  # noqa: BLE001
+        return False, "  NG  週3本の確認（判定に失敗: %s）" % e
+    if not ok:
+        return False, "  NG  週3本の確認: %s" % reason
+    if status is None:
+        return True, "  OK  週3本の確認（対象期間外）"
+    return True, "  OK  週3本の確認（%s）" % module.category_quota_lines(status)[0]
 
 
 def normalize_updated(text):
@@ -618,6 +667,9 @@ def _run_revise(rest_args):
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
 
+    rest_args, today_arg, today_err = pop_today_arg(list(rest_args))
+    if today_err:
+        return abort(today_err)
     dry_run = "--dry-run" in rest_args
     positional = [a for a in rest_args if not a.startswith("-")]
     unknown = [a for a in rest_args if a.startswith("-") and a != "--dry-run"]
@@ -656,6 +708,12 @@ def _run_revise(rest_args):
             "この記事は公開済みのため、下書きの status は published のまま修正してください"
             % (slug, status)
         )
+
+    out("  週3本の確認（10〜12月の gift・seasons 週3本・GD-0043）")
+    quota_ok, quota_line = check_category_quota(read_category(published_path), True, today_arg)
+    out(quota_line)
+    if not quota_ok:
+        return abort("週3本の確認に失敗したため、以降の処理（コピー・commit・push）は一切実行していません")
 
     published_text = read_text(published_path)
     draft_text = read_text(draft_path)
@@ -1539,7 +1597,9 @@ def _run(attempt):
     # 日次フロー実行の記録（D-0163）。判定・公開処理そのものには影響しない。
     mark_daily_session()
 
-    args = [a for a in sys.argv[1:]]
+    args, today_arg, today_err = pop_today_arg([a for a in sys.argv[1:]])
+    if today_err:
+        return abort(today_err)
     dry_run = "--dry-run" in args
     attempt["dry_run"] = dry_run
     positional = [a for a in args if not a.startswith("-")]
@@ -1567,6 +1627,11 @@ def _run(attempt):
     out("2. 公開前チェック群")
     new_checks = publish_checks(draft_path)
     out("  商品点数の必須数: %d点（category: %s）" % (required_products(read_category(draft_path)), read_category(draft_path)))
+    quota_ok, quota_line = check_category_quota(read_category(draft_path), False, today_arg)
+    out(quota_line)
+    if not quota_ok:
+        attempt["failed_check"] = "category-quota"
+        return abort("週3本の確認に失敗したため、以降の処理（status書き換え・コピー・commit・push）は一切実行していません")
     if not run_checks(slug, attempt, checks=new_checks):
         return abort("公開前チェックに失敗したため、以降の処理（status書き換え・コピー・commit・push）は一切実行していません")
 

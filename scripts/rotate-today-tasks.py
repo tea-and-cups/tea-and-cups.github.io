@@ -58,6 +58,17 @@ check-image-gen-needed-today.py（D-0078）・check-routine-due.py（D-0087）�
     --tasks-file <パス>    対象ファイル（--file と同じ。両方あれば --tasks-file を優先）
     --archive-file <パス>  退避先（既定 docs/tasks-archive.md）
     --date YYYY-MM-DD      基準日（既定 実行日）
+    --posts-dir <パス>     週3本の判定で数える記事の置き場（既定 site/src/content/posts）
+
+10〜12月の週3本（GD-0007・GD-0043）:
+  最後に MONTHLY_NEXT / MONTHLY_NONE の前で、週3本の判定行を出す。対象は 10/1〜12/31 の日本時間の基準日
+  （対象期間外は何も出さない）。その週（月〜日）に frontmatter の date がある status: published の
+  gift・seasons 記事を数える（改修は数えない）。足りない本数（3−数えた本数）が今日を含む週の残り日数
+  以上なら `CATEGORY_QUOTA_REQUIRED 今週 n/3・残りm日`（報告対象）と題材の探し方の1行を出し、
+  MONTHLY_NEXT は改修の行（[改修]・[改修+画像]）を選ばず gift・seasons の [新規記事執筆] の行だけを選ぶ
+  （無ければ MONTHLY_NONE）。届く見込みの日は `CATEGORY_QUOTA_OK 今週 n/3`（報告対象外）だけを出す。
+  同じ判定を publish-article.py が使う（必要な日は gift・seasons 以外の新規公開を止め、
+  今日 gift・seasons の新規公開が無ければ --revise も止める）。
 """
 
 import calendar
@@ -87,6 +98,18 @@ MONTHLY_ID_RE = re.compile(r"\[(M-\d+)\]")
 REVISE_MONTHLY_CAP = 4
 REVISE_EXEMPT_SUFFIX = "（上限外）"
 REVISE_TAG_RE = re.compile(r"^- \[[ xX]\] (?:\[M-\d+\] )?\[(?:改修|改修\+画像)\]")
+
+# 10〜12月の週3本（GD-0007・GD-0043）。数えるのは、その週（日本時間の月〜日）に frontmatter の date が
+# ある status: published の gift・seasons 記事（改修は数えない）。足りない本数が今日を含む週の残り日数
+# 以上の日は「今日 gift・seasons の新規記事が必要」とし、MONTHLY_NEXT・publish-article.py に反映する。
+QUOTA_CATEGORIES = ("gift", "seasons")
+QUOTA_WEEKLY_MIN = 3
+QUOTA_FIRST_DAY = "2026-10-01"
+QUOTA_LAST_DAY = "2026-12-31"
+POSTS_DIR = os.path.join(ROOT, "site", "src", "content", "posts")
+FRONT_RE = re.compile(r"\A---\r?\n(.*?\r?\n)---\r?\n", re.S)
+NEW_ARTICLE_TAG_RE = re.compile(r"^- \[[ xX]\] (?:\[M-\d+\] )?\[新規記事執筆\]")
+QUOTA_ROW_CATEGORY_RE = re.compile(r"（[a-z0-9]+(?:-[a-z0-9]+)*・(?:category:\s*)?([a-z0-9-]+)）")
 
 ARCHIVE_HEADER = (
     "# tasks-archive.md — tasks.md「今日」欄の削除行アーカイブ（自動生成・参照専用）\n"
@@ -288,11 +311,120 @@ def is_capped_revise(stripped):
     return bool(REVISE_TAG_RE.match(stripped)) and REVISE_EXEMPT_SUFFIX not in stripped
 
 
-def monthly_next_line(lines):
+def _front_value(front, key):
+    m = re.search(r"^%s:[ \t]*(\S+)[ \t]*$" % key, front, re.M)
+    return m.group(1).strip("\"'") if m else None
+
+
+def read_published_articles(posts_dir=POSTS_DIR):
+    """posts_dir 直下の status: published の記事を [(date, category), ...] で返す。
+    date・category が読めない記事は含めない。
+    """
+    articles = []
+    if not os.path.isdir(posts_dir):
+        return articles
+    for name in sorted(os.listdir(posts_dir)):
+        if not name.endswith(".md"):
+            continue
+        try:
+            text = read_text(os.path.join(posts_dir, name))
+        except OSError:
+            continue
+        m = FRONT_RE.match(text)
+        if not m:
+            continue
+        front = m.group(1)
+        if _front_value(front, "status") != "published":
+            continue
+        date, category = _front_value(front, "date"), _front_value(front, "category")
+        if date and category:
+            articles.append((date[:10], category))
+    return articles
+
+
+def jst_today():
+    """今日の日付（日本時間）を YYYY-MM-DD で返す。"""
+    return datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=9))).date().isoformat()
+
+
+def category_quota_status(today, posts_dir=POSTS_DIR):
+    """GD-0007（10〜12月は gift・seasons が週3本以上）の、today（YYYY-MM-DD・日本時間）時点の状態を返す（GD-0043）。
+    対象期間外（10/1〜12/31 以外）は None。
+    数えるのは、その週（月〜日）に date がある status: published の gift・seasons 記事。改修は数えない。
+    足りない本数が今日を含む週の残り日数以上なら required（今日 gift・seasons の新規記事を出さないと届かない）。
+    戻り値: dict(count, remaining_days, required, published_today, week_start, week_end)。
+    """
+    if not (QUOTA_FIRST_DAY <= today <= QUOTA_LAST_DAY):
+        return None
+    day = datetime.date.fromisoformat(today)
+    week_start = day - datetime.timedelta(days=day.weekday())
+    week_end = week_start + datetime.timedelta(days=6)
+    start_s, end_s = week_start.isoformat(), week_end.isoformat()
+    count = 0
+    published_today = 0
+    for date, category in read_published_articles(posts_dir):
+        if category in QUOTA_CATEGORIES:
+            if start_s <= date <= end_s:
+                count += 1
+            if date == today:
+                published_today += 1
+    remaining_days = (week_end - day).days + 1
+    return {
+        "count": count,
+        "remaining_days": remaining_days,
+        "required": (QUOTA_WEEKLY_MIN - count) >= remaining_days,
+        "published_today": published_today,
+        "week_start": start_s,
+        "week_end": end_s,
+    }
+
+
+def category_quota_lines(status):
+    """セッション開始時に出す行を返す。対象期間外（status が None）は何も出さない。"""
+    if status is None:
+        return []
+    if status["required"]:
+        return [
+            "CATEGORY_QUOTA_REQUIRED 今週 %d/%d・残り%d日" % (status["count"], QUOTA_WEEKLY_MIN, status["remaining_days"]),
+            "新規記事を gift・seasons で書く。題材は ideas.md、無ければ data/advance-pin-calendar.tsv の近い山から選ぶ",
+        ]
+    return ["CATEGORY_QUOTA_OK 今週 %d/%d" % (status["count"], QUOTA_WEEKLY_MIN)]
+
+
+def category_quota_gate(category, status, revise):
+    """公開（新規・--revise）が週3本の要件に反しないかを判定する。(通すか, 理由) を返す。
+    required でなければ常に通す。required の日は、新規公開は gift・seasons のみ、
+    --revise は今日 gift・seasons の新規公開が既に1本以上あるときだけ通す。
+    """
+    if status is None or not status["required"]:
+        return True, None
+    head = "gift・seasons が今週 %d/%d 本（残り%d日）で、今日 gift・seasons の新規記事を出さないと週3本に届かない日です" % (
+        status["count"], QUOTA_WEEKLY_MIN, status["remaining_days"])
+    if revise:
+        if status["published_today"] >= 1:
+            return True, None
+        return False, head + "。今日 gift・seasons の新規公開がまだ無いため、--revise は後回しにしてください"
+    if category in QUOTA_CATEGORIES:
+        return True, None
+    return False, head + "。category: %s の新規公開は後回しにして、gift・seasons の新規記事を公開してください" % category
+
+
+def quota_row_category(stripped):
+    """今月節の行末「（slug・category）」「（slug・category: x）」の category を返す。読めなければ None。"""
+    found = QUOTA_ROW_CATEGORY_RE.findall(stripped)
+    return found[-1] if found else None
+
+
+def monthly_next_line(lines, quota_required=False):
     """今月節から MONTHLY_NEXT（最初の選べる未完了行）か MONTHLY_NONE を返す（D-0273）。
     上限に数える改修の完了が REVISE_MONTHLY_CAP 件に達したら、上限に数える改修の未完了行を
     飛ばし、残りの先頭を返す。その場合は行末に「（改修上限 n/4・保留n行）」を添える。
+    quota_required（今日 gift・seasons の新規記事を出さないと週3本に届かない日・GD-0043）のときは、
+    改修の行（[改修]・[改修+画像]）を上限外も含めてすべて選ばず、gift・seasons の
+    [新規記事執筆] の行だけを選ぶ（無ければ MONTHLY_NONE）。行末に「（週3本のため改修保留n行）」を添える。
     """
+    if quota_required:
+        return _monthly_next_quota_line(lines)
     section = find_month_section(lines) if lines else None
     candidates = []
     done_count = 0
@@ -320,6 +452,27 @@ def monthly_next_line(lines):
     return "MONTHLY_NONE%s" % note
 
 
+def _monthly_next_quota_line(lines):
+    section = find_month_section(lines) if lines else None
+    chosen = None
+    held = 0
+    if section:
+        start, end = section
+        for i in range(start + 1, end):
+            stripped = lines[i].strip()
+            if not stripped.startswith("- [ ]"):
+                continue
+            if REVISE_TAG_RE.match(stripped):
+                held += 1
+            elif (chosen is None and NEW_ARTICLE_TAG_RE.match(stripped)
+                  and quota_row_category(stripped) in QUOTA_CATEGORIES):
+                chosen = stripped
+    note = "（週3本のため改修保留%d行）" % held
+    if chosen is not None:
+        return "MONTHLY_NEXT: %s%s" % (chosen, note)
+    return "MONTHLY_NONE%s" % note
+
+
 def get_arg(name):
     if name in sys.argv:
         idx = sys.argv.index(name)
@@ -339,8 +492,23 @@ def main():
     try:
         code = run(state)
     finally:
-        print(monthly_next_line(state["lines"]))
+        quota_required = print_category_quota()
+        print(monthly_next_line(state["lines"], quota_required))
     sys.exit(code)
+
+
+def print_category_quota():
+    """週3本の判定行を出し、「今日 gift・seasons の新規記事が必要」なら True を返す（GD-0043）。
+    判定に失敗しても開始時チェックを止めず、エラーの1行を出す（黙って飛ばさない）。
+    """
+    try:
+        status = category_quota_status(get_arg("--date") or jst_today(), get_arg("--posts-dir") or POSTS_DIR)
+    except Exception as e:  # noqa: BLE001
+        print("【エラー】週3本の判定に失敗しました: %s" % e)
+        return False
+    for line in category_quota_lines(status):
+        print(line)
+    return bool(status and status["required"])
 
 
 def run(state):
