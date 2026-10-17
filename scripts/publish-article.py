@@ -41,6 +41,14 @@ Edit/Writeによるpublished化は .claude/hooks/check-publish-gate.py で拒否
 【--dry-run】
   1〜2は実際に実行し、3〜6は「何をするか」を1行ずつ表示するだけで一切実行しない。
 
+【改行コード（教訓 L032）】
+  新規公開・--revise・--dry-run のいずれでも、検査の前に output/articles/<slug>.md の CRLF を
+  LF にそろえる（そろえたときだけ「CRLFをLFにそろえました」を1行出す。--dry-run でも下書きは書き換わる）。
+
+【--revise の判定Y】
+  check-fact-source.py には --revise を付ける。判定Yの新しい型（型4〜8）は【警告】にとどめ、
+  通ったチェックの【警告】行はそのまま表示する（公開済みの記事に該当が多く、関係のない改修を止めないため）。
+
 使い方:
   python site/scripts/publish-article.py <slug>
   python site/scripts/publish-article.py <slug> --dry-run
@@ -389,6 +397,22 @@ def write_text(path, text):
         f.write(text)
 
 
+def normalize_line_endings(draft_path, slug):
+    """下書きの CRLF を LF にそろえる（教訓 L032）。検査・差分・status書き換えの前に呼ぶ。
+
+    記事を Python やエディタで書き換えると CRLF 化し、status 行の検出や差分判定が崩れるため。
+    そろえたときだけ1行出す。戻り値: そろえたら True。
+    """
+    with open(draft_path, "rb") as f:
+        raw = f.read()
+    if b"\r\n" not in raw:
+        return False
+    with open(draft_path, "wb") as f:
+        f.write(raw.replace(b"\r\n", b"\n"))
+    out("  CRLFをLFにそろえました: output/articles/%s.md（%d行）" % (slug, raw.count(b"\r\n")))
+    return True
+
+
 def current_status(draft_path):
     """(status文字列, エラーメッセージ) を返す。読めない場合は (None, 理由)。"""
     text = read_text(draft_path)
@@ -621,6 +645,7 @@ def _run_revise(rest_args):
             "先に python site/scripts/publish-article.py --prepare-revise %s を実行してください"
             % (slug, slug)
         )
+    normalize_line_endings(draft_path, slug)
 
     status, err = current_status(draft_path)
     if err:
@@ -1536,6 +1561,7 @@ def _run(attempt):
     if not os.path.isfile(draft_path):
         return abort("output/articles/%s.md が見つかりません" % slug)
     out("  OK")
+    normalize_line_endings(draft_path, slug)
 
     # 2. 公開前チェック群
     out("2. 公開前チェック群")
