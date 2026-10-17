@@ -85,9 +85,14 @@ publish-article.py --prepare-revise。D-0268）がマーカーを作る。
 ■ 先行ピンの未完了による継続の強制（D-0275）
 日次ノルマの先行ピン1件/日（D-0256）を、AIの注意ではなく終了時の検査で守らせる。
 次の両方を満たすときだけ、既存のreason統合へ合流させて終了を止める。
-  (1) 今日が「日次を実施した日」である。docs/tasks.md「## 今日」節の date マーカーが今日
-      （日本時間）で、その節に [新規記事執筆]・[改修]・[改修+画像] のいずれかを含む完了行
-      （- [x]）がある、で判定する（daily_done_on()）。完了行に限るのは、
+  (1) 今日が「日次を実施した日」である。次のどれかで判定する（daily_done_on()）。
+      (a) docs/tasks.md「## 今日」節の date マーカーが今日（日本時間）で、その節に
+          [新規記事執筆]・[改修]・[改修+画像] のいずれかを含む完了行（- [x]）がある
+      (b) reports/ に今日の日次レポート（YYYY-MM-DD.md・YYYY-MM-DD-N.md。weekly・monthly は除く）がある
+      (c) site の git log に、今日（日本時間）のコミットで src/content/posts/ を変更したものがある
+      (b)(c) を足したのは、rotate-today-tasks.py が「今日」節を掃除すると (a) が働かなくなるため
+      （今日節の見出しは残るようにしたが、完了行は日付が変わると消える）。
+      (a) で完了行に限るのは、
       rotate-today-tasks.py が日次の実施に関係なく、その日の最初のセッション開始時に
       マーカーを今日へ書き換えるため（未完了行が持ち越された日は、日次をしていなくても
       マーカーが今日になる）。完了行は日付が変わると rotate が消すので、今日のマーカーの
@@ -132,8 +137,10 @@ data/stop-hook-timing.tsv の列構成（D-0136）は一切変更しない。
   python site/scripts/stop-hook-check.py < hook入力JSON
 """
 
+import datetime
 import json
 import os
+import re
 import subprocess
 import sys
 import time
@@ -153,6 +160,7 @@ ADVANCE_PIN_SCRIPT = os.path.join(SCRIPT_DIR, "check-advance-pin-today.py")
 # 今日節・dateマーカー・完了行の読み方は rotate-today-tasks.py が正本（起動はせず関数だけ使う）。
 TASKS_ROTATE_MODULE = os.path.join(SCRIPT_DIR, "rotate-today-tasks.py")
 TASKS_MD = os.path.join(PROJECT_ROOT, "docs", "tasks.md")
+REPORTS_DIR = os.path.join(PROJECT_ROOT, "reports")
 DAILY_TASK_TAGS = ("[新規記事執筆]", "[改修]", "[改修+画像]")
 ADVANCE_PIN_OPEN_MARKERS = ("ADVANCE_PIN_NEXT", "ADVANCE_PIN_INCOMPLETE")
 ADVANCE_PIN_RULE_SECTION = "rules/image-generation-flow.md 1-4節"
@@ -477,11 +485,9 @@ def advance_pin_today():
     return time.strftime("%Y-%m-%d", time.gmtime(time.time() + 9 * 3600))
 
 
-def daily_done_on(tasks_path, date_text):
-    """date_text が「日次を実施した日」かを docs/tasks.md から判定する（D-0275）。
-
-    「## 今日」節の date マーカーが date_text で、その節に DAILY_TASK_TAGS のいずれかを含む
-    完了行（- [x]）があれば True。読めない・節が無い場合は False（＝止めない側に倒す）。
+def _tasks_show_daily_done(tasks_path, date_text):
+    """(a) docs/tasks.md「## 今日」節の date マーカーが date_text で、その節に DAILY_TASK_TAGS の
+    いずれかを含む完了行（- [x]）がある。読めない・節が無い場合は False。
     """
     if not os.path.isfile(tasks_path):
         return False
@@ -501,6 +507,55 @@ def daily_done_on(tasks_path, date_text):
     except Exception as exc:
         print("警告: 日次の実施判定（docs/tasks.md）に失敗しました: %s" % exc, file=sys.stderr)
     return False
+
+
+def _report_exists_on(reports_dir, date_text):
+    """(b) reports/ に date_text の日次レポート（YYYY-MM-DD.md または YYYY-MM-DD-N.md）がある。
+    weekly-・monthly- で始まるファイルは対象外。
+    """
+    try:
+        names = os.listdir(reports_dir)
+    except OSError:
+        return False
+    pattern = re.compile(r"^%s(?:-\d+)?\.md$" % re.escape(date_text))
+    return any(pattern.match(name) for name in names)
+
+
+def _post_commit_on(site_root, date_text):
+    """(c) site の git log に、date_text（日本時間）のコミットで src/content/posts/ を変更したものがある。
+    git が使えない・失敗した場合は False。
+    """
+    try:
+        day = datetime.date.fromisoformat(date_text)
+        next_day = day + datetime.timedelta(days=1)
+        result = subprocess.run(
+            ["git", "-C", site_root, "log",
+             "--since=%s 00:00:00 +0900" % day.isoformat(),
+             "--until=%s 00:00:00 +0900" % next_day.isoformat(),
+             "--format=%H", "--", "src/content/posts/"],
+            capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=15,
+        )
+    except Exception as exc:
+        print("警告: 日次の実施判定（git log）に失敗しました: %s" % exc, file=sys.stderr)
+        return False
+    return result.returncode == 0 and bool(result.stdout.strip())
+
+
+def daily_done_on(tasks_path, date_text, reports_dir=None, site_root=None):
+    """date_text が「日次を実施した日」かを判定する（D-0275）。次のどれかが成り立てば True。
+      (a) docs/tasks.md「## 今日」節の date マーカーが date_text で、その節に DAILY_TASK_TAGS の
+          いずれかを含む完了行（- [x]）がある
+      (b) reports/ に date_text の日次レポートがある
+      (c) site の git log に、date_text（日本時間）のコミットで src/content/posts/ を変更したものがある
+    (a) は「## 今日」節が rotate-today-tasks.py の掃除で消えると働かないため、(b)(c) で補う。
+    読めない・どれも成り立たない場合は False（＝止めない側に倒す）。
+    reports_dir・site_root は省略時にモジュール定数 REPORTS_DIR・SITE_ROOT を呼び出し時に読む。
+    """
+    reports_dir = REPORTS_DIR if reports_dir is None else reports_dir
+    site_root = SITE_ROOT if site_root is None else site_root
+    return (_tasks_show_daily_done(tasks_path, date_text)
+            or _report_exists_on(reports_dir, date_text)
+            or _post_commit_on(site_root, date_text))
 
 
 def advance_pin_open_line(child_env):

@@ -269,6 +269,10 @@ def _run_main(module, payload, overrides):
     # 存在しないパスへ差し替えて「日次を実施していない日」に固定する（実日付に結果を左右させない）。
     overrides = dict(overrides)
     overrides.setdefault("TASKS_MD", os.path.join(tempfile.gettempdir(), "stophook_test_no_tasks.md"))
+    # 日次の実施判定は reports/ と site の git log も見る。指定の無いケースでは、存在しない
+    # reports/ と、どのコミットも持たない遠い日付へ固定し、本物の reports/ や実日付に結果を左右させない。
+    overrides.setdefault("REPORTS_DIR", os.path.join(tempfile.gettempdir(), "stophook_test_no_reports"))
+    overrides.setdefault("ADVANCE_PIN_TODAY", "2031-01-01")
 
     original = {key: getattr(module, key) for key in overrides}
     for key, value in overrides.items():
@@ -625,6 +629,118 @@ def run_advance_pin_cases(module):
     return results
 
 
+def run_daily_signal_cases(module):
+    """「日次を実施した日」の判定が、docs/tasks.md の「## 今日」節が無くても働くことの検証。
+
+    tasks.md に「## 今日」節が無い状態（rotate-today-tasks.py が節ごと消していた頃の状態）で、
+    次の (b) reports/ の日次レポート、(c) site の git log（日本時間のコミットで src/content/posts/
+    を変更）だけを根拠に、先行ピンの判定が走ることを見る。本物の tasks.md・reports/・site は触らず、
+    すべて一時ディレクトリの偽物に差し替える。日付は実日付と無関係な固定値を --date で渡す。
+      10-13（レポート）・10-16（枝番付きレポート）・10-17（記事コミット）→ 判定が NEXT → 止める
+      10-15・10-18（レポートあり）→ 判定が DONE → 止めない
+      10-14（記事以外を変更したコミットだけ）・10-19（weekly だけ）→ 判定をしない
+      10-20（日本時間の 00:30 のコミット）→ 10-20 の日次、前日の 10-19 には数えない
+    戻り値は (説明, 成否, 補足) のリスト。
+    """
+    results = []
+    workdir = tempfile.mkdtemp(prefix="stophook_test_daily_signal_")
+    try:
+        governance_script = os.path.join(workdir, "dummy_governance.py")
+        token_script = os.path.join(workdir, "dummy_token.py")
+        sync_script = os.path.join(workdir, "dummy_sync.py")
+        _write_dummy_script(governance_script, 0, "異常なし")
+        _write_dummy_script(token_script, 0, "トークン使用量: (テスト値)")
+        _write_dummy_script(sync_script, 0)
+
+        advance_script = os.path.join(workdir, "advance_by_date.py")
+        with open(advance_script, "w", encoding="utf-8") as f:
+            f.write(
+                "import sys\n"
+                "day = sys.argv[sys.argv.index('--date') + 1]\n"
+                "table = {'2026-10-15': 'ADVANCE_PIN_DONE pin=355', '2026-10-18': 'ADVANCE_PIN_DONE pin=359'}\n"
+                "print(table.get(day, 'ADVANCE_PIN_NEXT slug=dummy-slug-' + day + ' peak=11-23 残り41日'))\n")
+
+        tasks_path = os.path.join(workdir, "tasks_no_today.md")
+        with open(tasks_path, "w", encoding="utf-8", newline="\n") as f:
+            f.write("# tasks.md\n\n## 今週\n- [ ] 今日節の無い tasks.md\n")
+
+        reports_dir = os.path.join(workdir, "reports")
+        os.makedirs(reports_dir)
+        for name in ("2026-10-13.md", "2026-10-15.md", "2026-10-16-3.md", "2026-10-18.md",
+                     "weekly-2026-10-19.md", "monthly-2026-10-19.md"):
+            with open(os.path.join(reports_dir, name), "w", encoding="utf-8") as f:
+                f.write("test\n")
+
+        repo = os.path.join(workdir, "site_repo")
+        os.makedirs(repo)
+        subprocess.run(["git", "init", "-q", repo], capture_output=True, text=True, timeout=15)
+
+        def commit(relpath, when):
+            target = os.path.join(repo, relpath.replace("/", os.sep))
+            os.makedirs(os.path.dirname(target), exist_ok=True)
+            with open(target, "w", encoding="utf-8") as f:
+                f.write(when + "\n")
+            env = dict(os.environ, GIT_AUTHOR_DATE=when, GIT_COMMITTER_DATE=when)
+            subprocess.run(["git", "-C", repo, "add", "-A"], capture_output=True, text=True, timeout=15)
+            subprocess.run(
+                ["git", "-C", repo, "-c", "user.email=test@example.invalid", "-c", "user.name=test",
+                 "commit", "-q", "-m", "test " + relpath],
+                capture_output=True, text=True, timeout=15, env=env)
+
+        # git log --since は日付が古いコミットで走査を止めるため、コミットは日付の昇順に積む（実際の履歴と同じ）
+        commit("src/pages/b.astro", "2026-10-14 05:00:00 +0900")
+        commit("src/content/posts/a.md", "2026-10-17 05:00:00 +0900")
+        commit("src/content/posts/c.md", "2026-10-20 00:30:00 +0900")  # UTC では 10-19 15:30
+
+        def run(day, active=False):
+            return _run_main(
+                module,
+                {"stop_hook_active": active, "last_assistant_message": "通常の応答本文です。"},
+                {
+                    "GOVERNANCE_SCRIPT": governance_script,
+                    "TOKEN_USAGE_SCRIPT": token_script,
+                    "GDRIVE_SYNC_SCRIPT": sync_script,
+                    "SITE_ROOT": repo,
+                    "TASKS_MD": tasks_path,
+                    "REPORTS_DIR": reports_dir,
+                    "ADVANCE_PIN_SCRIPT": advance_script,
+                    "ADVANCE_PIN_TODAY": day,
+                },
+            )
+
+        for day, why in (("2026-10-13", "レポート"), ("2026-10-16", "枝番付きレポート"),
+                         ("2026-10-17", "記事コミット"), ("2026-10-20", "日本時間の記事コミット")):
+            captured = run(day)
+            ok, detail, obj = _assert_single_json(captured)
+            if ok:
+                ok = ("dummy-slug-" + day) in obj["reason"] and module.ADVANCE_PIN_RULE_SECTION in obj["reason"]
+                detail = "reason=%r" % obj["reason"][:120]
+            results.append(("日次判定 %s（%s・今日節なし）× NEXT → 止める" % (day, why), ok, detail))
+
+        for day in ("2026-10-15", "2026-10-18"):
+            captured = run(day)
+            results.append(("日次判定 %s（レポートあり・今日節なし）× DONE → 止めない" % day,
+                            captured == "", "stdout=%r" % captured[:200]))
+
+        for day, why in (("2026-10-14", "記事以外を変更したコミットだけ"),
+                         ("2026-10-19", "weekly・monthly のレポートと前日 UTC のコミットだけ"),
+                         ("2026-10-21", "何も無い")):
+            captured = run(day)
+            results.append(("日次判定 %s（%s）× NEXT → 先行ピンの判定をしない" % (day, why),
+                            captured == "", "stdout=%r" % captured[:200]))
+
+        # --- daily_done_on() 単体（日付と置き場所を引数で渡す） ---
+        for day, expected in (("2026-10-13", True), ("2026-10-16", True), ("2026-10-17", True),
+                              ("2026-10-15", True), ("2026-10-18", True), ("2026-10-20", True),
+                              ("2026-10-14", False), ("2026-10-19", False), ("2026-10-21", False)):
+            actual = module.daily_done_on(tasks_path, day, reports_dir=reports_dir, site_root=repo)
+            results.append(("daily_done_on(%s) == %s" % (day, expected), actual is expected, "actual=%r" % actual))
+    finally:
+        shutil.rmtree(workdir, ignore_errors=True)
+
+    return results
+
+
 def run_prefix_consistency_cases(module):
     """D-0096: ガバナンス警告【のみ】・トークン追記【のみ】・未commit検知【のみ】の
     それぞれで、build()されたreasonの冒頭がNO_RESUMMARY_PREFIX定数と一致することを
@@ -748,6 +864,15 @@ def main():
 
     print("\n=== 先行ピンの未完了による継続の強制（D-0275・実日付に依存しない） ===")
     for description, ok, detail in run_advance_pin_cases(module):
+        total += 1
+        status = "OK" if ok else "NG"
+        if not ok:
+            failures.append(description)
+        suffix = " — %s" % detail if (detail and not ok) else ""
+        print("[%s] %s%s" % (status, description, suffix))
+
+    print("\n=== 日次を実施した日の判定（今日節なしでも reports/・記事コミットで働く） ===")
+    for description, ok, detail in run_daily_signal_cases(module):
         total += 1
         status = "OK" if ok else "NG"
         if not ok:
