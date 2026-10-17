@@ -42,7 +42,7 @@ check-image-gen-needed-today.py（D-0078）・check-routine-due.py（D-0087）�
     マーカーを基準日の月へ更新する。退避先の日付見出しはマーカー月の末日とする
     （退避先の見出し形式 `## YYYY-MM-DD` と14日保持の仕組みをそのまま使うため）
   - 処理の最後に必ず1行、`MONTHLY_NEXT: <最初の選べる未完了行>` か `MONTHLY_NONE` を出す
-    （D-0273: 上限に数える改修［タグ [改修]/[改修+画像]・末尾が「（上限外）」でない］の完了が
+    （D-0273: 上限に数える改修［タグ [改修]/[改修+画像]・行のどこにも「（上限外）」が無い］の完了が
     REVISE_MONTHLY_CAP 件に達したら、その種類の未完了行を飛ばして残りの先頭を選び、
     行末に「（改修上限 n/4・保留n行）」を添える。「（上限外）」の行と [新規記事執筆] の行は飛ばさない）
     （どの位置で終わっても出す。日次の題材選びに使う）
@@ -81,8 +81,9 @@ MONTH_MARKER_RE = re.compile(r"^<!--\s*month:\s*(\d{4}-\d{2})\s*-->\s*$")
 MONTHLY_ID_RE = re.compile(r"\[(M-\d+)\]")
 
 # 改修の月次上限（D-0273。strategy.md「日次ノルマ」の「改修は月4本まで」を機械で守らせる）。
-# 上限に数えるのは、今月節の完了行のうちタグが [改修] / [改修+画像] で、本文の末尾が
-# 「（上限外）」でない行。「（上限外）」の行（安全・保存の助言の修正など）は数えず、飛ばしもしない。
+# 上限に数えるのは、今月節の完了行のうちタグが [改修] / [改修+画像] で、行のどこにも
+# 「（上限外）」が無い行（後ろに「| …再公開完了…」が続いていても対象外）。
+# 「（上限外）」の行（安全・保存の助言の修正など）は数えず、飛ばしもしない。
 REVISE_MONTHLY_CAP = 4
 REVISE_EXEMPT_SUFFIX = "（上限外）"
 REVISE_TAG_RE = re.compile(r"^- \[[ xX]\] (?:\[M-\d+\] )?\[(?:改修|改修\+画像)\]")
@@ -283,8 +284,8 @@ def roll_month(lines, run_date):
 
 
 def is_capped_revise(stripped):
-    """上限に数える改修の行か（タグが [改修] / [改修+画像] で、末尾が「（上限外）」でない）。"""
-    return bool(REVISE_TAG_RE.match(stripped)) and not stripped.endswith(REVISE_EXEMPT_SUFFIX)
+    """上限に数える改修の行か（タグが [改修] / [改修+画像] で、行のどこにも「（上限外）」が無い）。"""
+    return bool(REVISE_TAG_RE.match(stripped)) and REVISE_EXEMPT_SUFFIX not in stripped
 
 
 def monthly_next_line(lines):
