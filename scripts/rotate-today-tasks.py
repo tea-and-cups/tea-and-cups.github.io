@@ -19,14 +19,21 @@ check-image-gen-needed-today.py（D-0078）・check-routine-due.py（D-0087）�
   - マーカーの日付が基準日と一致 → 何も書き込まず NO_ROTATE の1行だけを出力
     （同日2回目以降のセッションでその日の完了タスクが消えるのを防ぐため）
   - マーカーの日付が基準日と異なる → 「## 今日」節の完了行（- [x] / - [X]）を削除し、
-    マーカーを基準日へ更新し、削除件数と削除した行の全文を出力する
+    マーカーを基準日へ更新し、削除件数と削除した行の全文を出力する。
+    未完了行が1つも残らないときも「## 今日」の見出しは消さず、見出しと基準日の日付マーカー
+    だけを残す（節が消えると日付マーカーが無くなり、Stopフックの日次判定
+    ［stop-hook-check.py の daily_done_on］と check-doc-governance.py の MARKER 警告が働かないため）
   - マーカーが存在しない → 削除は一切行わず、基準日のマーカーを新規挿入するだけに
-    とどめ、その旨を出力する（日付が不明な状態で消すのは危険なため）
+    とどめ、その旨を出力する（日付が不明な状態で消すのは危険なため）。
+    見出し直下が `<!-- date:` で始まるのに日付として読めない場合は、触れずにその旨を出力する
+  - 「## 今日」節が存在しない → 「## 今週」の直前（無ければ最初の「## 」見出しの直前、
+    それも無ければ末尾）に、見出しと基準日の日付マーカーだけの節を作り直し、
+    「作り直しました」と1行出力する
 
 安全策:
   - 未完了行（- [ ]）は年月日にかかわらず絶対に削除しない
   - 「## 今日」「## 今月」以外の節（## 今週・## バックログ等）には一切触れない
-  - 「## 今日」節そのものが見つからない場合は今日節に何も書き込まない（今月節の処理は行う）
+    （「## 今日」節が無いときに今週の直前へ空の今日節を足す処理だけが唯一の例外）
 
 「## 今月」節（D-0269）:
   - 見出し直下付近の `<!-- month: YYYY-MM -->` を月マーカーとして読む
@@ -65,6 +72,8 @@ TASKS_MD = os.path.join(ROOT, "docs", "tasks.md")
 ARCHIVE_MD = os.path.join(ROOT, "docs", "tasks-archive.md")
 
 TODAY_HEADING = "## 今日"
+WEEK_HEADING = "## 今週"
+DATE_MARKER_PREFIX_RE = re.compile(r"^<!--\s*date:")
 DATE_MARKER_RE = re.compile(r"^<!--\s*date:\s*(\d{4}-\d{2}-\d{2})\s*-->\s*$")
 
 MONTH_HEADING = "## 今月"
@@ -350,15 +359,34 @@ def run(state):
     state["lines"] = list(lines)
 
     sections = find_today_sections(lines)
-    if not sections:
-        print("「## 今日」節が見つかりません。今日節には何も書き込みません。")
-
     new_marker_line = "<!-- date: %s -->" % today
+
+    recreated = False
+    if not sections:
+        insert_at = None
+        for i, line in enumerate(lines):
+            if line.startswith(WEEK_HEADING):
+                insert_at = i
+                break
+        if insert_at is None:
+            for i, line in enumerate(lines):
+                if line.startswith("## "):
+                    insert_at = i
+                    break
+        new_section = [TODAY_HEADING, new_marker_line, ""]
+        if insert_at is None:
+            if lines and lines[-1].strip() != "":
+                lines.append("")
+            insert_at = len(lines)
+            new_section = [TODAY_HEADING, new_marker_line]
+        lines[insert_at:insert_at] = new_section
+        recreated = True
+        print("「## 今日」節が無かったため、日付マーカー（%s）付きで作り直しました。" % today)
 
     # 節ごとに独立して判定する。lines への削除・置換は、後ろの節から適用すれば
     # 前の節のindexに影響しないため、開始indexの降順で処理する。
     unreadable_headings = []
-    touched_reports = []  # (heading_text, old_date, new_today_or_None, removed_count, deleted_section)
+    touched_reports = []  # (heading_text, 状態の説明, removed_count, removed_lines)
     pending_archives = []  # (marker_date, removed_lines) を書き込み前に集めておく
 
     for start, end in sorted(sections, key=lambda s: s[0], reverse=True):
@@ -368,7 +396,11 @@ def run(state):
         marker_date = DATE_MARKER_RE.match(lines[marker_idx]).group(1) if has_marker else None
 
         if not has_marker:
-            unreadable_headings.append(heading_text)
+            if marker_idx < end and DATE_MARKER_PREFIX_RE.match(lines[marker_idx].strip()):
+                unreadable_headings.append(heading_text)
+                continue
+            lines.insert(marker_idx, new_marker_line)
+            touched_reports.append((heading_text, "日付マーカーが無かったため挿入: %s" % today, 0, []))
             continue
 
         if marker_date == today:
@@ -391,11 +423,13 @@ def run(state):
         if remains:
             new_section = [lines[start], new_marker_line] + kept
             lines[start:end] = new_section
-            touched_reports.append((heading_text, marker_date, today, len(removed), False, removed))
+            touched_reports.append((heading_text, "マーカー更新: %s -> %s" % (marker_date, today),
+                                    len(removed), removed))
         else:
-            # 未完了行が1つも残らない → 見出しごと節を削除する
-            lines[start:end] = []
-            touched_reports.append((heading_text, marker_date, today, len(removed), True, removed))
+            # 未完了行が1つも残らない → 見出しは残し、基準日の日付マーカーだけにする
+            lines[start:end] = [lines[start], new_marker_line, ""]
+            touched_reports.append((heading_text, "マーカー更新（未完了行なし・見出しと日付マーカーのみ残す）: %s -> %s"
+                                    % (marker_date, today), len(removed), removed))
 
     if unreadable_headings:
         for h in unreadable_headings:
@@ -406,8 +440,7 @@ def run(state):
 
     # 表示は元の並び順（ファイル上から下）にしたいので開始indexの降順で積んだ
     # touched_reports を反転する。
-    for heading_text, old_date, new_date, removed_count, deleted, removed_lines in reversed(touched_reports):
-        status = "節ごと削除" if deleted else "マーカー更新: %s -> %s" % (old_date, new_date)
+    for heading_text, status, removed_count, removed_lines in reversed(touched_reports):
         print("見出し: %s / %s / 削除件数: %d件" % (heading_text, status, removed_count))
         for line in removed_lines:
             print(line)
@@ -415,7 +448,7 @@ def run(state):
     # 今月節: 今日節から消した完了行の [M-nn] を、今月節の同じIDの行へ反映する
     done_ids_input = []
     for report in reversed(touched_reports):
-        for line in report[5]:
+        for line in report[3]:
             for mid in MONTHLY_ID_RE.findall(line):
                 if mid not in done_ids_input:
                     done_ids_input.append(mid)
@@ -440,7 +473,7 @@ def run(state):
         if month_removed:
             month_archive = (archive_date, list(month_removed))
 
-    if not touched_reports and not done_ids and not rolled:
+    if not touched_reports and not done_ids and not rolled and not recreated:
         return 0
 
     if not dry_run:
