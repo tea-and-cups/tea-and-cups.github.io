@@ -77,7 +77,7 @@
 
 週次の入力の自動生成・監査範囲の機械集計・SNSチェック（D-0272・--mode weekly のみ）:
   Codex を呼ぶ前に、(1) sns.md が無い／全項目「未評価」なら終了コード2で止まる（--skip-sns で続行）、
-  (2) growth/inputs/<週>/ へ pins-summary.md・ga4-source-medium.md・buffer-summary.md・
+  (2) growth/inputs/<週>/ へ pins-summary.md・ga4-source-medium.md・ga4-source-landing.md・buffer-summary.md・
   buffer-posts.json・buffer-aggregate.json（送信日時が対象期間のもの）を作り、site/scripts/
   build-site.sh で手元ビルドを1回行って、dist の記事ページ1件とカテゴリページ1件を区切りRの
   対象に加える。監査の最後に audit.md の「## 監査範囲」節を、各区切り・まとめの実行ログから数えた
@@ -1791,6 +1791,39 @@ def _build_ga4_source_summary(since_date, until_date):
     return _cap_text("\n".join(lines) + "\n")
 
 
+SOURCE_LANDING_TOP_N = 30
+
+
+def _build_ga4_source_landing_summary(since_date, until_date):
+    """(b2) GA4の参照元×ランディングページ別の対象期間のセッション数（GD-0047）。
+    合計は表の前に置く（4,000字の行単位の切り詰めで消えないように）。
+    """
+    lines = ["# GA4 参照元×ランディングページ別（gateway が自動生成・対象期間 %s〜%s・セッション数順の上位%d行）"
+             % (since_date, until_date, SOURCE_LANDING_TOP_N), ""]
+    payload, _raw, err = _run_metrics(["ga4", "--operation", "ga4.source_landing", "--since", since_date,
+                                       "--until", until_date, "--limit", "100"])
+    problem = _payload_problem(payload, err)
+    if problem:
+        lines.append("- 取得できなかった: %s" % problem)
+        return "\n".join(lines) + "\n"
+    series = sorted(payload["data"]["series"], key=lambda r: -(r.get("sessions") or 0))
+    totals = (payload["data"].get("totals") or {})
+    lines.append("- 合計（取得した全%d行）: sessions %s・users %s・PV %s%s" % (
+        len(series), _fmt_int(sum(r.get("sessions") or 0 for r in series)),
+        _fmt_int(sum(r.get("activeUsers") or 0 for r in series)),
+        _fmt_int(sum(r.get("screenPageViews") or 0 for r in series)),
+        "（--limit に達しており下限値）" if totals.get("is_lower_bound") else ""))
+    lines += ["", "| 参照元 / メディア | ランディングページ | sessions | users | PV |", "|---|---|---|---|---|"]
+    for rec in series[:SOURCE_LANDING_TOP_N]:
+        lines.append("| %s | %s | %s | %s | %s |" % (
+            rec.get("session_source_medium") or "（不明）", rec.get("landing_page") or "（不明）",
+            _fmt_int(rec.get("sessions")), _fmt_int(rec.get("activeUsers")), _fmt_int(rec.get("screenPageViews"))))
+    if len(series) > SOURCE_LANDING_TOP_N:
+        lines.append("")
+        lines.append("- 下位%d行は省略した（合計には含む）" % (len(series) - SOURCE_LANDING_TOP_N))
+    return _cap_text("\n".join(lines) + "\n")
+
+
 def _build_buffer_summary(posts_payload, agg_payload, since_date, until_date):
     """(c) Buffer の要約（生JSONは4,000字を大きく超えるため、読みやすい要約を添える）。"""
     lines = ["# Buffer 投稿の要約（gateway が自動生成・送信日時が %s〜%s の投稿のみ）" % (since_date, until_date), ""]
@@ -1908,6 +1941,11 @@ def _prepare_weekly_inputs(input_dir, since_date, until_date):
     p = input_dir / "ga4-source-medium.md"
     p.write_text(_build_ga4_source_summary(since_date, until_date), encoding="utf-8")
     add_item(display("ga4-source-medium.md"), p, "今週の入力・GA4参照元別（gateway が自動生成）")
+
+    # (b2) GA4 参照元×ランディングページ別（GD-0047）
+    p = input_dir / "ga4-source-landing.md"
+    p.write_text(_build_ga4_source_landing_summary(since_date, until_date), encoding="utf-8")
+    add_item(display("ga4-source-landing.md"), p, "今週の入力・GA4参照元×ランディングページ別（gateway が自動生成）")
 
     # (c) Buffer（対象週の送信日時で絞る。生JSONは加工せず保存し、読みやすい要約を添える）
     posts_payload, posts_raw, posts_err = _run_metrics(

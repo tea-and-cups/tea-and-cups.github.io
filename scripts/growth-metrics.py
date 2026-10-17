@@ -26,6 +26,7 @@ Codex からシェル実行される前提で、標準出力に契約JSONを1個
   python site/scripts/growth-metrics.py gsc --operation gsc.search_analytics_by_page --lookback-days 28 --limit 20
   python site/scripts/growth-metrics.py gsc --operation gsc.search_analytics_by_query_page --lookback-days 28 --limit 20
   python site/scripts/growth-metrics.py ga4 --operation ga4.page_traffic --since 2026-09-21 --until 2026-09-27 --limit 100
+  python site/scripts/growth-metrics.py ga4 --operation ga4.source_landing --since 2026-10-05 --until 2026-10-11 --limit 100
   python site/scripts/growth-metrics.py pins --operation pins.daily_totals --since 2026-08-24 --until 2026-09-27 --compare-weeks 4
 
 期間の指定（D-0265）:
@@ -588,8 +589,20 @@ def run_ga4_source_medium(params: dict) -> dict:
         "sum of the returned sessionSourceMedium rows")
 
 
-def _run_ga4_dimension_report(params: dict, operation: str, dimension: str, record_key: str,
+def run_ga4_source_landing(params: dict) -> dict:
+    return _run_ga4_dimension_report(
+        params, "ga4.source_landing", ("sessionSourceMedium", "landingPage"),
+        ("session_source_medium", "landing_page"),
+        "this is a sessionSourceMedium x landingPage aggregate over the whole window (not a "
+        "per-day breakdown), ranked by screenPageViews via the API's own orderBys",
+        "sum of the returned sessionSourceMedium x landingPage rows")
+
+
+def _run_ga4_dimension_report(params: dict, operation: str, dimension, record_key,
                               coverage_text: str, totals_label: str) -> dict:
+    # dimension / record_key は文字列（1次元）か、同じ長さのタプル（複数次元・ga4.source_landing）。
+    dimensions = (dimension,) if isinstance(dimension, str) else tuple(dimension)
+    record_keys = (record_key,) if isinstance(record_key, str) else tuple(record_key)
     from google.auth.transport.requests import AuthorizedSession, Request
     from google.oauth2.credentials import Credentials
 
@@ -618,7 +631,7 @@ def _run_ga4_dimension_report(params: dict, operation: str, dimension: str, reco
 
     body = {
         "dateRanges": [{"startDate": params["period"]["start_date"], "endDate": params["period"]["end_date"]}],
-        "dimensions": [{"name": dimension}],
+        "dimensions": [{"name": name} for name in dimensions],
         "metrics": [{"name": name} for name in GA4_PAGE_METRICS],
         "orderBys": [{"metric": {"metricName": "screenPageViews"}, "desc": True}],
         "limit": str(limit),
@@ -653,7 +666,6 @@ def _run_ga4_dimension_report(params: dict, operation: str, dimension: str, reco
     for row in rows:
         dim_values = row.get("dimensionValues") or []
         metric_values = row.get("metricValues") or []
-        dim_value = dim_values[0].get("value") if dim_values else None
         reasons: list[str] = []
         record = {
             "source": GA4_SOURCE,
@@ -661,10 +673,12 @@ def _run_ga4_dimension_report(params: dict, operation: str, dimension: str, reco
             "entity_id": GA4_ENTITY_ID,
             "observed_at": fetched_at,
         }
-        if dim_value:
-            record[record_key] = dim_value
-        else:
-            reasons.append("GA4 row had a missing or empty %s dimension" % dimension)
+        for dim_index, (dim_name, key) in enumerate(zip(dimensions, record_keys)):
+            dim_value = dim_values[dim_index].get("value") if dim_index < len(dim_values) else None
+            if dim_value:
+                record[key] = dim_value
+            else:
+                reasons.append("GA4 row had a missing or empty %s dimension" % dim_name)
         for index, name in enumerate(GA4_PAGE_METRICS):
             value = None
             if index < len(metric_values):
@@ -1554,6 +1568,15 @@ ALLOWED_OPERATIONS = {
         ),
         "accepts": frozenset(["lookback_days", "limit", "since_until"]),
         "handler": run_ga4_source_medium,
+    },
+    "ga4.source_landing": {
+        "service": "ga4",
+        "description": (
+            "GA4 screenPageViews / sessions / activeUsers by sessionSourceMedium x landingPage "
+            "over the period (not daily), top-N by screenPageViews"
+        ),
+        "accepts": frozenset(["lookback_days", "limit", "since_until"]),
+        "handler": run_ga4_source_landing,
     },
     "gsc.search_analytics_by_query": {
         "service": "gsc",
