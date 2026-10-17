@@ -1591,6 +1591,109 @@ def _fmt_int(value):
     return "%d" % value if isinstance(value, int) else "-"
 
 
+PIN_FILE_RE = re.compile(r"^(\d{4}-\d{2}-\d{2})-pin-(\d+)-")
+PIN_AGE_BUCKETS = (("0-6日", 0, 6), ("7-13日", 7, 13), ("14-20日", 14, 20), ("21日以上", 21, None))
+PIN_METRIC_COLS = (("imp", "impressions"), ("out", "outbound_clicks"), ("pin", "pin_clicks"))
+
+
+def _pin_created_dates():
+    """output/pins のファイル名（YYYY-MM-DD-pin-<番号>-…）から {ピン番号(int): 作成日(date)} を作る。"""
+    created = {}
+    try:
+        names = os.listdir(PROJECT_ROOT / "output" / "pins")
+    except OSError:
+        return created
+    for name in names:
+        m = PIN_FILE_RE.match(name)
+        if not m:
+            continue
+        try:
+            created[int(m.group(2))] = datetime.strptime(m.group(1), "%Y-%m-%d").date()
+        except ValueError:
+            continue
+    return created
+
+
+def _row_int(row, col):
+    try:
+        return int(row.get(col) or 0)
+    except ValueError:
+        return 0
+
+
+def _pins_age_tables(rows, start_date, since_date, until_date):
+    """(1) 作成後の経過日数別の週合計（4週分）と、(2) 前週の上位10ピンの今週の値。
+    duplicate_detected=true の行は pins.daily_totals と同じく外す（週合計と一致させるため）。
+    ピンの作成日は output/pins のファイル名の日付。経過日数 = 行の date - 作成日。
+    """
+    created = _pin_created_dates()
+    rows = [r for r in rows if (r.get("duplicate_detected") or "").lower() != "true"]
+
+    def age_of(row):
+        try:
+            number = int(row.get("pin_number") or "")
+            day = datetime.strptime(row.get("date") or "", "%Y-%m-%d").date()
+        except ValueError:
+            return None
+        made = created.get(number)
+        if made is None or day < made:
+            return None
+        return (day - made).days
+
+    lines = ["", "## 作成後の経過日数別の週合計（セル=imp/out/pin・経過日数=その日-ファイル名の作成日・不明=対応ファイル無し・save省略）", "",
+             "| 週 | " + " | ".join(b[0] for b in PIN_AGE_BUCKETS) + " | 作成日不明 | 合計imp |",
+             "|---|" + "---|" * (len(PIN_AGE_BUCKETS) + 2)]
+    first = datetime.strptime(start_date, "%Y-%m-%d").date()
+    for i in range(4):
+        w_start = first + timedelta(days=7 * i)
+        w_end = w_start + timedelta(days=6)
+        cells = [[0, 0, 0] for _ in range(len(PIN_AGE_BUCKETS) + 1)]
+        for row in rows:
+            day = row.get("date") or ""
+            if not (w_start.isoformat() <= day <= w_end.isoformat()):
+                continue
+            age = age_of(row)
+            idx = len(PIN_AGE_BUCKETS)
+            if age is not None:
+                for j, (_n, lo, hi) in enumerate(PIN_AGE_BUCKETS):
+                    if age >= lo and (hi is None or age <= hi):
+                        idx = j
+                        break
+            for k, (_n, col) in enumerate(PIN_METRIC_COLS):
+                cells[idx][k] += _row_int(row, col)
+        lines.append("| %s〜%s | %s | %d |" % (
+            w_start.isoformat(), w_end.isoformat(),
+            " | ".join("%d/%d/%d" % tuple(c) for c in cells), sum(c[0] for c in cells)))
+
+    since = datetime.strptime(since_date, "%Y-%m-%d").date()
+    prev_lo, prev_hi = (since - timedelta(days=7)).isoformat(), (since - timedelta(days=1)).isoformat()
+    prev, cur = {}, {}
+    for row in rows:
+        day = row.get("date") or ""
+        if prev_lo <= day <= prev_hi:
+            target = prev
+        elif since_date <= day <= until_date:
+            target = cur
+        else:
+            continue
+        key = row.get("pin_number") or "?"
+        agg = target.setdefault(key, {"slug": row.get("article_slug") or "?", "imp": 0, "out": 0, "pin": 0})
+        for name, col in PIN_METRIC_COLS:
+            agg[name] += _row_int(row, col)
+    ranked = sorted(prev.items(), key=lambda kv: (-kv[1]["imp"], kv[0]))[:10]
+    lines += ["", "## 前週（%s〜%s）の上位10ピンの今週（%s〜%s）の値" % (prev_lo, prev_hi, since_date, until_date), "",
+              "| ピン | 記事 | 作成日 | 前週imp | 今週imp | 今週out | 今週pin |", "|---|---|---|---|---|---|---|"]
+    for number, agg in ranked:
+        now = cur.get(number, {"imp": 0, "out": 0, "pin": 0})
+        try:
+            made = created.get(int(number))
+        except ValueError:
+            made = None
+        lines.append("| %s | %s | %s | %d | %d | %d | %d |" % (
+            number, agg["slug"], made.isoformat() if made else "不明", agg["imp"], now["imp"], now["out"], now["pin"]))
+    return lines
+
+
 def _build_pins_summary(since_date, until_date):
     """(a) ピン日次実績の要約。対象週と前3週の日別合計・週合計と、対象週のピン別上位10・下位10。"""
     until = datetime.strptime(until_date, "%Y-%m-%d")
@@ -1621,6 +1724,7 @@ def _build_pins_summary(since_date, until_date):
     # ピン別（対象期間・インプレッション順）
     tsv = PROJECT_ROOT / "data" / "pin-daily-metrics.tsv"
     per_pin = {}
+    window_rows = []  # 28日の窓（start〜until）の行。経過日数別・前週上位の表に使う
     try:
         with open(tsv, "r", encoding="utf-8") as fh:
             header = None
@@ -1631,6 +1735,8 @@ def _build_pins_summary(since_date, until_date):
                     continue
                 row = dict(zip(header, cells))
                 day = row.get("date") or ""
+                if start <= day <= until_date:
+                    window_rows.append(row)
                 if not (since_date <= day <= until_date):
                     continue
                 key = row.get("pin_id") or ""
@@ -1645,6 +1751,8 @@ def _build_pins_summary(since_date, until_date):
                         pass
     except OSError:
         per_pin = {}
+        window_rows = []
+    lines += _pins_age_tables(window_rows, start, since_date, until_date)
     lines += ["", "## 対象期間のピン別（インプレッション順・全%d本中）" % len(per_pin)]
     if not per_pin:
         lines.append("- data/pin-daily-metrics.tsv に対象期間の行が無い")
@@ -1854,7 +1962,8 @@ def _scan_rollout(thread_id):
     """thread_id の rollout を読み、truncated・view_image・切り詰めた呼び出しのパス・呼び出し一覧を返す。
     数え方は従来の _count_rollout_signals と同じ（そちらはこの関数の結果から数を返すだけ）。
     """
-    result = {"found": False, "truncated": 0, "view_image": 0, "truncated_files": [], "calls": []}
+    result = {"found": False, "truncated": 0, "view_image": 0, "truncated_files": [],
+              "truncated_call_idx": [], "calls": []}
     if not thread_id:
         return result
     matches = list(CODEX_SESSIONS_DIR.rglob("*-%s.jsonl" % thread_id))
@@ -1888,8 +1997,10 @@ def _scan_rollout(thread_id):
                         if call is not None:
                             call["truncated"] = True
                             result["truncated_files"].append(_paths_in_call(call["text"]))
+                            result["truncated_call_idx"].append(call["idx"])
                         else:
                             result["truncated_files"].append([])
+                            result["truncated_call_idx"].append(None)
                 elif ptype in ("custom_tool_call", "function_call", "local_shell_call"):
                     name = payload.get("name") or ""
                     call_text = payload.get("input")
@@ -1899,11 +2010,12 @@ def _scan_rollout(thread_id):
                         call_text = ""
                     if name == "view_image" or _VIEW_IMAGE_CALL_RE.search(call_text):
                         result["view_image"] += 1
-                    entry = {"text": call_text, "truncated": False}
+                    entry = {"text": call_text, "truncated": False, "idx": len(result["calls"])}
                     calls[payload.get("call_id")] = entry
                     result["calls"].append(entry)
     except OSError:
-        return {"found": False, "truncated": 0, "view_image": 0, "truncated_files": [], "calls": []}
+        return {"found": False, "truncated": 0, "view_image": 0, "truncated_files": [],
+                "truncated_call_idx": [], "calls": []}
     return result
 
 
@@ -1919,11 +2031,11 @@ def _paths_in_call(call_text):
 
 
 def _part_target_paths(part):
-    """区切りの対象一覧（lines）から、対象のパス（行頭の "- " 直後の最初の語）を返す。"""
+    """区切りの対象一覧（lines）から、対象のパス（行頭の "- " 直後から、空白・「【」・全角の「（」の手前まで）を返す。"""
     paths = []
     for line in part.get("lines") or []:
-        m = re.match(r"^\s*-\s+(\S+)", line)
-        if m and "/" in m.group(1) and not m.group(1).startswith("（"):
+        m = re.match(r"^\s*-\s+([^\s【（]+)", line)
+        if m and "/" in m.group(1):
             paths.append(m.group(1))
     return paths
 
@@ -1933,9 +2045,17 @@ def _scope_row(name, scan, part=None):
     if scan is None or not scan["found"]:
         return {"name": name, "known": False}
     names = []
-    for group in scan["truncated_files"]:
+    call_idx = scan.get("truncated_call_idx") or [None] * len(scan["truncated_files"])
+    for group, idx in zip(scan["truncated_files"], call_idx):
         for p in group:
-            if p not in names:
+            if p in names:
+                continue
+            # 切り詰めのあとに、切り詰めの無い呼び出しに同じパスが現れたら、読み直して全文を読めたとみなして外す
+            reread = idx is not None and any(
+                not call["truncated"] and call["idx"] > idx
+                and p in call["text"].replace("\\\\", "/").replace("\\", "/")
+                for call in scan["calls"])
+            if not reread:
                 names.append(p)
     unknown_count = sum(1 for g in scan["truncated_files"] if not g)
     read = total = None
@@ -2032,12 +2152,15 @@ def _format_scope_section(rows, sns_unobserved):
                 names += " ほか%d件" % (len(row["files"]) - SCOPE_NAMES_MAX)
             if row["unknown_calls"]:
                 names += ("、" if names else "") + "不明（%d呼び出し）" % row["unknown_calls"]
+            if not names:
+                names = "なし（切り詰めた分はすべて読み直して全文を読めた）"
         lines.append("| %s | %s | %d | %d | %s |" % (row["name"], counted, row["truncated"], row["view_image"], names))
     lines.append("| 合計 | %d/%d | %d | %d | |" % (r_total, n_total, t_total, v_total))
     lines += ["",
               "- 「読めた対象」は、ログ上でその対象のパスが、切り詰めの無い呼び出しに現れた件数。日本語のパスは"
               "ログ上で壊れて一致しないことがあり、その場合は読めていないと数える。",
-              "- 切り詰めたファイルは、切り詰めの出た呼び出しのパスから拾う。拾えないものは「不明」と書く。"]
+              "- 切り詰めたファイルは、切り詰めの出た呼び出しのパスから拾い、そのあとに切り詰めの無い呼び出しへ"
+              "現れたパス（読み直して全文を読めたもの）は外す。拾えないものは「不明」と書く。"]
     if unknown_rows:
         lines.append("- 実行ログが見つからず集計できなかった区切り: %s（合計に含めない）" % "・".join(unknown_rows))
     if sns_unobserved:
