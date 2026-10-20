@@ -7,6 +7,7 @@ r""".claude/hooks/block-ask-in-scheduled-daily.py の判定テスト。
 ダミーの user 行の形は、実際の transcript（日次・窓口指示・週次）で確認した形に合わせている。
 """
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -53,8 +54,9 @@ WRAP_NO_ASK = ("mcp__ccd_turn__wrap_up", {"recap": "済み"})
 
 
 def run_hook(stdin_text):
+    env = dict(os.environ, BLOCK_ASK_LOG=str(Path(tempfile.gettempdir()) / "test-block-ask.log"))
     r = subprocess.run([sys.executable, str(HOOK)], input=stdin_text, capture_output=True,
-                       text=True, encoding="utf-8", timeout=10)
+                       text=True, encoding="utf-8", timeout=10, env=env)
     out = (r.stdout or "").strip()
     reason = ""
     decision = "allow"
