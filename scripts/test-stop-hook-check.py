@@ -552,11 +552,9 @@ def run_advance_pin_cases(module):
         carried = tasks_file("tasks_carried.md", fake_today, ["- [ ] [新規記事執筆] 持ち越しの未完了行"])
         no_tag = tasks_file("tasks_no_tag.md", fake_today, ["- [x] タグの無い作業"])
 
-        def run(active, tasks_path, script_path):
-            return _run_main(
-                module,
-                {"stop_hook_active": active, "last_assistant_message": "通常の応答本文です。"},
-                {
+        def run(active, tasks_path, script_path, reports_dir=None):
+            overrides = {"REPORTS_DIR": reports_dir} if reports_dir else {}
+            overrides.update({
                     "GOVERNANCE_SCRIPT": governance_script,
                     "TOKEN_USAGE_SCRIPT": token_script,
                     "GDRIVE_SYNC_SCRIPT": sync_script,
@@ -564,10 +562,14 @@ def run_advance_pin_cases(module):
                     "TASKS_MD": tasks_path,
                     "ADVANCE_PIN_SCRIPT": script_path,
                     "ADVANCE_PIN_TODAY": fake_today,
-                },
+            })
+            return _run_main(
+                module,
+                {"stop_hook_active": active, "last_assistant_message": "通常の応答本文です。"},
+                overrides,
             )
 
-        script_next = advance_script("advance_next.py", next_line)
+        script_next =advance_script("advance_next.py", next_line)
         script_incomplete = advance_script("advance_incomplete.py", incomplete_line)
         script_done = advance_script("advance_done.py", "ADVANCE_PIN_DONE pin=9001")
         script_none = advance_script("advance_none.py", "ADVANCE_PIN_NONE 山が21〜60日先に来る記事がありません")
@@ -617,6 +619,24 @@ def run_advance_pin_cases(module):
         ):
             captured = run(active, tasks_path, script_path)
             results.append(("D-0275-C. %s → 何も出さない" % label, captured == "", "stdout=%r" % captured[:200]))
+
+        # --- (E) 作り直し上限で持ち越した日（レポートに ADVANCE_PIN_CARRYOVER 行）→ 止めない ---
+        carry_dir = os.path.join(workdir, "reports_carry")
+        plain_dir = os.path.join(workdir, "reports_plain")
+        for directory, body in ((carry_dir, "# r\nADVANCE_PIN_CARRYOVER 画像の作り直し上限のため翌日へ持ち越し\n"),
+                                (plain_dir, "# r\n行頭でない言及: ADVANCE_PIN_CARRYOVER\n ADVANCE_PIN_CARRYOVER（先頭が空白）\n")):
+            os.makedirs(directory, exist_ok=True)
+            with open(os.path.join(directory, "%s-2.md" % fake_today), "w", encoding="utf-8", newline="\n") as f:
+                f.write(body)
+        for label, directory, script_path, expect_silent in (
+            ("持ち越し行あり×NEXT", carry_dir, script_next, True),
+            ("持ち越し行あり×INCOMPLETE", carry_dir, script_incomplete, True),
+            ("持ち越し行なし（行頭でない）×NEXT", plain_dir, script_next, False),
+        ):
+            captured = run(False, daily_new, script_path, reports_dir=directory)
+            ok = (captured == "") if expect_silent else ("dummy-seasonal-slug" in captured)
+            results.append(("D-0275-E. %s → %s" % (label, "何も出さない" if expect_silent else "止める"),
+                            ok, "stdout=%r" % captured[:160]))
 
         # --- daily_done_on() 単体 ---
         results.append(("D-0275-D. daily_done_on: 今日のマーカー＋タグ付き完了行 → True",

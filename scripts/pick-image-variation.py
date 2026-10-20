@@ -590,7 +590,8 @@ def cmd_advance_pin(argv):
     print(f"構図: アングル={row['angle']}／フレーミング={row['framing']}／"
           f"テキスト配置={row['text_position']}／背景小物={row['background']}")
     if plan["article_seq"] is None:
-        print("記事連番: 既存のピンmd・台帳のどちらにも記載がありません（オーナーへ確認する）")
+        print(f"記事連番: 既存のピンmd・台帳のどちらにも記載がありません。ピン番号の値 {plan['pin_num']} で仮置きする"
+              f"（ピンmdの「- 記事連番: {plan['pin_num']}」と書き、備考に「仮置き（台帳以前の記事）」と書く。オーナーへは質問しない）")
     else:
         print(f"記事連番: {plan['article_seq']}（ピンmdの「- 記事連番:」にこの値を書く）")
     print("避ける型: この記事の他のピン＝"

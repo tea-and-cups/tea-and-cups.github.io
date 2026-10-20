@@ -558,6 +558,25 @@ def daily_done_on(tasks_path, date_text, reports_dir=None, site_root=None):
             or _post_commit_on(site_root, date_text))
 
 
+ADVANCE_PIN_CARRYOVER_MARKER = "ADVANCE_PIN_CARRYOVER"
+
+
+def _carryover_reported_on(reports_dir, date_text):
+    """今日の日次レポートに、先行ピンの画像が作り直し上限に達して翌日へ持ち越した旨の行
+    （行頭が ADVANCE_PIN_CARRYOVER）がある。あれば終了を止めない（rules/image-generation-flow.md 1-4節）。
+    """
+    pattern = re.compile(r"^%s(?:-\d+)?\.md$" % re.escape(date_text))
+    try:
+        names = [n for n in os.listdir(reports_dir) if pattern.match(n)]
+        for name in names:
+            with open(os.path.join(reports_dir, name), encoding="utf-8", errors="replace") as f:
+                if any(line.startswith(ADVANCE_PIN_CARRYOVER_MARKER) for line in f):
+                    return True
+    except OSError:
+        return False
+    return False
+
+
 def advance_pin_open_line(child_env):
     """今日が日次を実施した日で、先行ピンが未完了なら、その判定行を返す。それ以外は None（D-0275）。
 
@@ -566,6 +585,8 @@ def advance_pin_open_line(child_env):
     """
     today = advance_pin_today()
     if not daily_done_on(TASKS_MD, today):
+        return None
+    if _carryover_reported_on(REPORTS_DIR, today):
         return None
     result, exc = run_child(
         "advance_pin", [sys.executable, ADVANCE_PIN_SCRIPT, "--date", today], 30, env=child_env
