@@ -40,6 +40,8 @@
   持たない。このモードは台帳の有無を見ず、その1枚だけに次を適用する: 型がピンmdに書かれ、
   その記事の他のピン・直近の先行ピンと重ならないこと／上の3・4・5（数量表記・先頭文言の
   疑問形・右下の合成の目印）。記事単位の検査（slug指定）は先行ピンのファイルを対象から外す。
+  差し替えピン（「- 差し替え元ピン:」行があるもの・D-0282）もこのモードで検査できる
+  （check-replacement-pins.py --verify が呼ぶ）。
 
 使い方:
   python site/scripts/check-pin-image-style.py <slug>
@@ -261,11 +263,13 @@ def check_advance_pin(pin_num):
         return ["ピン%d: 投稿文ファイルが無い" % pin_num]
     name = entry["file"]
     path = os.path.join(PINS_DIR, name)
-    print("対象: %s（先行ピン）" % name)
-    if not entry["advance_date"]:
-        print("  [NG] 「%s」行がありません（先行ピンのモードは先行ピンだけを検査します）"
-              % piv.ADVANCE_PIN_LABEL.strip())
-        return ["%s: 先行ピン作成日の行が無い" % name]
+    # 差し替えピン（「- 差し替え元ピン:」行・D-0282）も同じ1枚の検査を受けるため、目印として認める。
+    kind = "先行ピン" if entry["advance_date"] else "差し替えピン"
+    print("対象: %s（%s）" % (name, kind))
+    if not entry["advance_date"] and entry.get("replace_from") is None:
+        print("  [NG] 「%s」行も「%s」行もありません（先行ピンのモードは先行ピン・差し替えピンだけを検査します）"
+              % (piv.ADVANCE_PIN_LABEL.strip(), piv.REPLACE_FROM_LABEL.strip()))
+        return ["%s: 先行ピン作成日・差し替え元ピンの行が無い" % name]
 
     ng = []
     print()

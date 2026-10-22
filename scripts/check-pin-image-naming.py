@@ -43,15 +43,18 @@ PIN_NUMBER_CUTOVER = 75
 # 先行ピンの目印「- 先行ピン作成日: YYYY-MM-DD」。pick-image-variation.py の ADVANCE_PIN_LINE_RE と
 # 同じ書式（あちらが定義元。このスクリプトは他のスクリプトを読み込まない作りのため、ここに写す）。
 ADVANCE_PIN_LINE_RE = re.compile(r"^-\s*先行ピン作成日:\s*\d{4}-\d{2}-\d{2}\s*$", re.M)
+# 差し替えピンの目印「- 差し替え元ピン: N」（D-0282）。定義元は pick-image-variation.py の REPLACE_FROM_LINE_RE。
+REPLACE_FROM_LINE_RE = re.compile(r"^-\s*差し替え元ピン:\s*[0-9]+\s*$", re.M)
 
 
 def is_advance_pin_md(name):
-    """output/pins/ のピンmdが先行ピンか（読めなければ False＝通常のピンとして扱う）。"""
+    """output/pins/ のピンmdが先行ピンか差し替えピンか（読めなければ False＝通常のピンとして扱う）。"""
     try:
         with open(os.path.join(PINS_DIR, name), encoding="utf-8") as f:
-            return ADVANCE_PIN_LINE_RE.search(f.read()) is not None
+            text = f.read()
     except OSError:
         return False
+    return ADVANCE_PIN_LINE_RE.search(text) is not None or REPLACE_FROM_LINE_RE.search(text) is not None
 
 
 def main():
@@ -116,13 +119,14 @@ def main():
     missing = sorted(n for n in expected_nums if n not in image_nums)
     extra = sorted(n for n in image_nums if n not in expected_nums)
 
-    # 先行ピン（mdに「- 先行ピン作成日:」行がある・D-0256）で画像が未配置のものは、作成途中として
-    # 警告に留める（先行ピンを作っている途中に、新規記事の公開前チェックを止めないため・D-0275）。
-    # 未配置のまま残った場合は check-advance-pin-today.py が INCOMPLETE として止める。
+    # 先行ピン（mdに「- 先行ピン作成日:」行がある・D-0256）と差し替えピン（「- 差し替え元ピン:」行がある・
+    # D-0282）で画像が未配置のものは、作成途中として警告に留める（作っている途中に、新規記事の公開前
+    # チェックを止めないため・D-0275）。未配置のまま残った場合は、先行ピンは check-advance-pin-today.py が
+    # INCOMPLETE として、差し替えピンは check-replacement-pins.py が REPLACEMENT_OPEN として毎回出す。
     in_progress = [n for n in missing if is_advance_pin_md(expected_nums[n])]
     missing = [n for n in missing if n not in in_progress]
     for n in in_progress:
-        print(f"  [警告] ピン{n}（{expected_nums[n]}）は先行ピンで、画像が未配置です（作成途中として扱いNGにしません）")
+        print(f"  [警告] ピン{n}（{expected_nums[n]}）は先行ピンまたは差し替えピンで、画像が未配置です（作成途中として扱いNGにしません）")
 
     if missing:
         print(f"投稿文はあるが対応する画像が見つからない番号: {len(missing)}件")

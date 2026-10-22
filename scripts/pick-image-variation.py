@@ -94,6 +94,13 @@ Pin画像（pin1〜3）については「型」の候補リスト提示も担う
       先行ピン（既存の seasons・gift 記事へ足す1枚・D-0256）のピン番号・枝番・構図4軸と、
       選べる型（その記事の他のピンの型と、直近の先行ピンの型を除いたもの）を表示する。
       このモードは台帳を読むだけで書き換えない（型・作成日の記録はピンmdが正本・D-0275）。
+
+  python site/scripts/pick-image-variation.py --replace-pin <slug> <旧ピン番号> [--dry-run]
+      差し替えピン（改修で古くなった既投稿ピンを新番号で作り直す1枚・D-0282）の番号を決め、
+      骨組みのピンmd（差し替え元ピン・旧ピンのボード行・utm_content=pin<新番号> の誘導先URL・
+      括弧なしのステータス行）を output/pins/ に書く。採番は --advance-pin と同じ advance_pin_plan。
+      「- 差し替え元ピン: <同じ旧番号>」行のmdが既にあれば、それを作成中の1枚として再利用し、
+      書き直さない。--dry-run は書かずに内容だけを表示する。台帳は書き換えない。
 """
 
 import os
@@ -452,11 +459,41 @@ PIN_MD_BRANCH_RE = re.compile(r"-(\d{2})\.md$")
 ADVANCE_PIN_MIN_BRANCH = 4  # 先行ピンの枝番は -04 以降（rules/image-generation-flow.md 1-4節）
 JST_OFFSET_HOURS = 9
 
+# 差し替えピン（D-0282）の2行。ここが唯一の定義元で、post-pins-to-pinterest.py・
+# check-replacement-pins.py・check-pin-image-style.py・check-pin-image-naming.py（写し）が参照する。
+#   「- 差し替え元ピン: N」: 差し替えの申告。1ファイルに1行だけ。
+#   「- 旧ピン処理: deleted|already_gone|manual YYYY-MM-DD <旧pin_id または ->」:
+#     post-pins-to-pinterest.py だけが書く完了の記録。この行があるmdは二度と照合しない。
+REPLACE_FROM_LABEL = "- 差し替え元ピン: "
+REPLACE_FROM_LINE_RE = re.compile(r"^-\s*差し替え元ピン:\s*([0-9]+)\s*$", re.M)
+OLD_PIN_RESULT_LABEL = "- 旧ピン処理: "
+OLD_PIN_RESULT_KINDS = ("deleted", "already_gone", "manual")
+OLD_PIN_RESULT_RE = re.compile(
+    r"^-\s*旧ピン処理:\s*(deleted|already_gone|manual)\s+(\d{4}-\d{2}-\d{2})\s+(\S+)\s*$", re.M)
+SITE_POSTS_BASE = "https://kohaku-jikan.com/posts/"
+PIN_MD_BOARD_RE = re.compile(r"^(?:ボード:|-\s*ボード案:)\s*(.+?)\s*$", re.M)
+
 
 def advance_pin_date(text):
     """ピンmdの本文から先行ピン作成日（YYYY-MM-DD）を返す。先行ピンでなければ None。"""
     m = ADVANCE_PIN_LINE_RE.search(text)
     return m.group(1) if m else None
+
+
+def replacement_info(text):
+    """ピンmdの本文から差し替えピンの記載を読む。
+
+    戻り値: {"replace_from": 旧ピン番号（1行目）または None, "replace_count": 差し替え元ピン行の数,
+            "old_pin_result": (処理の種類, 日付, 旧pin_id) または None}
+    未完了の差し替え＝ replace_from があり old_pin_result が None。
+    """
+    froms = REPLACE_FROM_LINE_RE.findall(text)
+    result = OLD_PIN_RESULT_RE.search(text)
+    return {
+        "replace_from": int(froms[0]) if froms else None,
+        "replace_count": len(froms),
+        "old_pin_result": result.groups() if result else None,
+    }
 
 
 def today_jst():
@@ -470,7 +507,8 @@ def read_pin_entries(pins_dir=None):
 
     各要素: num（ピン番号）／file（ファイル名）／slug（誘導先URLの /posts/<slug>/）／
     style（「- 型:」の値。IMAGE_STYLES に無い古い表記はそのまま返す）／seq（記事連番）／
-    branch（ファイル名の枝番）／advance_date（先行ピン作成日。先行ピンでなければ None）。
+    branch（ファイル名の枝番）／advance_date（先行ピン作成日。先行ピンでなければ None）／
+    replace_from・replace_count・old_pin_result（差し替えピンの記載。replacement_info() の値）。
     ピン番号の読み取りは check-pin-posting-status.py が正本（範囲表記の扱いを二重実装しない）。
     """
     import importlib.util
@@ -497,7 +535,7 @@ def read_pin_entries(pins_dir=None):
         seq = PIN_MD_SEQ_RE.search(text)
         slug = PIN_MD_SLUG_RE.search(text)
         branch = PIN_MD_BRANCH_RE.search(name)
-        entries.append({
+        entry = {
             "num": max(numbers),
             "file": name,
             "slug": slug.group(1) if slug else None,
@@ -505,7 +543,9 @@ def read_pin_entries(pins_dir=None):
             "seq": int(seq.group(1)) if seq else None,
             "branch": int(branch.group(1)) if branch else None,
             "advance_date": advance_pin_date(text),
-        })
+        }
+        entry.update(replacement_info(text))
+        entries.append(entry)
     entries.sort(key=lambda e: e["num"])
     return entries
 
@@ -529,18 +569,24 @@ def advance_style_exclusions(slug, pin_num, entries=None, rows=None):
     return article, (previous[-1] if previous else None)
 
 
-def advance_pin_plan(slug, today=None, entries=None):
+def advance_pin_plan(slug, today=None, entries=None, replace_from=None):
     """先行ピン1枚分の番号・枝番・構図4軸・型の候補を決める（台帳は読むだけで書かない）。
 
     今日の日付の先行ピンmdがこの記事に既にあれば、それを作成中の1枚として扱う（番号・枝番を
     そのまま返す）。無ければ、番号は output/pins/ の最終番号+1、枝番はこの記事の最大+1（最小 -04）。
     構図4軸はピン番号を開始位置にして各軸の選択肢から1つずつ取る（乱数は使わない）。
+
+    replace_from（旧ピン番号）を渡すと差し替えピンの採番になり（D-0282）、作成中の判定を
+    「この記事に『- 差し替え元ピン: <replace_from>』行のmdがあるか」で行う（作成日に依存しない）。
     """
     if entries is None:
         entries = read_pin_entries()
     today = today or today_jst()
     mine = [e for e in entries if e["slug"] == slug]
-    current = [e for e in mine if e["advance_date"] == today]
+    if replace_from is None:
+        current = [e for e in mine if e["advance_date"] == today]
+    else:
+        current = [e for e in mine if e.get("replace_from") == replace_from]
     if current:
         pin_num = current[-1]["num"]
         branch = current[-1]["branch"]
@@ -607,6 +653,98 @@ def cmd_advance_pin(argv):
           '--pin-text "文言1｜文言2" --prompt-only pin')
 
 
+def replacement_skeleton(plan, old_num, board):
+    """差し替えピンの骨組みmdの本文（D-0282）。ステータス行は括弧なしのため、post-pins-to-pinterest.py は
+    「画像ファイルパス欠落」でスキップする（画像と投稿文を足すまで投稿されない）。"""
+    slug, pin_num = plan["slug"], plan["pin_num"]
+    lines = [
+        "# ピン%d: 差し替えピン（旧ピン%dの差し替え・誘導先: %s）" % (pin_num, old_num, slug),
+        "",
+        "- ステータス: 作成中",
+        "%s%d" % (REPLACE_FROM_LABEL, old_num),
+        "- 誘導先URL: %s%s/?utm_source=pinterest&utm_medium=social&utm_campaign=%s&utm_content=pin%d"
+        % (SITE_POSTS_BASE, slug, slug, pin_num),
+    ]
+    if board:
+        lines.append("ボード: %s" % board)
+    return "\n".join(lines) + "\n"
+
+
+def board_warning(board):
+    """ボード名が data/pinterest-boards.md で解決できなければ理由を返す（判定は post-pins-to-pinterest.py が正本）。"""
+    import importlib.util
+    try:
+        path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "post-pins-to-pinterest.py")
+        spec = importlib.util.spec_from_file_location("post_pins_to_pinterest", path)
+        post = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(post)
+        _board_id, _season, reason = post.resolve_board_id(board, post.load_board_id_map())
+        return reason
+    except Exception as e:
+        return "ボード名を確認できませんでした（%s）" % e
+
+
+def cmd_replace_pin(argv):
+    """--replace-pin <slug> <旧ピン番号> [--dry-run]: 差し替えピンの番号を決め、骨組みのmdを書く（D-0282）。"""
+    dry_run = "--dry-run" in argv
+    args = [a for a in argv if a != "--dry-run"]
+    if len(args) != 2 or args[0].startswith("-") or not args[1].isdigit():
+        sys.exit("usage: pick-image-variation.py --replace-pin <slug> <旧ピン番号> [--dry-run]")
+    slug, old_num = args[0], int(args[1])
+    entries = read_pin_entries()
+    old = [e for e in entries if e["num"] == old_num]
+    if not old:
+        sys.exit(f"旧ピン{old_num} のmdが output/pins/ にありません（旧ピン番号を確認する）")
+    if old[0]["slug"] != slug:
+        sys.exit(f"旧ピン{old_num}（{old[0]['file']}）の誘導先は {old[0]['slug']} です（slug を確認する）")
+
+    plan = advance_pin_plan(slug, entries=entries, replace_from=old_num)
+    path = os.path.join(PINS_DIR, plan["file_name"])
+    print("■ 差し替えピン1枚用（D-0282・台帳 data/image-variation.tsv は書き換えない）")
+    print(f"記事: {slug}（旧ピン: {old_num} ／ {old[0]['file']}）")
+    if not plan["is_new"]:
+        done = next((e["old_pin_result"] for e in entries if e["file"] == plan["file_name"]), None)
+        state = "旧ピン処理済み: %s" % " ".join(done) if done else "作成中のピン"
+        print(f"ピン番号: {plan['pin_num']}（「{REPLACE_FROM_LABEL}{old_num}」行のある{state}）／記事内の枝番: -{plan['branch']:02d}")
+        print(f"ピンmd: output/pins/{plan['file_name']}（既にあるため書き直しません）")
+    else:
+        with open(os.path.join(PINS_DIR, old[0]["file"]), encoding="utf-8") as f:
+            board = PIN_MD_BOARD_RE.search(f.read())
+        board = board.group(1) if board else None
+        text = replacement_skeleton(plan, old_num, board)
+        print(f"ピン番号: {plan['pin_num']}（output/pins/ の最終番号+1）／記事内の枝番: -{plan['branch']:02d}")
+        if dry_run:
+            print(f"ピンmd: output/pins/{plan['file_name']}（--dry-run のため書きません。書く内容は次のとおり）")
+        else:
+            with open(path, "w", encoding="utf-8", newline="\n") as f:
+                f.write(text)
+            print(f"ピンmd: output/pins/{plan['file_name']}（骨組みを書きました）")
+        for line in text.splitlines():
+            print("  | " + line)
+        if not board:
+            print("※旧ピンのmdにボード行がありません。rules/pinterest-api.md のボード選定規則で決め、「ボード: <ボード名>」を足す")
+        else:
+            reason = board_warning(board)
+            if reason:
+                print(f"※旧ピンのボード行をそのまま写しました。{reason}。ボード選定規則で選び直す")
+    row = plan["row"]
+    print(f"構図: アングル={row['angle']}／フレーミング={row['framing']}／"
+          f"テキスト配置={row['text_position']}／背景小物={row['background']}")
+    if plan["article_seq"] is None:
+        print(f"記事連番: 既存のピンmd・台帳のどちらにも記載がありません。ピン番号の値 {plan['pin_num']} で仮置きする"
+              "（備考に「仮置き（台帳以前の記事）」と書く）")
+    else:
+        print(f"記事連番: {plan['article_seq']}（ピンmdの「- 記事連番:」にこの値を書く）")
+    print("避ける型: この記事の他のピン＝" + ("／".join(sorted(plan["article_styles"])) or "（型の記録なし）"))
+    print("選べる型（この中から1つ選ぶ）: " + "／".join(plan["candidates"]))
+    print()
+    print("次の手順（rules/image-generation-flow.md 1-4節）:")
+    print("  1. 残りの行（型・記事連番・テキストオーバーレイ・依頼文・投稿文・X用説明文・Threads用問いかけ）を書き足す")
+    print("  2. 画像を生成・配置し、ステータス行を「- ステータス: 画像生成済み（output/Pin-images/…）」にする")
+    print(f"  3. python site/scripts/check-replacement-pins.py --verify {plan['pin_num']} → quality-reviewer → 投稿")
+    print("     （旧ピンは post-pins-to-pinterest.py が新ピンの投稿時に API で削除する）")
+
+
 def cmd_set_style(argv):
     """--set-style <slug> pin1=型名 pin2=型名 pin3=型名"""
     if len(argv) < 2:
@@ -655,12 +793,13 @@ def main():
         sys.stderr.reconfigure(encoding="utf-8")
 
     # 「-」で始まる引数（--help 等）をslugとして台帳へ書く事故を防ぐ。台帳を読む前に止める。
-    if len(sys.argv) >= 2 and sys.argv[1].startswith("-") and sys.argv[1] not in ("--set-style", "--advance-pin"):
+    if len(sys.argv) >= 2 and sys.argv[1].startswith("-") and sys.argv[1] not in ("--set-style", "--advance-pin", "--replace-pin"):
         sys.stderr.write(
             "エラー: 「-」で始まる引数はslugとして受け付けません（台帳は書き換えていません）。\n"
             "usage: pick-image-variation.py <slug>\n"
             '       pick-image-variation.py --set-style <slug> "pin1=<型名>" "pin2=<型名>" "pin3=<型名>"\n'
             "       pick-image-variation.py --advance-pin <slug>\n"
+            "       pick-image-variation.py --replace-pin <slug> <旧ピン番号> [--dry-run]\n"
         )
         sys.exit(1)
 
@@ -670,6 +809,10 @@ def main():
 
     if len(sys.argv) >= 2 and sys.argv[1] == "--advance-pin":
         cmd_advance_pin(sys.argv[2:])
+        return
+
+    if len(sys.argv) >= 2 and sys.argv[1] == "--replace-pin":
+        cmd_replace_pin(sys.argv[2:])
         return
 
     if len(sys.argv) != 2:

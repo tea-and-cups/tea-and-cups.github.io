@@ -48,13 +48,38 @@ production runのstep記録（D-0235）:
   オプション。圧縮は (0) 緊急停止スイッチ判定より後・通常実行時は最初の
   Pinterest投稿より前に1回だけ実行される。
 
+差し替えピンの旧ピン処理（D-0282）:
+  (8) の直後、投稿したピンmdに「- 差し替え元ピン: N」行があれば process_replacement() で旧ピンNを
+  処理する（失敗しても投稿の処理は止めず、結果は一覧に別の行で出す）。
+    a. 旧 pin_id の引き当て: data/pin-daily-metrics.tsv で旧番号のIDが1件ならそれを候補にする。
+       0件・複数なら GET /v5/pins の一覧から link の utm_content=pin<旧番号> を持ち、GET が200の
+       ものがちょうど1件のときだけ候補にする。
+    b. 新ピンの GET が200でなければ何もしない（次回に持ち越す）。
+    c. 旧候補の GET が404なら「- 旧ピン処理: already_gone 日付 ID」を書く。200かつ link の
+       utm_content が pin<旧番号> なら DELETE を1回だけ送り、続く GET が404なら「deleted」を書く。
+    d. 候補が決まらない・link不一致・5xx・通信失敗は書かずに未完了のまま残し、理由と
+       直リンク（IDが分からなければ記事URL・旧番号・ボード名）を出す。
+    e. 401・403 ならその実行の以降の処理（DELETEを含む）を止める。
+    f. DELETE は POST と同じ待機間隔（POST_INTERVAL_SECONDS）を空けて送る。
+
+--apply-replacements [--dry-run]:
+  未完了の差し替え（差し替え元ピン行があり旧ピン処理行が無いmd）のうち、投稿済みのものすべてに
+  process_replacement() を実行する。--dry-run では DELETE も行の書き込みもしない。
+
+--mark-manual <新ピン番号>:
+  オーナーが旧ピンを手で消し、IDが引けない場合に「- 旧ピン処理: manual 日付 -」を書くだけ。
+  APIは呼ばない。
+
 使い方:
   python site/scripts/post-pins-to-pinterest.py --dry-run
   python site/scripts/post-pins-to-pinterest.py --compact-ledger-only
   python site/scripts/post-pins-to-pinterest.py
+  python site/scripts/post-pins-to-pinterest.py --apply-replacements [--dry-run]
+  python site/scripts/post-pins-to-pinterest.py --mark-manual <新ピン番号>
 """
 
 import base64
+import csv
 import datetime
 import importlib.util
 import mimetypes
@@ -77,6 +102,7 @@ BOARDS_FILE = os.path.join(ROOT, "data", "pinterest-boards.md")
 KILL_SWITCH_PATH = os.path.join(ROOT, "data", "pin-auto-post-off")
 KILL_SWITCH_PREFIX = "pin-auto-post-off"
 DATA_DIR = os.path.join(ROOT, "data")
+METRICS_PATH = os.path.join(DATA_DIR, "pin-daily-metrics.tsv")
 
 if SCRIPT_DIR not in sys.path:
     sys.path.insert(0, SCRIPT_DIR)
@@ -601,12 +627,281 @@ def append_ledger(pin_num, today_str):
         f.write("投稿日: %s %d\n" % (today_str, pin_num))
 
 
+# --- 差し替えピンの旧ピン処理（D-0282） ------------------------------------------
+PIN_PAGE_URL = "https://www.pinterest.com/pin/%s/"
+AUTH_STOP_STATUSES = (401, 403)
+UTM_PIN_VALUE_RE = re.compile(r"^pin0*(\d+)$")
+LABEL_REPLACE_OPEN = "旧ピン未処理"
+
+_PIV = []
+
+
+def _load_piv():
+    """pick-image-variation.py（差し替えピンの行の定義元）を読み込む。1プロセス1回。"""
+    if not _PIV:
+        path = os.path.join(SCRIPT_DIR, "pick-image-variation.py")
+        spec = importlib.util.spec_from_file_location("pick_image_variation", path)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        _PIV.append(mod)
+    return _PIV[0]
+
+
+class _AuthStop(Exception):
+    """401・403 を受けた。その実行の以降の処理を止める合図。"""
+
+
+def new_replacement_state():
+    """1回の実行で共有する状態（ID一覧のキャッシュ・401/403の停止・DELETEの間隔）。"""
+    return {"metrics": None, "listing": None, "auth_stop": False, "last_write": 0.0, "deleted": 0}
+
+
+def utm_pin_number(link):
+    """リンクの utm_content=pinN から N を返す（先頭の0は無視する）。無ければ None。"""
+    try:
+        query = urllib.parse.urlparse(link or "").query
+    except ValueError:
+        return None
+    for value in urllib.parse.parse_qs(query).get("utm_content", []):
+        m = UTM_PIN_VALUE_RE.match(value.strip())
+        if m:
+            return int(m.group(1))
+    return None
+
+
+def metrics_pin_ids(pin_num, state):
+    """data/pin-daily-metrics.tsv にあるピン番号 pin_num の pin_id（重複を除いた出現順）。"""
+    if state["metrics"] is None:
+        state["metrics"] = {}
+        if os.path.isfile(METRICS_PATH):
+            with open(METRICS_PATH, encoding="utf-8", newline="") as f:
+                for row in csv.DictReader(f, delimiter="\t"):
+                    num = (row.get("pin_number") or "").strip()
+                    pin_id = (row.get("pin_id") or "").strip()
+                    if num.isdigit() and pin_id:
+                        ids = state["metrics"].setdefault(int(num), [])
+                        if pin_id not in ids:
+                            ids.append(pin_id)
+    return state["metrics"].get(pin_num, [])
+
+
+def get_pin(access_token, pin_id):
+    """GET /v5/pins/<id>。戻り値: (HTTPステータス または None（通信失敗）, 本文 または None, 説明)。
+    401・403 は _AuthStop を送出する。"""
+    try:
+        return 200, pinterest_api.request("GET", "/pins/%s" % pin_id, access_token, timeout=15), "HTTP 200"
+    except pinterest_api.PinterestApiError as e:
+        if e.status_code in AUTH_STOP_STATUSES:
+            raise _AuthStop("GET /v5/pins/%s → HTTP %s: %s" % (pin_id, e.status_code, e.body))
+        return e.status_code, None, "HTTP %s: %s" % (e.status_code, e.body)
+    except Exception as e:
+        return None, None, "通信失敗: %s" % e
+
+
+def resolve_pin_id(access_token, pin_num, state):
+    """ピン番号から pin_id を1件に決める。戻り値: (pin_id または None, 決まらない理由)。
+
+    pin-daily-metrics.tsv にちょうど1件ならそれ。0件・複数なら GET /v5/pins の一覧を走査し、
+    link の utm_content=pin<pin_num> を持ち GET が200のものがちょうど1件のときだけ返す。
+    """
+    ids = metrics_pin_ids(pin_num, state)
+    if len(ids) == 1:
+        return ids[0], None
+    if state["listing"] is None:
+        try:
+            state["listing"] = pinterest_api.fetch_all_pages("/pins", access_token)
+        except pinterest_api.PinterestApiError as e:
+            if e.status_code in AUTH_STOP_STATUSES:
+                raise _AuthStop("GET /v5/pins → HTTP %s: %s" % (e.status_code, e.body))
+            return None, "GET /v5/pins の一覧を取得できません（HTTP %s）" % e.status_code
+        except Exception as e:
+            return None, "GET /v5/pins の一覧を取得できません（通信失敗: %s）" % e
+    matches = [p.get("id") for p in state["listing"] if utm_pin_number(p.get("link")) == pin_num]
+    alive = [pid for pid in matches if get_pin(access_token, pid)[0] == 200]
+    if len(alive) == 1:
+        return alive[0], None
+    return None, ("pin_id を1件に決められません（pin-daily-metrics.tsv %d件／GET /v5/pins の一覧で"
+                  "utm_content=pin%d かつ GET 200 が%d件）" % (len(ids), pin_num, len(alive)))
+
+
+def read_replacement(file_name):
+    """ピンmdの差し替えの記載（pick-image-variation.py の replacement_info()）。読めなければ None。"""
+    try:
+        with open(os.path.join(PINS_DIR, file_name), encoding="utf-8") as f:
+            return _load_piv().replacement_info(f.read())
+    except OSError:
+        return None
+
+
+def write_old_pin_result(file_name, kind, date_str, old_pin_id):
+    """ピンmdの「差し替え元ピン」行の直後に「- 旧ピン処理: …」行を書く（既にあれば書かない）。"""
+    piv = _load_piv()
+    path = os.path.join(PINS_DIR, file_name)
+    with open(path, encoding="utf-8") as f:
+        text = f.read()
+    if piv.OLD_PIN_RESULT_RE.search(text):
+        return
+    m = piv.REPLACE_FROM_LINE_RE.search(text)
+    line = "%s%s %s %s" % (piv.OLD_PIN_RESULT_LABEL, kind, date_str, old_pin_id)
+    text = text[:m.end()] + "\n" + line + text[m.end():]
+    with open(path, "w", encoding="utf-8", newline="\n") as f:
+        f.write(text)
+
+
+def old_pin_hint(old_num, old_pin_id, new_file_name):
+    """手で確かめるための手がかり。IDが分かれば直リンク、分からなければ記事URL・旧番号・ボード名。"""
+    if old_pin_id:
+        return "直リンク: " + PIN_PAGE_URL % old_pin_id
+    piv = _load_piv()
+    entries = piv.read_pin_entries(PINS_DIR)
+    new = next((e for e in entries if e["file"] == new_file_name), None)
+    old = next((e for e in entries if e["num"] == old_num), None)
+    board = None
+    if old:
+        with open(os.path.join(PINS_DIR, old["file"]), encoding="utf-8") as f:
+            m = piv.PIN_MD_BOARD_RE.search(f.read())
+        board = m.group(1) if m else None
+    slug = (new or old or {}).get("slug")
+    article = "%s%s/" % (piv.SITE_POSTS_BASE, slug) if slug else "不明"
+    return "記事URL: %s／旧ピン番号: %d／ボード: %s" % (article, old_num, board or "不明")
+
+
+def process_replacement(access_token, file_name, new_num, new_pin_id, old_num, today_str, dry_run, state):
+    """差し替えピン（新 new_num）の旧ピン old_num を処理する。戻り値: (結果の見出し, 説明)。
+
+    new_pin_id が None なら新ピンのIDも resolve_pin_id() で引く。行の書き込みは
+    already_gone・deleted のときだけで、それ以外は未完了のまま残す（次回に持ち越す）。
+    """
+    if state["auth_stop"]:
+        return LABEL_REPLACE_OPEN, "この実行は401・403で処理を止めたため持ち越し（トークン失効または権限変更の疑い）"
+    old_id = None
+    try:
+        if new_pin_id is None:
+            new_pin_id, reason = resolve_pin_id(access_token, new_num, state)
+            if new_pin_id is None:
+                return LABEL_REPLACE_OPEN, "新ピン%dの%s。次回に持ち越し" % (new_num, reason)
+        status, _body, detail = get_pin(access_token, new_pin_id)
+        if status != 200:
+            return LABEL_REPLACE_OPEN, "新ピン%d（%s）の GET が200ではないため何もしません（%s）。次回に持ち越し" % (
+                new_num, new_pin_id, detail)
+
+        old_id, reason = resolve_pin_id(access_token, old_num, state)
+        if old_id is None:
+            return LABEL_REPLACE_OPEN, "旧ピン%dの%s／%s" % (
+                old_num, reason, old_pin_hint(old_num, None, file_name))
+        status, body, detail = get_pin(access_token, old_id)
+        if status == 404:
+            if dry_run:
+                return "旧ピンは既に無い(dry-run)", "旧ピン%d（%s）は GET 404。already_gone を書く見込み（DELETEは送らない）" % (
+                    old_num, old_id)
+            write_old_pin_result(file_name, "already_gone", today_str, old_id)
+            return "旧ピン処理: already_gone", "旧ピン%d（%s）は GET 404（既に無い）。DELETEは送っていません" % (old_num, old_id)
+        if status != 200:
+            return LABEL_REPLACE_OPEN, "旧ピン%d の GET が200・404以外のため持ち越し（%s）／%s" % (
+                old_num, detail, old_pin_hint(old_num, old_id, file_name))
+        link = (body or {}).get("link")
+        if utm_pin_number(link) != old_num:
+            return LABEL_REPLACE_OPEN, "旧ピン候補 %s の link の utm_content が pin%d ではありません（link=%s）／%s" % (
+                old_id, old_num, link, old_pin_hint(old_num, old_id, file_name))
+        if dry_run:
+            return "DELETE見込み(dry-run)", "旧ピン%d（%s）は GET 200・link一致。DELETE を1回送る見込み" % (old_num, old_id)
+
+        wait = POST_INTERVAL_SECONDS - (time.time() - state["last_write"])
+        if wait > 0:
+            time.sleep(wait)
+        try:
+            pinterest_api.request("DELETE", "/pins/%s" % old_id, access_token, timeout=15)
+        except pinterest_api.PinterestApiError as e:
+            if e.status_code in AUTH_STOP_STATUSES:
+                raise _AuthStop("DELETE /v5/pins/%s → HTTP %s: %s" % (old_id, e.status_code, e.body))
+            return LABEL_REPLACE_OPEN, "旧ピン%d の DELETE が HTTP %s: %s／%s" % (
+                old_num, e.status_code, e.body, old_pin_hint(old_num, old_id, file_name))
+        except Exception as e:
+            return LABEL_REPLACE_OPEN, "旧ピン%d の DELETE が通信失敗: %s／%s" % (
+                old_num, e, old_pin_hint(old_num, old_id, file_name))
+        finally:
+            state["last_write"] = time.time()
+        state["deleted"] += 1
+        status, _body, detail = get_pin(access_token, old_id)
+        if status == 404:
+            write_old_pin_result(file_name, "deleted", today_str, old_id)
+            return "旧ピン処理: deleted", "旧ピン%d（%s）を DELETE し、GET 404 を確認しました" % (old_num, old_id)
+        return LABEL_REPLACE_OPEN, "旧ピン%d の DELETE 後の GET が404ではありません（%s）／%s" % (
+            old_num, detail, old_pin_hint(old_num, old_id, file_name))
+    except _AuthStop as e:
+        state["auth_stop"] = True
+        return LABEL_REPLACE_OPEN, "トークン失効または権限変更の疑い（%s）。この実行の以降の DELETE を止めました／%s" % (
+            e, old_pin_hint(old_num, old_id, file_name))
+
+
+def open_replacements():
+    """未完了の差し替え（差し替え元ピン行があり旧ピン処理行が無いmd）を [(新番号, ファイル名, 旧番号, 行数)] で返す。"""
+    piv = _load_piv()
+    return [(e["num"], e["file"], e["replace_from"], e["replace_count"])
+            for e in piv.read_pin_entries(PINS_DIR)
+            if e["replace_from"] is not None and e["old_pin_result"] is None]
+
+
+def apply_replacements(dry_run, today_str):
+    """--apply-replacements: 投稿済みの未完了の差し替えすべてに process_replacement() を実行する。"""
+    status_mod = _load_check_pin_posting_status()
+    status_mod.LEDGER_PATH = LEDGER_PATH
+    posted = status_mod.load_ledger() or set()
+    targets = open_replacements()
+    if not targets:
+        print("未完了の差し替えピンはありません")
+        return
+    access_token = None
+    state = new_replacement_state()
+    print("新ピン番号 / 結果 / 旧ピン番号 / 説明")
+    for new_num, file_name, old_num, count in targets:
+        if count > 1:
+            label, detail = "スキップ", "%s に差し替え元ピン行が%d行あります（1行にする）" % (file_name, count)
+        elif new_num not in posted:
+            label, detail = "対象外", "新ピンが未投稿のため（投稿時に post-pins-to-pinterest.py が処理する）"
+        else:
+            if access_token is None:
+                access_token = require_env("PINTEREST_ACCESS_TOKEN")
+            try:
+                label, detail = process_replacement(access_token, file_name, new_num, None, old_num,
+                                                    today_str, dry_run, state)
+            except Exception as e:
+                label, detail = LABEL_REPLACE_OPEN, "例外: %s（次回に持ち越し）" % e
+        print("%d / %s / %d / %s" % (new_num, label, old_num, detail))
+    print("DELETE送信: %d件%s" % (state["deleted"], "（--dry-run のため送っていません）" if dry_run else ""))
+
+
+def mark_manual(new_num, today_str):
+    """--mark-manual: 「- 旧ピン処理: manual 日付 -」を書くだけ（APIは呼ばない）。戻り値: 終了コード。"""
+    match = [t for t in open_replacements() if t[0] == new_num]
+    if not match:
+        print("【エラー】ピン%d に未完了の差し替え（差し替え元ピン行があり旧ピン処理行が無いmd）がありません" % new_num)
+        return 1
+    _num, file_name, old_num, count = match[0]
+    if count > 1:
+        print("【エラー】%s に差し替え元ピン行が%d行あります（1行にしてから実行する）" % (file_name, count))
+        return 1
+    write_old_pin_result(file_name, "manual", today_str, "-")
+    print("ピン%d（%s）に「%smanual %s -」を書きました（旧ピン%d・APIは呼んでいません）"
+          % (new_num, file_name, _load_piv().OLD_PIN_RESULT_LABEL, today_str, old_num))
+    return 0
+
+
 def main():
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
 
-    dry_run = "--dry-run" in sys.argv[1:]
-    compact_only = "--compact-ledger-only" in sys.argv[1:]
+    argv = sys.argv[1:]
+    dry_run = "--dry-run" in argv
+    compact_only = "--compact-ledger-only" in argv
+
+    # --- --mark-manual（D-0282）: APIを呼ばずmdに1行書くだけのため、停止スイッチより前に扱う ---
+    if "--mark-manual" in argv:
+        index = argv.index("--mark-manual")
+        if index + 1 >= len(argv) or not argv[index + 1].isdigit():
+            print("usage: post-pins-to-pinterest.py --mark-manual <新ピン番号>")
+            sys.exit(1)
+        sys.exit(mark_manual(int(argv[index + 1]), datetime.date.today().isoformat()))
 
     # --- (0) 緊急停止スイッチ ---
     kill_switch_file = check_kill_switch()
@@ -615,6 +910,11 @@ def main():
         sys.exit(0)
 
     today_str = datetime.date.today().isoformat()
+
+    # --- --apply-replacements（D-0282）: 投稿は行わず、未完了の差し替えの旧ピンだけを処理する ---
+    if "--apply-replacements" in argv:
+        apply_replacements(dry_run, today_str)
+        sys.exit(0)
 
     # --- 台帳圧縮（D-0143）: 緊急停止スイッチ判定より後・最初のPinterest投稿より前に1回だけ ---
     compact_ledger(today_str)
@@ -644,6 +944,7 @@ def main():
     board_id_map = load_board_id_map()
 
     results = []  # (pin_num, result, board_name, detail)
+    replacement_state = new_replacement_state()
 
     # --- (3)(4) ファイル解析・ボード解決を先に全件行う（T2-2のグループ検査に使うため） ---
     parsed_items = {}  # pin_num -> fields（slug・board_id・board_season込み）
@@ -719,8 +1020,23 @@ def main():
         pin_id = resp.get("id", "")
         record_post_step(pin_num, sent.get("body"), True, "pin_id: %s" % pin_id)
         append_ledger(pin_num, today_str)
+        replacement_state["last_write"] = time.time()
         results.append((pin_num, "成功", fields["board"],
                          "pin_id: %s / 画像: %s" % (pin_id, image_detail)))
+
+        # --- 差し替えピンなら旧ピンを処理する（D-0282）。失敗しても投稿の処理は止めない ---
+        info = read_replacement(file_name)
+        if info and info["replace_from"] is not None and info["old_pin_result"] is None:
+            if info["replace_count"] > 1:
+                label, detail = "スキップ", "差し替え元ピン行が%d行あります（1行にして --apply-replacements を実行する）" % info["replace_count"]
+            else:
+                try:
+                    label, detail = process_replacement(
+                        access_token, file_name, pin_num, pin_id or None, info["replace_from"],
+                        today_str, False, replacement_state)
+                except Exception as e:
+                    label, detail = LABEL_REPLACE_OPEN, "例外: %s（--apply-replacements で再実行する）" % e
+            results.append((pin_num, label, "旧ピン%d" % info["replace_from"], detail))
         time.sleep(POST_INTERVAL_SECONDS)
 
     results.sort(key=lambda r: r[0])  # 2パス構成のため構築順=昇順ではなくなった。出力はpin_num昇順に揃える
