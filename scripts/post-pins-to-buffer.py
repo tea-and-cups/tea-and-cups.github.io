@@ -22,6 +22,10 @@ r"""未投稿ピンをBuffer経由でX・Instagram・Threadsへ送る本体ス�
       extract_created_pins() をimportして再利用する（同じ判定を二重実装すると
       片方だけ直って食い違うため）。BUFFER_START_PIN 未満のピン番号は対象外に
       し、除外件数を1行で出す。
+  (3-2) 未審査のピンの保留。pin_review.is_reviewed() が False のピン（364以降で
+      「- 審査: 公開可 YYYY-MM-DD」行が無いもの）は対象から外し、
+      「HELD_UNREVIEWED: 番号一覧」を1行出す。外したピンの画像は (7) の変換・
+      commit・push に含めない。保留は失敗ではないため終了コードは変えない。
   (4) 上限判定。「当日すでに投稿した件数 ＋ 今回の対象件数」が
       DAILY_LIMIT（30件＝10ピン×3チャンネル）を超えるなら、1件も投稿せず
       件数だけ報告して終了する。
@@ -148,6 +152,8 @@ KILL_SWITCH_PREFIX = "buffer-auto-post-off"
 
 if SCRIPT_DIR not in sys.path:
     sys.path.insert(0, SCRIPT_DIR)
+
+import pin_review  # noqa: E402  （.envもAPIも触らない）
 
 # 1日の上限（10ピン × 3チャンネル）。引数では変えない。
 DAILY_LIMIT = 30
@@ -476,6 +482,22 @@ def derive_targets(created_map, posted_pairs, only=None):
             continue
         targets.append((pin_num, created_map[pin_num][0], pending))
     return targets, excluded
+
+
+def split_unreviewed(targets):
+    """derive_targets() の一覧から未審査のピン（pin_review.is_reviewed() が False）を外す。
+
+    外したピンは本文の組み立て・画像の変換・commit・push のいずれの対象にもならない。
+    戻り値: (残す一覧, 外したピン番号の昇順リスト)
+    """
+    kept = []
+    held = []
+    for pin_num, file_name, services in targets:
+        if pin_review.is_reviewed_file(pin_num, os.path.join(PINS_DIR, file_name)):
+            kept.append((pin_num, file_name, services))
+        else:
+            held.append(pin_num)
+    return kept, held
 
 
 # --- (5) 本文の組み立て ---------------------------------------------------------
@@ -1173,8 +1195,11 @@ def main(argv):
     created_map = check_mod.extract_created_pins()
     posted_pairs = load_posted_pairs()
     targets, excluded = derive_targets(created_map, posted_pairs, only=opts["only"])
+    targets, held = split_unreviewed(targets)
 
     out("=== 対象の導出（output/pins のピン番号 × 3サービス − 台帳） ===")
+    if held:
+        out(pin_review.held_line("HELD_UNREVIEWED", held))
     out("  作成済みピン: %d件 / 台帳の投稿済み: %d組" % (len(created_map), len(posted_pairs)))
     out("  対象外（ピン番号 %d 未満・X用説明文が無いため）: %d件"
         % (BUFFER_START_PIN, excluded))
@@ -1184,7 +1209,7 @@ def main(argv):
             out("【エラー】ピン%d の投稿文ファイルが output/pins/ にありません。" % opts["only"])
             return 2
     if not targets:
-        out("  投稿対象は0件です（すべて投稿済み）。")
+        out("  投稿対象は0件です（%s）。" % ("未審査で保留したピンを除き、すべて投稿済み" if held else "すべて投稿済み"))
         return 0
     unit_count = sum(len(services) for _, _, services in targets)
     for pin_num, file_name, services in targets:

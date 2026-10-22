@@ -30,6 +30,10 @@ Pin番号のみであるため、本スクリプトは番号の差分のみで�
   - 未投稿0件・自己検査も正常: "PIN_POSTING_OK （作成済みN件・すべて投稿済み）" の1行のみ。
   - 未投稿がある場合: "PIN_UNPOSTED: " に続けて未投稿番号を昇順で列挙し、
     番号ごとに該当ファイル名を1行ずつ添える。
+  - 未投稿のうち未審査で保留するピン（pin_review.py・364以降で審査行が無いもの）は
+    PIN_UNPOSTED に含めず、"PIN_POSTING_HELD_UNREVIEWED: " に続けて番号を列挙し、
+    続けて次に何をするかの1行と該当ファイル名を出す。審査済みの未投稿も混ざる場合は
+    PIN_UNPOSTED の後に併記する。
   - 台帳にあるが作成済み一覧に存在しない番号があれば【警告】として列挙する。
 
 終了コード: 異常終了（台帳ファイル不在等）のみ非ゼロ。それ以外は常に0。
@@ -160,10 +164,22 @@ def main():
 
     unposted = sorted(set(created) - posted)
 
+    # 未審査で保留するピン（pin_review.py）は未投稿と分けて出す。
+    # importをここで行うのは、このファイルを importlib で読み込む側（.claude/hooks/ 等）の
+    # sys.path に site/scripts が無くても読み込みが失敗しないようにするため。
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    if script_dir not in sys.path:
+        sys.path.insert(0, script_dir)
+    import pin_review
+
+    held_all = pin_review.held_unreviewed(nums_map, PINS_DIR)
+    held = [n for n in unposted if n in held_all]
+    unposted = [n for n in unposted if n not in held_all]
+
     for w in warnings:
         print(w)
 
-    if not unposted and not warnings:
+    if not unposted and not held and not warnings:
         print("PIN_POSTING_OK （作成済み%d件・すべて投稿済み）" % len(created))
         sys.exit(0)
 
@@ -172,8 +188,15 @@ def main():
         for n in unposted:
             for fname in nums_map[n]:
                 print("  pin-%d: %s" % (n, fname))
-    else:
+    elif not held:
         print("PIN_POSTING_OK （作成済み%d件・すべて投稿済み）" % len(created))
+
+    if held:
+        print(pin_review.held_line("PIN_POSTING_HELD_UNREVIEWED", held))
+        print(pin_review.HELD_NEXT_ACTION % "post-pins-to-pinterest.py")
+        for n in held:
+            for fname in nums_map[n]:
+                print("  pin-%d: %s" % (n, fname))
 
     sys.exit(0)
 

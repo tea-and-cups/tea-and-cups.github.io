@@ -16,6 +16,10 @@ post-pins-to-buffer.py からimportして再利用する（同じ判定を二重
   - 未投稿0件: "BUFFER_POSTING_OK" の1行だけを出して終了コード0。
   - 未投稿あり: "BUFFER_UNPOSTED: " に続けて件数を出し、ピン番号ごとに
     未投稿のサービスを1行ずつ列挙して終了コード1。
+  - 未審査で保留するピン（post-pins-to-buffer.py の split_unreviewed()・判定の正本は
+    pin_review.py）は BUFFER_UNPOSTED に含めず、"BUFFER_POSTING_HELD_UNREVIEWED: " に
+    続けて番号を列挙し、続けて次に何をするかの1行と該当ピンを出して終了コード1。
+    審査済みの未投稿も混ざる場合は BUFFER_UNPOSTED の後に併記する。
 
 使い方:
   python site/scripts/check-buffer-posting-status.py
@@ -52,17 +56,25 @@ def main():
 
     created_map = check_mod.extract_created_pins()
     posted_pairs = ppb.load_posted_pairs()
-    targets, _excluded = ppb.derive_targets(created_map, posted_pairs)
+    all_targets, _excluded = ppb.derive_targets(created_map, posted_pairs)
+    targets, held = ppb.split_unreviewed(all_targets)
+    held_targets = [t for t in all_targets if t[0] in held]
 
-    if not targets:
+    if not targets and not held:
         print("BUFFER_POSTING_OK")
         return 0
 
-    unit_count = sum(len(services) for _, _, services in targets)
-    print("BUFFER_UNPOSTED: %d組（%dピン・ピン番号%d以降が対象）"
-          % (unit_count, len(targets), ppb.BUFFER_START_PIN))
-    for pin_num, file_name, services in targets:
-        print("  ピン%d: %s — %s" % (pin_num, ", ".join(services), file_name))
+    if targets:
+        unit_count = sum(len(services) for _, _, services in targets)
+        print("BUFFER_UNPOSTED: %d組（%dピン・ピン番号%d以降が対象）"
+              % (unit_count, len(targets), ppb.BUFFER_START_PIN))
+        for pin_num, file_name, services in targets:
+            print("  ピン%d: %s — %s" % (pin_num, ", ".join(services), file_name))
+    if held:
+        print(ppb.pin_review.held_line("BUFFER_POSTING_HELD_UNREVIEWED", held))
+        print(ppb.pin_review.HELD_NEXT_ACTION % "post-pins-to-buffer.py")
+        for pin_num, file_name, services in held_targets:
+            print("  ピン%d: %s — %s" % (pin_num, ", ".join(services), file_name))
     return 1
 
 

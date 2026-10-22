@@ -9,6 +9,10 @@ r"""未投稿ピンをPinterestへ実投稿する本体スクリプト（D-0120�
   (1) 未投稿ピン番号の導出。check-pin-posting-status.py と同じ関数
       （extract_created_pins() / load_ledger()）をimportして再利用する
       （同じ判定を二重実装すると片方だけ直って食い違うため）。
+  (1-2) 未審査のピンの保留。pin_review.is_reviewed() が False のピン（364以降で
+      「- 審査: 公開可 YYYY-MM-DD」行が無いもの）は投稿対象から外し、
+      「HELD_UNREVIEWED: 番号一覧」を1行出す。保留は失敗ではないため終了コードは
+      変えない。未審査の差し替えピンは投稿されないので、旧ピンも削除されない。
   (2) 今回の投稿対象が50件を超える場合、1件も投稿せず件数のみ報告して終了する
       （オーナー承認済みの自主規制値）。
   (3) 各ピンファイルから ボード名・タイトル・説明文・誘導先URL・画像ファイルパス を
@@ -108,6 +112,7 @@ if SCRIPT_DIR not in sys.path:
     sys.path.insert(0, SCRIPT_DIR)
 
 from env_loader import require_env  # noqa: E402
+import pin_review  # noqa: E402
 import pinterest_api  # noqa: E402
 
 MAX_BATCH_SIZE = 50
@@ -927,8 +932,14 @@ def main():
     status_mod = _load_check_pin_posting_status()
     unposted = derive_unposted(status_mod)
 
+    # --- (1-2) 未審査のピンは投稿しない（pin_review.py）。保留は失敗ではないため終了コードは変えない ---
+    held = [n for n, f in unposted if not pin_review.is_reviewed_file(n, os.path.join(PINS_DIR, f))]
+    if held:
+        print(pin_review.held_line("HELD_UNREVIEWED", held))
+        unposted = [(n, f) for n, f in unposted if n not in held]
+
     if not unposted:
-        print("未投稿ピンはありません")
+        print("未投稿ピンはありません" + ("（未審査で保留したピンを除く）" if held else ""))
         sys.exit(0)
 
     # --- (2) 50件超の自主規制（T3・D-0123: 当日の累計で判定する） ---
