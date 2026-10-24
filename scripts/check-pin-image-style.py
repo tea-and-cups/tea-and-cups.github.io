@@ -29,6 +29,11 @@
   4-2. Pin先頭文言の予告チェック（W42監査の採用指示・GD-0039・ピン360以降）: 先頭文言（最初の「…」）が
      「数字＋つの＋（基準・ポイント・コツ・方法・理由・違い・条件・選び方）」を含むものはNG
      （答えを示さず、数を予告するだけの文言のため）。
+  4-3. Pin先頭の予告型チェック（W43監査の採用指示・GD-0053・ピン370以降）: 画像の先頭文言と、
+     投稿文（「## 投稿文」節）の1行目（「タイトル:」の値と「説明文:」の最初の1文）の末尾が
+     「まとめました・まとめ・紹介します・ご紹介・解説します・調べました・チェック」、または
+     「疑問」（疑問に答えます等を含む）で終わる予告型ならNG。調べ方・案内だけで答えを渡さない先頭を止める。
+     4・4-2 の判定は変えない。
   5. Pin画像の「琥珀時間」合成チェック（GD-0036後半・D-0274・ピン352以降）:
      output/Pin-images/ の画像（PNG）に、後処理で合成した目印（tEXtチャンク）が
      入っているかを検査する。目印は copy-pin-image.sh が配置時に入れる。目印が無い・
@@ -48,6 +53,8 @@
   python site/scripts/check-pin-image-style.py --advance-pin <ピン番号>
   python site/scripts/check-pin-image-style.py --survey-head-preview <開始ピン> <終了ピン>
     （読み取り専用。範囲内のピンのうち、4-2 の予告に当たる先頭文言の件数と文言を出す）
+  python site/scripts/check-pin-image-style.py --survey-head-forecast <開始ピン> <終了ピン>
+    （読み取り専用。範囲内のピンのうち、4-3 の予告型に当たる先頭の件数と文言を出す）
 """
 
 import glob
@@ -187,6 +194,101 @@ def survey_head_preview(first, last):
         print("  ピン%d: 「%s」" % (num, head))
 
 
+# 先頭が「〜をまとめました」「〜をご紹介します」のように、調べ方・案内だけで終わり答えを渡さない予告型
+# （W43監査の採用指示・GD-0053）。既存ピンを止めないため、ピン370以降だけを対象にする。
+# 検査する先頭は2つ: 画像の先頭文言（最初の「…」）と、投稿文（「## 投稿文」節）の1行目
+# （「タイトル:」の値と、「説明文:」の最初の1文）。末尾（句読点・記号を除く）が次の語で終われば予告型。
+HEAD_FORECAST_FROM_PIN = 370
+FORECAST_ENDINGS = (
+    "まとめました", "まとめ", "紹介します", "ご紹介", "解説します", "調べました", "チェック",
+)
+# 「疑問」を主語にした予告。「ペアカップの疑問」のように疑問で終わる先頭と、
+# 「疑問に答えます」「疑問を解消します」のように疑問を受ける案内で終わる文（まとめ・紹介系の末尾は上で拾う）
+RE_FORECAST_DOUBT = re.compile(r"疑問(?:に答え(?:ます|る)|を(?:解消|整理|解説)(?:します|する))?$")
+RE_TRAILING_MARKS = re.compile(r"[\s。．.、，,！!～〜~…・」』）)]+$")
+RE_POST_SECTION = re.compile(r"## 投稿文\n(.*?)(?:\n## |\Z)", re.S)
+RE_POST_TITLE = re.compile(r"^タイトル:\s*(.*)$", re.M)
+RE_POST_BODY = re.compile(r"^説明文:\s*(.*)$", re.M)
+
+
+def is_forecast_text(text):
+    """末尾が予告型の語（FORECAST_ENDINGS）か、「疑問」で終わる（または疑問を受ける案内で終わる）か。"""
+    if not text:
+        return False
+    plain = RE_TRAILING_MARKS.sub("", text.strip())
+    return plain.endswith(FORECAST_ENDINGS) or RE_FORECAST_DOUBT.search(plain) is not None
+
+
+def post_first_lines(content):
+    """投稿文の1行目として検査する文を [(ラベル, 文)] で返す（タイトルと、説明文の最初の1文）。"""
+    section = RE_POST_SECTION.search(content)
+    if not section:
+        return []
+    out = []
+    title = RE_POST_TITLE.search(section.group(1))
+    if title and title.group(1).strip():
+        out.append(("投稿文タイトル", title.group(1).strip()))
+    body = RE_POST_BODY.search(section.group(1))
+    if body and body.group(1).strip():
+        first = re.split(r"(?<=[。！？!?])", body.group(1).strip(), maxsplit=1)[0]
+        out.append(("投稿文1文目", first.split(" #")[0].strip()))
+    return out
+
+
+def forecast_hits(content):
+    """ピンmdの内容から、予告型に当たる先頭を [(ラベル, 文)] で返す（画像の先頭文言＋投稿文の1行目）。"""
+    hits = []
+    head = head_text_of(content)
+    if is_forecast_text(head):
+        hits.append(("画像の先頭文言", head))
+    hits.extend((label, text) for label, text in post_first_lines(content) if is_forecast_text(text))
+    return hits
+
+
+def check_head_forecast(slug, files=None):
+    """ピン370以降の先頭（画像の先頭文言・投稿文の1行目）が予告型でないかを検査する。戻り値: NGメッセージのリスト。
+
+    files を渡すと、slug から探す代わりにそのファイルだけを検査する（先行ピンのモード用）。
+    """
+    if files is None:
+        files = find_pin_files(slug)
+    ng_messages = []
+    checked = 0
+    for path in files:
+        name = os.path.basename(path)
+        m = RE_PIN_NUMBER.search(name)
+        if not m or int(m.group(1)) < HEAD_FORECAST_FROM_PIN:
+            continue
+        checked += 1
+        with open(path, encoding="utf-8") as f:
+            hits = forecast_hits(f.read())
+        for label, text in hits:
+            print("  [NG] %s: %s「%s」は調べ方・案内で終わる予告型です"
+                  "（結論を先に書く。条件つきでも選び方の答えを一文で置く・GD-0053）" % (name, label, text))
+            ng_messages.append("%s: %s「%s」が予告型" % (name, label, text))
+    if not ng_messages:
+        print("  OK: ピン%d以降の対象%d件に予告型の先頭なし" % (HEAD_FORECAST_FROM_PIN, checked))
+    return ng_messages
+
+
+def survey_head_forecast(first, last):
+    """範囲内のピンのうち、予告型（4-3）に当たる先頭を出す（読み取り専用）。"""
+    found = []
+    total = 0
+    for path in sorted(glob.glob(os.path.join(PINS_DIR, "*.md"))):
+        m = RE_PIN_NUMBER.search(os.path.basename(path))
+        if not m or not (first <= int(m.group(1)) <= last):
+            continue
+        total += 1
+        with open(path, encoding="utf-8") as f:
+            for label, text in forecast_hits(f.read()):
+                found.append((int(m.group(1)), label, text))
+    pins = sorted({num for num, _, _ in found})
+    print("範囲 ピン%d〜%d: ピンmd %d件中 該当 %d件（該当箇所 %d）" % (first, last, total, len(pins), len(found)))
+    for num, label, text in sorted(found):
+        print("  ピン%d [%s]: 「%s」" % (num, label, text))
+
+
 # Pin画像のファイル名「ピン{番号} …」（rules/image-generation-flow.md 1-2）から番号を取る。
 RE_PIN_IMAGE_NUMBER = re.compile(r"^ピン(\d+)")
 COPY_PIN_IMAGE_CMD = 'bash "C:/Claude/Tea_TeaCut/site/scripts/copy-pin-image.sh" <Downloads内のファイル名> <配置後のファイル名>'
@@ -309,6 +411,9 @@ def check_advance_pin(pin_num):
     print("=== 3-2. Pin先頭文言の予告チェック（GD-0039・ピン%d以降） ===" % HEAD_PREVIEW_FROM_PIN)
     ng.extend(check_head_preview(entry["slug"], files=[path]))
     print()
+    print("=== 3-3. Pin先頭の予告型チェック（GD-0053・ピン%d以降） ===" % HEAD_FORECAST_FROM_PIN)
+    ng.extend(check_head_forecast(entry["slug"], files=[path]))
+    print()
     print("=== 4. Pin画像の「%s」合成チェック（GD-0036・D-0274・ピン%d以降） ==="
           % (h2w.BRAND_TEXT, HEAD_QUESTION_FROM_PIN))
     ng.extend(check_brand_stamp(entry["slug"], files=[path]))
@@ -364,6 +469,11 @@ def main():
     if (len(sys.argv) == 4 and sys.argv[1] == "--survey-head-preview"
             and sys.argv[2].isdigit() and sys.argv[3].isdigit()):
         survey_head_preview(int(sys.argv[2]), int(sys.argv[3]))
+        return
+
+    if (len(sys.argv) == 4 and sys.argv[1] == "--survey-head-forecast"
+            and sys.argv[2].isdigit() and sys.argv[3].isdigit()):
+        survey_head_forecast(int(sys.argv[2]), int(sys.argv[3]))
         return
 
     if len(sys.argv) != 2 or sys.argv[1].startswith("-"):
@@ -476,6 +586,10 @@ def main():
     print()
     print("=== 4-2. Pin先頭文言の予告チェック（GD-0039・ピン360以降） ===")
     ng.extend(check_head_preview(slug, files=pin_files))
+
+    print()
+    print("=== 4-3. Pin先頭の予告型チェック（GD-0053・ピン370以降） ===")
+    ng.extend(check_head_forecast(slug, files=pin_files))
 
     print()
     print("=== 5. Pin画像の「琥珀時間」合成チェック（GD-0036・D-0274・ピン352以降） ===")

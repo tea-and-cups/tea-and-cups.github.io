@@ -299,7 +299,8 @@ def run_publish_dry_run_case():
     if os.path.isfile(os.path.join(publish.DRAFTS_DIR, "%s.md" % EXISTING_GIFT_SLUG)):
         buffer = io.StringIO()
         try:
-            sys.argv = [original_argv[0], EXISTING_GIFT_SLUG, "--dry-run"]
+            # 基準日を固定する（実日付が山の28日前を過ぎると公開時期の確認で止まり、行チェックの行まで出なくなるため）
+            sys.argv = [original_argv[0], EXISTING_GIFT_SLUG, "--dry-run", "--today", TARGET_DAY]
             with contextlib.redirect_stdout(buffer):
                 code = publish._run({"slug": None, "dry_run": False, "failed_check": None})
         finally:

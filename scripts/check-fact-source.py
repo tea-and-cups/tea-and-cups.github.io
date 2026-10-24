@@ -39,10 +39,15 @@
     型8 予算の年月: category: gift の記事で、見出し（# 見出し、または太字だけの行）に予算・相場を
         含む節に「YYYY年M月時点」（「YYYY年M月執筆時点」「YYYY年M月執筆」も可）が無い。「まとめ」・「相手・予算」のような
         並べた見出し・「予算を抑えたい」のような節約の見出しは対象にしない
+    型9 食品の保存期間・衛生（W43監査の採用指示・GD-0048）: 同じブロック（箇条書きは1項目）に
+        「数字＋日／時間」（N月N日の日付・4桁の年号は除く）と「以内・保存・日持ち・もつ・冷蔵・常温」が
+        あり、同じブロックに出典URL（アフィリエイト除く）が無い。型4〜7と違い、適用条件の語
+        （「製品の表示に従う」等）だけでは通さない（保存日数の断定には出典URLを要する）。
+        出典を置けない場合は日数の記述を削る
     新規公開（引数 <slug> のみ）ではNG、--revise と --survey-xy（週次）では【警告】にとどめる
     （公開済みの記事に該当が多く、関係のない改修まで止まるため）。
-  --survey-xy: 公開済み全記事にX・Yだけをかける読み取り専用モード。型4〜8は【警告】の行で件数と該当を出す。
-  --survey-new [N]: 公開済み全記事に型4〜8だけをかけ、型ごとの件数と該当文（等間隔でN件・既定10）を出す
+  --survey-xy: 公開済み全記事にX・Yだけをかける読み取り専用モード。型4〜9は【警告】の行で件数と該当を出す。
+  --survey-new [N]: 公開済み全記事に型4〜9だけをかけ、型ごとの件数と該当文（等間隔でN件・既定10）を出す
     調整用の読み取り専用モード。
 
 出典とみなすもの（カテゴリA・C〜Gのみ）:
@@ -69,8 +74,8 @@
       カテゴリ別件数は該当カテゴリごとの延べ数のため、合計は違反総数を超えうる。
 
 使い方:
-  python site/scripts/check-fact-source.py <slug>      通常モード（新規公開用。型4〜8もNG）
-  python site/scripts/check-fact-source.py <slug> --revise   改修用（型4〜8は【警告】で通す）
+  python site/scripts/check-fact-source.py <slug>      通常モード（新規公開用。型4〜9もNG）
+  python site/scripts/check-fact-source.py <slug> --revise   改修用（型4〜9は【警告】で通す）
   python site/scripts/check-fact-source.py --calibrate 較正モード（公開済み全件）
   python site/scripts/check-fact-source.py --survey-xy / --survey-new [N]（上記）
 
@@ -200,7 +205,7 @@ RE_LIST_ITEM = re.compile(r"^\s*(?:[-*+]|\d+[.)])\s")
 # 判定Yの拡張（W42監査の採用指示・GD-0039）。型4〜7は文単位（型1〜3と同じ照合）、型8は節単位。
 # どれも同じブロックに出典URLか適用条件の語（SAFETY_CONDITION_WORDS）があればOK。
 # 新規公開ではNG、--revise と週次（--survey-xy）は【警告】にとどめる（NEW_SAFETY_TYPES）。
-NEW_SAFETY_TYPES = ("型4", "型5", "型6", "型7", "型8")
+NEW_SAFETY_TYPES = ("型4", "型5", "型6", "型7", "型8", "型9")
 # 型4〜7に限り、商品ごとの表示・注意書きに委ねる書き方も適用条件とみなす（型1〜3の条件語は変えない）
 NEW_TYPE_CONDITION_WORDS = ["商品ページ", "注意書き", "商品ごとに", "商品によって", "製品によって", "対応しているか", "対応した商品"]
 # 型4 火気: 火元の語と、注意・禁止の語
@@ -246,6 +251,11 @@ RE_TYPE8_YM = re.compile(r"[0-9０-９]{4}年[0-9０-９]{1,2}月(?:執筆時点
 RE_TYPE8_HEADING_SKIP = re.compile(
     r"^[#\s*]*(?:Q\.\s*)?まとめ|・(?:予算|相場)|(?:予算|相場)・|(?:予算|相場)を(?:抑|節|削|安)"
 )
+# 型9 食品の保存期間・衛生（GD-0048）: ブロック単位。期間の語と保存の語が同じブロックにあり、
+# 同じブロックに出典URLが無ければ違反。適用条件の語（SAFETY_CONDITION_WORDS 等）では免除しない。
+# 期間: 数字（または二〜十の漢数字）＋日／時間。「3日月」は除き、日付（N月N日）・年号は期間とみなさない
+RE_TYPE9_PERIOD = re.compile(r"[0-9０-９二三四五六七八九十]+\s*(?:日(?!月)|時間)")
+SAFETY_TYPE9_KEEP = ["以内", "保存", "日持ち", "もつ", "冷蔵", "常温"]
 RE_MD_HEADING = re.compile(r"^(#{1,6})\s")
 RE_BOLD_ONLY_LINE = re.compile(r"^\s*\*\*[^*].*\*\*\s*$")
 
@@ -480,6 +490,24 @@ def safety_advice_hits(text):
     return hits
 
 
+def food_storage_hits(text):
+    """型9: ブロックに期間と保存の語が揃い、出典URLが無ければ [(型, 語リスト, 文)] を返す（無ければ空）。
+
+    適用条件の語では免除しない。リンク文字・URLは照合しない。見出し行と疑問文も含めて
+    ブロック全体を見る（「何日もつ？」の見出しと、答えの「2〜3日以内」は同じブロックにあるため）。
+    """
+    if has_valid_source(text):
+        return []
+    plain = RE_MD_LINK_FULL.sub(" ", RE_URL.sub(" ", text))
+    plain = RE_SAFETY_NOT_PERIOD.sub(" ", plain)
+    period = RE_TYPE9_PERIOD.search(plain)
+    keep = [w for w in SAFETY_TYPE9_KEEP if w in plain]
+    if not period or not keep:
+        return []
+    sentence = next((s.strip() for s in RE_SENTENCE_PARTS.findall(plain) if period.group(0) in s), plain.strip())
+    return [("型9", [re.sub(r"\s+", "", period.group(0))] + keep, sentence)]
+
+
 def safety_sub_units(unit):
     """判定Y用に、箇条書きは1項目ずつ・それ以外はブロック全体を単位にする。"""
     if not any(RE_LIST_ITEM.match(line) for _, line in unit):
@@ -508,7 +536,8 @@ def check_xy(path, slug):
                             "excerpt": excerpt(line), "hit": "・".join(hits),
                             "sentence": line, "in_product_block": False})
         for sub in safety_sub_units(unit):
-            for typ, words, sentence in safety_advice_hits(unit_text(sub)):
+            sub_text = unit_text(sub)
+            for typ, words, sentence in safety_advice_hits(sub_text) + food_storage_hits(sub_text):
                 out.append({"slug": slug, "line": sub[0][0], "categories": ["Y"],
                             "excerpt": excerpt(sentence), "hit": typ + ":" + "・".join(words),
                             "sentence": sentence, "in_product_block": False,
@@ -634,7 +663,7 @@ def run_single(slug, revise=False):
 
     violations, _ = check_article(path, slug, with_xy=True)
     if revise:
-        # --revise: 判定Yの新しい型（型4〜8）は公開済みの記事に該当が多いため【警告】にとどめる
+        # --revise: 判定Yの新しい型（型4〜9）は公開済みの記事に該当が多いため【警告】にとどめる
         for v in violations:
             if v.get("new_type"):
                 print("【警告】L%d [%s] %s 〔%s〕" % (v["line"], "".join(v["categories"]), v["excerpt"], v["hit"]))
@@ -663,13 +692,15 @@ def run_single(slug, revise=False):
               "検知語一覧: " + "・".join(SAFETY_ADVICE_WORDS)
               + " ／ 条件語一覧: " + "・".join(SAFETY_CONDITION_WORDS))
     if any(v.get("new_type") for v in violations):
-        print("[Y 型4〜8] 火気（型4）・手入れ（型5）・贈答の慣習（型6）・産地の因果（型7）の助言・断定も、"
+        print("[Y 型4〜9] 火気（型4）・手入れ（型5）・贈答の慣習（型6）・産地の因果（型7）の助言・断定も、"
               "同じ段落（箇条書きは1項目）に出典URLか適用条件が要ります。"
               "型4語: " + "・".join(SAFETY_TYPE4_SUBJECT) + " ／ 注意語: " + "・".join(SAFETY_TYPE4_ADVICE)
               + "。型5語: " + "・".join(SAFETY_TYPE5_SUBJECT) + " ／ 推奨・禁止語: " + "・".join(SAFETY_TYPE5_ADVICE)
               + "。型6語: " + "・".join(SAFETY_TYPE6_SUBJECT) + "（またはお歳暮・お中元・お年賀＋日付）"
               + "。型7語: " + "・".join(SAFETY_TYPE7_SUBJECT) + " ／ 因果語: " + "・".join(SAFETY_TYPE7_CAUSE)
-              + "。型8: category: gift の見出しに予算・相場を含む節には「2026年10月時点」「2026年10月執筆」の形の年月を書く")
+              + "。型8: category: gift の見出しに予算・相場を含む節には「2026年10月時点」「2026年10月執筆」の形の年月を書く"
+              + "。型9: 保存期間・衛生（「N日／N時間」と " + "・".join(SAFETY_TYPE9_KEEP) + " が同じブロック）には、同じブロックに出典URLが要ります"
+              "（適用条件の語だけでは通りません。出典を置けない場合は日数の記述を削る）")
     return 1
 
 
@@ -681,7 +712,7 @@ def run_survey_xy():
             continue
         slug = os.path.splitext(os.path.basename(path))[0]
         found.extend(check_xy(path, slug))
-    # 新しい型（型4〜8）は【警告】として別に出す。週次の単独実行で、公開済みの記事の該当を見る
+    # 新しい型（型4〜9）は【警告】として別に出す。週次の単独実行で、公開済みの記事の該当を見る
     warned = [v for v in found if v.get("new_type")]
     found = [v for v in found if not v.get("new_type")]
     counts = {}
@@ -714,7 +745,7 @@ def run_survey_xy():
 
 
 def run_survey_new(limit):
-    """公開済み全記事に型4〜8だけをかける読み取り専用モード（調整用）。型ごとの件数と該当文を出す。"""
+    """公開済み全記事に型4〜9だけをかける読み取り専用モード（調整用）。型ごとの件数と該当文を出す。"""
     by_type = {k: [] for k in NEW_SAFETY_TYPES}
     for path in sorted(glob.glob(os.path.join(POSTS_DIR, "*.md"))):
         if not is_published(path):

@@ -53,8 +53,16 @@ Edit/Writeによるpublished化は .claude/hooks/check-publish-gate.py で拒否
   無ければ NG にする。届く見込みの日・対象期間外は何も変わらない。
   検証用に --dry-run と一緒に限り --today YYYY-MM-DD で基準日を差し替えられる。
 
+【公開時期の確認（W43監査の採用指示・GD-0050。新規公開だけ。--revise は対象外）】
+  category が seasons・gift の新規公開で、季節の山の台帳（data/advance-pin-calendar.tsv）の
+  次の山 − 公開日（日本時間の今日。--dry-run のとき --today で差し替え可）を見る。
+  28日未満はNG（「下書きのまま保留し、その日は先行ピンか改修へ切り替える」）、28〜41日は【警告】、
+  42日以上は合格。山を過ぎた直後（山の当日〜27日後）もNG（需要が終わっているため）。28日以上過ぎれば
+  来季の山で判定する。山が無い行（通年）・台帳に行が無い記事は対象外（行の有無は --require-row）。
+  週3本の確認の直後、公開前チェック群の前に行う。
+
 【--revise の判定Y】
-  check-fact-source.py には --revise を付ける。判定Yの新しい型（型4〜8）は【警告】にとどめ、
+  check-fact-source.py には --revise を付ける。判定Yの新しい型（型4〜9）は【警告】にとどめ、
   通ったチェックの【警告】行はそのまま表示する（公開済みの記事に該当が多く、関係のない改修を止めないため）。
 
 使い方:
@@ -183,7 +191,7 @@ import re
 import shutil
 import subprocess
 import sys
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 SITE = os.path.join(ROOT, "site")
@@ -320,6 +328,88 @@ def check_category_quota(category, revise, today=None, posts_dir=None):
     if status is None:
         return True, "  OK  週3本の確認（対象期間外）"
     return True, "  OK  週3本の確認（%s）" % module.category_quota_lines(status)[0]
+
+
+TIMING_CATEGORIES = ("seasons", "gift")
+TIMING_NG_DAYS = 28    # 山まで28日未満の新規公開はNG
+TIMING_WARN_DAYS = 42  # 山まで28〜41日は警告（42日以上は合格）
+TIMING_NG_ACTION = "下書きのまま保留し、その日は先行ピンか改修へ切り替える"
+
+
+def _past_peaks(peaks, today):
+    """today 以前の山の日付（昨年・今年）を返す。うるう日でない年の 02-29 は 02-28 にする。"""
+    found = []
+    for month, day in peaks:
+        for year in (today.year - 1, today.year):
+            try:
+                peak = date(year, month, day)
+            except ValueError:
+                peak = date(year, month, day - 1)
+            if peak <= today:
+                found.append(peak)
+    return found
+
+
+def judge_publish_timing(peaks, today):
+    """季節の山までの日数で公開時期を判定する。peaks は [(月, 日), ...]、today は date。
+    戻り値: (判定, 山までの日数, 山の日付)。判定は "ng"（28日未満）・"warn"（28〜41日）・
+    "ok"（42日以上）・"skip"（山が無い＝通年）。山は今日以降で最も近いもの（過ぎていれば翌年）。
+    """
+    if not peaks:
+        return "skip", None, None
+    spec = importlib.util.spec_from_file_location(
+        "check_advance_pin_today", os.path.join(SCRIPTS_DIR, "check-advance-pin-today.py"))
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    # 山を過ぎた直後（山の当日〜27日後）の公開も、需要が終わっているため同じくNG（日数は負で返す）。
+    # 28日以上過ぎていれば来季の山（次の山）で判定する。
+    for peak in sorted(_past_peaks(peaks, today), reverse=True)[:1]:
+        since = (today - peak).days
+        if since < TIMING_NG_DAYS:
+            return "ng", -since, peak
+    peak = module.next_peak(peaks, today)
+    days = (peak - today).days
+    if days < TIMING_NG_DAYS:
+        return "ng", days, peak
+    if days < TIMING_WARN_DAYS:
+        return "warn", days, peak
+    return "ok", days, peak
+
+
+def check_publish_timing(slug, category, today_text, calendar=None):
+    """seasons・gift の新規公開で、季節の山（data/advance-pin-calendar.tsv）までの日数を確かめる
+    （W43監査の採用指示・GD-0050。--revise は呼ばない）。戻り値: (通すか, 表示する行のリスト)。
+    台帳に行が無い記事は対象外にする（行の有無は check-advance-pin-today.py --require-row が止める）。
+    判定の読み込みに失敗したときは通さない（黙って素通りさせない）。
+    """
+    if category not in TIMING_CATEGORIES:
+        return True, ["  OK  公開時期の確認（category: %s は対象外）" % category]
+    try:
+        if calendar is None:
+            spec = importlib.util.spec_from_file_location(
+                "check_advance_pin_today", os.path.join(SCRIPTS_DIR, "check-advance-pin-today.py"))
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            calendar, _problems = module.load_calendar()
+        entry = calendar.get(slug)
+        if entry is None:
+            return True, ["  OK  公開時期の確認（台帳に行が無いため対象外。行の有無は --require-row が止める）"]
+        today = datetime.strptime(today_text, "%Y-%m-%d").date()
+        verdict, days, peak = judge_publish_timing(entry["peaks"], today)
+    except Exception as e:  # noqa: BLE001
+        return False, ["  NG  公開時期の確認（判定に失敗: %s）" % e]
+    if verdict == "skip":
+        return True, ["  OK  公開時期の確認（山が無い通年の記事のため対象外）"]
+    label = ("山 %s まで%d日" % (peak.strftime("%m-%d"), days)) if days >= 0 else (
+        "山 %s を%d日過ぎています" % (peak.strftime("%m-%d"), -days))
+    if verdict == "ng":
+        return False, ["  NG  公開時期の確認: %s（山の前後%d日未満の新規公開は止める）" % (label, TIMING_NG_DAYS),
+                       "      %s" % TIMING_NG_ACTION]
+    if verdict == "warn":
+        return True, ["  OK  公開時期の確認（%s）" % label,
+                      "    【警告】山まで%d〜%d日です。標準は6〜8週前（42日以上）。公開が遅れると先行ピンの期間が短くなります"
+                      % (TIMING_NG_DAYS, TIMING_WARN_DAYS - 1)]
+    return True, ["  OK  公開時期の確認（%s）" % label]
 
 
 def normalize_updated(text):
@@ -656,7 +746,7 @@ def _revise_checks(published_path):
             else:
                 extra_args = ["--min", str(min(3, n))]
         elif name == "check-fact-source.py":
-            # 判定Yの新型（型4〜8）は公開済みの記事に該当が多いため、--revise では警告にとどめる
+            # 判定Yの新型（型4〜9）は公開済みの記事に該当が多いため、--revise では警告にとどめる
             extra_args = ["--revise"]
         checks.append((name, takes_slug, extra_args))
     return checks, n
@@ -1632,6 +1722,12 @@ def _run(attempt):
     if not quota_ok:
         attempt["failed_check"] = "category-quota"
         return abort("週3本の確認に失敗したため、以降の処理（status書き換え・コピー・commit・push）は一切実行していません")
+    timing_ok, timing_lines = check_publish_timing(slug, read_category(draft_path), today_arg or today_jst())
+    for line in timing_lines:
+        out(line)
+    if not timing_ok:
+        attempt["failed_check"] = "publish-timing"
+        return abort("公開時期の確認に失敗したため、以降の処理（status書き換え・コピー・commit・push）は一切実行していません")
     if not run_checks(slug, attempt, checks=new_checks):
         return abort("公開前チェックに失敗したため、以降の処理（status書き換え・コピー・commit・push）は一切実行していません")
 
