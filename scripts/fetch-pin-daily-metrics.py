@@ -54,6 +54,13 @@ r"""投稿済みPinの「ピン単位 × 日次」実績をPinterest APIから�
   (3) 保存済みだが今回の GET /v5/pins の一覧から外れた既知のPin … 保存済みの pin_id で個別に
       (2) と同じ開始日から取り直す（一覧の取りこぼしで PROCESSING のまま固まるのを防ぐ・D-0265）。
       Pin番号・board・identity 等の列は保存済みの最新行から引き継ぐ。
+      個別照会が HTTP 404（Pinterest上で削除済み）を返したピンは、そのピンの PROCESSING 行の
+      data_status を DELETED に書き換える（指標の値はそのまま・READY の行は残す）。
+      DELETED の行を持つピンは以後この個別照会の対象にしない。
+      読み手は DELETED の行を duplicate_detected=true の行と同じく集計・欠損判定から外す。
+
+data_status の値: READY（確定）／PROCESSING（未確定・後続の取得で READY へ変わる）／
+  DELETED（削除済みピンの未確定の行。以後は取り直さない）
 
 使い方:
   python site/scripts/fetch-pin-daily-metrics.py              # 通常の差分更新
@@ -436,6 +443,29 @@ def write_atomic(rows):
 
 # 404（Pinterest上で削除済みのピン）を呼び出し側が判別するための理由文字列
 DELETED_PIN_ERROR = "HTTP 404"
+# 削除済みピンの PROCESSING 行に書く data_status（PROCESSING が永久に残って欠損日になるのを防ぐ）
+STATUS_PROCESSING = "PROCESSING"
+STATUS_DELETED = "DELETED"
+
+
+def mark_deleted(rows, pin_id, fetched_at):
+    """pin_id の PROCESSING 行の data_status を DELETED に書き換え、書き換えた行数を返す。
+
+    指標の値は変えない（READY の行も残す）。fetched_at は書き換えた時刻にする。
+    """
+    count = 0
+    for (row_pin_id, _date), row in rows.items():
+        if row_pin_id == pin_id and (row.get("data_status") or "") == STATUS_PROCESSING:
+            row["data_status"] = STATUS_DELETED
+            row["fetched_at"] = fetched_at
+            count += 1
+    return count
+
+
+def deleted_pin_ids(rows):
+    """DELETED の行を1行でも持つ pin_id の集合（個別照会の対象から外す）。"""
+    return set(pin_id for (pin_id, _date), row in rows.items()
+               if (row.get("data_status") or "") == STATUS_DELETED)
 
 
 def fetch_daily(pin_id, access_token, start, end):
@@ -716,11 +746,17 @@ def main():
     # --- 一覧（GET /pins）から外れた既知のピンを、保存済みの pin_id で個別に取り直す（D-0265） ---
     latest_rows = latest_row_by_pin(rows)
     pin_number_set = set(pin_numbers)
-    extra_ids = sorted(
+    already_deleted = deleted_pin_ids(rows)
+    candidates = [
         pid for pid in known_pin_ids - processed_ids
-        if _safe_int(latest_rows.get(pid, {}).get("pin_number")) in pin_number_set)
+        if _safe_int(latest_rows.get(pid, {}).get("pin_number")) in pin_number_set]
+    extra_ids = sorted(pid for pid in candidates if pid not in already_deleted)
+    skipped_deleted = len(candidates) - len(extra_ids)
     if extra_ids:
         print("一覧に出てこない既知のピン: %d件（保存済みの pin_id で個別に取り直します）" % len(extra_ids))
+    if skipped_deleted:
+        print("DELETED 済みのため照会しないピン: %d件" % skipped_deleted)
+    marked_rows = 0
     for pin_id in extra_ids:
         template = latest_rows[pin_id]
         created_text = template.get("created_at") or ""
@@ -737,7 +773,10 @@ def main():
         if day_map is None:
             if error == DELETED_PIN_ERROR:
                 deleted_count += 1
-                print("  Pin%s (%s): 削除済み（HTTP 404）" % (template.get("pin_number"), pin_id))
+                marked = mark_deleted(rows, pin_id, fetched_at)
+                marked_rows += marked
+                print("  Pin%s (%s): 削除済み（HTTP 404）・PROCESSING %d行を DELETED に変更"
+                      % (template.get("pin_number"), pin_id, marked))
                 continue
             fail_count += 1
             print("  Pin%s (%s): 取得失敗 - %s" % (template.get("pin_number"), pin_id, error))
@@ -753,6 +792,8 @@ def main():
             rows[(pin_id, date_key)] = row
             written_rows += 1
 
+    if marked_rows:
+        print("DELETED に変更した行: %d行" % marked_rows)
     if duplicate_numbers:
         print("【注意】同一Pin番号に複数のピンが割り当たりました: %s" % duplicate_numbers)
 

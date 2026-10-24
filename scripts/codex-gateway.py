@@ -22,6 +22,7 @@
                        プロンプトとまとめのプロンプトを置換済みで書き出して終了する・D-0265）
                      [--only-part <区切り名>]（その区切りだけ実行し、まとめは実行しない・D-0265）
                      [--skip-sns]（週次のみ。sns.md が全項目「未評価」でも Codex を呼ぶ前に止まらない・D-0272）
+                     [--skip-pin-check]（週次のみ。対象週に PROCESSING の行が残っていても止まらない）
                実行: <codexの実体パス> exec -C <プロジェクトルート> -s read-only --json -o <出力先>
                （GROWTH_AUDIT_HARDENING_ARGS で外部遮断を上乗せし、windows.sandbox="elevated"・
                model_reasoning_effort・tool_output_token_limit=30000 を追加で渡す・2026-09-28）
@@ -77,7 +78,12 @@
 
 週次の入力の自動生成・監査範囲の機械集計・SNSチェック（D-0272・--mode weekly のみ）:
   Codex を呼ぶ前に、(1) sns.md が無い／全項目「未評価」なら終了コード2で止まる（--skip-sns で続行）、
-  (2) growth/inputs/<週>/ へ pins-summary.md・ga4-source-medium.md・ga4-source-landing.md・buffer-summary.md・
+  (1-2) growth-metrics.py の pins.daily_totals（終了日の34日前〜終了日・--compare-weeks 4）を呼び、
+  対象週に data_status PROCESSING の行（DELETED・重複の行は除く）が残っていれば終了コード2で止まる
+  （--skip-pin-check で続行）。止まらなければその標準出力を pins-daily-totals.json として加工せず保存する、
+  (2) growth/inputs/<週>/ へ pins-summary.md・ga4-source-medium.md・ga4-source-landing.md・
+  ga4-source-landing-compare.md（対象週・前週・直前4週の比較）・gsc-page-week.json・gsc-page-28d.json
+  （GSC記事別・対象週／対象週の日曜で終わる28日）・buffer-summary.md・
   buffer-posts.json・buffer-aggregate.json（送信日時が対象期間のもの）を作り、site/scripts/
   build-site.sh で手元ビルドを1回行って、dist の記事ページ1件とカテゴリページ1件を区切りRの
   対象に加える。監査の最後に audit.md の「## 監査範囲」節を、各区切り・まとめの実行ログから数えた
@@ -1614,6 +1620,14 @@ def _pin_created_dates():
     return created
 
 
+PIN_DELETED_STATUS = "DELETED"
+
+
+def _is_deleted_row(row):
+    """削除済みピンの行（fetch-pin-daily-metrics.py が 404 で data_status を DELETED にした行）。"""
+    return (row.get("data_status") or "") == PIN_DELETED_STATUS
+
+
 def _row_int(row, col):
     try:
         return int(row.get(col) or 0)
@@ -1623,11 +1637,12 @@ def _row_int(row, col):
 
 def _pins_age_tables(rows, start_date, since_date, until_date):
     """(1) 作成後の経過日数別の週合計（4週分）と、(2) 前週の上位10ピンの今週の値。
-    duplicate_detected=true の行は pins.daily_totals と同じく外す（週合計と一致させるため）。
+    duplicate_detected=true の行と DELETED の行は pins.daily_totals と同じく外す（週合計と一致させるため）。
     ピンの作成日は output/pins のファイル名の日付。経過日数 = 行の date - 作成日。
     """
     created = _pin_created_dates()
-    rows = [r for r in rows if (r.get("duplicate_detected") or "").lower() != "true"]
+    rows = [r for r in rows if (r.get("duplicate_detected") or "").lower() != "true"
+            and not _is_deleted_row(r)]
 
     def age_of(row):
         try:
@@ -1734,6 +1749,8 @@ def _build_pins_summary(since_date, until_date):
                     header = cells
                     continue
                 row = dict(zip(header, cells))
+                if _is_deleted_row(row):
+                    continue
                 day = row.get("date") or ""
                 if start <= day <= until_date:
                     window_rows.append(row)
@@ -1821,6 +1838,62 @@ def _build_ga4_source_landing_summary(since_date, until_date):
     if len(series) > SOURCE_LANDING_TOP_N:
         lines.append("")
         lines.append("- 下位%d行は省略した（合計には含む）" % (len(series) - SOURCE_LANDING_TOP_N))
+    return _cap_text("\n".join(lines) + "\n")
+
+
+def _signed(value, fmt="%d"):
+    return ("+" + fmt % value) if value > 0 else (fmt % value)
+
+
+def _build_ga4_source_landing_compare(since_date, until_date):
+    """(b3) GA4の参照元×ランディングページ別セッション数を、対象週・前週・直前4週（週平均）で突き合わせる。
+    ga4.source_landing を3回呼ぶ。合計は表の前に置く（4,000字の行単位の切り詰めで消えないように）。
+    """
+    since = datetime.strptime(since_date, "%Y-%m-%d")
+    before = (since - timedelta(days=1)).strftime("%Y-%m-%d")
+    periods = (("対象週", since_date, until_date, 1),
+               ("前週", (since - timedelta(days=7)).strftime("%Y-%m-%d"), before, 1),
+               ("直前4週", (since - timedelta(days=28)).strftime("%Y-%m-%d"), before, 4))
+    lines = ["# GA4 参照元×ランディングページ別の比較（gateway が自動生成・セッション数・%s）"
+             % "・".join("%s %s〜%s" % (p[0], p[1], p[2]) for p in periods), ""]
+    table = {}
+    failed = set()
+    for idx, (label, start, end, weeks) in enumerate(periods):
+        payload, _raw, err = _run_metrics(["ga4", "--operation", "ga4.source_landing", "--since", start,
+                                           "--until", end, "--limit", "100"])
+        problem = _payload_problem(payload, err)
+        if problem:
+            failed.add(idx)
+            lines.append("- %s（%s〜%s）を取得できなかった: %s" % (label, start, end, problem))
+            continue
+        series = payload["data"]["series"]
+        lower = (payload["data"].get("totals") or {}).get("is_lower_bound")
+        sessions = sum(r.get("sessions") or 0 for r in series)
+        pv = sum(r.get("screenPageViews") or 0 for r in series)
+        per_week = "（週平均 sessions %.1f・PV %.1f）" % (sessions / weeks, pv / weeks) if weeks > 1 else ""
+        lines.append("- %s（%s〜%s）の合計: sessions %d・PV %d%s（取得した%d行%s）" % (
+            label, start, end, sessions, pv, per_week, len(series),
+            "・--limit に達しており下限値" if lower else ""))
+        for rec in series:
+            key = (rec.get("session_source_medium") or "（不明）", rec.get("landing_page") or "（不明）")
+            table.setdefault(key, [0, 0, 0])[idx] += rec.get("sessions") or 0
+    lines.append("- 各期間の上位100行（PV順）に無い組は0と表示する（その期間が下限値なら実際は0とは限らない）")
+
+    def cell(values, idx, fmt="%d", div=1):
+        return "-" if idx in failed else fmt % (values[idx] / div if div > 1 else values[idx])
+
+    ranked = sorted(table.items(), key=lambda kv: (-max(kv[1][0], kv[1][1], kv[1][2] / 4.0), kv[0]))
+    lines += ["", "| 参照元 / メディア | ランディングページ | 対象週 | 前週 | 直前4週の週平均 | 前週比 | 4週平均比 |",
+              "|---|---|---|---|---|---|---|"]
+    for (source, landing), v in ranked[:SOURCE_LANDING_TOP_N]:
+        vs_prev = "-" if failed & {0, 1} else _signed(v[0] - v[1])
+        vs_avg = "-" if failed & {0, 2} else _signed(v[0] - v[2] / 4.0, "%.1f")
+        lines.append("| %s | %s | %s | %s | %s | %s | %s |" % (
+            source, landing, cell(v, 0), cell(v, 1), cell(v, 2, "%.1f", 4), vs_prev, vs_avg))
+    if len(ranked) > SOURCE_LANDING_TOP_N:
+        lines.append("")
+        lines.append("- 3期間のいずれかで大きい順の上位%d組を載せた（残り%d組は省略・合計には含む）"
+                     % (SOURCE_LANDING_TOP_N, len(ranked) - SOURCE_LANDING_TOP_N))
     return _cap_text("\n".join(lines) + "\n")
 
 
@@ -1913,8 +1986,59 @@ def _pick_dist_pages(since_date, until_date):
     return "site/dist/posts/%s/index.html" % slug, "site/dist/category/%s/index.html" % category, how
 
 
-def _prepare_weekly_inputs(input_dir, since_date, until_date):
-    """Codex を呼ぶ前に、週次の入力 (a)〜(d) を growth/inputs/<週>/ へ作る（D-0272）。
+# pins-daily-totals.json の期間（rules/weekly-report.md 3-2節 1-3: 終了日の34日前〜終了日・4週比較）
+PINS_TOTALS_SPAN_DAYS = 35
+PINS_TOTALS_COMPARE_WEEKS = 4
+PIN_CHECK_MESSAGE = "fetch-pin-daily-metrics.py の完了を待ってから再実行する。確定待ちなら --skip-pin-check で続行"
+# GSC の記事別（対象週と、対象週の日曜で終わる28日）
+GSC_BY_PAGE_INPUTS = (("gsc-page-week.json", 7, "今週の入力・GSC記事別（対象週・契約JSONを加工せず保存）"),
+                      ("gsc-page-28d.json", 28, "今週の入力・GSC記事別（対象週の日曜で終わる28日・契約JSONを加工せず保存）"))
+
+
+def _pin_processing_days(payload, since_date, until_date):
+    """pins.daily_totals の系列から、対象週で PROCESSING の行が残る日を [(日付, 行数)] で返す。
+    DELETED の行・duplicate_detected=true の行は growth-metrics.py 側で processing_rows から外れている。
+    """
+    days = []
+    for rec in (payload.get("data") or {}).get("series") or []:
+        day = rec.get("date") or ""
+        if since_date <= day <= until_date and (rec.get("processing_rows") or 0) > 0:
+            days.append((day, rec["processing_rows"]))
+    return days
+
+
+def _prepare_pins_daily_totals(input_dir, since_date, until_date, skip_pin_check):
+    """週次の取得完了の確認と pins-daily-totals.json の生成（Codex を呼ぶ前）。
+
+    pins.daily_totals（終了日の34日前〜終了日・--compare-weeks 4）を呼び、対象週に PROCESSING の行が
+    残っていれば止める（--skip-pin-check で続行）。止めなければ標準出力を加工せず保存する。
+    戻り値: (停止理由 or None, 区切りRへ足す注記の行のリスト)
+    """
+    until = datetime.strptime(until_date, "%Y-%m-%d")
+    start = (until - timedelta(days=PINS_TOTALS_SPAN_DAYS - 1)).strftime("%Y-%m-%d")
+    payload, raw, err = _run_metrics(["pins", "--operation", "pins.daily_totals", "--since", start,
+                                      "--until", until_date, "--compare-weeks", PINS_TOTALS_COMPARE_WEEKS])
+    notes = []
+    problem = _payload_problem(payload, err)
+    if problem:
+        notes.append("- （注）pins.daily_totals を取得できず、ピン日次の取得完了を確認できなかった: %s" % problem)
+    else:
+        days = _pin_processing_days(payload, since_date, until_date)
+        if days:
+            detail = "、".join("%s %d行" % d for d in days)
+            if not skip_pin_check:
+                return ("対象週に data_status が PROCESSING の行が残っています（%s）。%s"
+                        % (detail, PIN_CHECK_MESSAGE)), []
+            notes.append("- （注）対象週に PROCESSING の行が残ったまま --skip-pin-check で続行した（%s）。"
+                         "pins-daily-totals.json の該当日は missing_flag で値は一部のみ" % detail)
+    input_dir.mkdir(parents=True, exist_ok=True)
+    (input_dir / "pins-daily-totals.json").write_text(raw or "{}", encoding="utf-8")
+    return None, notes
+
+
+def _prepare_weekly_inputs(input_dir, since_date, until_date, pin_notes=None):
+    """Codex を呼ぶ前に、週次の入力 (a)〜(e) を growth/inputs/<週>/ へ作る（D-0272）。
+    pins-daily-totals.json は先に _prepare_pins_daily_totals() が作る（ここでは一覧に載せるだけ）。
 
     戻り値: {"items": 区切りRへ足す対象, "files": [{"path", "chars", "note"}], "dist": {...}}
     """
@@ -1932,6 +2056,18 @@ def _prepare_weekly_inputs(input_dir, since_date, until_date):
         items.append({"path": path_display, "chars": chars, "images": 0, "lines": lines, "gd": {}})
         files.append({"path": path_display, "chars": chars, "note": note})
 
+    def add_file(path_display, abs_path, note):
+        # まとめのプロンプト（weekly-audit.md）が直接読む JSON。区切りRの対象には足さない
+        files.append({"path": path_display, "chars": _text_len(abs_path), "note": note})
+
+    # (a0) ピン日次の日別合計と4週比較（_prepare_pins_daily_totals が作成済み）
+    p = input_dir / "pins-daily-totals.json"
+    if p.is_file():
+        add_file(display("pins-daily-totals.json"), p,
+                 "今週の入力・ピン日次の日別合計と4週比較（gateway が自動生成・契約JSONを加工せず保存）")
+    if pin_notes:
+        items.append({"path": "", "chars": 0, "images": 0, "gd": {}, "lines": list(pin_notes)})
+
     # (a) ピン日次実績の要約
     p = input_dir / "pins-summary.md"
     p.write_text(_build_pins_summary(since_date, until_date), encoding="utf-8")
@@ -1946,6 +2082,22 @@ def _prepare_weekly_inputs(input_dir, since_date, until_date):
     p = input_dir / "ga4-source-landing.md"
     p.write_text(_build_ga4_source_landing_summary(since_date, until_date), encoding="utf-8")
     add_item(display("ga4-source-landing.md"), p, "今週の入力・GA4参照元×ランディングページ別（gateway が自動生成）")
+
+    # (b3) GA4 参照元×ランディングページ別の、前週・直前4週との比較
+    p = input_dir / "ga4-source-landing-compare.md"
+    p.write_text(_build_ga4_source_landing_compare(since_date, until_date), encoding="utf-8")
+    add_item(display("ga4-source-landing-compare.md"), p,
+             "今週の入力・GA4参照元×ランディングページ別の前週・直前4週との比較（gateway が自動生成）")
+
+    # (e) GSC の記事別（対象週と、対象週の日曜で終わる28日。契約JSONを加工せず保存する）
+    until = datetime.strptime(until_date, "%Y-%m-%d")
+    for name, days, note in GSC_BY_PAGE_INPUTS:
+        start = (until - timedelta(days=days - 1)).strftime("%Y-%m-%d")
+        _payload, raw, _err = _run_metrics(["gsc", "--operation", "gsc.search_analytics_by_page", "--since", start,
+                                            "--until", until_date, "--limit", "100"])
+        p = input_dir / name
+        p.write_text(raw or "{}", encoding="utf-8")
+        add_file(display(name), p, "%s・%s〜%s" % (note, start, until_date))
 
     # (c) Buffer（対象週の送信日時で絞る。生JSONは加工せず保存し、読みやすい要約を添える）
     posts_payload, posts_raw, posts_err = _run_metrics(
@@ -2875,7 +3027,7 @@ def _render_audit_prompts(purpose, method, prompt_file, mode, target, parts_dir,
 
 def run_growth_audit(purpose, prompt_file, output_file, model_override=None,
                       mode=None, since=None, until=None, month=None, dry_run=False,
-                      render_only=None, only_part=None, skip_sns=False):
+                      render_only=None, only_part=None, skip_sns=False, skip_pin_check=False):
     """全コンテンツの監査（D-0251）。区切りごとの部分監査を順に実行し、最後にまとめを
     1回実行する（D-0255）。Codex は常に -s read-only のまま、各回の最終メッセージを
     保存する。
@@ -2916,7 +3068,12 @@ def run_growth_audit(purpose, prompt_file, output_file, model_override=None,
                         "SNSプロフィールが未観察のため Codex を呼ぶ前に停止しました（%s: %s）。"
                         "Chrome でプロフィールを観察して sns.md を更新するか、--skip-sns を付けて再実行してください。"
                         % (_rel(input_dir / "sns.md"), sns_reason))
-        weekly_inputs = _prepare_weekly_inputs(input_dir, since, until)
+        # ピン日次の取得完了の確認（対象週に PROCESSING の行が残れば止まる・--skip-pin-check で続行）
+        pin_stop, pin_notes = _prepare_pins_daily_totals(input_dir, since, until, skip_pin_check)
+        if pin_stop:
+            return fail(EXIT_PRECONDITION, purpose, method,
+                        "ピン日次の取得が終わっていないため Codex を呼ぶ前に停止しました。%s" % pin_stop)
+        weekly_inputs = _prepare_weekly_inputs(input_dir, since, until, pin_notes)
 
     partitions, compliance = _build_partitions(mode, since, until, effective_month, target, weekly_inputs)
     parts_dir = target.parent / "parts"
@@ -3121,6 +3278,9 @@ def main():
     parser.add_argument("--skip-sns", action="store_true",
                         help="growth-audit --mode weekly: sns.md が全項目「未評価」でも止まらず続行する。"
                              "監査範囲に「SNSプロフィール未観察」と記録する（D-0272）")
+    parser.add_argument("--skip-pin-check", action="store_true",
+                        help="growth-audit --mode weekly: 対象週に data_status PROCESSING の行が残っていても"
+                             "止まらず続行する。区切りRの入力一覧に注記を残す")
     parser.add_argument("--only-part", default=None, metavar="NAME",
                         help="growth-audit: 指定した区切り（例 R-1・O-2）だけを実行し、"
                              "まとめは実行しない。有効な出力が既にあっても実行して上書きする（D-0265）")
@@ -3149,7 +3309,7 @@ def main():
                                 mode=args.mode, since=args.since, until=args.until,
                                 month=args.month, dry_run=args.dry_run,
                                 render_only=args.render_only, only_part=args.only_part,
-                                skip_sns=args.skip_sns)
+                                skip_sns=args.skip_sns, skip_pin_check=args.skip_pin_check)
     return run_exec(purpose, args.prompt_file, args.out_name, args.model)
 
 

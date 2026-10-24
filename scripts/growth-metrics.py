@@ -91,11 +91,13 @@ PIN_DAILY_METRICS_TSV = os.path.join(PROJECT_ROOT, "data", "pin-daily-metrics.ts
 PIN_EXCLUSION_REASONS = ("identity_unavailable", "aspect_ratio_not_2_3", "duplicate_detected")
 
 # pins.daily_totals（D-0265）: 同じTSVを日別に合算し、欠損日を印する。
-# duplicate_detected=true の行は欠損日の判定・合計の両方から外す（比較の対象外の行）。
+# duplicate_detected=true の行と data_status=DELETED の行（削除済みピン・fetch-pin-daily-metrics.py が
+# 404 で書き換える）は、欠損日の判定・合計の両方から外す（比較の対象外の行）。
 PINS_TOTALS_SOURCE = "pin_daily_metrics_tsv"
 PINS_TOTALS_ENTITY_ID = "pinterest:account"
 PIN_TOTALS_METRICS = ("impressions", "saves", "outbound_clicks", "pin_clicks")
 PIN_PROCESSING_STATUS = "PROCESSING"
+PIN_DELETED_STATUS = "DELETED"
 # 欠損フラグ: 行数が前後 PIN_NEIGHBOR_DAYS 日ずつの行数の中央値の PIN_MISSING_RATIO 未満の日。
 PIN_NEIGHBOR_DAYS = 3
 PIN_MISSING_RATIO = 0.9
@@ -1447,8 +1449,11 @@ def run_pins_daily_totals(params: dict) -> dict:
         agg = per_date.setdefault(day, {"row_count": 0, "processing_rows": 0,
                                         **{name: 0 for name in PIN_TOTALS_METRICS}})
         # duplicate_detected=true の行は比較の対象外の行（PIN_EXCLUSION_REASONS）。
+        # DELETED の行（削除済みピンの未確定の行）も同じ扱い。
         # 欠損日の判定（PROCESSING・行数）と合計の両方から外す。日付の範囲には数える。
         if (row.get("duplicate_detected") or "").lower() == "true":
+            continue
+        if (row.get("data_status") or "") == PIN_DELETED_STATUS:
             continue
         agg["row_count"] += 1
         if (row.get("data_status") or "") == PIN_PROCESSING_STATUS:
