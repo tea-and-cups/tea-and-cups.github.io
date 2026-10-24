@@ -43,7 +43,9 @@
         「数字＋日／時間」（N月N日の日付・4桁の年号は除く）と「以内・保存・日持ち・もつ・冷蔵・常温」が
         あり、同じブロックに出典URL（アフィリエイト除く）が無い。型4〜7と違い、適用条件の語
         （「製品の表示に従う」等）だけでは通さない（保存日数の断定には出典URLを要する）。
-        出典を置けない場合は日数の記述を削る
+        出典を置けない場合は日数の記述を削る。ただし期間を含む1文が抽出の文脈（抽出・漬け・浸す・置く・
+        作り方等）で、その文に保存の判断語（以内・保存・日持ち・もつ・傷み・作り置き・飲み切る・抽出後等）が
+        無ければ、水出しの抽出時間等であって保存期間ではないため対象にしない（D-0286）
     新規公開（引数 <slug> のみ）ではNG、--revise と --survey-xy（週次）では【警告】にとどめる
     （公開済みの記事に該当が多く、関係のない改修まで止まるため）。
   --survey-xy: 公開済み全記事にX・Yだけをかける読み取り専用モード。型4〜9は【警告】の行で件数と該当を出す。
@@ -256,6 +258,12 @@ RE_TYPE8_HEADING_SKIP = re.compile(
 # 期間: 数字（または二〜十の漢数字）＋日／時間。「3日月」は除き、日付（N月N日）・年号は期間とみなさない
 RE_TYPE9_PERIOD = re.compile(r"[0-9０-９二三四五六七八九十]+\s*(?:日(?!月)|時間)")
 SAFETY_TYPE9_KEEP = ["以内", "保存", "日持ち", "もつ", "冷蔵", "常温"]
+# 抽出の文脈（水出しの抽出時間・漬け置き時間・作り方の時間）にある期間は保存期間ではないため対象にしない。
+# 判定は期間を含む1文ごと。その文に保存の判断語（RE_TYPE9_STORAGE）が1つでもあれば、抽出の語があっても
+# 保存期間として扱う（「抽出後の水出し紅茶は2〜3日以内に」「作り置きは1日を目安に」を免除しないため）
+RE_TYPE9_EXTRACT = re.compile(r"抽出|漬け|浸|置く|置いて|おく|作り方|引き上げ|開く|渋み|雑味|濃さ|味を確認")
+RE_TYPE9_STORAGE = re.compile(
+    r"以内|保存|日持ち|もつ|傷|腐|雑菌|作り置き|飲み切|飲みき|抽出後|作った後|開封後|置か(?:ない|ず)|放置")
 RE_MD_HEADING = re.compile(r"^(#{1,6})\s")
 RE_BOLD_ONLY_LINE = re.compile(r"^\s*\*\*[^*].*\*\*\s*$")
 
@@ -490,6 +498,12 @@ def safety_advice_hits(text):
     return hits
 
 
+def _type9_extraction_period(plain, match):
+    """型9: 期間 match を含む1文が抽出の文脈で、保存の判断語が無ければ True（保存期間ではない）。"""
+    sentence = next((m.group(0) for m in RE_SENTENCE_PARTS.finditer(plain) if m.start() <= match.start() < m.end()), "")
+    return bool(RE_TYPE9_EXTRACT.search(sentence)) and not RE_TYPE9_STORAGE.search(sentence)
+
+
 def food_storage_hits(text):
     """型9: ブロックに期間と保存の語が揃い、出典URLが無ければ [(型, 語リスト, 文)] を返す（無ければ空）。
 
@@ -500,7 +514,7 @@ def food_storage_hits(text):
         return []
     plain = RE_MD_LINK_FULL.sub(" ", RE_URL.sub(" ", text))
     plain = RE_SAFETY_NOT_PERIOD.sub(" ", plain)
-    period = RE_TYPE9_PERIOD.search(plain)
+    period = next((m for m in RE_TYPE9_PERIOD.finditer(plain) if not _type9_extraction_period(plain, m)), None)
     keep = [w for w in SAFETY_TYPE9_KEEP if w in plain]
     if not period or not keep:
         return []

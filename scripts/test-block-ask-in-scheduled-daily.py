@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 r""".claude/hooks/block-ask-in-scheduled-daily.py の判定テスト。
 
-スケジュール実行の日次（オーナー不在）で AskUserQuestion・wrap_up の ask を
-拒否し、それ以外は許可することを確かめる。ダミーの jsonl と入力 JSON を一時フォルダに
+スケジュール実行の日次（オーナー不在）と、添付を除いて30字以内の週次・月次の一言で始まる
+セッションで AskUserQuestion・wrap_up の ask を拒否し、それ以外は許可することを確かめる。ダミーの jsonl と入力 JSON を一時フォルダに
 作り、フックをサブプロセスとして起動して、標準出力の JSON（deny の有無）で判定する。
 ダミーの user 行の形は、実際の transcript（日次・窓口指示・週次）で確認した形に合わせている。
 """
@@ -46,6 +46,8 @@ def assistant():
 STOP_FEEDBACK = user("Stop hook feedback:\n固定サマリー全体を再出力しないこと。", isMeta=True)
 TASK_NOTIFICATION = user("<task-notification>\n<task-id>abc</task-id>", origin={"kind": "task-notification"})
 PEER = user('Another Claude session sent a message: <agent-message from="a1">', isMeta=True, origin={"kind": "peer"})
+CSV2 = '@"C:\\Users\\shash\\Downloads\\report-payment-daily-20261024081549.csv" @"C:\\Users\\shash\\Downloads\\monthly (1).csv"'
+WEEKLY_MARK = "確認せず推奨案で進め"
 OWNER = user("上限をリセットして先行ピン360の画像生成を再開してください。", origin={"kind": "human"})
 
 ASK = ("AskUserQuestion", {"questions": [{"question": "どちらにしますか？"}]})
@@ -96,8 +98,29 @@ def main():
              case(tmp, "c5", [DAILY_FIRST, STOP_FEEDBACK, TASK_NOTIFICATION, PEER, tool_result()], ASK)),
             ("最初の発言が pasted_content の【実行環境】（窓口指示）→ 許可", "allow", None,
              case(tmp, "c6", [user('  <pasted_content id="4417">\n【実行環境】新セッション', origin={"kind": "human"})], WRAP_ASK)),
-            ("最初の発言が「週次しよう」→ 許可", "allow", None,
+            ("最初の発言が「週次しよう」→ 拒否（週次・月次）", "deny", WEEKLY_MARK,
              case(tmp, "c7", [user("週次しよう", origin={"kind": "human"})], ASK)),
+            ("10-24の形（添付2件＋改行＋「週次して」）・wrap_up ask あり → 拒否（ask を外して）", "deny", "ask を外して",
+             case(tmp, "c7b", [user(CSV2 + "\n週次して", origin={"kind": "human"}), assistant(), tool_result()], WRAP_ASK)),
+            ("10-24の形（content が文字列）・wrap_up ask あり → 拒否", "deny", WEEKLY_MARK,
+             case(tmp, "c7b2", [{"type": "user", "origin": {"kind": "human"},
+                                 "message": {"role": "user", "content": CSV2 + "\n週次して"}}], WRAP_ASK)),
+            ("「月次して」→ 拒否", "deny", WEEKLY_MARK,
+             case(tmp, "c7c", [user("月次して", origin={"kind": "human"})], ASK)),
+            ("週次・途中でオーナー手入力あり・AskUserQuestion → 拒否", "deny", WEEKLY_MARK,
+             case(tmp, "c7d", [user("週次して", origin={"kind": "human"}), STOP_FEEDBACK, OWNER, tool_result()], ASK)),
+            ("引用符なしの @パス ＋「週次して」→ 拒否", "deny", WEEKLY_MARK,
+             case(tmp, "c7e", [user("@C:\\Users\\shash\\Downloads\\a.csv\n週次して", origin={"kind": "human"})], ASK)),
+            ("週次・wrap_up ask なし → 許可", "allow", None,
+             case(tmp, "c7f", [user("週次して", origin={"kind": "human"})], WRAP_NO_ASK)),
+            ("【実行環境】で始まり本文に「週次」を含む（短い）→ 許可", "allow", None,
+             case(tmp, "c7g", [user("【実行環境】週次の件", origin={"kind": "human"})], ASK)),
+            ("pasted_content の【実行環境】で本文に「週次」を含む（短い）→ 許可", "allow", None,
+             case(tmp, "c7h", [user('\n\n<pasted_content id="1">\n【実行環境】週次\n</pasted_content id="1">\n', origin={"kind": "human"})], WRAP_ASK)),
+            ("添付を除いても30字を超える週次の発言 → 許可", "allow", None,
+             case(tmp, "c7i", [user(CSV2 + "\nおはよう。週次ルーチンをやる前に、まず昨日の続きの状況を教えてください。", origin={"kind": "human"})], ASK)),
+            ("「週次」「月次」を含まない短い発言 → 許可", "allow", None,
+             case(tmp, "c7j", [user("おはよう", origin={"kind": "human"})], ASK)),
             ("最初の発言が【フック発火テスト】で始まる → 拒否", "deny", None,
              case(tmp, "c8", [user("【フック発火テスト】AskUserQuestion を1回呼び…", origin={"kind": "human"})], ASK)),
             ("transcript_path が無い → 許可", "allow", None,
@@ -114,7 +137,7 @@ def main():
     for desc, expected, must_contain, (code, decision, reason, err) in cases:
         ok = code == 0 and decision == expected
         if ok and expected == "deny":
-            ok = "質問しないでください" in reason and (must_contain is None or must_contain in reason)
+            ok = ("質問しないでください" in reason or WEEKLY_MARK in reason) and (must_contain is None or must_contain in reason)
         if ok and expected == "deny" and must_contain is None:
             ok = "ask を外して" not in reason
         print("[%s] %s%s" % ("OK" if ok else "NG", desc,
