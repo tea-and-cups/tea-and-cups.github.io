@@ -40,9 +40,9 @@ CLAUDE.md 3節1「rules/配下のファイルの新設・削除はオーナー�
      extract_purpose() の読み込みに失敗した場合は、黙って成功扱いにせず【警告】として出す
      （判定が消えたことに気づけないため）。
 
- 13. data/link-health.md（商品リンク健全性台帳）の鮮度指標（D-0190） → 通常行1行を常時出力し、
-     最新の最終確認日が実行日から LINK_HEALTH_MAX_GAP_DAYS 日を超えて前の場合
-     （週次確認が2週以上止まっている）に【警告】（D-0242）。台帳は読み取りのみ。
+ 13. data/product-link-status.tsv（check-product-links.py が生成する商品リンク照会台帳・D-0289）
+     → 通常行1行（商品件数・OK以外件数・最終照会日）を常時出力し、最終照会日の最大値が
+     実行日から PRODUCT_LINK_MAX_AGE_DAYS 日以上前、または台帳が無い場合に【警告】。台帳は読み取りのみ。
 
  14. 公開済み記事の実数（D-0213） → site/src/content/posts/ 配下の frontmatter の
      status: published を数え、通常行1行で常時表示する。docs/status.md 中の
@@ -149,14 +149,11 @@ STATUS_MD_CHAR_LIMIT = 3500
 DECISION_BODY_CHAR_LIMIT = 400
 RECENT_DECISIONS = 5
 
-# data/link-health.md（商品リンク健全性台帳）の週次ローテーション状態の監視に使う（D-0190）。
-# 台帳は読み取り専用。件数上限は rules/product-linking.md 4節「固定10件・絶対上限」と同期する。
-LINK_HEALTH_PATH = os.path.join(ROOT, "data", "link-health.md")
-LINK_HEALTH_ROTATION_PER_WEEK = 10  # rules/product-linking.md 4節「固定10件・絶対上限」と同期
-LINK_HEALTH_MAX_GAP_DAYS = 14  # 最新の最終確認日がこれを超えて前なら週次確認停止とみなす（D-0242）
-LINK_HEALTH_DATE_COLUMN = "最終確認日"
-LINK_HEALTH_DATE_RE = re.compile(r"^\d\d\d\d-\d\d-\d\d$")
-LINK_HEALTH_SEPARATOR_CELL_RE = re.compile(r"^:?-\-*:?$")
+# data/product-link-status.tsv（check-product-links.py が生成する商品リンク照会台帳）の
+# 週次実行の停止検知に使う（D-0289）。台帳は読み取り専用。
+PRODUCT_LINK_STATUS_PATH = os.path.join(ROOT, "data", "product-link-status.tsv")
+PRODUCT_LINK_MAX_AGE_DAYS = 8  # 最終照会日の最大値がこの日数以上前なら週次実行の停止とみなす
+PRODUCT_LINK_DATE_RE = re.compile(r"^\d\d\d\d-\d\d-\d\d$")
 
 # 公開済み記事の実数とdocs/status.mdの手打ち表記の突き合わせに使う（D-0213）。
 # frontmatterの判定は前回調査（88件）と同じく「status: published」の行が
@@ -849,94 +846,57 @@ def check_rules_diff(rules_now, prev_rules, max_d, prev_max_d, latest_date, toda
     return warnings, notices, bool(added or removed), mentioned_today
 
 
-def split_table_row(line):
-    """Markdownテーブルの1行をセルのリストへ分解する（前後の縦棒を除いてstrip）。"""
-    return [cell.strip() for cell in line.strip().strip("|").split("|")]
+def check_product_links(today, path=PRODUCT_LINK_STATUS_PATH):
+    """data/product-link-status.tsv の最終照会日から、check-product-links.py の週次実行の停止を検知する（D-0289）。
 
+    旧判定（data/link-health.md の最終確認日・D-0242）は、記事公開時の行追加で日付が
+    更新されるため一度も警告が出なかった。新台帳は check-product-links.py の全件照会でしか
+    書き換わらないため、最終照会日の最大値がそのまま週次実行の実績になる。
+    台帳は読み取りのみ。path は検証時にダミー台帳を渡すための引数（通常は既定値）。
 
-def check_link_health(today):
-    """data/link-health.md（商品リンク健全性台帳）の鮮度指標を算出する（D-0190）。
-
-    台帳の週次ローテーション（rules/product-linking.md 4節）は、どのスクリプトからも
-    読まれておらず実行漏れの機械検知が無かった（2週連続で漏れた実例・D-0156）。
-    台帳の書式は変えず、行数・最古の最終確認日・一巡見込み日数を毎回可視化し、
-    一巡日数は管理目標にせず、週次確認の停止だけを警告条件で検知する（D-0242）。
-    台帳は読み取りのみ（書き換えない）。ファイル1回読みで完結し、外部アクセスはしない。
-
-    戻り値は (通常行1行の文字列, 警告文字列のリスト)。
+    戻り値は (通常行1行の文字列 または None, 警告文字列のリスト)。
     """
-    if not os.path.isfile(LINK_HEALTH_PATH):
-        return None, [
-            "【警告】link-health: 台帳を解析できない（data/link-health.md が存在しない）"
-        ]
+    def stale_warning(last, gap_text):
+        return (
+            "【警告】product-links: 最終照会 %s（%s）。"
+            "python site/scripts/check-product-links.py を実行する（約5〜8分）" % (last, gap_text)
+        )
 
-    lines = read_text(LINK_HEALTH_PATH).split("\n")
-    date_index = None
-    header_line_no = None
-    for i, line in enumerate(lines):
-        stripped = line.strip()
-        if not stripped.startswith("|"):
-            continue
-        cells = split_table_row(stripped)
-        if LINK_HEALTH_DATE_COLUMN in cells:
-            # 列位置はハードコードせずヘッダ名から動的に特定する（将来の列順変更に追従するため）
-            date_index = cells.index(LINK_HEALTH_DATE_COLUMN)
-            header_line_no = i
-            break
+    if not os.path.isfile(path):
+        return None, [stale_warning("なし", "data/product-link-status.tsv が無い")]
 
-    if date_index is None:
-        return None, [
-            "【警告】link-health: 台帳を解析できない"
-            "（「%s」列を持つヘッダ行が見つからない）" % LINK_HEALTH_DATE_COLUMN
-        ]
+    lines = [line for line in read_text(path).split("\n") if line.strip()]
+    header = lines[0].split("\t") if lines else []
+    if "状態" not in header or "最終照会日" not in header:
+        return None, [stale_warning("不明", "台帳の見出し行を解析できない")]
+    status_index = header.index("状態")
+    date_index = header.index("最終照会日")
 
     total = 0
-    unparsed = 0
+    not_ok = 0
     dates = []
-    for line in lines[header_line_no + 1:]:
-        stripped = line.strip()
-        if not stripped.startswith("|"):
-            continue
-        cells = split_table_row(stripped)
-        if cells and all(LINK_HEALTH_SEPARATOR_CELL_RE.match(c) for c in cells if c):
-            continue
+    for line in lines[1:]:
+        cells = line.split("\t")
         total += 1
+        if (cells[status_index] if status_index < len(cells) else "") != "OK":
+            not_ok += 1
         value = cells[date_index] if date_index < len(cells) else ""
-        if not LINK_HEALTH_DATE_RE.match(value):
-            unparsed += 1
-            continue
-        try:
-            dates.append(datetime.date(int(value[0:4]), int(value[5:7]), int(value[8:10])))
-        except ValueError:
-            unparsed += 1
+        if PRODUCT_LINK_DATE_RE.match(value):
+            try:
+                dates.append(datetime.date(int(value[0:4]), int(value[5:7]), int(value[8:10])))
+            except ValueError:
+                pass
 
     if not dates:
-        return None, [
-            "【警告】link-health: 台帳を解析できない"
-            "（最終確認日を解析できるデータ行が1行も無い・データ行%d行）" % total
-        ]
+        return None, [stale_warning("不明", "最終照会日を解析できる行が無い・%d行" % total)]
 
-    oldest = min(dates)
     newest = max(dates)
     today_date = datetime.date(int(today[0:4]), int(today[5:7]), int(today[8:10]))
-    elapsed = (today_date - oldest).days
-    weeks = (total + LINK_HEALTH_ROTATION_PER_WEEK - 1) // LINK_HEALTH_ROTATION_PER_WEEK
-    cycle_days = weeks * 7
-
-    info = "[link-health] %d行 / 最古 %s（%d日経過） / 一巡見込み %d日" % (
-        total, oldest.isoformat(), elapsed, cycle_days
-    )
-    if unparsed:
-        info += " / 最終確認日を解析できない行 %d行（計算から除外）" % unparsed
-
-    warnings = []
     gap = (today_date - newest).days
-    if gap > LINK_HEALTH_MAX_GAP_DAYS:
-        warnings.append(
-            "【警告】link-health: 最新の最終確認日が %s（%d日前）。"
-            "週次の商品リンク確認が2週以上実施されていない（rules/product-linking.md 4節）"
-            % (newest.isoformat(), gap)
-        )
+    info = "[product-links] 商品%d件 / OK以外%d件 / 最終照会 %s" % (total, not_ok, newest.isoformat())
+    warnings = []
+    if gap >= PRODUCT_LINK_MAX_AGE_DAYS:
+        warnings.append(stale_warning(newest.isoformat(), "%d日前" % gap))
     return info, warnings
 
 
@@ -1051,7 +1011,7 @@ def main():
     warnings += check_status_forbidden_words()
     warnings += check_script_health()
 
-    link_info, link_warnings = check_link_health(today)
+    link_info, link_warnings = check_product_links(today)
     warnings += link_warnings
     if link_info:
         print(link_info)
