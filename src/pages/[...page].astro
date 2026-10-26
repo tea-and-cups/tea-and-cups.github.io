@@ -50,9 +50,7 @@ const description = isFirst ? '紅茶を「なんとなく」から「自分で�
 
     <section class="section section--deep" id="themes"><div class="container theme-row"><div><p class="eyebrow">切り口から探す <em>Selected Themes</em></p><h2 class="section-title">気になるテーマから探す</h2></div><div class="theme-cards">{otherThemes.map((c) => <a class="theme-card" href={categoryPath(c.slug)}><span><small>{c.en}</small>{c.name}</span><span aria-hidden="true">→</span></a>)}</div></div></section>
 
-    {/* growth-exp-2026-09-27 */}
     <section class="section" id="popular-questions"><div class="container theme-row"><div><p class="eyebrow">読者の疑問 <em>Questions</em></p><h2 class="section-title">よく検索されている疑問</h2></div><div><a class="theme-card" href="/posts/koucha-nisenme-degarashi-tanoshimikata/"><span>紅茶の二煎目は飲める？</span><span aria-hidden="true">→</span></a><a class="theme-card" style="margin-top:.8rem" href="/posts/mizudashi-koucha-hozon-eisei-qa/"><span>水出し紅茶は何日もつ？</span><span aria-hidden="true">→</span></a><a class="theme-card" style="margin-top:.8rem" href="/posts/tea-strainer-chakoshi-erabikata/"><span>茶こしの名前と選び方</span><span aria-hidden="true">→</span></a></div></div></section>
-    {/* growth-exp-2026-09-27 */}
 
     <section class="section" id="recent"><div class="container"><div class="section-head"><div><p class="eyebrow">新着 <em>Recent Articles</em></p><h2 class="section-title">最近の読みもの</h2></div><a class="text-arrow" href="/articles/">すべての記事（{allPosts.length}本）</a></div><ul class="post-list recent-grid">{recent.map((post, i) => <PostCard post={post} eager={i < 4} />)}</ul><div class="section-actions"><a class="btn btn--ghost" href="/articles/">すべての記事を見る →</a></div></div></section>
 
