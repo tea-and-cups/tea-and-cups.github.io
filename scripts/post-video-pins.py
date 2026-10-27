@@ -7,7 +7,7 @@ data/pin-posted.md とは別。動画の番号 N は画像ピンの連番に入�
 
 処理順序（1動画ずつ・最初に止まった項目でその動画を止める）:
   (1) 緊急停止スイッチ（data/ 直下の pin-auto-post-off*・画像ピンと共用）。あれば何もせず終了する。
-  (2) 動画md を読む（動画ファイル・誘導先URL・ボード・ai_disclosures・カバー・タイトル・説明文・代替テキスト）。
+  (2) 動画md を読む（動画ファイル・誘導先URL・ボード・ai_disclosures（任意）・カバー・タイトル・説明文・代替テキスト）。
       誘導先URLの utm_content が video<N> であること、文字数（タイトル100・説明文800・代替テキスト500・
       URL2048）を確かめる。
   (3) 審査行「- 審査: 公開可 YYYY-MM-DD sha256:<64桁>」が無ければ止める（判定は pin_review.REVIEW_LINE_RE）。
@@ -167,7 +167,7 @@ def parse_video_md(path, pp):
         fields["description"] = "\n".join(desc_lines)
 
     missing = [label for label, key in (("動画ファイル", "video_rel"), ("誘導先URL", "guide_url"),
-                                        ("ボード", "board"), ("ai_disclosures", "ai_disclosures"),
+                                        ("ボード", "board"),
                                         ("cover_image_key_frame_time", "cover"), ("タイトル", "title"),
                                         ("説明文", "description"), ("代替テキスト", "alt_text"))
                if not fields.get(key)]
@@ -203,18 +203,21 @@ def check_fields(fields, pp):
         if size > limit:
             raise _Stop("%sが%d字で上限%d字を超えています" % (label, size, limit))
         lengths.append("%s%d/%d" % (label, size, limit))
-    values = [v.strip() for v in fields["ai_disclosures"].split(",") if v.strip()]
-    bad = [v for v in values if v not in ALLOWED_AI_DISCLOSURES]
-    if not values or bad:
-        raise _Stop("ai_disclosures の値が不正です: %s（使える値: %s）"
-                    % (fields["ai_disclosures"], ", ".join(ALLOWED_AI_DISCLOSURES)))
+    values = []
+    if fields["ai_disclosures"] is not None:  # 任意項目（D-0297）。行が無ければ送らない
+        values = [v.strip() for v in fields["ai_disclosures"].split(",") if v.strip()]
+        bad = [v for v in values if v not in ALLOWED_AI_DISCLOSURES]
+        if not values or bad:
+            raise _Stop("ai_disclosures の値が不正です: %s（使える値: %s）"
+                        % (fields["ai_disclosures"], ", ".join(ALLOWED_AI_DISCLOSURES)))
     fields["ai_values"] = values
     if not fields["cover"].isdigit():
         raise _Stop("cover_image_key_frame_time は0以上の整数で書きます: %s" % fields["cover"])
     fields["cover_time"] = int(fields["cover"])
     return ["動画番号・slug: 動画%d / %s（utm_content=video%d）" % (n, slug, n),
             "文字数: %s" % "・".join(lengths),
-            "ai_disclosures: %s / cover_image_key_frame_time: %d" % (", ".join(values), fields["cover_time"])]
+            "ai_disclosures: %s / cover_image_key_frame_time: %d"
+            % (", ".join(values) if values else "なし（送らない）", fields["cover_time"])]
 
 
 def file_sha256(path):
@@ -451,18 +454,23 @@ def wait_media(fields, token, ledger_path, media_id, today_str, out):
         time.sleep(POLL_INTERVAL_SECONDS)
 
 
-def create_pin(fields, token, media_id):
+def build_pin_body(fields, media_id):
     body = {
         "board_id": fields["board_id"],
         "title": fields["title"],
         "description": fields["description"],
         "link": fields["guide_url"],
         "alt_text": fields["alt_text"],
-        "ai_disclosures": {"values": fields["ai_values"]},
         "media_source": {"source_type": "video_id", "media_id": media_id,
                          "cover_image_key_frame_time": fields["cover_time"]},
     }
-    return call("POST", "/pins", token, body=body)
+    if fields["ai_values"]:
+        body["ai_disclosures"] = {"values": fields["ai_values"]}
+    return body
+
+
+def create_pin(fields, token, media_id):
+    return call("POST", "/pins", token, body=build_pin_body(fields, media_id))
 
 
 # --- 本体 -----------------------------------------------------------------------
