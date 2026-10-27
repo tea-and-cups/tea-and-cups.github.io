@@ -37,6 +37,8 @@ r"""投稿済みPinの「ピン単位 × 日次」実績をPinterest APIから�
      （第1経路: link の utm_content=pin{N} / 第2経路: slug + 作成順。
       analyze-pin-metrics.py と同じ2経路）。
      同一Pin番号に複数のpin_idが割り当たったら duplicate_detected を立てる。
+     動画ピンはこの突き合わせの前に取り除く（判定は analyze-pin-metrics.py の
+     video_pin_reason()）。動画ピンは番号割り当てもTSVへの書き込みもしない。
   5. 各 pin_id について GET /v5/pins/{pin_id}/analytics を1件ずつ呼び、daily_metrics を読む
      （summary_metrics ではない）。呼び出し間隔は ANALYTICS_INTERVAL_SECONDS。
   6. 既存TSVへ pin_id と date の組をキーに差分マージし、一時ファイル経由で置き換える。
@@ -660,9 +662,18 @@ def main():
         print("【エラー】GET /v5/pins への通信に失敗しました: %s" % e)
         return 1
 
+    # 動画ピンは画像ピンの番号（第2経路の作成順割り当てを含む）へ割り当てず、TSVへも書かない。
+    # 判定は analyze-pin-metrics.py の video_pin_reason() を使う（判定元を複製しない）。
+    api_total = len(all_pins)
+    all_pins, video_pins, video_by_reason = apm.split_video_pins(
+        all_pins, apm.load_video_pin_ids())
+    video_pin_ids = set(str(p.get("id") or "") for p in video_pins)
+
     pins_by_num, unresolved = resolve_pin_ids(all_pins, local_by_slug)
     print("APIのピン: %d件 / Pin番号に紐付いた番号数: %d / 特定不能: %d"
-          % (len(all_pins), len(pins_by_num), unresolved))
+          % (api_total, len(pins_by_num), unresolved))
+    if video_pins:
+        print(apm.video_exclusion_line(video_by_reason))
 
     board_names = apm.load_board_names()
     rows = read_existing()
@@ -748,7 +759,7 @@ def main():
     pin_number_set = set(pin_numbers)
     already_deleted = deleted_pin_ids(rows)
     candidates = [
-        pid for pid in known_pin_ids - processed_ids
+        pid for pid in known_pin_ids - processed_ids - video_pin_ids
         if _safe_int(latest_rows.get(pid, {}).get("pin_number")) in pin_number_set]
     extra_ids = sorted(pid for pid in candidates if pid not in already_deleted)
     skipped_deleted = len(candidates) - len(extra_ids)

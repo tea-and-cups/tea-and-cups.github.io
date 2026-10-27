@@ -27,6 +27,9 @@ r"""投稿済みPinの「型 × 実成果」を集計する（読み取り専用
               created_at 昇順に1枚目→pin1、2枚目→pin2、3枚目→pin3 と割り当て、
               ローカルのピンファイル索引から実際のPin番号を引く。
      どちらでも特定できないものは「特定不能」として除外する。
+     この前に動画ピンを取り除く（video_pin_reason()。data/video-posted.md の pin_id／
+     utm_content が「video」始まり／API の media_type が動画、の順で最初に当たったもの）。
+     動画ピンは番号割り当て・集計の対象外で、1件以上除外したときだけ除外件数を1行出す。
   3. 型をローカルのピンファイルから引く。
   4. 指標は手順1の pin_metrics を優先し、揃っていない場合のみ
      GET /v5/pins/{pin_id}/analytics を1件ずつ呼ぶ（間隔は ANALYTICS_INTERVAL_SECONDS）。
@@ -82,6 +85,11 @@ ROOT = os.path.dirname(os.path.dirname(SCRIPT_DIR))
 PINS_DIR = os.path.join(ROOT, "output", "pins")
 BOARDS_FILE = os.path.join(ROOT, "data", "pinterest-boards.md")
 OUTPUT_TSV = os.path.join(ROOT, "data", "pin-metrics.tsv")
+
+# 動画ピンの判定（画像ピンの番号割り当て・集計から外す）。台帳はまだ無くても動く。
+VIDEO_POSTED_FILE = os.path.join(ROOT, "data", "video-posted.md")
+VIDEO_UTM_PREFIX = "video"
+VIDEO_PIN_ID_RE = re.compile(r"\b\d{12,}\b")
 
 # --- 処理量の上限（記事数の増加に比例して処理が増えないよう1箇所に固定する） ---
 MAX_PINS = 200        # 対象がこれを超えたら集計せず件数のみ報告して終了
@@ -406,6 +414,70 @@ def pin_num_from_url(url):
         return None
     m = UTM_PIN_RE.match(content[0].strip())
     return int(m.group(1)) if m else None
+
+
+def load_video_pin_ids():
+    """data/video-posted.md に載っている pin_id の集合を返す。ファイルが無ければ空集合。
+
+    書式は未確定のため、コメント行（#始まり）以外の行から12桁以上の数字列をpin_idとして拾う
+    （Pinterestのpin_idは18桁前後。日付など短い数字を拾わないための下限）。
+    """
+    ids = set()
+    if not os.path.isfile(VIDEO_POSTED_FILE):
+        return ids
+    with open(VIDEO_POSTED_FILE, "r", encoding="utf-8") as f:
+        for line in f:
+            if line.lstrip().startswith("#"):
+                continue
+            ids.update(VIDEO_PIN_ID_RE.findall(line))
+    return ids
+
+
+def video_pin_reason(pin, video_ids):
+    """動画ピンなら判定に当たった根拠（"video-posted" / "utm_content" / "media_type"）を返す。
+
+    次の順で最初に当たったもので判定する。画像ピンなら None。
+      1. data/video-posted.md に載っている pin_id
+      2. 誘導先URLの utm_content が「video」で始まる
+      3. APIの応答の media_type が動画（media.media_type。直下の media_type も見る）
+    動画ピンは画像ピンの番号割り当て・集計の対象から外す（動画の指標は別スクリプトで取る）。
+    """
+    if str(pin.get("id") or "") in video_ids:
+        return "video-posted"
+    link = pin.get("link") or ""
+    try:
+        query = urllib.parse.urlparse(link).query
+    except ValueError:
+        query = ""
+    for value in urllib.parse.parse_qs(query).get("utm_content", []):
+        if value.strip().lower().startswith(VIDEO_UTM_PREFIX):
+            return "utm_content"
+    media = pin.get("media")
+    media_type = (media.get("media_type") if isinstance(media, dict) else None) or pin.get("media_type")
+    if isinstance(media_type, str) and "video" in media_type.lower():
+        return "media_type"
+    return None
+
+
+def split_video_pins(pins, video_ids):
+    """pins を (画像ピンのリスト, 除外した動画ピンのリスト, 根拠ごとの件数) に分ける。"""
+    kept = []
+    videos = []
+    by_reason = {}
+    for pin in pins:
+        reason = video_pin_reason(pin, video_ids)
+        if reason is None:
+            kept.append(pin)
+        else:
+            videos.append(pin)
+            by_reason[reason] = by_reason.get(reason, 0) + 1
+    return kept, videos, by_reason
+
+
+def video_exclusion_line(by_reason):
+    """除外した動画ピン件数の1行（集計表・TSVとは別の行として出す）。"""
+    detail = " / ".join("%s %d件" % (k, by_reason[k]) for k in sorted(by_reason))
+    return "動画ピンとして集計から除外: %d件（%s）" % (sum(by_reason.values()), detail)
 
 
 def build_local_index():
@@ -771,6 +843,11 @@ def main():
     print("APIから取得: %d件 / うち直近%d日以内: %d件" % (len(all_pins), WINDOW_DAYS, len(in_window)))
     if no_created_at:
         print("【注意】created_at を解釈できなかったピン: %d件（対象外）" % no_created_at)
+
+    # 動画ピンは画像ピンの番号（作成順経路のslot割り当てを含む）へ割り当てず、集計から外す
+    in_window, video_pins, video_by_reason = split_video_pins(in_window, load_video_pin_ids())
+    if video_pins:
+        print(video_exclusion_line(video_by_reason))
 
     if len(in_window) > max_pins:
         print("")
