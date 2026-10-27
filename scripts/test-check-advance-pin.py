@@ -8,9 +8,9 @@ r"""check-advance-pin-today.py の判定（NEXT／INCOMPLETE／DONE／NONE・候
 
 2つ目の群だけは publish-article.py の新規公開の経路を確かめるため、本物の output/articles/ に
 ダミーの下書きを1件作って `--dry-run` 相当を実行し、直後に必ず消す（record-lesson.py の
-セッションマーカーは作らない）。3つ目の群は、codex-gateway.py の growth-audit が本物の
-growth/ledger/adopted-directives.tsv から先行ピンの指示（GD-0009・GD-0035）を読めることを、
-gateway の読み取り関数を呼んで確かめる（Codex・外部APIは起動せず、何も書き込まない）。
+セッションマーカーは作らない）。3つ目の群は、先行ピンの指示（GD-0009・GD-0035）が凍結した台帳
+growth/ledger/adopted-directives.tsv に記録として残り、codex-gateway.py がその台帳を読まないこと
+（S-0027 ②）を確かめる（Codex・外部APIは起動せず、何も書き込まない）。
 
 使い方:
   python site/scripts/test-check-advance-pin.py
@@ -315,36 +315,20 @@ def run_publish_dry_run_case():
 
 
 def run_growth_ledger_case():
-    """codex-gateway.py の growth-audit が、本物の growth/ledger/adopted-directives.tsv から
-    先行ピンの指示（GD-0009・GD-0035）を読めることを確かめる。
-
-    gateway の読み取り関数をそのまま呼ぶだけで、Codex も外部APIも起動しない。週次の --dry-run は
-    入力ファイルの生成（外部APIの読み取りと手元ビルド）を伴うため、ここでは使わない。
+    """先行ピンの指示（GD-0009・GD-0035）は凍結した台帳 growth/ledger/adopted-directives.tsv に記録として
+    残り、codex-gateway.py の growth-audit はその台帳を読まない（S-0027 ②で遵守確認を廃止）ことを確かめる。
+    先行ピンの実行は check-advance-pin-today.py（上の群）が担う。Codex も外部APIも起動しない。
     """
     gateway = _load("codex-gateway.py")
-    since, until, week = "2026-10-12", "2026-10-18", "2026-W42"
-    rows = {(row.get("ID") or "").strip(): row for row in gateway._ledger_adopted_rows()}
-    plan = gateway._weekly_compliance_plan(since, until, week)
-    assigned = {gd["id"]: gd for gd in plan["gds"]}
-    results = [("9-a. 台帳の採用・一部採用の行に GD-0009・GD-0035 がある",
-                "GD-0009" in rows and "GD-0035" in rows, "採用・一部採用 %d行" % len(rows))]
-    for gd_id in ("GD-0009", "GD-0035"):
-        gd = assigned.get(gd_id)
-        kinds = "・".join(kind for kind, _ranges in gd["specs"]) if gd else ""
-        results.append((
-            "9-b. %s が週次（%s〜%s）の遵守確認へ配られる（判定対象・対象開始を読める）" % (gd_id, since, until),
-            gd is not None and gd["start"][0] == "date",
-            "判定対象の種別=%s／対象開始=%s" % (kinds, gateway._gd_start_label(gd["start"]))
-            if gd else "事前判定: %s" % (plan["prefilled"].get(gd_id),)))
-    gd = assigned.get("GD-0035")
-    results.append(("9-c. GD-0035 の対象開始が 2026-10-12・判定方法に check-advance-pin-today.py がある",
-                    gd is not None and gd["start"] == ("date", "2026-10-12")
-                    and "check-advance-pin-today.py --since" in (gd["row"].get("判定方法") or ""), ""))
-    if gd is not None:
-        block = gateway._format_directives_block(plan, {"GD-0035": ["（検証用の該当）"]})
-        results.append(("9-d. 区切りのプロンプトへ差し込む GD-0035 の割り当てを組み立てられる",
-                        "check-advance-pin-today.py" in block, "\n" + block))
-    return results
+    ledger = os.path.join(SCRIPT_DIR, "..", "..", "growth", "ledger", "adopted-directives.tsv")
+    with open(ledger, encoding="utf-8") as handle:
+        text = handle.read()
+    return [
+        ("9-a. 凍結した台帳に GD-0009・GD-0035 の行が記録として残っている",
+         "\nGD-0009\t" in text and "\nGD-0035\t" in text, ""),
+        ("9-b. gateway は台帳を読まない（台帳のパス・遵守確認の割り当ての関数が無い）",
+         not hasattr(gateway, "GROWTH_LEDGER_PATH") and not hasattr(gateway, "_format_directives_block"), ""),
+    ]
 
 
 def main():
@@ -355,7 +339,7 @@ def main():
     for title, cases in (
         ("check-advance-pin-today.py の判定（一時ディレクトリのダミーで実行）", run_cases()),
         ("publish-article.py の新規公開の経路（ダミーの下書きを作って消す）", run_publish_dry_run_case()),
-        ("codex-gateway.py の growth-audit が台帳を読み込める（Codex・外部APIは起動しない）",
+        ("採用済み指示の台帳は凍結し、codex-gateway.py は読まない（Codex・外部APIは起動しない）",
          run_growth_ledger_case()),
     ):
         print("=== %s ===" % title)

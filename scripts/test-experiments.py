@@ -14,6 +14,9 @@ experiments.py の関数をそのまま呼ぶ（テスト側で判定を再実�
   5. adopt --dry-run が台帳を書き換えないこと
   6. measure が Buffer を1回だけ取得し、pin-14d.json・sns-posts-7d.json の対象を正しく選ぶこと
   7. codex-gateway.py: measure が失敗したら3つの JSON を空の形で置いて続行する
+  8. judge-due: 判定日が来た実験に判定案を記録する（設定の戻しで active_setting が既定に戻る・ルールの戻しは
+     RULE_REVERT_NEEDED・同じ週末日の再実行で記録し直さない）／adopt の同じ対象の重複拒否（S-0027 ②）
+  9. codex-gateway.py: 新しい必須節（足りない節があれば無効）・遵守確認の除去・judge-due の結果の受け取り
 
 使い方:
   python site/scripts/test-experiments.py
@@ -28,6 +31,7 @@ import os
 import shutil
 import sys
 import tempfile
+import time
 from pathlib import Path
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -71,10 +75,14 @@ PROPOSALS = [
     ("P-2", "設定", "pin-hook", "下限未満", KEY, "x", "pin>=200", "pin-impr-14d", "20"),
     ("P-3", "設定", "pin-hook", "未登録キー", "no-such-key", "x", "pin>=200", "pin-impr-14d", "21"),
     ("P-4", "ルール", "post-text", "Xの投稿文を短くする", "", "", "channel=twitter", "x-impr-7d", "14"),
-    ("P-5", "設定", "pin-hook", "記事を絞った一言", KEY, "B", "slug=s-a,s-b", "pin-impr-14d", "21"),
-    ("P-6", "設定", "pin-hook", "対象0件", KEY, "C", "pin>=900", "pin-impr-14d", "21"),
+    ("P-5", "設定", "image-style", "記事を絞った一言", KEY, "B", "slug=s-a,s-b", "pin-impr-14d", "21"),
+    ("P-6", "設定", "x-standalone", "対象0件", KEY, "C", "pin>=900", "pin-impr-14d", "21"),
     ("P-7", "ルール", "post-text", "X下限未満", "", "", "channel=twitter", "x-impr-7d", "13"),
-    ("P-8", "ルール", "search-ctr", "descriptionを書き直す", "", "", "slug=s-a", "gsc-ctr-28d", "28"),
+    ("P-8", "ルール", "search-ctr", "descriptionを書き直す", "-", "-", "slug=s-a", "gsc-ctr-28d", "28"),
+    # S-0027 ②: 同じ対象の重複拒否
+    ("P-10", "設定", "pin-hook", "同じ対象の別案", KEY, "D", "pin>=300", "pin-impr-14d", "21"),
+    ("P-11", "ルール", "pin-hook", "同じ対象の別案（ルール）", "-", "-", "全体", "pin-impr-14d", "21"),
+    ("P-12", "ルール", "post-text", "継続判定済みの対象への新案", "-", "-", "channel=twitter", "x-impr-7d", "14"),
 ]
 
 
@@ -295,6 +303,114 @@ def main():
               and all(d.get("status") == "unavailable" for d in empties)
               and empties[0]["experiments"] == [] and empties[1]["pins"] == [] and empties[2]["posts"] == [])
         check("gateway: 【注意】を出す", err.getvalue().count("【注意】") == 3)
+
+        # --- 8. judge-due（判定日が来た実験の自動記録）と同じ対象の重複拒否（S-0027 ②） ---
+        ex.save_ledger([])
+        ex.fetch_gsc_by_page = lambda since, until: (
+            {"s-a": {"ctr": 0.04 if until < dt.date(2026, 9, 2) else 0.02}}, None)
+        check("重複拒否: 対象がすべて違う adopt P-1 P-5 P-6 P-8 P-4 は終了コード0",
+              run(ex.cmd_adopt, audit, ["P-1", "P-5", "P-6", "P-8", "P-4"], today=ADOPT_DAY) == 0)
+        rows = ex.load_ledger()
+        check("ルールの設定キー・設定値の「-」は空欄で入る",
+              (by_id(rows, "EX-0004")["設定キー"], by_id(rows, "EX-0004")["設定値"]) == ("", ""))
+        before = ledger_bytes()
+        check("重複拒否: 実行中の同じ対象（pin-hook・EX-0001）への adopt P-10 は終了コード1",
+              run(ex.cmd_adopt, audit, ["P-10"], today=ADOPT_DAY) == 1)
+        check("重複拒否: 実装待ちの同じ対象（post-text・EX-0005）への adopt P-12 は終了コード1",
+              run(ex.cmd_adopt, audit, ["P-12"], today=ADOPT_DAY) == 1)
+        check("重複拒否のあと台帳は変わらない", ledger_bytes() == before)
+        run(ex.cmd_start, "EX-0004", today=ADOPT_DAY)
+        run(ex.cmd_start, "EX-0005", today=ADOPT_DAY)
+        check("judge-due 前: slug=s-a の設定値は実行中の EX-0002 の B",
+              ex.active_setting(KEY, slug="s-a", default="既定") == "B")
+        out_due = os.path.join(tmp, "out-due")
+        _rc, _st, status = measure(out_due)
+        status_path = os.path.join(out_due, "experiments-status.json")
+        check("experiments-status.json に busy_targets（提案できない対象）が載る",
+              sorted(status.get("busy_targets", {})) == sorted(["pin-hook", "image-style", "x-standalone",
+                                                               "search-ctr", "post-text"]), str(status.get("busy_targets")))
+        before = ledger_bytes()
+        check("judge-due: status の週末日と --week-end が違えば拒否（台帳は変わらない）",
+              run(ex.cmd_judge_due, dt.date(2026, 10, 1), status_path, today=WEEK_END) == 1 and ledger_bytes() == before)
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            rc = ex.cmd_judge_due(WEEK_END, status_path, today=WEEK_END)
+        text = buf.getvalue()
+        rows = ex.load_ledger()
+        r1, r2, r3, r4, r5 = (by_id(rows, "EX-000%d" % i) for i in range(1, 6))
+        check("judge-due は終了コード0で5件を記録する",
+              rc == 0 and "JUDGE_DUE_DONE week_end=2026-09-30 judged=5 rule_revert_needed=1 errors=0" in text, text)
+        check("継続（設定）→ 標準・根拠は「中央値 前140 後280 件数7/7」",
+              (r1["状態"], r1["判定"]) == ("標準", "継続 2026-09-30")
+              and "judge-due（週末日 2026-09-30）: 中央値 前140 後280 件数7/7" in r1["根拠"], r1["根拠"])
+        check("戻し（設定）→ 状態は戻し", r2["状態"] == "戻し", str(r2))
+        check("設定型の戻しで active_setting は既定に戻る", ex.active_setting(KEY, slug="s-a", default="既定") == "既定")
+        check("延長 → 延長1・判定日が7日延びる・根拠に件数0と理由",
+              (r3["状態"], r3["延長"], r3["判定日"]) == ("実行中", "1", "2026-09-30")
+              and "件数0/0（対象が0件" in r3["根拠"], str(r3))
+        check("ルール型の戻し → 状態は戻し・RULE_REVERT_NEEDED EX-0004 を出す",
+              r4["状態"] == "戻し" and "RULE_REVERT_NEEDED EX-0004" in text, text)
+        check("ルール型の継続 → 実行中のまま判定欄に継続（RULE_REVERT_NEEDED は出さない）",
+              (r5["状態"], r5["判定"]) == ("実行中", "継続 2026-09-30") and "RULE_REVERT_NEEDED EX-0005" not in text)
+        before = ledger_bytes()
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            rc = ex.cmd_judge_due(WEEK_END, None, today=WEEK_END)
+        check("同じ週末日の再実行（--status なし）は記録し直さない（延長後も判定日が週末日以前の EX-0003 を飛ばす）",
+              rc == 0 and ledger_bytes() == before and "JUDGE_DUE_SKIP EX-0003" in buf.getvalue(), buf.getvalue())
+        check("1回の adopt で同じ対象（pin-hook）が2件なら拒否", run(ex.cmd_adopt, audit, ["P-10", "P-11"], today=ADOPT_DAY) == 1
+              and ledger_bytes() == before)
+        check("標準になった対象（pin-hook）には新しい実験を採用できる", run(ex.cmd_adopt, audit, ["P-10"], today=ADOPT_DAY) == 0)
+        check("継続判定済み（標準化待ち）のルールの対象（post-text）には新しい実験を採用できる",
+              run(ex.cmd_adopt, audit, ["P-12"], today=ADOPT_DAY) == 0)
+
+        # --- 9. gateway: 新しい必須節（足りない節があれば無効）と judge-due の呼び出し（S-0027 ②） ---
+        def section_check(headers, required):
+            path = Path(tmp) / "audit-check.md"
+            path.write_text("\n\n".join("%s\n- ダミー" % h for h in headers) + "\n", encoding="utf-8")
+            ok, info = gw._make_check(path, time.time() - 5, required, {"written_by": None})("")
+            return ok, info.get("reason")
+
+        weekly = gw.REQUIRED_SUMMARY_SECTIONS_BY_MODE["weekly"]
+        monthly = gw.REQUIRED_SUMMARY_SECTIONS_BY_MODE["monthly"]
+        check("gateway: 週次まとめの必須節は 要約・実験の判定・新しい実験の提案・誠実さの重大な指摘・評価できなかったもの",
+              weekly == ("## 要約", "## 実験の判定", "## 新しい実験の提案", "## 誠実さの重大な指摘", "## 評価できなかったもの"))
+        check("gateway: 月次まとめは週次の5節＋来月の作業キュー案・監査範囲",
+              monthly == weekly + ("## 来月の作業キュー案", "## 監査範囲"))
+        check("gateway: 区切りの必須節は 所見・部分監査範囲 だけ（遵守確認（部分）は無い）",
+              gw.REQUIRED_PART_SECTIONS_BY_MODE == {"weekly": ("## 所見", "## 部分監査範囲"),
+                                                    "monthly": ("## 所見", "## 部分監査範囲")})
+        check("gateway: 週次の5節がそろったダミーは有効", section_check(weekly, weekly) == (True, "ok"))
+        for missing in weekly:
+            check("gateway: 週次で %s が無いダミーは無効" % missing,
+                  section_check([h for h in weekly if h != missing], weekly) == (False, "missing_sections"))
+        check("gateway: 旧形式（改善指示・遵守確認）の週次ダミーは無効",
+              section_check(("## 要約", "## 改善指示", "## 前回採用した指示の遵守確認", "## 評価できなかったもの",
+                             "## 成長の判断に足りなかった情報"), weekly) == (False, "missing_sections"))
+        check("gateway: 月次の7節がそろったダミーは有効", section_check(monthly, monthly) == (True, "ok"))
+        check("gateway: 月次で 来月の作業キュー案 が無いダミーは無効",
+              section_check(monthly[:-2] + ("## 監査範囲",), monthly) == (False, "missing_sections"))
+        check("gateway: 遵守確認の台帳を読む定数・関数が残っていない",
+              not any(hasattr(gw, n) for n in ("GROWTH_LEDGER_PATH", "_ledger_adopted_rows", "_check_compliance",
+                                               "_weekly_compliance_plan")))
+        prompt = (Path(gw.PROJECT_ROOT) / "growth" / "prompts" / "weekly-audit.md").read_text(encoding="utf-8")
+        built = gw._build_summary_prompt(prompt, Path(tmp) / "parts", [{"name": "R-1"}], "2026-10-12", "2026-10-18")
+        check("gateway: 週次まとめのプロンプトに期間が入り、{{COMPLIANCE}} が残らず、3つの JSON を案内する",
+              "2026-10-12〜2026-10-18" in built and "{{" not in built.replace("{{WEEK}}", "").replace("{{INPUT_DIR}}", "")
+              and all(n in built for n in ("experiments-status.json", "pin-14d.json", "sns-posts-7d.json",
+                                           "gsc-page-28d.json")))
+        fake = Path(tmp) / "fake-experiments.py"
+        fake.write_text("import sys\nprint('JUDGED EX-0009 戻し\\tx')\nprint('RULE_REVERT_NEEDED EX-0009')\n"
+                        "sys.exit(int(sys.argv[-1] == 'fail'))\n", encoding="utf-8")
+        gw.EXPERIMENTS_SCRIPT = fake
+        result = gw._run_judge_due("2026-09-30", Path(tmp) / "no-status.json")
+        check("gateway: judge-due の結果（RULE_REVERT_NEEDED の実験ID）を judge_due に載せる",
+              result["ok"] and result["rule_revert_needed"] == ["EX-0009"] and len(result["lines"]) == 2, str(result))
+        fake.write_text("import sys\nsys.stderr.write('boom')\nsys.exit(1)\n", encoding="utf-8")
+        with contextlib.redirect_stderr(io.StringIO()) as err:
+            result = gw._run_judge_due("2026-09-30", Path(tmp) / "no-status.json")
+        check("gateway: judge-due が失敗しても例外にせず ok=false と【注意】を返す",
+              not result["ok"] and result["returncode"] == 1 and "【注意】" in err.getvalue(), str(result))
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 

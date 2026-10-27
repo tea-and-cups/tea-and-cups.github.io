@@ -18,9 +18,12 @@ r"""Growth Agent の「元に戻せる実験」の台帳 data/experiments.tsv �
   python site/scripts/experiments.py start <EX-NNNN>
   python site/scripts/experiments.py measure --week-end YYYY-MM-DD --out <ディレクトリ>
   python site/scripts/experiments.py judge <EX-NNNN> 継続|戻し|延長 --reason "<根拠>" [--d D-NNNN]
+  python site/scripts/experiments.py judge-due --week-end YYYY-MM-DD [--status <experiments-status.json>]
 
 adopt: 監査の「## 新しい実験の提案」節の ```tsv ブロックから、指定した提案番号の行だけを台帳へ足す。
+  同じ「対象」に状態が実装待ち・実行中（継続判定済みを除く）の行があれば拒否する（S-0027 ②）。
   ブロックの列（この順）: 提案番号(P-N)／種別／対象／内容／設定キー／設定値／範囲／主指標／判定までの日数
+  （設定キー・設定値の「-」は空欄として読む）
   開始日=採用日の翌日、判定日=開始日＋日数。種別「設定」は実行中で入る（設定キーが KEYS に無ければ拒否）。
   種別「ルール」は実装待ちで入る（日付は仮。start で付け直す）。判定までの日数は主指標ごとの下限
   （MIN_DAYS）未満を拒否する。
@@ -34,6 +37,10 @@ measure: experiments-status.json・pin-14d.json・sns-posts-7d.json を --out �
 judge: 戻し=状態を戻しにする（設定値はその時点で無効）。継続=種別「設定」は標準にして設定値を残す／
   種別「ルール」は判定欄に継続と記録するだけ（標準化は窓口の指示で行う）。延長=判定日を7日延ばす（上限1回）。
   実装待ちの行に戻しを付けると不採用になる。
+judge-due: 判定日が --week-end 以前の実行中の行（継続判定済みを除く）に、measure の判定案（継続／戻し／延長）を
+  judge と同じ処理で記録する（根拠「中央値 前X 後Y 件数n/m」）。--status があればその判定案を使う（週次 gateway が
+  監査の有効判定のあとに呼ぶ）。ルール型の戻しは「RULE_REVERT_NEEDED EX-NNNN」を出す（コードは窓口の指示で戻す）。
+  同じ週末日で記録済みの行（根拠に「judge-due（週末日 …）」がある）は飛ばす（gateway の再実行に備える）。
 
 生成スクリプトから設定値を読む口は active_setting()（import して使う）。
 
@@ -43,7 +50,9 @@ judge: 戻し=状態を戻しにする（設定値はその時点で無効）。
 from __future__ import annotations
 
 import argparse
+import contextlib
 import datetime as dt
+import io
 import json
 import os
 import re
@@ -263,6 +272,9 @@ def parse_proposals(audit_text):
             continue
         cells += [""] * (len(PROPOSAL_COLUMNS) - len(cells))
         row = dict(zip(PROPOSAL_COLUMNS, cells))
+        for key in ("設定キー", "設定値"):   # ルールの空欄は「-」で書かれる（タブの連続が崩れないように）
+            if row[key] == "-":
+                row[key] = ""
         proposals[row["提案番号"]] = row
     if not proposals:
         raise ExperimentError("「%s」節に ```tsv ブロックの行がありません" % PROPOSAL_SECTION)
@@ -290,6 +302,16 @@ def _validate_proposal(p):
     return days
 
 
+def busy_targets(rows):
+    """状態が実装待ち・実行中の行がある対象 {対象: [実験ID]}（同じ対象の新しい実験は採用しない・S-0027 ②）。
+    ルールの継続判定済み（標準化待ち）の行は実験が終わっているため数えない。"""
+    busy = {}
+    for row in rows:
+        if row["状態"] == "実装待ち" or (row["状態"] == "実行中" and not row["判定"].startswith("継続")):
+            busy.setdefault(row["対象"], []).append(row["実験ID"])
+    return busy
+
+
 def cmd_adopt(audit_path, numbers, dry_run=False, d_number="", today=None):
     today = today or dt.date.today()
     with open(audit_path, "r", encoding="utf-8") as handle:
@@ -304,6 +326,10 @@ def cmd_adopt(audit_path, numbers, dry_run=False, d_number="", today=None):
         tag = "採用: %s %s" % (source, number)
         if any(r["根拠"].startswith(tag + "（") or r["根拠"] == tag for r in rows):
             raise ExperimentError("%s は採用済みです" % tag)
+        busy = busy_targets(rows + new_rows)
+        if p["対象"] in busy:
+            raise ExperimentError("%s: 対象 %s には実行中・実装待ちの実験があります（%s）"
+                                  % (number, p["対象"], "・".join(busy[p["対象"]])))
         days = _validate_proposal(p)
         start = today + dt.timedelta(days=1)
         row = {c: "" for c in COLUMNS}
@@ -374,6 +400,66 @@ def cmd_judge(ex_id, verdict, reason, d_number="", today=None):
     save_ledger(rows)
     print("%s\t%s\t判定日 %s\t延長 %s\t%s" % (ex_id, row["状態"], row["判定日"], row["延長"], row["判定"] or "-"))
     return 0
+
+
+def _due_reason(entry, week_end):
+    def fmt(value):
+        return "-" if value is None else str(value)
+    before, after = entry.get("before") or {}, entry.get("after") or {}
+    text = "judge-due（週末日 %s）: 中央値 前%s 後%s 件数%s/%s" % (
+        week_end.isoformat(), fmt(before.get("median")), fmt(after.get("median")),
+        before.get("count", 0), after.get("count", 0))
+    if entry["proposal"] == "延長" or not before.get("count") or not after.get("count"):
+        text += "（%s）" % entry.get("reason", "")
+    return text
+
+
+def cmd_judge_due(week_end, status_path=None, today=None, pin_tsv=None):
+    """判定日（week_end 以前）に達した実行中の行へ、measure の判定案をそのまま judge と同じ処理で記録する。
+    status_path（measure が書いた experiments-status.json）を渡すとその判定案を使い、無ければその場で集計する。
+    ルール型の戻しは RULE_REVERT_NEEDED を出す（コードを戻すのは窓口の指示で行う）。"""
+    rows = load_ledger()
+    marker = "judge-due（週末日 %s）" % week_end.isoformat()
+    due = [r for r in rows if r["状態"] == "実行中" and not r["判定"].startswith("継続")
+           and _date(r["判定日"]) <= week_end]
+    for row in [r for r in due if marker in r["根拠"]]:
+        # 同じ週末日で記録済み（gateway の再実行・延長後の判定日がまだ週末日以前）は記録し直さない
+        print("JUDGE_DUE_SKIP %s（%s で記録済み）" % (row["実験ID"], marker))
+        due.remove(row)
+    if not due:
+        print("JUDGE_DUE_NONE week_end=%s（判定日に達した実行中の実験なし）" % week_end)
+        return 0
+    if status_path:
+        with open(status_path, "r", encoding="utf-8") as handle:
+            status = json.load(handle)
+        if status.get("week_end") != week_end.isoformat():
+            raise ExperimentError("%s の week_end（%s）が --week-end（%s）と違います"
+                                  % (status_path, status.get("week_end"), week_end))
+        entries = {e["id"]: e for e in status.get("experiments") or []}
+    else:
+        entries = {e["id"]: e for e in collect(rows, week_end, pin_tsv)[0]}
+    judged = reverts = errors = 0
+    for row in due:
+        entry = entries.get(row["実験ID"])
+        if entry is None or entry.get("proposal") not in ("継続", "戻し", "延長"):
+            print("JUDGE_DUE_SKIP %s（判定案なし: %s）" % (
+                row["実験ID"], "集計に無い" if entry is None else entry.get("proposal")))
+            continue
+        reason = _due_reason(entry, week_end)
+        try:
+            with contextlib.redirect_stdout(io.StringIO()):
+                cmd_judge(row["実験ID"], entry["proposal"], reason, today=today)
+        except ExperimentError as exc:
+            errors += 1
+            print("JUDGE_DUE_ERROR %s %s" % (row["実験ID"], exc))
+            continue
+        judged += 1
+        print("JUDGED %s %s\t%s" % (row["実験ID"], entry["proposal"], reason))
+        if entry["proposal"] == "戻し" and row["種別"] == "ルール":
+            reverts += 1
+            print("RULE_REVERT_NEEDED %s" % row["実験ID"])
+    print("JUDGE_DUE_DONE week_end=%s judged=%d rule_revert_needed=%d errors=%d" % (week_end, judged, reverts, errors))
+    return 1 if errors else 0
 
 
 # --- list -------------------------------------------------------------------------
@@ -742,9 +828,8 @@ def build_sns_posts(posts, week_end):
             "posts": out}
 
 
-def cmd_measure(week_end, out_dir, pin_tsv=None):
-    rows = load_ledger()
-    generated_at = dt.datetime.now(JST).isoformat(timespec="seconds")
+def collect(rows, week_end, pin_tsv=None):
+    """measure と judge-due が使う集計。戻り値: (experiments, pending_rules, pins, posts, buffer_source, warnings)"""
     warnings = []
     pins = load_pins(pin_tsv)
     if not pins:
@@ -765,10 +850,21 @@ def cmd_measure(week_end, out_dir, pin_tsv=None):
         warnings.append("Buffer: %s" % problem)
 
     experiments, pending_rules = build_status(rows, week_end, pins, posts, warnings)
+    return experiments, pending_rules, pins, posts, buffer_source, warnings
+
+
+def cmd_measure(week_end, out_dir, pin_tsv=None):
+    rows = load_ledger()
+    generated_at = dt.datetime.now(JST).isoformat(timespec="seconds")
+    experiments, pending_rules, pins, posts, buffer_source, warnings = collect(rows, week_end, pin_tsv)
     common = {"schema": 1, "week_end": week_end.isoformat(), "generated_at": generated_at}
     outputs = {
         "experiments-status.json": dict(common, ledger="data/experiments.tsv", experiments=experiments,
-                                        pending_rules=pending_rules, buffer=buffer_source, warnings=warnings),
+                                        pending_rules=pending_rules,
+                                        standardization_pending=[r["実験ID"] for r in rows if r["状態"] == "実行中"
+                                                                 and r["判定"].startswith("継続")],
+                                        busy_targets=busy_targets(rows),
+                                        buffer=buffer_source, warnings=warnings),
         "pin-14d.json": dict(common, **build_pin_14d(pins, week_end)),
         "sns-posts-7d.json": dict(common, buffer=buffer_source, **build_sns_posts(posts, week_end)),
     }
@@ -805,6 +901,9 @@ def build_parser():
     p.add_argument("verdict", choices=["継続", "戻し", "延長"])
     p.add_argument("--reason", required=True)
     p.add_argument("--d", default="", help="D番号（任意）")
+    p = sub.add_parser("judge-due")
+    p.add_argument("--week-end", required=True)
+    p.add_argument("--status", default=None, help="measure が書いた experiments-status.json（任意）")
     return parser
 
 
@@ -819,11 +918,13 @@ def main(argv=None):
             return cmd_adopt(args.audit, args.numbers, args.dry_run, args.d)
         if args.command == "start":
             return cmd_start(args.ex_id)
-        if args.command == "measure":
+        if args.command in ("measure", "judge-due"):
             try:
                 week_end = _date(args.week_end)
             except ValueError:
                 raise ExperimentError("--week-end は YYYY-MM-DD: %s" % args.week_end)
+            if args.command == "judge-due":
+                return cmd_judge_due(week_end, args.status)
             return cmd_measure(week_end, args.out)
         if args.command == "judge":
             return cmd_judge(args.ex_id, args.verdict, args.reason, args.d)

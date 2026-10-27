@@ -7,10 +7,9 @@ tasks.md（固定の内容・対象日は実日付と無関係な日付）に対
 選び方）をそのまま呼ぶ（テスト側で判定を再実装しない）。
 
 3つ目の群は、本物の docs/tasks.md を一時ディレクトリへ複製したものへ書き込み、本物が1バイトも
-変わっていないことを確かめる。4つ目の群は、codex-gateway.py の growth-audit が本物の
-growth/ledger/adopted-directives.tsv から GD-0036 の判定対象・判定方法・対象開始を読み、週次の
-遵守確認へ配れることを、gateway の読み取り関数を呼んで確かめる（Codex・外部APIは起動せず、
-何も書き込まない）。一時ディレクトリは終了時に必ず消す。
+変わっていないことを確かめる。4つ目の群は、採用済み指示の台帳 growth/ledger/adopted-directives.tsv が
+凍結されて記録として残り、codex-gateway.py がそれを読まないこと（S-0027 ②で遵守確認を廃止）を確かめる
+（Codex・外部APIは起動せず、何も書き込まない）。一時ディレクトリは終了時に必ず消す。
 
 使い方:
   python site/scripts/test-add-monthly-tasks.py
@@ -26,6 +25,7 @@ import sys
 import tempfile
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, "..", ".."))
 RUN_DATE = "2031-05-15"  # 実日付と無関係な対象日（ダミーの月マーカーは 2031-05）
 
 HEADER = "Q番号\tタグ\tslug\tcategory\tGD番号\t内容\t根拠"
@@ -341,46 +341,24 @@ def run_real_copy_case(module, rotate, root):
 
 
 def run_growth_ledger_case():
-    """台帳 GD-0036 の判定対象・判定方法・対象開始を gateway が読め、週次の遵守確認へ配れることを確かめる。"""
+    """採用済み指示の台帳（GD-0036 を含む）は凍結し、gateway は読まない（S-0027 ②）。
+    台帳のファイルは記録として残り、月次の作業キュー案の GD番号は常に「-」になることを確かめる。"""
     gateway = _load("codex-gateway.py")
-    since, until, week = "2026-10-12", "2026-10-18", "2026-W42"
-    rows = {(row.get("ID") or "").strip(): row for row in gateway._ledger_adopted_rows()}
-    row = rows.get("GD-0036") or {}
-    plan = gateway._weekly_compliance_plan(since, until, week)
-    gd = next((item for item in plan["gds"] if item["id"] == "GD-0036"), None)
-    results = [
-        ("5-a. 台帳の GD-0036 は11列がそろい、判定対象・判定方法・対象開始が埋まっている",
-         all((row.get(key) or "").strip() for key in ("判定対象", "判定方法", "対象開始"))
-         and set(row) == {"ID", "週", "区分", "指示", "採否", "実装D番号", "実装日", "遵守確認",
-                          "判定対象", "判定方法", "対象開始"},
-         "\n      判定対象: %s\n      判定方法: %s\n      対象開始: %s\n      遵守確認: %s" % (
-             row.get("判定対象"), row.get("判定方法"), row.get("対象開始"), row.get("遵守確認"))),
-        ("5-b. 判定方法は check-pin-image-style.py の検査で、実装状況の文は判定方法の列に残っていない",
-         "check-pin-image-style.py" in (row.get("判定方法") or "") and "実装済み" not in (row.get("判定方法") or "")
-         and "実装済み" in (row.get("遵守確認") or ""), ""),
-        ("5-c. 週次（%s〜%s）の遵守確認の計画で GD-0036 が区切りへ配る対象になる（事前の「判定不能」でない）"
-         % (since, until),
-         gd is not None and gd["start"] == ("date", "2026-10-12") and "GD-0036" not in plan["prefilled"],
-         "判定対象の種別=%s／対象開始=%s" % ("・".join(kind for kind, _r in gd["specs"]),
-                                    gateway._gd_start_label(gd["start"]))
-         if gd else "事前判定: %s" % (plan["prefilled"].get("GD-0036"),)),
+    ledger = os.path.join(PROJECT_ROOT, "growth", "ledger", "adopted-directives.tsv")
+    with open(ledger, encoding="utf-8") as handle:
+        text = handle.read()
+    with open(os.path.join(PROJECT_ROOT, "site", "scripts", "codex-gateway.py"), encoding="utf-8") as handle:
+        source = handle.read()
+    with open(os.path.join(PROJECT_ROOT, "growth", "prompts", "monthly-audit.md"), encoding="utf-8") as handle:
+        prompt = handle.read()
+    return [
+        ("5-a. 凍結した台帳は記録として残っている（GD-0036 の行がある）", "\nGD-0036\t" in text, ledger),
+        ("5-b. gateway は台帳を読まない（台帳のパス・遵守確認の関数が無い）",
+         not hasattr(gateway, "GROWTH_LEDGER_PATH") and not hasattr(gateway, "_weekly_compliance_plan")
+         and "adopted-directives.tsv\"" not in source, ""),
+        ("5-c. 月次のまとめのプロンプトは作業キュー案の GD番号を常に「-」と指示する",
+         "GD番号: 常に - " in prompt and "{{COMPLIANCE}}" not in prompt, ""),
     ]
-    if gd is not None:
-        objects = [
-            {"kind": "Pin", "date": "2026-10-11", "number": 352, "label": "ピン352（2026-10-11付）"},
-            {"kind": "Pin", "date": "2026-10-12", "number": 353, "label": "ピン353（2026-10-12付・検証用）"},
-            {"kind": "記事", "date": "2026-10-12", "label": "記事（検証用）"},
-        ]
-        matched = gateway._gd_matches_for_objects(plan, objects).get("GD-0036", [])
-        results.append(("5-d. 生成物の区切りでは、対象開始以降のピンにだけ GD-0036 が割り当たる（記事・対象開始より前のピンは外れる）",
-                        matched == ["ピン353（2026-10-12付・検証用）"], "該当: %s" % "、".join(matched)))
-        by_path = gateway._gd_matches_for_path(plan, "site/scripts/make-image-prompt.py").get("GD-0036", [])
-        results.append(("5-e. ルールの区切りでは、期間内に make-image-prompt.py が変わったときに GD-0036 が割り当たる",
-                        bool(by_path), "該当: %s" % "、".join(by_path)))
-        block = gateway._format_directives_block(plan, {"GD-0036": matched})
-        results.append(("5-f. 区切りのプロンプトへ差し込む GD-0036 の割り当てを組み立てられる",
-                        "check-pin-image-style.py" in block and "対象開始: 2026-10-12以降" in block, "\n" + block))
-    return results
 
 
 def main():
@@ -400,7 +378,7 @@ def main():
         shutil.rmtree(root, ignore_errors=True)
     groups.append(("後片付け", [("一時ディレクトリ（ダミーの監査出力・tasks.md・複製）を削除済み: %s" % root,
                             not os.path.exists(root), "")]))
-    groups.append(("codex-gateway.py の growth-audit が台帳 GD-0036 を読み込める（Codex・外部APIは起動しない）",
+    groups.append(("採用済み指示の台帳は凍結し、codex-gateway.py は読まない（Codex・外部APIは起動しない）",
                    run_growth_ledger_case()))
 
     failures = []

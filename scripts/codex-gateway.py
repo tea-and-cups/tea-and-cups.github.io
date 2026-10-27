@@ -34,7 +34,7 @@
                有無に関わらず全文）＋恒久アセットのS-1..S-n＋代表サンプルのP-1..P-n）に分け、
                区切りごとに1回ずつ Codex を呼んで
                growth/outputs/<label>/parts/<区切り名>.md（所見のみ）へ保存し、最後に
-               全区切りの出力・監査スキル・ledger・入力数値・docs/tasks.md・docs/decisions.md
+               全区切りの出力・監査スキル・入力数値（実験の状態を含む）・docs/tasks.md・docs/decisions.md
                を読む「まとめ」を1回だけ実行して --output-file へ保存する（D-0255）。
                区切りの本文はgateway が対象ファイルから機械的に組み立て、部分監査用の
                プロンプト（固定パス growth/prompts/weekly-audit-part.md・
@@ -69,10 +69,9 @@
   growth-audit の成功判定は、区切り・まとめの実行1回ごとに次の3つがすべて満たされる
   ことで行う（D-0255・2026-09-28）: (1) --json ログに turn.failed が無い (2) --json ログに
   type が error の行が無い (3) 出力ファイルが実行開始後に書かれ・空でなく・必須の節が
-  揃っている（区切り=## 所見・## 部分監査範囲／まとめ=## 要約・## 改善指示・
-  ## 前回採用した指示の遵守確認・## 評価できなかったもの・## 監査範囲）。
-  週次だけは必須節を足す（D-0266）: 区切りに ## 遵守確認（部分）（割り当てたGDがちょうど
-  1回ずつ・判定不能には理由）、まとめに ## 成長の判断に足りなかった情報。月次は上のまま。
+  揃っている（区切り=## 所見・## 部分監査範囲／まとめ=## 要約・## 実験の判定・
+  ## 新しい実験の提案・## 誠実さの重大な指摘・## 評価できなかったもの。月次のまとめは
+  ## 来月の作業キュー案・## 監査範囲 も必須。週次の ## 監査範囲 は gateway が書く・S-0027 ②）。
   いずれか1つでも欠けた区切り・まとめがあれば、その時点で全体を失敗とする
   （出力ファイルは削除しない・終了コードは成果物なしと同じ EXIT_ARTIFACT_MISSING）。
 
@@ -92,14 +91,14 @@
   --dry-run・--render-only の画面には英数字だけで JSON ファイルのパスと件数を出し、JSON の中身は
   tmp/codex-gateway/growth-audit-<週>-<dry-run|render-only>.json へ UTF-8 で保存する。
 
-週次の遵守確認（D-0266）:
-  growth/ledger/adopted-directives.tsv の採否が「採用」「一部採用」の行を列名で読む。
-  実装日のある行を、列「判定対象」の種別で区切りへ配る（R=ルール・アセット・運営記録／
-  O=生成物）。ルール・アセットは期間内に変更があったファイル、生成物は記事の date・ピンの
-  ファイル名の日付と番号を「対象開始」と比べ、対象物の無いGDは gateway が「対象なし（理由）」
-  と事前に埋めて Codex に渡さない（未実装＝対象なし、判定対象が空＝判定不能）。全区切りの
-  判定を GD ごとに 守られていない＞守られている＞判定不能＞対象なし で集計し、まとめの
-  プロンプトの {{COMPLIANCE}} へ表で差し込む。{{SINCE}}／{{UNTIL}} には対象期間を入れる。
+実験の入力と判定の自動記録（S-0027 ②）:
+  採用済みの指示（GD）の遵守確認はしない。growth/ledger/adopted-directives.tsv は凍結し、読まない。
+  月次も Codex を呼ぶ前に experiments.py measure（週末日=対象月の末日）と gsc-page-28d.json（対象月の
+  末日で終わる28日）を growth/inputs/monthly-<対象月>/ へ置く。週次はまとめが「有効」と判定されたあとに
+  experiments.py judge-due --week-end <--until> --status <入力の experiments-status.json> を呼び、
+  結果（標準出力の行・RULE_REVERT_NEEDED の実験ID）を成功時 JSON の judge_due に載せる。judge-due が
+  失敗しても監査の成否は変えない（【注意】を出し、judge_due.ok=false で返す）。
+  まとめのプロンプトの {{SINCE}}／{{UNTIL}} には対象期間を入れる。
 
 タイムアウトと救済について（L043・2026-09-08）:
   codex exec の本実行に EXEC_TIMEOUT_SEC（既定 300 秒・growth-audit は
@@ -249,7 +248,6 @@ PARTITION_IMAGE_CAP = 8
 CONTENT_POSTS_DIR = PROJECT_ROOT / "site" / "src" / "content" / "posts"
 OUTPUT_PINS_DIR = PROJECT_ROOT / "output" / "pins"
 OUTPUT_PIN_IMAGES_DIR = PROJECT_ROOT / "output" / "Pin-images"
-GROWTH_LEDGER_PATH = PROJECT_ROOT / "growth" / "ledger" / "adopted-directives.tsv"
 GROWTH_INPUTS_DIR = PROJECT_ROOT / "growth" / "inputs"
 SITE_DIR = PROJECT_ROOT / "site"
 SITE_DIST_DIR = SITE_DIR / "dist"
@@ -260,39 +258,19 @@ PART_PROMPT_PATHS = {
     "monthly": PROJECT_ROOT / "growth" / "prompts" / "monthly-audit-part.md",
 }
 REQUIRED_PART_SECTIONS = ("## 所見", "## 部分監査範囲")
-REQUIRED_SUMMARY_SECTIONS = ("## 要約", "## 改善指示", "## 前回採用した指示の遵守確認",
-                              "## 評価できなかったもの", "## 監査範囲")
-# 必須節はモード別に持つ（D-0266）。週次だけ部分監査に「## 遵守確認（部分）」、まとめに
-# 「## 成長の判断に足りなかった情報」を足す。月次は上の定数のまま変えない。
-COMPLIANCE_PART_SECTION = "## 遵守確認（部分）"
-GROWTH_GAP_SECTION = "## 成長の判断に足りなかった情報"
+# まとめの必須節（S-0027 ②・実験中心の出力）。週次の「## 監査範囲」は gateway が実行ログから
+# 書くため Codex の必須節に含めない（D-0272）。月次は「## 来月の作業キュー案」と「## 監査範囲」を足す。
+EXPERIMENT_SUMMARY_SECTIONS = ("## 要約", "## 実験の判定", "## 新しい実験の提案",
+                               "## 誠実さの重大な指摘", "## 評価できなかったもの")
+REQUIRED_SUMMARY_SECTIONS = EXPERIMENT_SUMMARY_SECTIONS + ("## 来月の作業キュー案", "## 監査範囲")
 REQUIRED_PART_SECTIONS_BY_MODE = {
-    "weekly": REQUIRED_PART_SECTIONS + (COMPLIANCE_PART_SECTION,),
+    "weekly": REQUIRED_PART_SECTIONS,
     "monthly": REQUIRED_PART_SECTIONS,
 }
 REQUIRED_SUMMARY_SECTIONS_BY_MODE = {
-    # 週次の「## 監査範囲」は gateway が実行ログから書くため、Codex の必須節に含めない（D-0272）。
-    "weekly": ("## 要約", "## 改善指示", "## 前回採用した指示の遵守確認",
-               "## 評価できなかったもの", GROWTH_GAP_SECTION),
+    "weekly": EXPERIMENT_SUMMARY_SECTIONS,
     "monthly": REQUIRED_SUMMARY_SECTIONS,
 }
-
-# 週次の遵守確認（D-0266）。台帳の「判定対象」は「種別:範囲」を「＋」でつなぎ、範囲の複数は
-# 「・」でつなぐ。種別で配り先を決める（R=ルール・アセット・運営記録／O=生成物）。
-GD_KIND_GENERATED = "生成物"
-GD_KIND_ASSET = "アセット"
-GD_KIND_RULE = "ルール"
-GD_KIND_RECORD = "運営記録"
-GD_KINDS = (GD_KIND_GENERATED, GD_KIND_ASSET, GD_KIND_RULE, GD_KIND_RECORD)
-GD_ADOPTED_VALUES = ("採用", "一部採用")
-GD_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
-GD_PIN_START_RE = re.compile(r"^(?:ピン|pin)\s*(\d+)$", re.IGNORECASE)
-# 判定語と集計の優先順位（先頭ほど強い）。
-COMPLIANCE_JUDGMENTS = ("守られていない", "守られている", "判定不能", "対象なし")
-COMPLIANCE_LINE_RE = re.compile(
-    r"^\s*[-*]\s*(GD-\d{4})\s*[:：]\s*(守られていない|守られている|対象なし|判定不能)(.*)$")
-COMPLIANCE_BASIS_RE = re.compile(r"根拠\s*[:：]\s*([^／]*)")
-COMPLIANCE_REASON_RE = re.compile(r"理由\s*[:：]\s*(.*)$")
 
 # 生成ルール一式。週次は期間内に変更があったものだけをR区切りへ、月次は変更の有無に
 # 関わらず全文をG区切りへ載せる（2026-09-28）。ルート直下は更新時刻、site/ 配下はgit logで
@@ -1130,379 +1108,6 @@ def _permanent_asset_changes(since_date, until_date):
     return result
 
 
-def _ledger_adopted_rows():
-    """growth/ledger/adopted-directives.tsv のうち採否が「採用」「一部採用」の行を台帳の順で返す
-    （列は名前で読む・D-0266）。実装日の有無はここでは問わない（未実装の行は遵守確認の
-    計画で「対象なし（未実装）」として事前に埋める）。
-    """
-    rows = []
-    if not GROWTH_LEDGER_PATH.is_file():
-        return rows
-    with open(GROWTH_LEDGER_PATH, "r", encoding="utf-8") as fh:
-        header = None
-        for line in fh:
-            line = line.rstrip("\r\n")
-            if not line.strip():
-                continue
-            cells = line.split("\t")
-            if header is None:
-                header = cells
-                continue
-            row = dict(zip(header, cells))
-            if (row.get("採否") or "").strip() in GD_ADOPTED_VALUES:
-                rows.append(row)
-    return rows
-
-
-def _parse_gd_target(text, week_label):
-    """台帳の「判定対象」を [(種別, [範囲, ...]), ...] にする。読めない部分があれば (None, その部分)。
-    範囲の「<週>」は growth/outputs/<週>/ の <週> に置き換える。
-    """
-    specs = []
-    for chunk in text.split("＋"):
-        chunk = chunk.strip()
-        if not chunk:
-            continue
-        kind, sep, ranges = chunk.partition(":")
-        if not sep:
-            kind, sep, ranges = chunk.partition("：")
-        kind = kind.strip()
-        range_list = [r.strip().replace("<週>", week_label)
-                      for r in ranges.split("・") if r.strip()]
-        if kind not in GD_KINDS or not range_list:
-            return None, chunk
-        specs.append((kind, range_list))
-    if not specs:
-        return None, text
-    return specs, None
-
-
-def _gd_start(row):
-    """台帳の「対象開始」を ("date", "YYYY-MM-DD") ／ ("pin", 番号) にする。空なら実装日の翌日。
-    読めなければ ("invalid", 元の文字列)。
-    """
-    raw = (row.get("対象開始") or "").strip()
-    if raw:
-        m = GD_PIN_START_RE.match(raw)
-        if m:
-            return "pin", int(m.group(1))
-        if GD_DATE_RE.match(raw):
-            return "date", raw
-        return "invalid", raw
-    impl = (row.get("実装日") or "").strip()
-    if GD_DATE_RE.match(impl):
-        try:
-            return "date", (datetime.strptime(impl, "%Y-%m-%d") + timedelta(days=1)).strftime("%Y-%m-%d")
-        except ValueError:
-            pass
-    return "invalid", impl
-
-
-def _gd_start_label(start):
-    kind, value = start
-    return ("ピン%d以降" % value) if kind == "pin" else ("%s以降" % value)
-
-
-def _generated_kinds(ranges):
-    """生成物の範囲（「記事」「Pin md」「Pin画像」「hero画像」等）から、照合する生成物の種類を返す。"""
-    kinds = set()
-    for r in ranges:
-        if "Pin" in r or "pin" in r or "ピン" in r:
-            kinds.add("Pin")
-        if "記事" in r or "hero" in r:
-            kinds.add("記事")
-    return kinds or {"記事", "Pin"}
-
-
-def _weekly_compliance_plan(since_date, until_date, week_label):
-    """週次の遵守確認の計画（D-0266）。台帳の採用・一部採用の行を読み、区切りへ配る GD
-    （gds）と、gateway が事前に判定を埋める GD（prefilled: {GD: (判定語, 理由)}）に分ける。
-    区切りへの割り当ては各アイテムの "gd" で行い、どの区切りにも該当しなかった GD は
-    _finalize_compliance が「対象なし」で埋める。
-    """
-    rows = _ledger_adopted_rows()
-    gds = []
-    prefilled = {}
-    for row in rows:
-        gd = (row.get("ID") or "").strip()
-        if not gd:
-            continue
-        if not (row.get("実装日") or "").strip():
-            prefilled[gd] = ("対象なし", "未実装（台帳の実装日が空）")
-            continue
-        target_text = (row.get("判定対象") or "").strip()
-        if not target_text:
-            prefilled[gd] = ("判定不能", "台帳の判定対象が空")
-            continue
-        specs, bad = _parse_gd_target(target_text, week_label)
-        if specs is None:
-            prefilled[gd] = ("判定不能", "台帳の判定対象を読めない: %s" % bad)
-            continue
-        start = _gd_start(row)
-        if start[0] == "invalid":
-            prefilled[gd] = ("判定不能", "台帳の対象開始を読めない: %s" % (start[1] or "（空）"))
-            continue
-        if start[0] == "date" and start[1] > until_date:
-            prefilled[gd] = ("対象なし", "対象開始 %s が対象期間の終了日 %s より後" % (start[1], until_date))
-            continue
-        gds.append({"id": gd, "row": row, "specs": specs, "start": start})
-    return {"rows": rows, "gds": gds, "prefilled": prefilled,
-            "since": since_date, "until": until_date, "week_label": week_label}
-
-
-def _path_matches(path, range_path):
-    """区切りの対象パスが台帳の範囲に当たるか（同一、または範囲が「/」で終わる前方一致）。"""
-    return path == range_path or (range_path.endswith("/") and path.startswith(range_path))
-
-
-def _gd_matches_for_path(compliance, display_path):
-    """ルール・アセットの1ファイル（期間内に変更あり）に当たる GD を {GD: [該当の説明]} で返す。"""
-    result = {}
-    for gd in compliance["gds"]:
-        for kind, ranges in gd["specs"]:
-            if kind not in (GD_KIND_RULE, GD_KIND_ASSET):
-                continue
-            if any(_path_matches(display_path, r) for r in ranges):
-                result.setdefault(gd["id"], []).append("%s（期間内に変更あり）" % display_path)
-                break
-    return result
-
-
-def _gd_matches_for_objects(compliance, objects):
-    """生成物（記事・ピン）の一覧に当たる GD を {GD: [該当の説明]} で返す。
-    記事は frontmatter の date、ピンはファイル名の日付と番号を対象開始と比べる。
-    """
-    result = {}
-    for gd in compliance["gds"]:
-        kinds = set()
-        for kind, ranges in gd["specs"]:
-            if kind == GD_KIND_GENERATED:
-                kinds |= _generated_kinds(ranges)
-        if not kinds:
-            continue
-        start_kind, start_value = gd["start"]
-        for obj in objects:
-            if obj["kind"] not in kinds:
-                continue
-            if start_kind == "date":
-                ok = bool(obj.get("date")) and obj["date"] >= start_value
-            else:
-                ok = obj["kind"] == "Pin" and obj.get("number", -1) >= start_value
-            if ok:
-                result.setdefault(gd["id"], []).append(obj["label"])
-    return result
-
-
-def _merge_gd_maps(base, extra):
-    merged = {k: list(v) for k, v in (base or {}).items()}
-    for k, v in (extra or {}).items():
-        bucket = merged.setdefault(k, [])
-        for label in v:
-            if label not in bucket:
-                bucket.append(label)
-    return merged
-
-
-def _format_directives_block(compliance, gd_map):
-    """区切りのプロンプトの {{DIRECTIVES}} へ差し込む、遵守確認の割り当て（D-0266）。"""
-    if not gd_map:
-        return ("### 遵守確認の割り当て（この区切りで判定するGDは無い）\n"
-                "- 「## 遵守確認（部分）」には「なし」の1行だけを書く。")
-    by_id = {gd["id"]: gd for gd in compliance["gds"]}
-    ids = sorted(gd_map)
-    lines = ["### 遵守確認の割り当て（この区切りで判定するGD・%d件。1件につきちょうど1行で答える）"
-             % len(ids)]
-    for gd_id in ids:
-        gd = by_id[gd_id]
-        row = gd["row"]
-        lines.append("- %s【%s】%s（実装 %s・%s）" % (
-            gd_id, row.get("区分", ""), row.get("指示", ""), row.get("実装D番号", ""),
-            row.get("実装日", "")))
-        target_text = (row.get("判定対象") or "").replace("<週>", compliance["week_label"])
-        lines.append("  - 判定対象: %s" % target_text)
-        lines.append("  - 判定方法: %s" % (row.get("判定方法") or "（台帳に記載なし）"))
-        lines.append("  - 対象開始: %s（これより前の生成物は根拠にしない）" % _gd_start_label(gd["start"]))
-        lines.append("  - この区切りの該当: %s" % "、".join(gd_map[gd_id]))
-        note = (row.get("遵守確認") or "").strip()
-        if note:
-            lines.append("  - 注記（台帳の遵守確認欄）: %s" % note)
-    return "\n".join(lines)
-
-
-def _finalize_compliance(compliance, partitions):
-    """どの区切りにも割り当たらなかった GD を「対象なし（理由）」で事前に埋める（D-0266）。"""
-    assigned = set()
-    for part in partitions:
-        assigned |= set((part.get("gd") or {}).keys())
-    for gd in compliance["gds"]:
-        if gd["id"] in assigned:
-            continue
-        reasons = []
-        for kind, ranges in gd["specs"]:
-            if kind == GD_KIND_GENERATED:
-                reasons.append("対象開始（%s）の%sが対象期間に無い" % (
-                    _gd_start_label(gd["start"]), "・".join(ranges)))
-            elif kind in (GD_KIND_RULE, GD_KIND_ASSET):
-                reasons.append("%sに対象期間の変更が無い" % "・".join(ranges))
-        compliance["prefilled"][gd["id"]] = ("対象なし", "／".join(reasons) or "該当する対象が無い")
-    return compliance
-
-
-def _section_text(text, header):
-    """text の header 行から次の「## 」見出しの直前までを返す。見出しが無ければ None。"""
-    lines = text.splitlines()
-    for i, line in enumerate(lines):
-        if line.strip() == header:
-            body = []
-            for rest in lines[i + 1:]:
-                if rest.startswith("## "):
-                    break
-                body.append(rest)
-            return "\n".join(body)
-    return None
-
-
-def _parse_compliance_lines(text):
-    """部分監査の「## 遵守確認（部分）」の行を読む。節が無ければ None。"""
-    section = _section_text(text, COMPLIANCE_PART_SECTION)
-    if section is None:
-        return None
-    entries = []
-    for line in section.splitlines():
-        m = COMPLIANCE_LINE_RE.match(line)
-        if not m:
-            continue
-        rest = m.group(3)
-        basis = COMPLIANCE_BASIS_RE.search(rest)
-        reason = COMPLIANCE_REASON_RE.search(rest)
-        entries.append({
-            "gd": m.group(1), "judgment": m.group(2),
-            "basis": basis.group(1).strip() if basis else "",
-            "reason": reason.group(1).strip() if reason else "",
-        })
-    return entries
-
-
-def _check_compliance(text, assigned_ids):
-    """割り当てた GD がすべてちょうど1回ずつ出ているか・判定不能に理由があるか（D-0266）。
-    (True, None) か (False, 理由) を返す。割り当てていない GD の行は数えない。
-    """
-    entries = _parse_compliance_lines(text)
-    if entries is None:
-        return False, "「%s」節がありません" % COMPLIANCE_PART_SECTION
-    assigned = list(assigned_ids)
-    counts = {gd: 0 for gd in assigned}
-    no_reason = []
-    for e in entries:
-        if e["gd"] not in counts:
-            continue
-        counts[e["gd"]] += 1
-        if e["judgment"] == "判定不能" and not e["reason"]:
-            no_reason.append(e["gd"])
-    missing = [gd for gd in assigned if counts[gd] == 0]
-    duplicated = [gd for gd in assigned if counts[gd] > 1]
-    problems = []
-    if missing:
-        problems.append("欠けているGD: %s" % "、".join(missing))
-    if duplicated:
-        problems.append("2回以上出たGD: %s" % "、".join(duplicated))
-    if no_reason:
-        problems.append("理由の無い判定不能: %s" % "、".join(no_reason))
-    if problems:
-        return False, "遵守確認（部分）の不備（%s）" % "／".join(problems)
-    return True, None
-
-
-def _part_assigned(part):
-    """週次の区切りに割り当てた GD の一覧（週次以外は None）。"""
-    if "gd" not in part:
-        return None
-    return sorted(part["gd"])
-
-
-def _aggregate_compliance(compliance, parts_dir, partitions):
-    """全区切りの「## 遵守確認（部分）」を GD ごとに機械で集計する（D-0266）。
-    優先順位は COMPLIANCE_JUDGMENTS の順（守られていない＞守られている＞判定不能＞対象なし）。
-    事前に埋めた GD も含め、台帳の順で [{gd, judgment, basis, parts}] を返す。
-    """
-    results = {}
-    pending = {}
-    for part in partitions:
-        gd_map = part.get("gd") or {}
-        if not gd_map:
-            continue
-        path = parts_dir / (part["name"] + ".md")
-        entries = None
-        if path.is_file():
-            try:
-                entries = _parse_compliance_lines(path.read_text(encoding="utf-8"))
-            except OSError:
-                entries = None
-        first = {}
-        for e in entries or []:
-            if e["gd"] in gd_map and e["gd"] not in first:
-                first[e["gd"]] = e
-        for gd in gd_map:
-            if gd in first:
-                e = first[gd]
-                results.setdefault(gd, []).append((e["judgment"], e["basis"], e["reason"], part["name"]))
-            else:
-                pending.setdefault(gd, []).append(part["name"])
-    for gd, (judgment, reason) in compliance["prefilled"].items():
-        results.setdefault(gd, []).append((judgment, "", reason, "gateway（事前）"))
-
-    table = []
-    for row in compliance["rows"]:
-        gd = (row.get("ID") or "").strip()
-        entries = results.get(gd, [])
-        waiting = pending.get(gd, [])
-        if not entries:
-            table.append({"gd": gd, "judgment": "（未集計）",
-                          "basis": "区切り %s の出力待ち" % "・".join(waiting) if waiting else "",
-                          "parts": "・".join(waiting)})
-            continue
-        winner = min(entries, key=lambda e: COMPLIANCE_JUDGMENTS.index(e[0]))[0]
-        chosen = [e for e in entries if e[0] == winner]
-        others = [e for e in entries if e[0] != winner]
-        basis_items = []
-        for _j, basis, reason, _p in chosen:
-            text = basis or "—"
-            if reason:
-                text += "（理由: %s）" % reason
-            basis_items.append(text)
-        parts_text = "・".join(e[3] for e in chosen)
-        if others:
-            parts_text += "（他: %s）" % "・".join("%s=%s" % (e[3], e[0]) for e in others)
-        if waiting:
-            parts_text += "（未集計: %s）" % "・".join(waiting)
-        table.append({"gd": gd, "judgment": winner, "basis": "；".join(basis_items),
-                      "parts": parts_text})
-    return table
-
-
-def _md_cell(text):
-    return str(text).replace("\r", " ").replace("\n", " ").replace("|", "\\|")
-
-
-def _format_compliance_table(compliance, table):
-    lines = [
-        "## 遵守確認の集計表（gateway が全区切りの「## 遵守確認（部分）」から機械で集計した。判定し直さない）",
-        "",
-        "対象期間: %s〜%s ／ 集計の優先順位: 守られていない＞守られている＞判定不能＞対象なし ／ "
-        "区切り「gateway（事前）」は Codex に渡さず gateway が埋めたもの" % (
-            compliance["since"], compliance["until"]),
-        "",
-        "| GD | 判定 | 根拠 | 区切り |",
-        "|---|---|---|---|",
-    ]
-    for r in table:
-        lines.append("| %s | %s | %s | %s |" % (
-            _md_cell(r["gd"]), _md_cell(r["judgment"]), _md_cell(r["basis"]), _md_cell(r["parts"])))
-    if not table:
-        lines.append("| （台帳に採用・一部採用の行が無い） | | | |")
-    return "\n".join(lines)
-
-
 def _input_dir_for_output(target):
     """--output-file（growth/outputs/<label>/audit.md）と同じ <label> の
     growth/inputs/<label>/ を返す（既存の命名慣行に合わせる・新規の引数を増やさない）。
@@ -2054,7 +1659,7 @@ def _prepare_weekly_inputs(input_dir, since_date, until_date, pin_notes=None):
     def add_item(path_display, abs_path, note, extra_lines=None):
         chars = _text_len(abs_path)
         lines = ["- %s（%s）" % (path_display, note)] + list(extra_lines or [])
-        items.append({"path": path_display, "chars": chars, "images": 0, "lines": lines, "gd": {}})
+        items.append({"path": path_display, "chars": chars, "images": 0, "lines": lines})
         files.append({"path": path_display, "chars": chars, "note": note})
 
     def add_file(path_display, abs_path, note):
@@ -2067,7 +1672,7 @@ def _prepare_weekly_inputs(input_dir, since_date, until_date, pin_notes=None):
         add_file(display("pins-daily-totals.json"), p,
                  "今週の入力・ピン日次の日別合計と4週比較（gateway が自動生成・契約JSONを加工せず保存）")
     if pin_notes:
-        items.append({"path": "", "chars": 0, "images": 0, "gd": {}, "lines": list(pin_notes)})
+        items.append({"path": "", "chars": 0, "images": 0, "lines": list(pin_notes)})
 
     # (a) ピン日次実績の要約
     p = input_dir / "pins-summary.md"
@@ -2138,10 +1743,10 @@ def _prepare_weekly_inputs(input_dir, since_date, until_date, pin_notes=None):
         first = False
         if not abs_path.is_file():
             extra.append("  - （注）%s が dist に無い" % page)
-        add_item(page, abs_path, "GD-0005 等の判定用・%s" % how if page == article_page
-                 else "GD-0005 等の判定用・上の記事のカテゴリページ", extra)
+        add_item(page, abs_path, "公開ページの現状確認用・%s" % how if page == article_page
+                 else "公開ページの現状確認用・上の記事のカテゴリページ", extra)
     if not article_page:
-        items.append({"path": "", "chars": 0, "images": 0, "gd": {},
+        items.append({"path": "", "chars": 0, "images": 0,
                       "lines": ["- （注）判定用の dist ページを選べなかった: %s ／ %s" % (how, build_note)]})
 
     # (f) 実験の状態と途中指標（experiments.py measure・S-0027 ①）。まとめが直接読む JSON。区切りRには足さない
@@ -2189,6 +1794,53 @@ def _prepare_experiment_inputs(input_dir, until_date):
             path.write_text(json.dumps(data, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
             note += "・（注）取得失敗のため空"
         result.append((name, note))
+    return result
+
+
+def _month_end(year_month):
+    year, month = (int(x) for x in year_month.split("-"))
+    first_next = datetime(year + (month == 12), month % 12 + 1, 1)
+    return (first_next - timedelta(days=1)).strftime("%Y-%m-%d")
+
+
+def _prepare_monthly_experiment_inputs(input_dir, year_month):
+    """月次のまとめが読む実験の入力（S-0027 ②）を growth/inputs/monthly-<対象月>/ へ置く。
+    experiments.py measure の3つの JSON（週末日=対象月の末日）と、対象月の末日で終わる28日の
+    GSC 記事別（gsc-page-28d.json・契約JSONを加工せず保存）。月の途中に実行したときは末日の代わりに
+    前日までで切る（API が未来の日付を受け付けないため）。失敗しても続行する。"""
+    input_dir.mkdir(parents=True, exist_ok=True)
+    yesterday = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
+    month_end = min(_month_end(year_month), yesterday)
+    _prepare_experiment_inputs(input_dir, month_end)
+    start = (datetime.strptime(month_end, "%Y-%m-%d") - timedelta(days=27)).strftime("%Y-%m-%d")
+    payload, raw, err = _run_metrics(["gsc", "--operation", "gsc.search_analytics_by_page", "--since", start,
+                                      "--until", month_end, "--limit", "100"])
+    problem = _payload_problem(payload, err)
+    if problem:
+        eprint("【注意】gsc-page-28d.json（%s〜%s）の取得に問題があります: %s" % (start, month_end, problem))
+    (input_dir / "gsc-page-28d.json").write_text(raw or "{}", encoding="utf-8")
+
+
+def _run_judge_due(until_date, status_path):
+    """experiments.py judge-due を呼び、結果を成功時 JSON の judge_due 用に返す（S-0027 ②）。
+    失敗しても監査の成否は変えない（【注意】を出して ok=false で返す）。"""
+    cmd = [sys.executable, str(EXPERIMENTS_SCRIPT), "judge-due", "--week-end", until_date]
+    if status_path.is_file():
+        cmd += ["--status", str(status_path)]
+    try:
+        proc = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace",
+                              timeout=METRICS_TIMEOUT_SEC, cwd=str(PROJECT_ROOT))
+    except (OSError, subprocess.SubprocessError) as exc:
+        eprint("【注意】experiments.py judge-due を実行できませんでした: %s" % type(exc).__name__)
+        return {"ok": False, "returncode": None, "lines": [], "rule_revert_needed": [],
+                "error": type(exc).__name__}
+    lines = [l for l in (proc.stdout or "").splitlines() if l.strip()]
+    result = {"ok": proc.returncode == 0, "returncode": proc.returncode, "lines": lines,
+              "rule_revert_needed": [l.split()[1] for l in lines
+                                     if l.startswith("RULE_REVERT_NEEDED ") and len(l.split()) > 1]}
+    if proc.returncode != 0:
+        result["error"] = (proc.stderr or "").strip()[-300:]
+        eprint("【注意】experiments.py judge-due が失敗しました（rc=%s）: %s" % (proc.returncode, result["error"]))
     return result
 
 
@@ -2467,46 +2119,26 @@ def _rule_file_path(display):
     return PROJECT_ROOT / display
 
 
-def _weekly_r_items(since_date, until_date, compliance, input_items=None):
-    """週次の区切りR（期間内に変更があった生成ルール・恒久アセットの変更・遵守確認に使う
-    運営記録）の材料を、1ファイル＝1アイテムで返す（D-0255・変更分のみに絞る扱いは
-    2026-09-28・運営記録とGDの割り当ては D-0266）。変更の無い生成ルールはここに入れない。
-    各アイテムの "gd" は、そのファイルで判定する GD（{GD: [該当の説明]}）。
+def _weekly_r_items(since_date, until_date, input_items=None):
+    """週次の区切りR（期間内に変更があった生成ルール・恒久アセットの変更・週次の入力）の材料を、
+    1ファイル＝1アイテムで返す（D-0255・変更分のみに絞る扱いは2026-09-28）。変更の無い生成ルールは
+    ここに入れない。
     """
     items = []
     rule_targets = [(display, changed) for display, changed
                      in _generation_rule_targets(since_date, until_date) if changed]
     for (display, _changed), line in zip(rule_targets, _format_generation_rule_lines(rule_targets)):
-        items.append({"chars": _text_len(_rule_file_path(display)), "images": 0, "lines": [line],
-                      "gd": _gd_matches_for_path(compliance, display)})
+        items.append({"chars": _text_len(_rule_file_path(display)), "images": 0, "lines": [line]})
 
     asset_changes = _permanent_asset_changes(since_date, until_date)
     for rel, dist_candidates in asset_changes:
         lines = ["- site/%s" % rel]
         for d in dist_candidates:
             lines.append("  - 対応: site/%s" % d)
-        items.append({"chars": _text_len(SITE_DIR / rel), "images": 0, "lines": lines,
-                      "gd": _gd_matches_for_path(compliance, "site/%s" % rel)})
+        items.append({"chars": _text_len(SITE_DIR / rel), "images": 0, "lines": lines})
 
-    # 運営記録（docs/tasks.md・growth/inputs/<週>/buffer-posts.json 等）は日付で絞れないため、
-    # それを判定対象に持つ GD がある限り、1ファイル＝1アイテムで区切りRに入れる。
-    record_gds = {}
-    for gd in compliance["gds"]:
-        for kind, ranges in gd["specs"]:
-            if kind != GD_KIND_RECORD:
-                continue
-            for r in ranges:
-                record_gds.setdefault(r, []).append(gd["id"])
-    for record in sorted(record_gds):
-        path = PROJECT_ROOT / record
-        exists = path.is_file()
-        lines = ["- %s（運営記録・遵守確認の判定にだけ使う%s）" % (
-            record, "" if exists else "・ファイルが無い")]
-        gd_map = {gd_id: ["%s（運営記録）" % record] for gd_id in record_gds[record]}
-        items.append({"chars": _text_len(path) if exists else 0, "images": 0, "lines": lines,
-                      "gd": gd_map})
-    # 週次の入力（gateway が自動生成・D-0272）。台帳の運営記録として既に載っているパスは重複させない。
-    items.extend(it for it in (input_items or []) if not it["path"] or it["path"] not in record_gds)
+    # 週次の入力（gateway が自動生成・D-0272）
+    items.extend(input_items or [])
     return items
 
 
@@ -2522,10 +2154,9 @@ def _pin_objects(texts):
     return objects
 
 
-def _weekly_o_items(since_date, until_date, compliance):
+def _weekly_o_items(since_date, until_date):
     """週次の区切りO（生成物）の材料を、記事1本＝1アイテム（その記事のピン・画像込み）で
     返す（記事単位で同じ区切りに入れるため分割しない・D-0255）。
-    各アイテムの "gd" は、その記事・ピンで判定する GD（D-0266）。
     """
     posts = _posts_in_period(since_date, until_date)
     pins_by_slug = _pins_by_slug_in_period(since_date, until_date)
@@ -2541,12 +2172,7 @@ def _weekly_o_items(since_date, until_date, compliance):
         for im in imgs:
             images += 1
             lines.append("  - output/Pin-images/%s" % im.name)
-        post_date = _read_frontmatter(p).get("date") or ""
-        objects = [{"kind": "記事", "date": post_date,
-                    "label": "記事 %s（date=%s）" % (p.stem, post_date or "不明")}]
-        objects += _pin_objects(texts)
-        items.append({"chars": chars, "images": images, "lines": lines,
-                      "gd": _gd_matches_for_objects(compliance, objects)})
+        items.append({"chars": chars, "images": images, "lines": lines})
 
     # 対象期間の記事一覧（frontmatterのdate/updated基準）に見つからない残りのピンも、
     # ファイル名の日付が期間内である以上は取りこぼさず1アイテムとして計上する。
@@ -2561,52 +2187,32 @@ def _weekly_o_items(since_date, until_date, compliance):
         for im in imgs:
             images += 1
             lines.append("  - output/Pin-images/%s" % im.name)
-        items.append({"chars": chars, "images": images, "lines": lines,
-                      "gd": _gd_matches_for_objects(compliance, _pin_objects(texts))})
+        items.append({"chars": chars, "images": images, "lines": lines})
     return items
 
 
-def _pack_items(items, prefix, directives_fn=None):
+def _pack_items(items, prefix):
     """items（各 {chars, images, lines}）を PARTITION_CHAR_CAP／PARTITION_IMAGE_CAP の
     上限で貪欲に詰め、区切り名 <prefix>-1.. を振って返す（アイテムは分割しない・D-0255）。
-
-    directives_fn（週次のみ・D-0266）を渡すと、各アイテムの "gd" を区切りごとに合わせ、
-    その区切りの遵守確認の割り当て文（directives_fn(gd_map)）の字数も上限の判定と
-    区切りの chars に含める。part に "gd" と "directives_text" が入る。
-    渡さない（月次）場合の動作は従来と同じ。
     """
     partitions = []
     cur_chars = 0
     cur_images = 0
     cur_lines = []
     cur_count = 0
-    cur_gd = {}
 
     def close():
-        part = {"chars": cur_chars, "images": cur_images, "lines": cur_lines, "count": cur_count}
-        if directives_fn is not None:
-            text = directives_fn(cur_gd)
-            part["gd"] = cur_gd
-            part["directives_text"] = text
-            part["chars"] = cur_chars + len(text)
-        partitions.append(part)
+        partitions.append({"chars": cur_chars, "images": cur_images, "lines": cur_lines, "count": cur_count})
 
     for item in items:
-        if cur_count:
-            over = (cur_chars + item["chars"] > PARTITION_CHAR_CAP
-                    or cur_images + item["images"] > PARTITION_IMAGE_CAP)
-            if not over and directives_fn is not None:
-                merged = _merge_gd_maps(cur_gd, item.get("gd"))
-                over = cur_chars + item["chars"] + len(directives_fn(merged)) > PARTITION_CHAR_CAP
-            if over:
-                close()
-                cur_chars, cur_images, cur_lines, cur_count, cur_gd = 0, 0, [], 0, {}
+        if cur_count and (cur_chars + item["chars"] > PARTITION_CHAR_CAP
+                          or cur_images + item["images"] > PARTITION_IMAGE_CAP):
+            close()
+            cur_chars, cur_images, cur_lines, cur_count = 0, 0, [], 0
         cur_chars += item["chars"]
         cur_images += item["images"]
         cur_lines.extend(item["lines"])
         cur_count += 1
-        if directives_fn is not None:
-            cur_gd = _merge_gd_maps(cur_gd, item.get("gd"))
     if cur_count:
         close()
     for i, part in enumerate(partitions, start=1):
@@ -2757,26 +2363,16 @@ def _monthly_p_items(target):
 
 
 def _build_partitions(mode, since, until, month, target, weekly_inputs=None):
-    """mode に応じて区切りの計画（各 {name, chars, images, lines, count}）と、遵守確認の計画
-    （週次のみ・月次は None）を返す（D-0255・遵守確認は D-0266）。
-    週次の区切りには "gd"（割り当てた GD）と "directives_text"（割り当て文）が入る。
-    """
+    """mode に応じて区切りの計画（各 {name, chars, images, lines, count}）を返す（D-0255）。"""
     if mode == "weekly":
-        compliance = _weekly_compliance_plan(since, until, target.parent.name)
-
-        def directives_fn(gd_map):
-            return _format_directives_block(compliance, gd_map)
-
         input_items = weekly_inputs["items"] if weekly_inputs else None
-        partitions = (_pack_items(_weekly_r_items(since, until, compliance, input_items), "R", directives_fn)
-                      + _pack_items(_weekly_o_items(since, until, compliance), "O", directives_fn))
-        _finalize_compliance(compliance, partitions)
-        return partitions, compliance
+        return (_pack_items(_weekly_r_items(since, until, input_items), "R")
+                + _pack_items(_weekly_o_items(since, until), "O"))
     if mode == "monthly":
         return (_pack_items(_monthly_g_items(), "G")
                 + _pack_items(_monthly_s_items(), "S")
-                + _pack_items(_monthly_p_items(target), "P")), None
-    return [], None
+                + _pack_items(_monthly_p_items(target), "P"))
+    return []
 
 
 def _has_sections(path, headers):
@@ -2789,19 +2385,9 @@ def _has_sections(path, headers):
     return all(h in text for h in headers)
 
 
-def _valid_partial_output(path, required_sections=REQUIRED_PART_SECTIONS, assigned=None):
-    """区切りの出力が有効か（必須の節が揃っているか。週次は割り当てた GD の遵守確認行も
-    ちょうど1回ずつ揃っているか・D-0266）。再開時にこれが真の区切りは飛ばす。
-    """
-    if not _has_sections(path, required_sections):
-        return False
-    if assigned is None:
-        return True
-    try:
-        text = path.read_text(encoding="utf-8")
-    except OSError:
-        return False
-    return _check_compliance(text, assigned)[0]
+def _valid_partial_output(path, required_sections=REQUIRED_PART_SECTIONS):
+    """区切りの出力が有効か（必須の節が揃っているか）。再開時にこれが真の区切りは飛ばす。"""
+    return _has_sections(path, required_sections)
 
 
 def _format_parts_reference(parts_dir, partitions):
@@ -2812,35 +2398,17 @@ def _format_parts_reference(parts_dir, partitions):
     return "\n".join(lines)
 
 
-def _compliance_extra(compliance, partitions):
-    """dry-run・render-only の JSON に足す遵守確認の計画（週次のみ・D-0266）。"""
-    assigned = {}
-    for part in partitions:
-        for gd in sorted(part.get("gd") or {}):
-            assigned.setdefault(gd, []).append(part["name"])
-    return {"compliance_assigned": assigned,
-            "compliance_prefilled": {gd: "%s（%s）" % (j, r)
-                                     for gd, (j, r) in sorted(compliance["prefilled"].items())}}
-
-
-def _build_summary_prompt(prompt, mode, parts_dir, partitions, compliance):
-    """まとめのプロンプトを組み立てる。{{TARGETS}} には区切りの出力一覧（月次は従来どおり
-    これだけ）。週次は遵守確認の集計表を {{COMPLIANCE}}（無ければ末尾）へ、対象期間を
-    {{SINCE}}／{{UNTIL}} へ差し込む（D-0266）。
+def _build_summary_prompt(prompt, parts_dir, partitions, since=None, until=None):
+    """まとめのプロンプトを組み立てる。{{TARGETS}} には区切りの出力一覧、週次は対象期間を
+    {{SINCE}}／{{UNTIL}} へ差し込む。
     """
     text = prompt.replace("{{TARGETS}}", _format_parts_reference(parts_dir, partitions))
-    if mode != "weekly" or compliance is None:
-        return text
-    table = _format_compliance_table(
-        compliance, _aggregate_compliance(compliance, parts_dir, partitions))
-    if "{{COMPLIANCE}}" in text:
-        text = text.replace("{{COMPLIANCE}}", table)
-    else:
-        text = text.rstrip("\n") + "\n\n" + table + "\n"
-    return text.replace("{{SINCE}}", compliance["since"]).replace("{{UNTIL}}", compliance["until"])
+    if since and until:
+        text = text.replace("{{SINCE}}", since).replace("{{UNTIL}}", until)
+    return text
 
 
-def _emit_dry_run(purpose, method, target, parts_dir, partitions, mode="monthly", compliance=None,
+def _emit_dry_run(purpose, method, target, parts_dir, partitions, mode="monthly",
                   weekly_inputs=None, sns_unobserved=False):
     plan = []
     part_sections = REQUIRED_PART_SECTIONS_BY_MODE.get(mode, REQUIRED_PART_SECTIONS)
@@ -2849,17 +2417,13 @@ def _emit_dry_run(purpose, method, target, parts_dir, partitions, mode="monthly"
         entry = {
             "name": part["name"], "target_count": part["count"],
             "chars": part["chars"], "images": part["images"],
-            "skip": _valid_partial_output(part_path, part_sections, _part_assigned(part)),
+            "skip": _valid_partial_output(part_path, part_sections),
         }
-        if "gd" in part:
-            entry["directives"] = sorted(part["gd"])
         if mode == "weekly":
             entry["targets"] = list(part["lines"])
         plan.append(entry)
     skip_names = [p["name"] for p in plan if p["skip"]]
     extra = {"partitions": plan, "skip": skip_names}
-    if compliance is not None:
-        extra.update(_compliance_extra(compliance, partitions))
     if mode == "weekly":
         # 週次は JSON の中身を tmp/ へ UTF-8 で保存し、画面には英数字だけを出す（D-0272）。
         extra["artifact"] = str(target)
@@ -2905,11 +2469,10 @@ def _build_audit_cmd(real_exe, output_path, reasoning_effort, config_model):
     return build_cmd
 
 
-def _make_check(output_path, started_at, required_sections, state, validator=None):
+def _make_check(output_path, started_at, required_sections, state):
     """区切り・まとめ共通の成功判定（D-0255）。turn.failed／type=="error" があれば失敗、
     無ければ出力ファイルの書き出し（-o優先・無ければ最終agent_messageで代替）と
     必須の節が揃っているかを見る。state["written_by"] に書き出し経路を残す。
-    validator（週次の区切りのみ・D-0266）は出力本文を受け取り (ok, 理由) を返す。
     """
     def check(stdout):
         failed, err_msg = _json_log_has_failure(stdout)
@@ -2926,20 +2489,12 @@ def _make_check(output_path, started_at, required_sections, state, validator=Non
                 return False, {"reason": "no_output", "message": None}
         if not _has_sections(output_path, required_sections):
             return False, {"reason": "missing_sections", "message": None}
-        if validator is not None:
-            try:
-                text = output_path.read_text(encoding="utf-8")
-            except OSError:
-                return False, {"reason": "no_output", "message": None}
-            ok, message = validator(text)
-            if not ok:
-                return False, {"reason": "compliance_invalid", "message": message}
         return True, {"reason": "ok", "message": None}
     return check
 
 
 def _run_one_audit_step(build_cmd, prompt_text, output_path, model_override, config_model,
-                        child_env, required_sections, log_label, validator=None):
+                        child_env, required_sections, log_label):
     """区切り・まとめ共通の1回の codex exec 実行（D-0255）。起動自体の失敗（OSError）は
     呼び出し側へそのまま送出する。
     """
@@ -2947,7 +2502,7 @@ def _run_one_audit_step(build_cmd, prompt_text, output_path, model_override, con
     stamp = datetime.fromtimestamp(started_at).strftime("%Y%m%d-%H%M%S")
     log_path = LOG_DIR / ("%s-growth-audit-%s.jsonl" % (stamp, log_label))
     state = {"written_by": None}
-    check = _make_check(output_path, started_at, required_sections, state, validator)
+    check = _make_check(output_path, started_at, required_sections, state)
     result = _exec_with_model_fallback(build_cmd, model_override, config_model, child_env,
                                        log_path, AUDIT_TIMEOUT_SEC, check,
                                        input_text=prompt_text, prompt_len=len(prompt_text))
@@ -2976,24 +2531,13 @@ def _step_failure_message(step):
     reason = step["info"].get("reason")
     if reason == "turn_failed":
         return step["info"].get("message") or "turn.failed"
-    if reason == "compliance_invalid":
-        return step["info"].get("message") or "遵守確認（部分）の不備"
     return _STEP_FAILURE_REASONS.get(reason, "不明な失敗")
 
 
 def _render_part_prompt(template, part):
-    text = (template
+    return (template
             .replace("{{PART_NAME}}", part["name"])
             .replace("{{TARGETS}}", "\n".join(part["lines"])))
-    # 週次の区切りだけ、遵守確認の割り当てを {{DIRECTIVES}}（無ければ対象一覧の直後）へ差し込む
-    # （D-0266）。月次の区切りには "directives_text" が無いため従来と同じ文面になる。
-    if "directives_text" in part:
-        if "{{DIRECTIVES}}" in text:
-            text = text.replace("{{DIRECTIVES}}", part["directives_text"])
-        else:
-            text = text.replace("\n".join(part["lines"]),
-                                "\n".join(part["lines"]) + "\n\n" + part["directives_text"], 1)
-    return text
 
 
 def _emit_render_only(purpose, method, target, render_dir, files, extra_info=None):
@@ -3008,13 +2552,12 @@ def _emit_render_only(purpose, method, target, render_dir, files, extra_info=Non
 
 
 def _render_audit_prompts(purpose, method, prompt_file, mode, target, parts_dir,
-                          partitions, render_dir, compliance=None, weekly_inputs=None,
-                          sns_unobserved=False):
+                          partitions, render_dir, weekly_inputs=None,
+                          sns_unobserved=False, since=None, until=None):
     """全区切りの部分監査プロンプトと、まとめのプロンプトを置換済みで render_dir へ書く。
 
     Codex を起動しない（codex の有無も見ない）。区切りの出力ファイルが既にあるかどうかに
-    関わらず全区切りを書く（growth/outputs/ へは何も書かない）。週次のまとめの集計表は、
-    その時点で parts_dir にある区切りの出力から作る（無い区切りは「出力待ち」・D-0266）。
+    関わらず全区切りを書く（growth/outputs/ へは何も書かない）。
     """
     prompt_path = Path(prompt_file)
     if not prompt_path.is_file():
@@ -3039,10 +2582,9 @@ def _render_audit_prompts(purpose, method, prompt_file, mode, target, parts_dir,
         files.append(str(path))
     summary_path = out_dir / "summary.md"
     summary_path.write_text(
-        _build_summary_prompt(prompt, mode, parts_dir, partitions, compliance),
+        _build_summary_prompt(prompt, parts_dir, partitions, since, until),
         encoding="utf-8")
     files.append(str(summary_path))
-    extra_info = _compliance_extra(compliance, partitions) if compliance is not None else None
     if mode == "weekly":
         # 監査範囲は gateway が実行ログから機械集計する（D-0272）。Codex を起動しないこのモードでは、
         # 節だけの audit-scope.md と、target があればその「## 監査範囲」節を置き換えた
@@ -3061,15 +2603,13 @@ def _render_audit_prompts(purpose, method, prompt_file, mode, target, parts_dir,
                  "weekly_inputs": weekly_inputs["files"] if weekly_inputs else [],
                  "dist": weekly_inputs["dist"] if weekly_inputs else None,
                  "sns_unobserved_skipped": bool(sns_unobserved), "scope_rows": rows}
-        if extra_info:
-            extra.update(extra_info)
         _write_weekly_artifact(
             extra, "render-only", target.parent.name, "rendered",
             "プロンプトを %d件書き出しました（Codexは起動していません）: %s" % (len(files), out_dir),
             {"files": len(files), "render_dir": str(out_dir),
              "inputs": len(extra["weekly_inputs"]), "skip_sns": bool(sns_unobserved)})
         return EXIT_OK
-    return _emit_render_only(purpose, method, target, out_dir, files, extra_info)
+    return _emit_render_only(purpose, method, target, out_dir, files)
 
 
 def run_growth_audit(purpose, prompt_file, output_file, model_override=None,
@@ -3122,19 +2662,23 @@ def run_growth_audit(purpose, prompt_file, output_file, model_override=None,
                         "ピン日次の取得が終わっていないため Codex を呼ぶ前に停止しました。%s" % pin_stop)
         weekly_inputs = _prepare_weekly_inputs(input_dir, since, until, pin_notes)
 
-    partitions, compliance = _build_partitions(mode, since, until, effective_month, target, weekly_inputs)
+    partitions = _build_partitions(mode, since, until, effective_month, target, weekly_inputs)
     parts_dir = target.parent / "parts"
     part_sections = REQUIRED_PART_SECTIONS_BY_MODE[mode]
     summary_sections = REQUIRED_SUMMARY_SECTIONS_BY_MODE[mode]
 
     if dry_run:
-        return _emit_dry_run(purpose, method, target, parts_dir, partitions, mode, compliance,
+        return _emit_dry_run(purpose, method, target, parts_dir, partitions, mode,
                              weekly_inputs, sns_unobserved)
+
+    if mode == "monthly":
+        # 月次のまとめも実験の状態を読む（S-0027 ②）。区切りの材料には入れない。
+        _prepare_monthly_experiment_inputs(_input_dir_for_output(target), effective_month)
 
     if render_only:
         return _render_audit_prompts(purpose, method, prompt_file, mode, target, parts_dir,
-                                     partitions, render_only, compliance, weekly_inputs,
-                                     sns_unobserved)
+                                     partitions, render_only, weekly_inputs,
+                                     sns_unobserved, since, until)
 
     if only_part:
         names = [p["name"] for p in partitions]
@@ -3181,24 +2725,18 @@ def run_growth_audit(purpose, prompt_file, output_file, model_override=None,
     run_partitions = [p for p in partitions if not only_part or p["name"] == only_part]
     for part in run_partitions:
         part_path = parts_dir / (part["name"] + ".md")
-        assigned = _part_assigned(part)
         # --only-part は明示指定なので、有効な出力が既にあっても実行して上書きする。
-        if not only_part and _valid_partial_output(part_path, part_sections, assigned):
+        if not only_part and _valid_partial_output(part_path, part_sections):
             eprint("区切り %s は有効な出力が既にあるため飛ばします: %s" % (part["name"], part_path))
             part_reports.append({"name": part["name"], "status": "skipped"})
             continue
 
         part_prompt = _render_part_prompt(part_prompt_template, part)
         build_cmd = _build_audit_cmd(real_exe, part_path, reasoning_effort, config_model)
-        # 週次は割り当てた GD がちょうど1回ずつ答えられていなければ、その区切りを失敗にする
-        # （出力は残し、同じコマンドの再開で再実行される・D-0266）。
-        validator = None
-        if assigned is not None:
-            validator = (lambda text, ids=assigned: _check_compliance(text, ids))
         try:
             step = _run_one_audit_step(build_cmd, part_prompt, part_path, model_override,
                                        config_model, child_env, part_sections,
-                                       "part-%s" % part["name"], validator)
+                                       "part-%s" % part["name"])
         except OSError as exc:
             return fail(EXIT_LAUNCH_FAILED, purpose, method,
                         "区切り %s の codex exec 起動に失敗しました: %s" % (part["name"], exc))
@@ -3233,9 +2771,8 @@ def run_growth_audit(purpose, prompt_file, output_file, model_override=None,
                     "parts": part_reports, "only_part": only_part})
         return EXIT_OK
 
-    # 最後のまとめ（1回）: 全区切りの出力一覧を {{TARGETS}} へ差し込む（週次は遵守確認の
-    # 集計表と対象期間も差し込む・D-0266）。
-    summary_prompt = _build_summary_prompt(prompt, mode, parts_dir, partitions, compliance)
+    # 最後のまとめ（1回）: 全区切りの出力一覧を {{TARGETS}} へ、週次は対象期間も差し込む。
+    summary_prompt = _build_summary_prompt(prompt, parts_dir, partitions, since, until)
     build_cmd = _build_audit_cmd(real_exe, target, reasoning_effort, config_model)
     try:
         summary_step = _run_one_audit_step(build_cmd, summary_prompt, target, model_override,
@@ -3273,6 +2810,11 @@ def run_growth_audit(purpose, prompt_file, output_file, model_override=None,
         target.write_text(_replace_scope_section(target.read_text(encoding="utf-8"), section),
                           encoding="utf-8")
 
+    # 週次は監査が有効と判定されたあとに、判定日が来た実験の判定案を台帳へ記録する（S-0027 ②）。
+    judge_due = None
+    if mode == "weekly":
+        judge_due = _run_judge_due(until, _input_dir_for_output(target) / "experiments-status.json")
+
     ok_parts = sum(1 for r in part_reports if r["status"] == "ok")
     skipped_parts = sum(1 for r in part_reports if r["status"] == "skipped")
     emit("ok", purpose, method, str(target), None,
@@ -3286,7 +2828,7 @@ def run_growth_audit(purpose, prompt_file, output_file, model_override=None,
                 "truncated_outputs": truncated_total, "view_image_calls": view_image_total,
                 "reasoning_effort": reasoning_effort,
                 "token_usage": {"total": token_totals, "parts": token_by_part},
-                "parts": part_reports})
+                "parts": part_reports, "judge_due": judge_due})
     return EXIT_OK
 
 
