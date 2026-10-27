@@ -32,6 +32,9 @@ measure: experiments-status.json・pin-14d.json・sns-posts-7d.json を --out �
   あるときだけ growth-metrics.py の gsc.search_analytics_by_page を呼ぶ。ピンは data/pin-daily-metrics.tsv。
   比較は中央値: ピン=範囲内のピンと開始日より前の同じ枚数のピン／X・Threads=範囲内の投稿と開始前14日の
   投稿／CTR=同じページの開始前28日と開始後28日。
+  X の記事なし投稿（data/x-standalone-posted.tsv の予約済みの postId と Buffer の投稿IDが一致するもの・D-0294）は、
+  どの実験でも x-impr-7d・threads-views-7d の前・後から除く（ほかの投稿文の実験を汚さないため）。
+  sns-posts-7d.json には残し、post_id と standalone: true を付ける（監査が参考に読む）。
   判定案: 判定日に達し、後が前より上なら継続、以下なら戻し。対象が0件（または比べる前が0件）なら、
   延長0で延長・延長1で戻し。件数が少ないことは保留の理由にしない。判定日前は「途中」。
 judge: 戻し=状態を戻しにする（設定値はその時点で無効）。継続=種別「設定」は標準にして設定値を残す／
@@ -65,6 +68,7 @@ PROJECT_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, "..", ".."))
 LEDGER = os.path.join(PROJECT_ROOT, "data", "experiments.tsv")
 PIN_DAILY_METRICS_TSV = os.path.join(PROJECT_ROOT, "data", "pin-daily-metrics.tsv")
 PINS_DIR = os.path.join(PROJECT_ROOT, "output", "pins")
+X_STANDALONE_LEDGER = os.path.join(PROJECT_ROOT, "data", "x-standalone-posted.tsv")
 GROWTH_METRICS_SCRIPT = os.path.join(SCRIPT_DIR, "growth-metrics.py")
 
 COLUMNS = ("実験ID", "状態", "種別", "対象", "内容", "設定キー", "設定値", "範囲", "主指標",
@@ -632,6 +636,32 @@ def fetch_gsc_by_page(since, until):
     return pages, None
 
 
+def load_standalone_ids(path=None):
+    """X の記事なし投稿の台帳（post-x-standalone.py が書く）から、予約済みの postId の集合を返す。"""
+    path = path or X_STANDALONE_LEDGER
+    ids = set()
+    if not os.path.exists(path):
+        return ids
+    with open(path, "r", encoding="utf-8") as handle:
+        header = None
+        for line in handle:
+            cells = line.rstrip("\r\n").split("\t")
+            if header is None:
+                header = cells
+                continue
+            row = dict(zip(header, cells))
+            if row.get("状態") == "予約済み" and row.get("postId") not in (None, "", "-"):
+                ids.add(row["postId"])
+    return ids
+
+
+def mark_standalone(posts, ids):
+    """Buffer の投稿（entity_id）が記事なし投稿の postId と一致すれば standalone: True を付ける。"""
+    for post in posts:
+        post["standalone"] = bool(post.get("entity_id")) and post.get("entity_id") in ids
+    return posts
+
+
 def _sent_date(post):
     try:
         sent = dt.datetime.fromisoformat((post.get("sent_at") or "").replace("Z", "+00:00"))
@@ -715,8 +745,8 @@ def _measure_posts(row, posts, week_end):
     before_lo = start - dt.timedelta(days=SNS_BEFORE_DAYS)
     before, after = [], []
     for post in posts:
-        if post.get("service") != channel:
-            continue
+        if post.get("service") != channel or post.get("standalone"):
+            continue   # 記事なし投稿は前・後とも除く（どの実験でも）
         day = _sent_date(post)
         if day is None:
             continue
@@ -819,12 +849,14 @@ def build_sns_posts(posts, week_end):
             continue
         metrics = _post_metrics(post)
         out.append({"service": post.get("service"), "sent_at": post.get("sent_at"),
+                    "post_id": post.get("entity_id"), "standalone": bool(post.get("standalone")),
                     "text_head": (post.get("text") or "").replace("\r", " ").replace("\n", " ")[:40],
                     "views": metrics["views"], "reactions": metrics["reactions"], "clicks": metrics["clicks"],
                     "metrics": metrics["raw"]})
     return {"sent_window": [lo.isoformat(), hi.isoformat()],
             "rule": "送信日（日本時間）が週末日の13日前〜7日前の X・Threads 投稿。値は取得時点のもの"
-                    "（views=X は impressions・Threads は views／reactions=reactions+comments+reposts+quotes）",
+                    "（views=X は impressions・Threads は views／reactions=reactions+comments+reposts+quotes）。"
+                    "standalone=true は X の記事なし投稿（実験の集計からは除いている・参考）",
             "posts": out}
 
 
@@ -844,8 +876,10 @@ def collect(rows, week_end, pin_tsv=None):
         lo = week_end - dt.timedelta(days=BUFFER_MAX_SPAN - 1)
         warnings.append("Buffer の取得期間を %d 日に切り詰めた（%s〜）" % (BUFFER_MAX_SPAN, lo))
     posts, problem = fetch_sent_posts(lo, week_end)   # Buffer はこの1回だけ
+    mark_standalone(posts, load_standalone_ids())
     buffer_source = {"operation": "buffer.sent_posts", "since": lo.isoformat(), "until": week_end.isoformat(),
-                     "posts": len(posts), "problem": problem}
+                     "posts": len(posts), "standalone_posts": sum(1 for p in posts if p.get("standalone")),
+                     "problem": problem}
     if problem:
         warnings.append("Buffer: %s" % problem)
 

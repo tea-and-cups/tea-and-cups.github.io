@@ -34,7 +34,7 @@ r"""未投稿ピンをBuffer経由でX・Instagram・Threadsへ送る本体ス�
         ピンを番号順に並べ、1番目だけをリンク付きにする。2番目以降（先行ピンを
         含む）は Threads・X ともURLを載せない「リンクなし」の回にする。
         画像はどちらの回にも必ず付ける（(10) の刈り込みが画像URLで保護対象を
-        決めるため、画像の無い投稿がキューにあると刈り込みが止まる）。
+        決めるため。画像の無い投稿は記事なし投稿として保護の判定から外れる・D-0294）。
       Threads（リンク付き）… 説明文（ハッシュタグ除く）＋ハッシュタグ（最大3件）＋
         空行＋問いかけ（ピンmdの「- Threads用問いかけ: 」行。無ければ付けない）＋
         誘導先URL。
@@ -87,8 +87,10 @@ r"""未投稿ピンをBuffer経由でX・Instagram・Threadsへ送る本体ス�
       保護対象は本文ではなく画像URLから取る。Instagram向けの本文には誘導先URLを
       載せない（D-0178）ため本文の utm_content からは番号を拾えず、画像URLは
       3チャンネルすべてへ同じ形で渡しているため本文の書式変更に依存しない。
-      キューを読めなかったとき、および画像URLからピン番号を取れない投稿が
-      1件でもあったときは、保護対象を確定できないと判断して1件も削除しない。
+      キューを読めなかったとき、および画像はあるのに画像URLからピン番号を取れない
+      投稿が1件でもあったときは、保護対象を確定できないと判断して1件も削除しない。
+      画像が1つも無い投稿（X の記事なし投稿・post-x-standalone.py・D-0294）は
+      公開画像を参照しないため、保護の判定から外す（数だけ表示する）。
 
 公式ドキュメントで確認した点（2026-08-30）:
   - createPost の戻り値は union で、成功は PostActionSuccess、失敗は
@@ -1015,8 +1017,9 @@ def fetch_scheduled_pin_numbers(graphql):
     戻り値: (集合 または None, 説明文字列)
     None は「取得できなかった」を表す。取得できなかったときに空集合を返すと
     「除外すべき番号が無い」と区別できず、公開前の画像を消してしまうため。
-    画像URLからピン番号を取り出せない投稿が1件でもあれば None を返す
+    画像はあるのに画像URLからピン番号を取り出せない投稿が1件でもあれば None を返す
     （保護対象を確定できないため、削除を1件も行わない）。
+    画像が1つも無い投稿（X の記事なし投稿・D-0294）は公開画像を参照しないため数えない。
     """
     data = graphql(ACCOUNT_QUERY, operation_name="Account")
     orgs = ((data or {}).get("account") or {}).get("organizations") or []
@@ -1024,6 +1027,7 @@ def fetch_scheduled_pin_numbers(graphql):
         return None, "組織IDを取得できませんでした"
 
     numbers = set()
+    text_only = 0
     truncated = False
     for org in orgs:
         data = graphql(
@@ -1036,9 +1040,12 @@ def fetch_scheduled_pin_numbers(graphql):
             truncated = True
         for edge in posts.get("edges") or []:
             node = edge.get("node") or {}
+            sources = [(asset or {}).get("source") or "" for asset in node.get("assets") or []]
+            if not any(sources):
+                text_only += 1   # 画像の無い投稿（記事なし投稿）は公開画像を参照しない
+                continue
             found = set()
-            for asset in node.get("assets") or []:
-                source = (asset or {}).get("source") or ""
+            for source in sources:
                 match = PIN_IMAGE_URL_RE.search(source)
                 if match:
                     found.add(int(match.group(1)))
@@ -1052,8 +1059,8 @@ def fetch_scheduled_pin_numbers(graphql):
         # 続きのページを読まないまま「除外対象はこれだけ」と決めると
         # 読めていない投稿の画像を消しうるので、取得できなかった扱いにする。
         return None, "キューが1ページに収まらず全件を読めませんでした"
-    return numbers, "キューに残る投稿が参照するピン番号: %s" % (
-        ", ".join(str(n) for n in sorted(numbers)) if numbers else "なし")
+    return numbers, "キューに残る投稿が参照するピン番号: %s（画像の無い投稿 %d件は判定から除外）" % (
+        ", ".join(str(n) for n in sorted(numbers)) if numbers else "なし", text_only)
 
 
 def prune_published_images(graphql, out):

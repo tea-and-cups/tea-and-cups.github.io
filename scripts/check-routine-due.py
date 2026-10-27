@@ -41,6 +41,12 @@ check-image-gen-needed-today.py（D-0078）と同じ方針で、あいまいな�
      月次監査はオーナーの数値（ASP成果CSV）を待たずに実行するため、2・3 とは別に判定する
      （rules/weekly-report.md 4-4節。2・3 の判定と出力は変えない）。
 
+  5. X単独投稿の翌週分（D-0294）
+     data/x-standalone-posted.tsv（post-x-standalone.py が書く台帳）があり、予定日が基準日の翌日から
+     7日間に入る「予約済み」の行が1件も無ければ【警告】を出す。週次（日曜）で翌週の月〜日の7件を予約する
+     運用のため、日曜の週次より後はこの7日間が予約で埋まり、平日も当週の残りが入るので警告は出ない。
+     台帳が無い（記事なし投稿を始める前）ときは判定しない。
+
 出力:
   該当項目があればその通知行を1行以上、1件も無ければ "ROUTINE_NONE" の1行のみ。
   終了コードは常に0（情報提供のみ。ブロックや強制終了は行わない）。
@@ -62,6 +68,8 @@ ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 REPORTS_DIR = os.path.join(ROOT, "reports")
 KPI_MD = os.path.join(ROOT, "docs", "kpi.md")
 GROWTH_OUTPUTS_DIR = os.path.join(ROOT, "growth", "outputs")
+X_STANDALONE_LEDGER = os.path.join(ROOT, "data", "x-standalone-posted.tsv")
+X_STANDALONE_DAYS = 7
 
 # 月次実績の催促を始める日（当月のこの日以降）
 KPI_REMINDER_DAY = 4
@@ -167,6 +175,27 @@ def kpi_row_gaps(month_key):
     return True, True
 
 
+def x_standalone_unreserved(base, path=None):
+    """5. 台帳があり、基準日の翌日から7日間に「予約済み」の行が1件も無ければ True。台帳が無ければ False。
+    予定日時の列（2列目）の先頭10文字を日付として読む（台帳の書式は post-x-standalone.py が正本）。"""
+    path = path or X_STANDALONE_LEDGER
+    if not os.path.isfile(path):
+        return False
+    lo = base + datetime.timedelta(days=1)
+    hi = base + datetime.timedelta(days=X_STANDALONE_DAYS)
+    for line in read_text(path).split("\n")[1:]:
+        cells = line.rstrip("\r").split("\t")
+        if len(cells) < 6 or cells[5] != "予約済み":
+            continue
+        try:
+            day = datetime.date.fromisoformat(cells[1][:10])
+        except ValueError:
+            continue
+        if lo <= day <= hi:
+            return False
+    return True
+
+
 def main():
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
@@ -229,6 +258,15 @@ def main():
         messages.append(
             "月次監査が未実施（%s がありません。オーナーの数値を待たずに実行する・"
             "rules/weekly-report.md 4-4節）" % audit_rel
+        )
+
+    # 5. X単独投稿の翌週分（D-0294）
+    if x_standalone_unreserved(base):
+        messages.append(
+            "【警告】X単独投稿の翌週分が未予約（%s〜%s の予約が data/x-standalone-posted.tsv にありません。"
+            "rules/weekly-report.md 3-3節の手順で作成・審査・予約する）"
+            % ((base + datetime.timedelta(days=1)).isoformat(),
+               (base + datetime.timedelta(days=X_STANDALONE_DAYS)).isoformat())
         )
 
     if messages:
