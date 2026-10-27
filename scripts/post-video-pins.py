@@ -2,7 +2,7 @@
 r"""動画ピンを Pinterest へ投稿するスクリプト（動画ピンの第1段・投稿先は Pinterest のみ）。
 
 動画md（output/videos/<slug>/video-<N>.md）を読み、quality-reviewer の公開可（sha256 付きの審査行）が
-ある動画だけを投稿する。Buffer へは送らない。台帳は data/video-posted.md（画像ピンの
+ある動画だけを投稿する。Buffer（X・Threads）へは post-video-to-buffer.py が送る（D-0298）。台帳は data/video-posted.md（画像ピンの
 data/pin-posted.md とは別。動画の番号 N は画像ピンの連番に入らない）。
 
 処理順序（1動画ずつ・最初に止まった項目でその動画を止める）:
