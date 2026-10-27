@@ -34,6 +34,11 @@
      「まとめました・まとめ・紹介します・ご紹介・解説します・調べました・チェック」、または
      「疑問」（疑問に答えます等を含む）で終わる予告型ならNG。調べ方・案内だけで答えを渡さない先頭を止める。
      4・4-2 の判定は変えない。
+  4-4. Pin先頭の断定語チェック（W43検証監査の採用指示 P-1・実験 EX-0001・ピン383以降）: 画像の先頭文言
+     （最初の「…」）が断定語（解決・必ず・絶対・間違いない・失敗しない・これだけで）を含めばNG。
+     誘導先の記事本文は慎重な表現のため、先頭だけが断定になる差を止める。4・4-2・4-3 の判定は変えない。
+     開始ピン番号は実装時点の次の未使用ピン番号。台帳（experiments.tsv）の範囲 pin>=361 とは別で、
+     この検査は開始番号以降だけを止める（それ以前に作ったピンは検査しない）。
   5. Pin画像の「琥珀時間」合成チェック（GD-0036後半・D-0274・ピン352以降）:
      output/Pin-images/ の画像（PNG）に、後処理で合成した目印（tEXtチャンク）が
      入っているかを検査する。目印は copy-pin-image.sh が配置時に入れる。目印が無い・
@@ -289,6 +294,47 @@ def survey_head_forecast(first, last):
         print("  ピン%d [%s]: 「%s」" % (num, label, text))
 
 
+# 先頭文言に断定語を使わない（W43検証監査の採用指示 P-1・実験 EX-0001）。誘導先の記事本文は
+# 「〜といわれる」「製品による」の慎重な表現のため、先頭だけが「解決」「必ず」になる差を止める。
+# 開始ピン番号は実装時点（ピン382まで作成済み）の次の未使用ピン番号。それ以前のピンは検査しない。
+HEAD_ASSERTION_FROM_PIN = 383
+HEAD_ASSERTION_WORDS = ("解決", "必ず", "絶対", "間違いない", "失敗しない", "これだけで")
+
+
+def head_assertion_words(text):
+    """先頭文言に含まれる断定語を返す（無ければ空）。"""
+    if text is None:
+        return []
+    return [w for w in HEAD_ASSERTION_WORDS if w in text]
+
+
+def check_head_assertion(slug, files=None):
+    """ピン383以降の先頭文言（画像の最初の「…」）に断定語が無いかを検査する。戻り値: NGメッセージのリスト。
+
+    files を渡すと、slug から探す代わりにそのファイルだけを検査する（先行ピンのモード用）。
+    """
+    if files is None:
+        files = find_pin_files(slug)
+    ng_messages = []
+    checked = 0
+    for path in files:
+        name = os.path.basename(path)
+        m = RE_PIN_NUMBER.search(name)
+        if not m or int(m.group(1)) < HEAD_ASSERTION_FROM_PIN:
+            continue
+        checked += 1
+        with open(path, encoding="utf-8") as f:
+            head = head_text_of(f.read())
+        words = head_assertion_words(head)
+        if words:
+            print("  [NG] %s: 先頭文言「%s」に断定語（%s）があります"
+                  "（記事本文の慎重な表現に沿う、選び方・比べ方の言い方にする・P-1）" % (name, head, "・".join(words)))
+            ng_messages.append("%s: 先頭文言「%s」に断定語（%s）" % (name, head, "・".join(words)))
+    if not ng_messages:
+        print("  OK: ピン%d以降の対象%d件に断定語の先頭文言なし" % (HEAD_ASSERTION_FROM_PIN, checked))
+    return ng_messages
+
+
 # Pin画像のファイル名「ピン{番号} …」（rules/image-generation-flow.md 1-2）から番号を取る。
 RE_PIN_IMAGE_NUMBER = re.compile(r"^ピン(\d+)")
 COPY_PIN_IMAGE_CMD = 'bash "C:/Claude/Tea_TeaCut/site/scripts/copy-pin-image.sh" <Downloads内のファイル名> <配置後のファイル名>'
@@ -413,6 +459,9 @@ def check_advance_pin(pin_num):
     print()
     print("=== 3-3. Pin先頭の予告型チェック（GD-0053・ピン%d以降） ===" % HEAD_FORECAST_FROM_PIN)
     ng.extend(check_head_forecast(entry["slug"], files=[path]))
+    print()
+    print("=== 3-4. Pin先頭の断定語チェック（P-1・ピン%d以降） ===" % HEAD_ASSERTION_FROM_PIN)
+    ng.extend(check_head_assertion(entry["slug"], files=[path]))
     print()
     print("=== 4. Pin画像の「%s」合成チェック（GD-0036・D-0274・ピン%d以降） ==="
           % (h2w.BRAND_TEXT, HEAD_QUESTION_FROM_PIN))
@@ -592,7 +641,11 @@ def main():
     ng.extend(check_head_forecast(slug, files=pin_files))
 
     print()
-    print("=== 5. Pin画像の「琥珀時間」合成チェック（GD-0036・D-0274・ピン352以降） ===")
+    print("=== 4-4. Pin先頭の断定語チェック（P-1・ピン%d以降） ===" % HEAD_ASSERTION_FROM_PIN)
+    ng.extend(check_head_assertion(slug, files=pin_files))
+
+    print()
+    print("=== 5.Pin画像の「琥珀時間」合成チェック（GD-0036・D-0274・ピン352以降） ===")
     ng.extend(check_brand_stamp(slug, files=pin_files))
 
     print()

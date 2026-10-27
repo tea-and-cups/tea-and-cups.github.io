@@ -46,6 +46,10 @@
         出典を置けない場合は日数の記述を削る。ただし期間を含む1文が抽出の文脈（抽出・漬け・浸す・置く・
         作り方等）で、その文に保存の判断語（以内・保存・日持ち・もつ・傷み・作り置き・飲み切る・抽出後等）が
         無ければ、水出しの抽出時間等であって保存期間ではないため対象にしない（D-0286）
+    型10 器の手入れ手順・食品の傷みやすさ（W43検証監査の指摘）: 同じブロック（箇条書きは1項目）に
+        「目止め・とぎ汁・研ぎ汁」「傷みやすい・傷みやすく・常温で長く」があり、同じブロックに出典URL
+        （アフィリエイト除く）が無い。型9と同じく適用条件の語では免除しない。「煮る・煮て」は紅茶の
+        レシピ（チャイ・ホットアップルティー）の誤検知になるため語に入れない
     新規公開（引数 <slug> のみ）ではNG、--revise と --survey-xy（週次）では【警告】にとどめる
     （公開済みの記事に該当が多く、関係のない改修まで止まるため）。
   --survey-xy: 公開済み全記事にX・Yだけをかける読み取り専用モード。型4〜9は【警告】の行で件数と該当を出す。
@@ -207,7 +211,7 @@ RE_LIST_ITEM = re.compile(r"^\s*(?:[-*+]|\d+[.)])\s")
 # 判定Yの拡張（W42監査の採用指示・GD-0039）。型4〜7は文単位（型1〜3と同じ照合）、型8は節単位。
 # どれも同じブロックに出典URLか適用条件の語（SAFETY_CONDITION_WORDS）があればOK。
 # 新規公開ではNG、--revise と週次（--survey-xy）は【警告】にとどめる（NEW_SAFETY_TYPES）。
-NEW_SAFETY_TYPES = ("型4", "型5", "型6", "型7", "型8", "型9")
+NEW_SAFETY_TYPES = ("型4", "型5", "型6", "型7", "型8", "型9", "型10")
 # 型4〜7に限り、商品ごとの表示・注意書きに委ねる書き方も適用条件とみなす（型1〜3の条件語は変えない）
 NEW_TYPE_CONDITION_WORDS = ["商品ページ", "注意書き", "商品ごとに", "商品によって", "製品によって", "対応しているか", "対応した商品"]
 # 型4 火気: 火元の語と、注意・禁止の語
@@ -264,6 +268,12 @@ SAFETY_TYPE9_KEEP = ["以内", "保存", "日持ち", "もつ", "冷蔵", "常�
 RE_TYPE9_EXTRACT = re.compile(r"抽出|漬け|浸|置く|置いて|おく|作り方|引き上げ|開く|渋み|雑味|濃さ|味を確認")
 RE_TYPE9_STORAGE = re.compile(
     r"以内|保存|日持ち|もつ|傷|腐|雑菌|作り置き|飲み切|飲みき|抽出後|作った後|開封後|置か(?:ない|ず)|放置")
+# 型10 器の手入れ手順・食品の傷みやすさ（W43検証監査の指摘・GD-0048の続き）: ブロック単位。
+# 「目止め」「とぎ汁」のような手入れの手順、「傷みやすい」「常温で長く」のような衛生の助言が、同じブロックに
+# 出典URLの無いまま書かれていれば違反。型9と同じく適用条件の語（「取扱説明書に従う」「パッケージの表示」等）では
+# 免除しない（条件の語は手順や傷みやすさそのものの根拠にならず、実際の2文はこの語で型5に通っていたため）。
+# 「煮る・煮て」は紅茶のレシピ（チャイ・ホットアップルティー）に多く誤検知になるため語に入れない。
+SAFETY_TYPE10_WORDS = ["目止め", "とぎ汁", "研ぎ汁", "傷みやすい", "傷みやすく", "常温で長く"]
 RE_MD_HEADING = re.compile(r"^(#{1,6})\s")
 RE_BOLD_ONLY_LINE = re.compile(r"^\s*\*\*[^*].*\*\*\s*$")
 
@@ -522,6 +532,21 @@ def food_storage_hits(text):
     return [("型9", [re.sub(r"\s+", "", period.group(0))] + keep, sentence)]
 
 
+def care_hygiene_hits(text):
+    """型10: ブロックに手入れ手順・傷みやすさの語があり、出典URLが無ければ [(型, 語リスト, 文)] を返す（無ければ空）。
+
+    適用条件の語では免除しない。リンク文字・URLは照合しない。
+    """
+    if has_valid_source(text):
+        return []
+    plain = RE_MD_LINK_FULL.sub(" ", RE_URL.sub(" ", text))
+    words = [w for w in SAFETY_TYPE10_WORDS if w in plain]
+    if not words:
+        return []
+    sentence = next((s.strip() for s in RE_SENTENCE_PARTS.findall(plain) if words[0] in s), plain.strip())
+    return [("型10", words, sentence)]
+
+
 def safety_sub_units(unit):
     """判定Y用に、箇条書きは1項目ずつ・それ以外はブロック全体を単位にする。"""
     if not any(RE_LIST_ITEM.match(line) for _, line in unit):
@@ -551,7 +576,8 @@ def check_xy(path, slug):
                             "sentence": line, "in_product_block": False})
         for sub in safety_sub_units(unit):
             sub_text = unit_text(sub)
-            for typ, words, sentence in safety_advice_hits(sub_text) + food_storage_hits(sub_text):
+            for typ, words, sentence in (safety_advice_hits(sub_text) + food_storage_hits(sub_text)
+                                         + care_hygiene_hits(sub_text)):
                 out.append({"slug": slug, "line": sub[0][0], "categories": ["Y"],
                             "excerpt": excerpt(sentence), "hit": typ + ":" + "・".join(words),
                             "sentence": sentence, "in_product_block": False,
@@ -706,7 +732,7 @@ def run_single(slug, revise=False):
               "検知語一覧: " + "・".join(SAFETY_ADVICE_WORDS)
               + " ／ 条件語一覧: " + "・".join(SAFETY_CONDITION_WORDS))
     if any(v.get("new_type") for v in violations):
-        print("[Y 型4〜9] 火気（型4）・手入れ（型5）・贈答の慣習（型6）・産地の因果（型7）の助言・断定も、"
+        print("[Y 型4〜10] 火気（型4）・手入れ（型5）・贈答の慣習（型6）・産地の因果（型7）の助言・断定も、"
               "同じ段落（箇条書きは1項目）に出典URLか適用条件が要ります。"
               "型4語: " + "・".join(SAFETY_TYPE4_SUBJECT) + " ／ 注意語: " + "・".join(SAFETY_TYPE4_ADVICE)
               + "。型5語: " + "・".join(SAFETY_TYPE5_SUBJECT) + " ／ 推奨・禁止語: " + "・".join(SAFETY_TYPE5_ADVICE)
@@ -714,7 +740,9 @@ def run_single(slug, revise=False):
               + "。型7語: " + "・".join(SAFETY_TYPE7_SUBJECT) + " ／ 因果語: " + "・".join(SAFETY_TYPE7_CAUSE)
               + "。型8: category: gift の見出しに予算・相場を含む節には「2026年10月時点」「2026年10月執筆」の形の年月を書く"
               + "。型9: 保存期間・衛生（「N日／N時間」と " + "・".join(SAFETY_TYPE9_KEEP) + " が同じブロック）には、同じブロックに出典URLが要ります"
-              "（適用条件の語だけでは通りません。出典を置けない場合は日数の記述を削る）")
+              "（適用条件の語だけでは通りません。出典を置けない場合は日数の記述を削る）"
+              + "。型10: 手入れ手順・傷みやすさ（" + "・".join(SAFETY_TYPE10_WORDS)
+              + "）には、同じブロックに出典URLが要ります（適用条件の語だけでは通りません。出典を置けない場合は文を削る）")
     return 1
 
 

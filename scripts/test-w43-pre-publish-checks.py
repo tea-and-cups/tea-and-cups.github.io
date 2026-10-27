@@ -4,6 +4,8 @@ r"""W43監査の採用指示で足した公開前チェックの再発防止テ�
   A check-fact-source.py の型9（食品の保存期間・衛生は同じブロックに出典URLを要する）
   B publish-article.py の公開時期の確認（季節の山まで28日未満はNG・28〜41日は警告・通年は対象外）
   C check-pin-image-style.py の予告型の先頭（ピン370以降・画像の先頭文言と投稿文の1行目）
+  A2 check-fact-source.py の型10（手入れ手順・傷みやすさ。W43検証監査の指摘）／
+  D check-pin-image-style.py の断定語の先頭（P-1・ピン383以降）
 
 本物の記事・ピン・台帳には触れない。A・C は一時ディレクトリにダミーを作り、B は判定関数へ
 ダミーの台帳と日付を渡す。一時ディレクトリは終了時に必ず消す。
@@ -71,6 +73,22 @@ def case_a(results, root):
                     "- 冷蔵で2日以内に飲み切る\n- 詳しくは[公的機関](https://www.mhlw.go.jp/example)を確認")
     got = [t for t in _types(fs, path) if t == "型9"]
     results.append(("箇条書きは1項目ずつ（URLが別項目なら型9）", got == ["型9"], "実際=%s" % got))
+    # 型10（W43検証監査の指摘）: 手入れ手順・傷みやすさは出典URLを要し、適用条件の語では免除しない
+    cases10 = [
+        ("出典なし・取扱説明書の条件語あり（目止め・とぎ汁） → 型10",
+         "使い始めに目止め（米のとぎ汁で煮る方法）をします。メーカーの取扱説明書に従ってください。", ["型10"]),
+        ("出典なし・パッケージの表示の条件語あり（常温で長く・傷みやすく） → 型10",
+         "パッケージの表示どおりの時間置きます。常温で長く置くと傷みやすくなるため早めに飲み切ります。", ["型10"]),
+        ("出典URLあり → なし",
+         "使い始めに目止めをします（[無印良品](https://www.muji.com/example)）。米のとぎ汁で煮ます。", []),
+        ("アフィリエイトURLだけ → 型10", "目止めがおすすめ。[商品](https://hb.afl.rakuten.co.jp/ichiba/x/y)", ["型10"]),
+        ("紅茶のレシピの「煮る・煮出す」 → なし（誤検知を避ける）", "鍋で茶葉を煮出し、牛乳を加えて煮る。", []),
+        ("検知語なしの保存の記述 → 型10なし", "湿気を避けて保管します。", []),
+    ]
+    for description, body, expected in cases10:
+        path = _article(root, "case-a10", body)
+        got = [t for t in _types(fs, path) if t == "型10"]
+        results.append((description, got == expected, "期待=%s 実際=%s" % (expected, got)))
     # 新規公開ではNG・--revise では警告にとどまる（check_xy は new_type を立てる）
     path = _article(root, "case-a-new", "冷蔵で2日以内に飲み切ります。")
     hits = [v for v in fs.check_xy(path, "dummy") if v["hit"].startswith("型9")]
@@ -191,6 +209,48 @@ def case_c(results):
         shutil.rmtree(root, ignore_errors=True)
 
 
+def case_d(results):
+    """P-1（実験 EX-0001）: ピン383以降の先頭文言の断定語はNG。383未満は対象外。"""
+    ps = _load("check-pin-image-style.py")
+    first = ps.HEAD_ASSERTION_FROM_PIN
+    words = [
+        ("解決", "なくなる紅茶で解決"), ("必ず", "必ず合うカップの選び方"), ("絶対", "絶対に外さない一杯"),
+        ("間違いない", "この一杯なら間違いない"), ("失敗しない", "失敗しないギフトの選び方"),
+        ("これだけで", "これだけで選べる基準"),
+    ]
+    for word, head in words:
+        got = ps.head_assertion_words(ps.head_text_of(_pin_text(head)))
+        results.append(("先頭文言の断定語「%s」 → 検知" % word, word in got, "実際=%s" % got))
+    got = ps.head_assertion_words(ps.head_text_of(_pin_text("網目の細かさで選ぶ")))
+    results.append(("選び方の文言 → 合格", got == [], "実際=%s" % got))
+    # 先頭の「」だけを見る（2つ目の「」に断定語があっても合格）
+    text = _pin_text("網目の細かさで選ぶ").replace("「二つ目の文言」", "「必ず合う」")
+    got = ps.head_assertion_words(ps.head_text_of(text))
+    results.append(("2つ目の「」の断定語は対象外 → 合格", got == [], "実際=%s" % got))
+    # ファイル単位: 開始番号未満は対象外・開始番号以降は断定語でNG／OK
+    root = tempfile.mkdtemp(prefix="p1-pin-")
+    try:
+        import contextlib, io
+        old = ps.PINS_DIR
+        ps.PINS_DIR = root
+        cases = [
+            (first - 1, "なくなる紅茶で解決", 0, "開始番号未満の断定語"),
+            (first, "なくなる紅茶で解決", 1, "開始番号の断定語"),
+            (first + 5, "必ず合う選び方", 1, "開始番号より後の断定語"),
+            (first, "網目の細かさで選ぶ", 0, "開始番号の断定語なし"),
+        ]
+        for num, head, expected, label in cases:
+            name = "2031-01-01-pin-%d-dummy-slug-01.md" % num
+            _write(os.path.join(root, name), _pin_text(head))
+            with contextlib.redirect_stdout(io.StringIO()):
+                ng = ps.check_head_assertion("dummy-slug")
+            results.append(("ピン%d %s → NG %d件" % (num, label, expected), len(ng) == expected, str(ng)))
+            os.remove(os.path.join(root, name))
+        ps.PINS_DIR = old
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
 def main():
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
@@ -201,6 +261,7 @@ def main():
         case_b(results)
         case_b_dry_run(results)
         case_c(results)
+        case_d(results)
     finally:
         shutil.rmtree(root, ignore_errors=True)
     failed = 0
