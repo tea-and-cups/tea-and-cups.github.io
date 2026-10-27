@@ -86,7 +86,8 @@
   （GSC記事別・対象週／対象週の日曜で終わる28日）・buffer-summary.md・
   buffer-posts.json・buffer-aggregate.json（送信日時が対象期間のもの）を作り、site/scripts/
   build-site.sh で手元ビルドを1回行って、dist の記事ページ1件とカテゴリページ1件を区切りRの
-  対象に加える。監査の最後に audit.md の「## 監査範囲」節を、各区切り・まとめの実行ログから数えた
+  対象に加える。続けて experiments.py measure で experiments-status.json・pin-14d.json・sns-posts-7d.json
+  を同じフォルダへ置く（失敗したら【注意】を出して空の形で置き、続行する・S-0027 ①）。監査の最後に audit.md の「## 監査範囲」節を、各区切り・まとめの実行ログから数えた
   値（truncated_outputs・view_image_calls・切り詰めたファイル・読めた対象/対象総数）の表で置き換える。
   --dry-run・--render-only の画面には英数字だけで JSON ファイルのパスと件数を出し、JSON の中身は
   tmp/codex-gateway/growth-audit-<週>-<dry-run|render-only>.json へ UTF-8 で保存する。
@@ -2142,7 +2143,53 @@ def _prepare_weekly_inputs(input_dir, since_date, until_date, pin_notes=None):
     if not article_page:
         items.append({"path": "", "chars": 0, "images": 0, "gd": {},
                       "lines": ["- （注）判定用の dist ページを選べなかった: %s ／ %s" % (how, build_note)]})
+
+    # (f) 実験の状態と途中指標（experiments.py measure・S-0027 ①）。まとめが直接読む JSON。区切りRには足さない
+    for name, note in _prepare_experiment_inputs(input_dir, until_date):
+        add_file(display(name), input_dir / name, note)
     return {"items": items, "files": files, "dist": dist}
+
+
+EXPERIMENTS_SCRIPT = SITE_DIR / "scripts" / "experiments.py"
+EXPERIMENT_INPUTS = (
+    ("experiments-status.json", "今週の入力・実験の状態（実行中の実験の前後の中央値・判定案。experiments.py measure）",
+     {"experiments": [], "pending_rules": []}),
+    ("pin-14d.json", "今週の入力・ピン別の作成後14日合計インプレッション（直近4週に作成・14日分確定のもの）",
+     {"pins": [], "pending": []}),
+    ("sns-posts-7d.json", "今週の入力・X・Threads の送信7日後の投稿別指標（週末日の13〜7日前に送信）",
+     {"posts": []}),
+)
+
+
+def _prepare_experiment_inputs(input_dir, until_date):
+    """experiments.py measure で3つの JSON を input_dir へ書く。失敗した（または欠けた）ものは【注意】を出して
+    空の形で置き、監査は続行する（入力の欠けで週次全体を止めない）。戻り値: [(ファイル名, 注記)]"""
+    problem = None
+    try:
+        proc = subprocess.run(
+            [sys.executable, str(EXPERIMENTS_SCRIPT), "measure", "--week-end", until_date, "--out", str(input_dir)],
+            capture_output=True, text=True, encoding="utf-8", errors="replace",
+            timeout=METRICS_TIMEOUT_SEC, cwd=str(PROJECT_ROOT))
+        if proc.returncode != 0:
+            problem = "rc=%s %s" % (proc.returncode, (proc.stderr or proc.stdout).strip()[-300:])
+    except (OSError, subprocess.SubprocessError) as exc:
+        problem = type(exc).__name__
+    result = []
+    for name, note, empty in EXPERIMENT_INPUTS:
+        path = input_dir / name
+        reason = problem
+        if not reason:
+            try:
+                json.loads(path.read_text(encoding="utf-8"))
+            except (OSError, ValueError) as exc:
+                reason = "%s を読めない（%s）" % (name, type(exc).__name__)
+        if reason:
+            eprint("【注意】experiments.py measure が失敗したため %s を空の形で置きます: %s" % (name, reason))
+            data = dict({"schema": 1, "week_end": until_date, "status": "unavailable", "reason": reason}, **empty)
+            path.write_text(json.dumps(data, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+            note += "・（注）取得失敗のため空"
+        result.append((name, note))
+    return result
 
 
 # --- 監査範囲の機械集計（ロールアウトログから数える）---------------------------------
