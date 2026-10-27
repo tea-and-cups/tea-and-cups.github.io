@@ -419,8 +419,10 @@ def pin_num_from_url(url):
 def load_video_pin_ids():
     """data/video-posted.md に載っている pin_id の集合を返す。ファイルが無ければ空集合。
 
-    書式は未確定のため、コメント行（#始まり）以外の行から12桁以上の数字列をpin_idとして拾う
-    （Pinterestのpin_idは18桁前後。日付など短い数字を拾わないための下限）。
+    台帳の書式は「動画N | slug | 状態 | 審査 | 作成日 | sha256 | pin_id」（post-video-pins.py が書く）。
+    コメント行（#始まり・media_id などの途中経過はここにだけ書かれる）以外の行から12桁以上の数字列を
+    pin_idとして拾う（Pinterestのpin_idは18桁前後。日付は YYYY-MM-DD で書かれ、sha256 は16進の1語で
+    前後が英字・数字に接するため、どちらも拾わない）。
     """
     ids = set()
     if not os.path.isfile(VIDEO_POSTED_FILE):
