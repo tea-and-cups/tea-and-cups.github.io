@@ -1,9 +1,9 @@
 ---
-title: 茶こし（ティーストレーナー）の選び方｜網の細かさ・受け皿・使う場所で選ぶ3タイプ比較
+title: 茶こし（ティーストレーナー）の選び方｜網目の細かさ・受け皿の有無・使う場所で比べる
 slug: tea-strainer-chakoshi-erabikata
 date: 2026-09-01
-updated: 2026-09-22
-description: リーフティーを淹れるなら茶こし（ティーストレーナー）はほぼ必須の小物です。網の細かさ・受け皿の有無・使う場所という3つの見るポイントを整理し、深型バスケット型・ティーボール型・ハンドル付きの細メッシュという3タイプを比較。お手入れと衛生のコツもまとめました。
+updated: 2026-10-27
+description: 茶こし（ティーストレーナー）を選ぶときに比べる基準は、網目の細かさ・受け皿の有無・使う場所の3つ。この3つの基準を押さえたうえで、深型バスケット型・ティーボール型・ハンドル付きの細メッシュの3タイプを比較し、お手入れと衛生のコツもまとめました。
 tags: [紅茶, 道具, リーフティー]
 hero: /images/tea-strainer-chakoshi-erabikata/hero.webp
 status: published
@@ -16,7 +16,7 @@ category: teaware
 
 呼び方は「茶こし」でも「ティーストレーナー」でも、指しているものは同じです。この記事ではどちらの呼び方も併用します。
 
-結論から言うと、**まず1つ選ぶなら「受け皿と蓋のついた深型バスケット型」が容量にゆとりがあって扱いやすく**、そのうえで「洗い物を減らしたい」ならボール型のティーボール、「微粉までしっかり漉してクリアな一杯にしたい」なら目の細かいハンドル付きストレーナーが候補になります。この記事では、選ぶときに見るべき3つのポイントと、タイプ別の向き・不向き、長く使うためのお手入れのコツを整理します。
+結論から言うと、**まず1つ選ぶなら「蓋のついた深型バスケット型」が容量にゆとりがあって扱いやすく**、そのうえで「洗い物を減らしたい」ならボール型のティーボール、「微粉までしっかり漉してクリアな一杯にしたい」なら目の細かいハンドル付きストレーナーが候補になります。この記事では、選ぶときに見るべき3つのポイントと、タイプ別の向き・不向き、長く使うためのお手入れのコツを整理します。
 
 ## ティーストレーナーの役割と、選ぶときの3つのポイント
 
@@ -34,50 +34,48 @@ category: teaware
 
 | タイプ | 網の細かさ | 受け皿 | 向いている人 |
 |---|---|---|---|
-| [深型バスケット型](#1-深型バスケット型--受け皿と蓋つきでまず1本に) | 中〜やや細かめ | 付属することが多い | まず1つそろえたい人 |
-| [ティーボール型](#2-ティーボール型--ひねって茶葉を捨てられる) | 中程度 | 小皿で代用 | 洗い物を減らしたいマグ派 |
-| [ハンドル付きの細メッシュ](#3-ハンドル付きの細メッシュ--微粉まで漉してクリアな一杯に) | 非常に細かい | 別売り・小皿で代用 | 澄んだ水色にこだわる人 |
+| [深型バスケット型](#1-深型バスケット型--蓋つきでまず1本に) | 中〜やや細かめ | 製品により異なる | まず1つそろえたい人 |
+| [ティーボール型](#2-ティーボール型--小ぶりで洗い物が少ない) | 中程度 | 製品により異なる | 洗い物を減らしたいマグ派 |
+| [ハンドル付きの細メッシュ](#3-ハンドル付きの細メッシュ--微粉まで漉してクリアな一杯に) | 非常に細かい | 付かない場合は小皿で代用 | 澄んだ水色にこだわる人 |
 
-### 1. 深型バスケット型 — 受け皿と蓋つきでまず1本に
+### 1. 深型バスケット型 — 蓋つきでまず1本に
 
-金属メッシュの深いカゴを、マグやティーポットの中に入れて抽出し、飲む前に引き上げるタイプです。カゴが深くて容量が大きいので茶葉がしっかり開き、抽出中は蓋をのせて保温でき、外したあとは付属の受け皿に置けます。持ち手（取っ手）がついていて熱くても取り出しやすく、二杯目までカゴを湯に戻しておける扱いやすさがあります。網は中〜やや細かめの二重メッシュが多く、日常づかいのバランスがとれています。
+金属メッシュの深いカゴを、マグやティーポットの中に入れて抽出し、飲む前に引き上げるタイプです。カゴが深くて容量が大きいので茶葉がしっかり開き、抽出中は蓋をのせて保温でき、受け皿が付く製品なら、外したあとはそこに置けます。持ち手（取っ手）がついていて熱くても取り出しやすく、扱いやすいのが特徴です。網は中〜やや細かめの二重メッシュが多く、日常づかいのバランスがとれています。
 
 [![ipow 茶こし ステンレス 深型 取っ手と蓋付き ティーストレーナー](/images/tea-strainer-chakoshi-erabikata/products/2.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824ed05.6a631d9b.5824ed06.2ae8611a/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fipow%2Fb07n2kcdhg%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.72（403件） [ipow 深型ティーストレーナー（取っ手・蓋付き）はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824ed05.6a631d9b.5824ed06.2ae8611a/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fipow%2Fb07n2kcdhg%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
+★4.72（409件） [ipow 深型ティーストレーナー（取っ手・蓋付き）はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824ed05.6a631d9b.5824ed06.2ae8611a/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fipow%2Fb07n2kcdhg%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-レビュー件数が400件を超えて評価も安定した、高評価のイチ押しです。深型で二重の網を採用し、取っ手・受け皿・蓋がそろうため、抽出中の保温や、外したカゴの一時置きに困りません。コーヒーのドリッパーとしても使える兼用タイプなので、キッチンの道具を増やしたくない人にも向きます。
+レビュー件数が400件を超えて評価も安定した、高評価のイチ押しです。商品ページには二重のメッシュと記載があり、商品名のとおり取っ手と蓋が付きます。コーヒーフィルターとしても使えるとの記載もあるため、キッチンの道具を増やしたくない人にも向きます。受け皿の付属は商品ページで確かめてください。
 
 「まずリーフティーを始めてみたい」という段階なら、この形をひとつ持っておけば、ポットでもマグでも困りません。
 
-### 2. ティーボール型 — ひねって茶葉を捨てられる
+### 2. ティーボール型 — 小ぶりで洗い物が少ない
 
-茶葉を小ぶりな金属のボールに詰めて、ポットやマグの中に直接沈めて使うタイプです。深型バスケット型より容量は小さいぶんコンパクトで、鎖やフックでカップの縁に留められる製品もあります。抽出が終わったら引き上げるだけ、洗い物もボール一つで済みます。
+茶葉を小ぶりな金属のボールに詰めて、ポットやマグの中に直接沈めて使うタイプです。深型バスケット型より容量は小さいぶんコンパクトで、鎖やフックでカップの縁に留められる製品もあります。抽出が終わったら引き上げるだけで、一般に洗い物が少なく済むタイプです。
 
 注意点は、ボールが小さいと茶葉が十分に開かず、味が出きらないことです。茶葉は湯の中で2〜3倍にふくらむので、**ボール型を選ぶなら「大きめ・ゆとりのある容量」を選ぶ**のがコツです。しっかりジャンピング（茶葉の対流）させたい繊細な茶葉より、ティーバッグ感覚で手早く一杯淹れたい日や、職場でのリーフティーに向いています。
 
 [![OXO オクソー ツイスト ティーボール 茶こし インフューザー](/images/tea-strainer-chakoshi-erabikata/products/1.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824ed19.228883d3.5824ed1a.ca7c2bba/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Foxojapan%2Foxr-00011749%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.78（81件） [OXO ツイスト ティーボールはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824ed19.228883d3.5824ed1a.ca7c2bba/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Foxojapan%2Foxr-00011749%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
+★4.78（86件） [OXO ツイスト ティーボールはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824ed19.228883d3.5824ed1a.ca7c2bba/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Foxojapan%2Foxr-00011749%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-キッチンツールで知られるOXOの製品で、3タイプの中では表示上の評価がもっとも高く（★4.78）、レビュー件数はまだ81件とこれから積み上がる段階です。上部をひねると底が開いて茶葉をそのまま捨てられる構造で、指を汚さずに片づけられます。ボール型のなかでは容量にゆとりがあり、茶葉がふくらむスペースを確保しやすい点が支持されています。マグ抽出を手軽にしたい人に向く一品です。
+キッチンツールで知られるOXOの製品で、3タイプの中では表示上の評価がもっとも高く（★4.78）、レビュー件数は86件と、ほかの2商品に比べるとまだ少なめです。商品名にある「ツイスト」の構造など、詳しい仕様は商品ページでご確認ください。サイズは商品ページに高さ4.5cmと記載があります。マグ抽出を手軽にしたい人に向く一品です。
 
 ### 3. ハンドル付きの細メッシュ — 微粉まで漉してクリアな一杯に
 
-持ち手のついたお椀型のストレーナーを、注ぐときにカップやポットの口に当てて使う従来型です。ここで取り上げるのは、金属線をすき間なく織り込んだ「タタミ織り（畳織り）」の200メッシュという非常に細かい網のもの。微粉やダストまで受け止めるので、カップの底に沈殿がほとんど残らず、水色（すいしょく）がクリアに見えます。フレーバーティーやブレンドティーのように細かい茶葉が混じりやすいお茶で差が出ます。
+持ち手のついたお椀型のストレーナーを、注ぐときにカップやポットの口に当てて使う従来型です。ここで取り上げるのは、金属線をすき間なく織り込んだ「タタミ織り（畳織り）」の200メッシュという非常に細かい網のもの。微粉やダストまで受け止めるので、細かい茶葉が通りにくく、カップの底に沈殿しにくいとされる網です。フレーバーティーやブレンドティーのように細かい茶葉が混じりやすいお茶で差が出ます。
 
-[![ナガオ ハイテックストレーナー 200メッシュ タタミ織り 燕三条](/images/tea-strainer-chakoshi-erabikata/products/3.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824ed3d.5185cc06.5824ed3e.43b1ac92/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fidea-happy-life%2F10003315%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
+★4.73（126件） [ナガオ ハイテックストレーナー（タタミ織り）はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824ed3d.5185cc06.5824ed3e.43b1ac92/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fidea-happy-life%2F10003315%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.73（119件） [ナガオ ハイテックストレーナー（タタミ織り）はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824ed3d.5185cc06.5824ed3e.43b1ac92/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fidea-happy-life%2F10003315%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
-
-新潟・燕三条でつくられる日本製で、18-8ステンレスのタタミ織りを使った本格タイプです。サイズ違いが選べるので、カップ用の小さめからポット用の大きめまで、手持ちの器に合わせられます。目が細かいぶん茶渋がたまると詰まりやすいため、使ったらすぐ洗う習慣とセットで長く使う道具です。単体売りで受け皿は付かないため、小皿を添えるとテーブルが汚れません。澄んだ一杯を追い求めたい人にはっきり応えてくれます。
+新潟・燕三条でつくられる日本製で、18-8ステンレスのタタミ織りを使った本格タイプです。商品ページではS・M・Lの3サイズ（直径5.5〜7.5cm）が選べるため、手持ちの器に合わせられます。目が細かいぶん茶渋がたまると詰まりやすいため、使ったらすぐ洗う習慣とセットで長く使う道具です。商品ページに受け皿が付属する記載は見当たらないため、小皿を添えるとテーブルが汚れにくくなります。澄んだ一杯を求める人に向きます。
 
 ## 目の細かさはどれくらい必要？
 
-迷いやすいのが網の細かさです。粗い網と細かい網で同じ紅茶を漉し比べると、粗いほうはカップの底にうっすら粉が残り、細かいほうは沈殿がほとんど見られません。ふだんの茶葉と飲み方から、次のように考えると選びやすくなります。
+迷いやすいのが網の細かさです。網の目が粗いほど細かい茶葉（微粉）は抜けやすく、細かいほど受け止めやすくなります。ふだんの茶葉と飲み方から、次のように考えると選びやすくなります。
 
 - **ふだんの茶葉が大きめ（OP・ホールリーフ中心）** — 中程度の二重メッシュで十分。抜けてくる微粉はごくわずかです。
-- **ティーバッグ用の細かい茶葉・CTC・フレーバーティーが多い** — 細かめ、できればタタミ織りクラスがおすすめ。粗い網だとカップの底に粉がたまります。
+- **ティーバッグ用の細かい茶葉・CTC・フレーバーティーが多い** — 細かめ、できればタタミ織りクラスがおすすめ。粗い網だとカップの底に粉がたまりやすくなります。
 - **ミルクティーにして飲むことが多い** — ミルクを入れると沈殿は目立ちにくいので、中程度でも気になりにくいです。
 
 細かい網は「よく漉せる」かわりに「詰まりやすく・乾きにくい」というトレードオフがあります。1つで済ませたいなら中〜やや細かめ、クリアな水色にこだわるなら細かいものを別に用意する、という二段構えが現実的です。
@@ -88,8 +86,8 @@ category: teaware
 
 ティーストレーナーは濡れた茶葉が残りやすく、放置すると茶渋やにおいの原因になります。長く清潔に使うために、次の3点を習慣にしておくと安心です。
 
-1. **使ったらすぐ茶葉を捨てて水洗い** — 乾いてこびりつくと網の目に詰まって取れにくくなります。流水で裏から当てるように流すと網が目詰まりしにくくなります。
-2. **茶渋が気になったら重曹または酸素系漂白剤** — ぬるま湯に溶かして数十分つけ置きし、やわらかいブラシで軽くこすります。金属たわしは網を傷めるので使いません。
+1. **使ったらすぐ茶葉を捨てて水洗い** — 乾いてこびりつくと網の目に詰まって取れにくくなります。流水を網の裏側から当てるように流すと、詰まった茶葉を押し出しやすくなります。
+2. **茶渋が気になったら、ぬるま湯でやわらかいブラシを使って軽くこする** — 金属たわしは網を傷めるおそれがあるので避けます。重曹や漂白剤でつけ置きする場合は、材質（樹脂やシリコンの部品の有無など）と製品の表示で使えるかを確認し、表示に従ってください。
 3. **しっかり乾かしてから収納** — 濡れたまましまうと水あかやにおいが出ます。受け皿や小皿の上で自然乾燥させ、乾いてから引き出しへ。
 
 ステンレス製なら煮沸消毒もできますが、樹脂やシリコンの部品がある製品は熱に弱いことがあるため、製品の表示を確認してから行ってください。
@@ -106,13 +104,13 @@ category: teaware
 ボールが小さく、茶葉がふくらみきれていない可能性があります。容量にゆとりのあるものに替える、茶葉の量を少し増やす、蒸らし時間を長めにとる、のいずれかで調整できます。繊細な香りを引き出したいときは、茶葉が自由に動けるポット抽出のほうが向いています。
 
 **Q. 網が茶色くなってきました。買い替えるべきですか？**
-茶渋による着色は衛生上の問題がなければ使い続けて構いません。つけ置き洗いで多くは薄くなります。網が破れている、変形して受け皿に安定して置けない、目詰まりが洗っても取れない、という状態になったら買い替えの目安です。
+茶渋による着色は破れ・変形・目詰まりが無ければ使い続けて構いません。洗い方を見直すと薄くなることもあります。網が破れている、変形して受け皿に安定して置けない、目詰まりが洗っても取れない、という状態になったら買い替えの目安です。
 
 ## まとめ：まず深型バスケット型の1本、こだわりが出たら細メッシュ
 
 ティーストレーナーは、リーフティーの一杯を濁りのない状態で楽しみ、後片づけを楽にするための小さな投資です。選ぶときは「網の細かさ」「受け皿の有無」「使う場所とサイズ」の3点を順に確認します。
 
-- **はじめの一本** — 受け皿と蓋のついた深型バスケット型。容量にゆとりがあり、ポットでもマグでも使えて卓上も汚れません。
+- **はじめの一本** — 蓋のついた深型バスケット型。容量にゆとりがあり、ポットでもマグでも使えます。受け皿が付く製品なら卓上も汚れにくくなります。
 - **洗い物を減らしたい・マグ派** — 容量にゆとりのあるティーボール型。
 - **クリアな水色にこだわる・フレーバーティーが多い** — タタミ織りの細メッシュを1つ追加。
 
