@@ -234,6 +234,11 @@ def t2(tmp):
     check("T2 run2の連番が2", run2["run_id"].endswith(":2"), run2["run_id"])
     steps1 = pr.read_steps(root, run1["run_id"])
     steps2 = pr.read_steps(root, run2["run_id"])
+    if not pr.RECORDING_ENABLED:
+        # D-0264: 記録停止中は record_step が何も書かない
+        check("T2 記録停止中はrun1にstepが書かれない", steps1 == [], str(steps1))
+        check("T2 記録停止中はrun2にstepが書かれない", steps2 == [], str(steps2))
+        return
     check("T2 run1のstepは1件のまま", len(steps1) == 1, str(steps1))
     check("T2 run2のstepは1件だけ", len(steps2) == 1, str(steps2))
     check("T2 run2のstepはpin2", steps2 and steps2[0].get("pin_num") == 2)
@@ -305,12 +310,18 @@ def t4(tmp):
                    result="NG", failed_check="check-fact-source.py")
     pr.finalize_run(root=root, session_id=sid, now=now + datetime.timedelta(minutes=5))
     document = load_handoff(root, record["run_id"], record["opened_date"])
-    check("T4 failedのhandoffが保存される", document is not None and document["status"] == "failed",
-          str(document and document["status"]))
-    check("T4 failedのoutputsは0件", document is not None and document["outputs"] == [])
-    check("T4 failure_reasonに失敗したチェック名が入る",
-          document is not None and "check-fact-source.py" in (document["failure_reason"] or ""),
-          str(document and document["failure_reason"]))
+    if not pr.RECORDING_ENABLED:
+        # D-0264: 記録停止中は publish_attempt も書かれず、failedのhandoffも作られない
+        check("T4 記録停止中はpublish_attemptのstepが書かれない",
+              pr.read_steps(root, record["run_id"]) == [])
+        check("T4 記録停止中はfailedのhandoffが作られない", document is None, str(document))
+    else:
+        check("T4 failedのhandoffが保存される", document is not None and document["status"] == "failed",
+              str(document and document["status"]))
+        check("T4 failedのoutputsは0件", document is not None and document["outputs"] == [])
+        check("T4 failure_reasonに失敗したチェック名が入る",
+              document is not None and "check-fact-source.py" in (document["failure_reason"] or ""),
+              str(document and document["failure_reason"]))
 
     sid2 = "sess-t4-quiet"
     touch_transcript(transcripts, sid2, now)
