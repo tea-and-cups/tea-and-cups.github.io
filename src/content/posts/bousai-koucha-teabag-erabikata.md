@@ -2,7 +2,7 @@
 title: 防災の日に備える、常温保存できる紅茶ティーバッグの選び方
 slug: bousai-koucha-teabag-erabikata
 date: 2026-08-06
-updated: 2026-10-13
+updated: 2026-10-27
 description: 9月1日の防災の日を機に、非常用持ち出し袋や備蓄に加えたい紅茶ティーバッグの選び方を紹介。常温保存のしやすさ・賞味期限・個包装のポイントと、ローリングストックでの活用法を整理します。
 tags: [紅茶, 防災, ティーバッグ, 保存方法]
 hero: /images/bousai-koucha-teabag-erabikata/hero.webp
@@ -28,19 +28,19 @@ category: seasons
 - **軽量・コンパクトなパッケージ** — 非常用持ち出し袋に入れる場合は、箱入りよりも個包装をまとめて小分け袋に入れるほうが、限られたスペースに詰めやすくなります。
 - **お湯が少量でも淹れやすいもの** — 災害時は大量のお湯を沸かせない場合もあるため、少量のお湯や水出しでも風味を感じられるティーバッグを選んでおくと、いざというとき選択肢が広がります。
 
-上記のポイントを満たす備蓄向けの紅茶ティーバッグを2つご紹介します。いずれも個包装・100個入りの大容量タイプで、まとめて備えておきやすいのが特徴です。
+上記のポイントを踏まえて、備蓄向けの紅茶ティーバッグを2つご紹介します。いずれも100個入りの大容量タイプで、まとめて備えておきやすいのが特徴です。個包装かどうかは、商品ページの表示で確認してください。
 
-★4.72（254件） [無農薬紅茶ティーバッグ100個入・常温1年保存可（水車むら農園）はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824d73f.ef6150e5.5824d740.f86ed557/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fsuisya%2Fktb-100%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
+★4.72（257件） [無農薬紅茶ティーバッグ100個入・常温1年保存可（水車むら農園）はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824d73f.ef6150e5.5824d740.f86ed557/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fsuisya%2Fktb-100%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-3g×100個の個包装で、商品ページに常温保存1年と表示されています（未開封で、記載された保存方法を守った場合の期間です）。静岡産の無添加紅茶で、備蓄用にまとめて備えやすい容量です。
+3g×100個入りで、商品ページに常温保存1年と表示されています（未開封で、記載された保存方法を守った場合の期間です）。静岡産の無添加紅茶で、備蓄用にまとめて備えやすい容量です。
 
-★4.44（469件） [セイロンティーダージリンブレンド ティーバッグ100個入・常温2年保存可（ティーライフ）はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824d766.75c6572a.5824d768.aaef66a5/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Ftealife-cafe%2F90659%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
+★4.44（470件） [セイロンティーダージリンブレンド ティーバッグ100個入・常温2年保存可（ティーライフ）はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824d766.75c6572a.5824d768.aaef66a5/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Ftealife-cafe%2F90659%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 こちらは商品ページに常温保存2年と表示されており（未開封で、記載された保存方法を守った場合の期間です）、賞味期限管理の手間を減らしたい備蓄用に向いています。セイロンとダージリンをブレンドした味わいで、ローリングストックとして日常使いもしやすい一品です。
 
 ## 保管場所と管理の工夫
 
-紅茶ティーバッグを備蓄する際は、直射日光や高温多湿を避けた場所に置くのが基本です。非常用持ち出し袋に入れる分と、自宅の備蓄棚に置く分とを分けて管理すると、それぞれの賞味期限を一目で把握できます。
+紅茶ティーバッグを備蓄する際は、各商品の保存方法の表示に従い、直射日光や高温多湿を避けた場所に置くのが基本です。非常用持ち出し袋に入れる分と、自宅の備蓄棚に置く分とを分けて管理すると、それぞれの賞味期限を一目で把握できます。
 
 備蓄品はまとめて奥にしまい込むと、いざというときに賞味期限が切れていた、という事態が起こりがちです。持ち出し袋の中身は年に1〜2回、防災の日や年末の大掃除のタイミングで見直す習慣をつけておくと安心です。
 
@@ -53,7 +53,9 @@ category: seasons
 ## 災害時の淹れ方の工夫
 
 - **お湯が限られている場合**: カップ1杯分の少なめのお湯でも、蒸らし時間を少し長めにすると、風味を引き出しやすくなります。
-- **お湯が使えない場合**: 水出しに対応した旨が商品に表示されているティーバッグであれば、飲用できる水（ペットボトルの水など）に入れて、パッケージの表示どおりの時間置くことで紅茶らしい風味を感じられます。常温で長く置くと傷みやすくなるため、作った水出し紅茶は早めに飲み切り、作り置きは避けてください。水出しの基本的な考え方は[水出し紅茶におすすめの茶葉4選](/posts/mizudashi-tea-leaves/)でも紹介しています。
+- **お湯が使えない場合**: 水出しに対応した旨が商品に表示されているティーバッグであれば、飲用できる水（ペットボトルの水など）に入れて、パッケージの表示どおりの時間置くことで紅茶らしい風味を感じられます。
+  - 東京都西多摩保健所が家庭でつくった冷茶の細菌検査をまとめた資料（[ご家庭でつくった冷茶を、衛生的に取り扱うために](https://www.hokeniryo.metro.tokyo.lg.jp/documents/d/hokeniryo/shoku38)）では、保存温度が高いほど、保存時間が長いほど一般細菌数が増えたとされ、冷茶は冷蔵庫で保存して常温での放置を避け、つくったら早めに飲み切るよう案内されています（一時的に冷蔵保存できない場合は、ティーバッグを取り出した状態で保存することが望ましいともされています）。
+  - 冷蔵庫が使えない災害時は、作った水出し紅茶は早めに飲み切り、作り置きは避けてください。冷蔵庫が使える場合の水出しの基本的な考え方は[水出し紅茶におすすめの茶葉4選](/posts/mizudashi-tea-leaves/)でも紹介しています。
 - **甘みが欲しいとき**: 砂糖やはちみつのスティックタイプも一緒に備蓄しておくと、疲れているときの気分転換につながるでしょう。
 
 ## よくある質問
