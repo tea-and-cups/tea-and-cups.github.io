@@ -1,0 +1,179 @@
+<template>
+<style>
+@font-face { font-family:"Noto Serif JP"; font-weight:200 900; src:url("assets/fonts/NotoSerifJP-VF.ttf") format("truetype"); }
+@font-face { font-family:"Noto Sans JP"; font-weight:100 900; src:url("assets/fonts/NotoSansJP-VF.ttf") format("truetype"); }
+#root { position:absolute; inset:0; overflow:hidden; background:#1e1610;
+  --paper:#fbf8f2; --ink:#3a2a1f; --amber:#c8873f; --amber-hi:#e2a95e; --deep:#8e531c;
+  --min:"Noto Serif JP", serif; --sans:"Noto Sans JP", sans-serif; }
+#root * { box-sizing:border-box; }
+
+/* 上下の2枚。境目の位置は clip-path で動かす。写真の寄りは外側の .cam にかける */
+.panel { position:absolute; left:0; top:0; width:1080px; height:1920px; overflow:hidden; }
+#top { clip-path:inset(0px 0px 968px 0px); }
+#bot { clip-path:inset(968px 0px 0px 0px); }
+#full { clip-path:inset(0px 0px 0px 0px); opacity:0; }
+.cam { position:absolute; left:0; top:0; width:1440px; height:2160px; transform-origin:0 0; }
+.cam img { position:absolute; left:0; top:0; width:1440px; height:2160px; }
+.cam svg { position:absolute; left:0; top:0; width:1440px; height:2160px; overflow:visible; }
+.line path, .line ellipse, .line rect { fill:none; stroke:var(--paper); stroke-width:2; stroke-linecap:round; vector-effect:non-scaling-stroke; }
+.shade-top { position:absolute; left:0; top:0; width:1080px; height:620px; background:linear-gradient(180deg, rgba(24,16,10,.62) 0%, rgba(24,16,10,.30) 60%, rgba(24,16,10,0) 100%); }
+.shade-bot { position:absolute; left:0; top:600px; width:1080px; height:560px; background:linear-gradient(180deg, rgba(24,16,10,.66) 0%, rgba(24,16,10,.42) 55%, rgba(24,16,10,0) 100%); }
+#div { position:absolute; left:0; top:952px; width:1080px; height:16px; background:var(--paper); box-shadow:0 0 30px rgba(0,0,0,.35); transform-origin:50% 50%; }
+
+/* 冒頭の問い */
+#qplate { position:absolute; left:0; top:0; width:1080px; height:720px; background:linear-gradient(180deg, rgba(24,16,10,.74) 0%, rgba(24,16,10,.55) 55%, rgba(24,16,10,0) 100%); }
+#kick { position:absolute; left:64px; top:196px; height:62px; padding:0 26px; display:flex; align-items:center; border-radius:14px; background:rgba(30,22,16,.62); color:var(--paper); font:700 36px var(--sans); white-space:nowrap; }
+#kick-ul { position:absolute; left:250px; top:262px; width:290px; height:24px; }
+#kick-ul svg, #cta-ul svg, #care-ul svg { width:100%; height:100%; overflow:visible; }
+#kick-ul path, #cta-ul path, #care-ul path { fill:none; stroke:var(--paper); stroke-width:7; stroke-linecap:round; }
+#q { position:absolute; left:64px; top:310px; width:960px; transform-origin:0 0; }
+#q .l { display:block; font:800 104px/1.22 var(--min); color:var(--paper); white-space:nowrap; text-shadow:0 4px 26px rgba(0,0,0,.6); }
+
+/* 札（共通） */
+.tag { position:absolute; left:60px; font:700 44px var(--sans); color:var(--paper); background:rgba(30,22,16,.62); padding:6px 22px 10px; border-radius:14px; white-space:nowrap; }
+
+/* 鍵のカード */
+.card { position:absolute; top:596px; width:280px; height:270px; border-radius:22px; overflow:hidden; border:5px solid var(--paper); box-shadow:0 14px 40px rgba(0,0,0,.40); }
+.card img { position:absolute; }
+#card1 { left:80px; } #card2 { left:400px; } #card3 { left:720px; }
+
+/* 章の札 */
+.pill { position:absolute; top:180px; height:54px; display:flex; align-items:center; justify-content:center; border-radius:999px; font:700 32px var(--sans); white-space:nowrap; background:var(--paper); color:var(--ink); transform-origin:50% 50%; box-shadow:0 8px 26px rgba(0,0,0,.30); }
+#p1 { left:612px; width:140px; } #p2 { left:766px; width:166px; } #p3 { left:946px; width:110px; }
+
+/* S5（手入れ）: planA-motion の care.html から移植 */
+#care-plate { position:absolute; left:0; top:600px; width:1080px; height:352px; background:linear-gradient(180deg, rgba(24,16,10,0) 0%, rgba(24,16,10,.58) 22%, rgba(24,16,10,.66) 100%); }
+#care-hd1 { position:absolute; left:64px; top:636px; width:952px; }
+#care-hd1 .s { display:block; font:600 50px var(--min); color:rgba(251,248,242,.92); text-shadow:0 2px 14px rgba(0,0,0,.6); }
+#care-hd1 .b { display:block; margin-top:6px; font:800 96px/1.15 var(--min); color:var(--paper); white-space:nowrap; text-shadow:0 4px 26px rgba(0,0,0,.6); }
+#care-hd1 .w { display:inline-block; }
+#care-hd2 { position:absolute; left:64px; top:722px; width:952px; font:800 78px/1.2 var(--min); color:var(--paper); white-space:nowrap; text-shadow:0 4px 26px rgba(0,0,0,.6); }
+#care-ul { position:absolute; left:64px; top:822px; width:400px; height:28px; }
+.care-ic { position:absolute; top:884px; width:200px; height:178px; padding-top:20px; border-radius:24px; background:rgba(251,248,242,.95); text-align:center; font:700 34px var(--sans); color:var(--ink); box-shadow:0 12px 36px rgba(0,0,0,.32); }
+.care-ic svg { display:block; margin:0 auto 6px; }
+#care-ic1 { left:290px; } #care-ic2 { left:590px; }
+.care-q { position:absolute; right:-18px; top:-20px; width:64px; height:64px; border-radius:50%; background:rgba(30,22,16,.85); color:var(--paper); font:800 42px/62px var(--min); text-align:center; box-shadow:0 6px 18px rgba(0,0,0,.3); }
+#care-ex { position:absolute; left:64px; top:874px; width:952px; height:176px; border-radius:26px; background:rgba(251,248,242,.95); box-shadow:0 14px 40px rgba(0,0,0,.30); }
+#care-ex-frame { position:absolute; left:0; top:0; width:952px; height:176px; overflow:visible; }
+#care-ex-frame rect { fill:none; stroke:var(--ink); stroke-width:3; stroke-dasharray:10 9; }
+#care-ex .hd { position:absolute; left:28px; top:22px; font:700 30px var(--sans); color:var(--paper); background:var(--ink); padding:2px 16px 6px; border-radius:10px; }
+#care-ex .it { position:absolute; top:80px; display:flex; align-items:center; gap:14px; font:700 36px var(--sans); color:var(--ink); white-space:nowrap; }
+#care-ex .it1 { left:40px; } #care-ex .it2 { left:500px; }
+
+/* 好みの「か」 */
+#ka { position:absolute; left:496px; top:908px; width:88px; height:88px; border-radius:50%; background:rgba(30,22,16,.75); border:3px solid var(--paper); color:var(--paper); font:800 52px/78px var(--min); text-align:center; box-shadow:0 8px 22px rgba(0,0,0,.35); }
+
+/* 答え・終わり */
+#ans-s { position:absolute; left:64px; top:330px; font:600 54px var(--min); color:rgba(251,248,242,.92); text-shadow:0 2px 14px rgba(0,0,0,.6); }
+#ans-b { position:absolute; left:64px; top:410px; width:960px; }
+#ans-b .l { display:block; font:800 112px/1.2 var(--min); color:var(--paper); white-space:nowrap; text-shadow:0 4px 26px rgba(0,0,0,.6); }
+#ans-b .w { display:inline-block; }
+#cta { position:absolute; left:64px; top:740px; height:76px; padding:0 30px; display:flex; align-items:center; border-radius:18px; background:rgba(251,248,242,.95); color:var(--ink); font:700 40px var(--sans); white-space:nowrap; box-shadow:0 12px 34px rgba(0,0,0,.35); }
+#cta-ul { position:absolute; left:94px; top:826px; width:520px; height:24px; }
+#logo { position:absolute; left:280px; top:700px; width:520px; height:520px; transform-origin:50% 50%; filter:drop-shadow(0 14px 38px rgba(0,0,0,.45)); }
+#credit { position:absolute; left:0; top:1248px; width:1080px; text-align:center; font:600 40px/1.2 var(--sans); color:rgba(251,248,242,.92); letter-spacing:.04em; }
+.scene { position:absolute; left:64px; font:900 78px/1.2 var(--sans); color:var(--paper); white-space:nowrap;
+  text-shadow:0 2px 18px rgba(0,0,0,.50), 0 0 6px rgba(0,0,0,.30); }
+.scene::after { content:""; position:absolute; left:2px; right:2px; bottom:-12px; height:5px; border-radius:3px;
+  background:rgba(251,248,242,.92); box-shadow:0 1px 6px rgba(0,0,0,.45); }
+.spot { opacity:0; }
+.lead path { vector-effect:none; filter:drop-shadow(0 0 2px rgba(20,14,10,.85)); }
+.lead circle { fill:#fbf8f2; stroke:rgba(30,22,16,.9);
+  filter:drop-shadow(0 0 3px rgba(20,14,10,.75)); transform-box:fill-box; transform-origin:50% 50%; }
+#rim-sweep path { fill:none; stroke:#fffaf0; stroke-linecap:round; vector-effect:non-scaling-stroke; }
+#rim-sweep .glow { stroke-width:16; stroke-opacity:.35; } #rim-sweep .core { stroke-width:4; }
+</style>
+
+<div id="root" data-composition-id="film" data-width="1080" data-height="1920">
+  <div id="bot" class="panel">
+{{cam:b-mug}}
+{{cam:b-col}}
+    <div class="shade-bot"></div>
+  </div>
+  <div id="top" class="panel">
+{{cam:t-aft}}
+    <div class="shade-top"></div>
+  </div>
+  <div id="div"></div>
+  <div id="full" class="panel">
+{{cam:f-gift}}
+  </div>
+
+  <div id="qplate"></div>
+  <div id="kick">{{kick}}</div>
+  <div id="kick-ul"><svg viewBox="0 0 290 24"><path d="M 4 14 Q 80 6 150 12 T 286 10" /></svg></div>
+  <div id="q">{{q}}</div>
+{{overlays}}
+
+  <!-- 答え -->
+  <div id="ans-s">{{ans_s}}</div>
+  <div id="ans-b">{{ans_b}}</div>
+  <div id="cta">{{cta}}</div>
+  <div id="cta-ul"><svg viewBox="0 0 520 24"><path d="M 4 14 Q 130 6 260 12 T 516 10" /></svg></div>
+
+{{pills}}
+
+  <img id="logo" src="assets/brand/badge-circle.png" alt="琥珀時間">
+  <div id="credit">{{credit}}</div>
+</div>
+
+<script>
+(function () {
+  // 秒は narration.wav の秒（{{timeline_label}}）。区間: {{sections}}
+  const tl = gsap.timeline({ paused: true });
+  const IN = 0.18;            // 字の入り
+  const DIM = "rgba(30,22,16,.40)", DIMC = "rgba(251,248,242,.50)";
+  const {{consts}};
+
+  // 字の入り（柔らかいぼかしから）と出
+  const soft = (sel, t, from) => tl.fromTo(sel, Object.assign({ opacity: 0, y: 10, filter: "blur(6px)" }, from || {}),
+    { opacity: 1, x: 0, y: 0, filter: "blur(0px)", duration: IN, ease: "power3.out" }, t);
+  const slide = (sel, t) => tl.fromTo(sel, { opacity: 0, x: -36 }, { opacity: 1, x: 0, duration: IN, ease: "expo.out" }, t);
+  const out = (sel, t) => tl.to(sel, { opacity: 0, filter: "blur(6px)", duration: 0.2, ease: "power2.in" }, t);
+  // 上下の境目（y は 952 からのずれ）
+  const split = (y, t, d, ease) => {
+    tl.to("#div", { y: y, duration: d, ease: ease }, t);
+    tl.to("#top", { clipPath: `inset(0px 0px ${968 - y}px 0px)`, duration: d, ease: ease }, t);
+    tl.to("#bot", { clipPath: `inset(${968 + y}px 0px 0px 0px)`, duration: d, ease: ease }, t);
+  };
+
+  // ---- 0コマ目（カバー）: 上下2枚・札・問いが出そろっている
+{{cover}}
+  gsap.set(".lead path", { strokeDasharray: 400, strokeDashoffset: 400 });
+  gsap.set(".lead circle", { scale: 0, opacity: 0 });
+  gsap.set("#rim-sweep path", { strokeDasharray: "150 1500", strokeDashoffset: 150, opacity: 0 });
+  gsap.set(["#kick-ul path", "#cta-ul path"], { strokeDasharray: 560, strokeDashoffset: 560 });
+  gsap.set("#care-ul path", { strokeDasharray: 420, strokeDashoffset: 420 });
+  gsap.set("#care-ex-frame", { clipPath: "inset(0px 100% 0px 0px)" });
+{{hidden}}
+  gsap.set("#logo", { scale: 0.96 });
+  // 鍵のカードの札の位置（あとで上の列へ運ぶ）
+{{pill_from}}
+
+{{cues_A}}
+
+{{cues_B}}
+
+{{cues_C}}
+
+{{cues_D}}
+
+{{cues_E}}
+
+{{cues_F}}
+
+{{cues_G}}
+
+  // ==== H 終わり（{{H0}}–）: 写真がぼけて暗くなる中からロゴが浮かび上がり、少し遅れて AI 表示が出る（ブランドのエンドカード）
+  tl.to("#f-gift-img", { "--hf-color-grading-blur": 1, "--hf-color-grading-exposure": -1.6, duration: 0.8, ease: "power2.out" }, H0);
+  tl.to(["#q", "#ans-s", "#ans-b", "#cta", "#cta-ul", "#qplate"], { opacity: 0, filter: "blur(6px)", duration: 0.3, ease: "power2.inOut" }, H0);
+  tl.to("#logo", { opacity: 1, duration: 0.6, ease: "sine.inOut" }, H0);  // 出だしを遅く（G の字・明るい写真と重ならない）
+  tl.to("#logo", { scale: 1, duration: 0.9, ease: "sine.out" }, H0);
+  tl.fromTo("#credit", { opacity: 0, y: 10, filter: "blur(6px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.35, ease: "power2.out" }, H0 + 0.2);
+{{cues_H}}
+
+  window.__timelines = window.__timelines || {};
+  window.__timelines["film"] = tl;
+})();
+</script>
+</template>

@@ -14,7 +14,7 @@ r"""動画の実行環境（声・書き出し・ffmpeg・素材）が、data/vi
   各パスの存在 / 小さいファイル（SMALL_BYTES 以下）の sha256 / 大きいファイル（重み・exe）の bytes /
   uv・python・ffmpeg・ffprobe の版（--version の出力）/ hyperframes の版（package.json）/ node の版の下限 /
   Irodori-TTS の commit（.git を読む）/ .venv の home・版・torch と transformers の dist-info /
-  env の必須値（通信を止める項目と、ブラウザ・ffprobe のパスが json の実物と同じか）
+  env の必須値（通信を止める項目と、ブラウザ・ffprobe・ffmpeg のパスが json の実物と同じか）
 
 使い方:
   python site/scripts/check-video-runtime.py
@@ -260,8 +260,9 @@ def main():
         check_hyperframes(c, cfg["hyperframes"])
         check_ffmpeg(c, cfg["ffmpeg"])
         check_assets(c, cfg["assets"])
-        hf_ffprobe = resolve_env(cfg["hyperframes"]["env"].get("HYPERFRAMES_FFPROBE_PATH", "missing"), c.root)
-        c.same("hyperframes.env.HYPERFRAMES_FFPROBE_PATH", c.path(cfg["ffmpeg"]["ffprobe"]["path"]).replace("\\", "/"), hf_ffprobe)
+        for key, name in (("HYPERFRAMES_FFPROBE_PATH", "ffprobe"), ("HYPERFRAMES_FFMPEG_PATH", "ffmpeg")):
+            got = resolve_env(cfg["hyperframes"]["env"].get(key, "missing"), c.root)
+            c.same("hyperframes.env." + key, c.path(cfg["ffmpeg"][name]["path"]).replace("\\", "/"), got)
     except (KeyError, TypeError, AttributeError) as e:
         print(f"{MARK_CONFIG} 必須の項目が無い・型が違う: {args.config} ({type(e).__name__}: {e})")
         return 2
