@@ -1,11 +1,12 @@
 """声の段: 台本（script.json）→ ジョブ表 → Irodori-TTS（実行環境の voice_master.py）→ take の選択・末尾の処理・つなぎ・正規化 → 読み違いの目安。
 試作の make_voice_jobs.py・build_voice.py・asr_check.py を移したもの。計算は変えていない。変えたのは次の3点だけ。
-  - パス: 参照 WAV・ffmpeg・TTS は data/video-runtime.json から、読み辞書は data/video-lexicon.json から引く
+  - パス: 参照 WAV・ffmpeg・TTS は data/video-runtime.json から、読みの例外表は data/video-lexicon.json（＋video-N.film.json の lexicon）から引く
   - cut_tail の守り: モーラ数 ÷ MIN_MORA_PER_S 秒を「残してよい最短の長さ」とし、削ったあとがこれを下回る1回は取り消して止める
   - takes.tsv の印: 削った塊の大きさ（ピーク比 dB）の最大を tail_cut_max_db に、LOUD_CUT_DB を超えたら tail_loud=1（耳で聞く対象。自動では判断しない）
 出力（動画フォルダの下）: voice/jobs/voice.json・voice/reading.tsv・voice/raw/・voice/takes.tsv・voice/selected/・
   work/narration-pre.wav・work/narration.wav・work/timeline.json・voice/asr-selected.tsv
 """
+import difflib
 import itertools
 import json
 import re
@@ -15,14 +16,17 @@ from pathlib import Path
 
 import numpy as np
 
-from video.lexicon import kanji_left, merged_lexicon, voice_text
+from video.lexicon import applied, merged_lexicon, voice_text
 
 SR = 48000
-HEAD, TAIL = 0.5, 2.6
+HEAD, TAIL = 0.5, 3.45   # TAIL: 最後の文の終わりからの尺。エンドカードの AI表示が α≥0.9 で 2.5秒以上見えるように（2.6 から延ばした）
 MASTER_F0 = 224.0
 SMALL = set("ゃゅょぁぃぅぇぉャュョァィゥェォ")
 MIN_MORA_PER_S = 9.0   # cut_tail の守り（これより速い読みになる長さまでは削らない）
 LOUD_CUT_DB = -12.0    # 削った塊がこれを超えたら印（語の可能性）
+# cut_tail の①の線（2026-10-28 (b)・Sho が聞いて選択: 線B）。①は「−9dB 以下の塊」だけ削る。
+# 雑音の塊は −10.5〜−17.8dB、語の塊は −7.7dB より大きい（reports/2026-10-28-6.md）。(a) の線は max_db None（大きさを見ない）だった
+LINE_A = {"r1_len": 0.45, "r1_drops": None, "r1_max_db": -9.0}
 SEED = 11
 ASR_PS1 = Path(__file__).resolve().parent / "asr_win.ps1"
 
@@ -33,11 +37,11 @@ def make_jobs(d, rt, seeds=(SEED,), only=None):
     """voice/jobs/voice.json と voice/reading.tsv を書く。only（文の id の集まり）を渡すと、その文だけのジョブ表にする。
     返り値: (ジョブ表のパス, ジョブ数, reading の行)"""
     sc = json.loads((d / "script.json").read_text(encoding="utf-8"))
-    lex = merged_lexicon(sc)
-    jobs, rows = [], ["id\tscreen\tvoice\tkanji_left"]
+    lex = merged_lexicon(d)
+    jobs, rows = [], ["id\tscreen\tvoice\texceptions"]
     for s in sc["sentences"]:
         v = voice_text(s, lex)
-        rows.append(f"{s['id']}\t{''.join(s['phrases'])}\t{v}\t{kanji_left(v)}")
+        rows.append(f"{s['id']}\t{''.join(s['phrases'])}\t{v}\t{applied(s, lex)}")
         if only is not None and s["id"] not in only:
             continue
         for seed in seeds:
@@ -182,18 +186,22 @@ def periodicity(x):
     return float(max(0.0, ac[lo:hi].max() / ac[0])) if hi > lo else 0.0
 
 
-def cut_tail(y, min_len=None):
+def cut_tail(y, min_len=None, line=None):
     """末尾の余計な音を落とす。4回まで。返り値: (切った波形, 切った秒, 回数, 印)
     最後の音の塊（-30dB を越える 10ms の続き。規則ごとの長さの谷で分ける）が次のどれかなら、その前の塊の終わり＋0.08秒で切る:
-      ① 0.22秒以上の間の後ろの 0.45秒未満の音（v1 からの規則）
+      ① 0.22秒以上の間の後ろの、R1_LEN 秒未満の音（v1 からの規則。既定 0.45秒）。line の r1_drops 回まで・r1_max_db 以下の塊だけ、にもできる
       ② 0.12秒以上の間の後ろの、-18dB に届かない 0.45秒未満の弱い音（息・雑音）
       ③ 0.05秒以上の間の後ろの、0.12秒未満の -12dB を越える有声でない短い突発音
+    line: ①の線（dict）。r1_len（塊の長さの上限・秒）・r1_drops（①で削る回数の上限・None なら無制限）・
+      r1_max_db（①は塊のピーク比 dB がこの値以下のときだけ・None なら条件なし）。省略は (a) の線（0.45秒・無制限・条件なし）。
     守り: min_len（秒）を渡すと、削ったあとの長さがそれを下回る1回は取り消して止める（語の間に間を置く読みで、
       ①が末尾から語を1つずつ食べるのを止める。2026-10-28-4 の 4-1）。
     印: {"guard": 守りで止めたら1, "max_db": 削った塊の大きさ（ピーク比 dB）の最大・削っていなければ None}
     最後に 40ms のフェードアウト（つなぎ目に段差を作らない）。"""
+    ln_ = {**LINE_A, **(line or {})}
     n0 = len(y)
     drops = 0
+    r1_used = 0
     flag = {"guard": 0, "max_db": None}
     for _ in range(4):
         db, n = rms_db(y, 0.01)
@@ -217,9 +225,11 @@ def cut_tail(y, min_len=None):
                 k += 1
         act_sm = np.where(sm)[0]
         cut = None
-        for min_gap, act, test in ((0.05, np.where(on)[0], lambda ln, mx, seg: ln < 0.12 and mx > -12 and periodicity(seg) < 0.4),
-                                   (0.12, act_sm, lambda ln, mx, seg: ln < 0.45 and mx < -18),
-                                   (0.22, act_sm, lambda ln, mx, seg: ln < 0.45)):
+        r1_ok = ln_["r1_drops"] is None or r1_used < ln_["r1_drops"]
+        for rule, (min_gap, act, test) in enumerate(((0.05, np.where(on)[0], lambda ln, mx, seg: ln < 0.12 and mx > -12 and periodicity(seg) < 0.4),
+                                                     (0.12, act_sm, lambda ln, mx, seg: ln < 0.45 and mx < -18),
+                                                     (0.22, act_sm, lambda ln, mx, seg: r1_ok and ln < ln_["r1_len"]
+                                                      and (ln_["r1_max_db"] is None or mx <= ln_["r1_max_db"])))):
             if len(act) < 2:
                 continue
             gaps = np.where(np.diff(act) * 0.01 >= min_gap)[0]
@@ -229,7 +239,7 @@ def cut_tail(y, min_len=None):
             a, b = act[g + 1], act[-1] + 1
             mx = db[a:b].max() - peak
             if test((b - a) * 0.01, mx, y[a * n:b * n]):
-                cut = (min((act[g] + 1) * n + int(0.08 * SR), a * n), float(mx))
+                cut = (min((act[g] + 1) * n + int(0.08 * SR), a * n), float(mx), rule)
                 break
         if cut is None:
             # 最後の塊の後ろに残る -30dB 未満の小さな雑音は、塊の終わり＋0.08秒で切る
@@ -242,6 +252,7 @@ def cut_tail(y, min_len=None):
             break
         y = y[:cut[0]].copy()
         drops += 1
+        r1_used += cut[2] == 2
         flag["max_db"] = cut[1] if flag["max_db"] is None else max(flag["max_db"], cut[1])
     k = int(0.04 * SR)
     y[-k:] *= np.linspace(1, 0, k)
@@ -334,7 +345,7 @@ def build(d, rt):
     """take を選び、末尾を処理し、つないで正規化する。返り値: timeline（dict）"""
     voice, work = d / "voice", d / "work"
     sc = json.loads((d / "script.json").read_text(encoding="utf-8"))
-    lex = merged_lexicon(sc)
+    lex = merged_lexicon(d)
     gap = sc.get("gap_after", {})
     want = sc.get("pick", {})
     for s in sc["sentences"]:
@@ -424,9 +435,16 @@ def build(d, rt):
 
 # ---- 読み違いの目安（asr_check.py）
 
+def similarity(want, got):
+    """声の入力と asr の文字の近さ（0〜1・記号と空白を除いて比べる）。読み違いの点検の入口だけに使う（asr は精度が低く、合否には使わない）。"""
+    norm = lambda t: re.sub(r"[、。・，． 　]", "", t or "")
+    a, b = norm(want), norm(got)
+    return round(difflib.SequenceMatcher(None, a, b).ratio(), 2) if a and b else 0.0
+
+
 def asr(d, kind="selected"):
     """WAV の頭と末尾に 0.6秒の無音を足して work/asr/ に置き、Windows 標準の日本語の音声認識（手元だけ）で起こす。
-    結果は voice/asr-<kind>.tsv（file・voice_input・asr・confidence）。一致の判定は人が見る（耳の代わりではない）。"""
+    結果は voice/asr-<kind>.tsv（file・voice_input・asr・confidence・similarity）。similarity は点検の入口だけ（合否ではない）。耳の代わりではない。"""
     src = d / "voice" / kind
     dst = d / "work" / "asr" / kind
     dst.mkdir(parents=True, exist_ok=True)
@@ -447,12 +465,13 @@ def asr(d, kind="selected"):
     out = d / "work" / "asr" / f"asr-{kind}.tsv"
     subprocess.run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(ASR_PS1), str(dst), str(out)], check=True)
     sc = json.loads((d / "script.json").read_text(encoding="utf-8"))
-    want = {s["id"]: voice_text(s, merged_lexicon(sc)) for s in sc["sentences"]}
-    rows = ["file\tvoice_input\tasr\tconfidence"]
+    lex = merged_lexicon(d)
+    want = {s["id"]: voice_text(s, lex) for s in sc["sentences"]}
+    rows = ["file\tvoice_input\tasr\tconfidence\tsimilarity"]
     for line in out.read_text(encoding="utf-8").splitlines()[1:]:
         name, text, conf = (line.split("\t") + ["", ""])[:3]
         sid = Path(name).stem.split("_")[-1]
-        rows.append(f"{name}\t{want.get(sid, '')}\t{text}\t{conf}")
+        rows.append(f"{name}\t{want.get(sid, '')}\t{text}\t{conf}\t{similarity(want.get(sid, ''), text)}")
     res = d / "voice" / f"asr-{kind}.tsv"
     res.write_text("\n".join(rows) + "\n", encoding="utf-8")
     return res

@@ -121,7 +121,7 @@ def cmd_next(args):
         sc = d / "script.json"
         if not sc.exists():
             sc.write_text(json.dumps({
-                "_note": f"動画{n}の台本。phrases＝画面の字（句ごと）。voice は data/video-lexicon.json＋この lexicon を phrases に当てて作る。"
+                "_note": f"動画{n}の台本。phrases＝画面の字（句ごと）。voice は phrases を漢字のまま入力し、data/video-lexicon.json（共通の例外表）＋video-{n}.film.json の lexicon（記事ごとの例外。film.json が無い間はこの lexicon）で読み違える語だけ直す。"
                          "事実の出どころは source（記事の本文）。記事に無い事実・商品・体験は足さない。",
                 "slug": args.create, "article_url": f"https://kohaku-jikan.com/posts/{args.create}/", "lexicon": [], "gap_after": {},
                 "sentences": [{"id": "S1", "scene": "hook", "phrases": [], "source": ""}]}, ensure_ascii=False, indent=1), encoding="utf-8")
@@ -132,7 +132,7 @@ def cmd_next(args):
 # ---- check-script
 
 def cmd_check_script(args):
-    from video.lexicon import kanji_left, merged_lexicon, voice_text
+    from video.lexicon import applied, merged_lexicon, voice_text
     d = video_dir(args.video)
     sc = json.loads((d / "script.json").read_text(encoding="utf-8"))
     ng = []
@@ -154,12 +154,12 @@ def cmd_check_script(args):
                 ng.append(f"{sid}: 句が {len(p)}字（1画面 {SCREEN_CHARS}字まで）: {p}")
             elif len(p) > LINE_CHARS:
                 print(f"INFO {sid}: 句が {len(p)}字（1行 {LINE_CHARS}字を超えるので2行になる）: {p}")
-    lex = merged_lexicon(sc)
-    print("id\tscreen\tvoice\tkanji_left")
+    lex = merged_lexicon(d)
+    print("id\tscreen\tvoice\texceptions")
     for s in sc.get("sentences", []):
         if s.get("phrases"):
             v = voice_text(s, lex)
-            print(f"{s['id']}\t{''.join(s['phrases'])}\t{v}\t{kanji_left(v)}")
+            print(f"{s['id']}\t{''.join(s['phrases'])}\t{v}\t{applied(s, lex)}")
     for m in ng:
         print("NG", m)
     print("SCRIPT_OK" if not ng else f"SCRIPT_NG {len(ng)}件")

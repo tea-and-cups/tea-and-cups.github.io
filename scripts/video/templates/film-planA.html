@@ -2,9 +2,14 @@
 <style>
 @font-face { font-family:"Noto Serif JP"; font-weight:200 900; src:url("assets/fonts/NotoSerifJP-VF.ttf") format("truetype"); }
 @font-face { font-family:"Noto Sans JP"; font-weight:100 900; src:url("assets/fonts/NotoSansJP-VF.ttf") format("truetype"); }
+@font-face { font-family:"Zen Old Mincho"; font-weight:700; src:url("assets/fonts/ZenOldMincho-Bold.ttf") format("truetype"); }
+@font-face { font-family:"Zen Old Mincho"; font-weight:600; src:url("assets/fonts/ZenOldMincho-SemiBold.ttf") format("truetype"); }
 #root { position:absolute; inset:0; overflow:hidden; background:#1e1610;
   --paper:#fbf8f2; --ink:#3a2a1f; --amber:#c8873f; --amber-hi:#e2a95e; --deep:#8e531c;
-  --min:"Noto Serif JP", serif; --sans:"Noto Sans JP", sans-serif; }
+  --min:"Noto Serif JP", serif; --sans:"Noto Sans JP", sans-serif;
+  /* 見出し・答えの字体（問い #q・手入れの見出し・「か」・答え）。字体・太さ・色はここだけで変える。
+     Zen Old Mincho（柔らかい明朝・OFL）。Noto Serif JP の太字が硬く冷たく見えるため（2026-10-28 (b)・Sho の選択） */
+  --head:"Zen Old Mincho", "Noto Serif JP", serif; --hw-b:700; --hw-s:600; --ink-h:var(--paper); --ink-hs:rgba(251,248,242,.92); }
 #root * { box-sizing:border-box; }
 
 /* 上下の2枚。境目の位置は clip-path で動かす。写真の寄りは外側の .cam にかける */
@@ -18,6 +23,9 @@
 .line path, .line ellipse, .line rect { fill:none; stroke:var(--paper); stroke-width:2; stroke-linecap:round; vector-effect:non-scaling-stroke; }
 .shade-top { position:absolute; left:0; top:0; width:1080px; height:620px; background:linear-gradient(180deg, rgba(24,16,10,.62) 0%, rgba(24,16,10,.30) 60%, rgba(24,16,10,0) 100%); }
 .shade-bot { position:absolute; left:0; top:600px; width:1080px; height:560px; background:linear-gradient(180deg, rgba(24,16,10,.66) 0%, rgba(24,16,10,.42) 55%, rgba(24,16,10,0) 100%); }
+/* 下の段の 1330 より下（操作 UI の帯）を暗く落とす幕。主題を帯の中に置くと、写真が下に足りなくなる分を隠す（DS から出す） */
+.scrim-bot { position:absolute; left:0; top:1330px; width:1080px; height:590px; opacity:0;
+  background:linear-gradient(180deg, rgba(30,22,16,0) 0%, rgba(30,22,16,.62) 22%, rgba(30,22,16,.97) 50%, #1e1610 70%, #1e1610 100%); }
 #div { position:absolute; left:0; top:952px; width:1080px; height:16px; background:var(--paper); box-shadow:0 0 30px rgba(0,0,0,.35); transform-origin:50% 50%; }
 
 /* 冒頭の問い */
@@ -27,7 +35,7 @@
 #kick-ul svg, #cta-ul svg, #care-ul svg { width:100%; height:100%; overflow:visible; }
 #kick-ul path, #cta-ul path, #care-ul path { fill:none; stroke:var(--paper); stroke-width:7; stroke-linecap:round; }
 #q { position:absolute; left:64px; top:310px; width:960px; transform-origin:0 0; }
-#q .l { display:block; font:800 104px/1.22 var(--min); color:var(--paper); white-space:nowrap; text-shadow:0 4px 26px rgba(0,0,0,.6); }
+#q .l { display:block; font:var(--hw-b) 104px/1.22 var(--head); color:var(--ink-h); white-space:nowrap; text-shadow:0 4px 26px rgba(0,0,0,.6); }
 
 /* 札（共通） */
 .tag { position:absolute; left:60px; font:700 44px var(--sans); color:var(--paper); background:rgba(30,22,16,.62); padding:6px 22px 10px; border-radius:14px; white-space:nowrap; }
@@ -44,15 +52,15 @@
 /* S5（手入れ）: planA-motion の care.html から移植 */
 #care-plate { position:absolute; left:0; top:600px; width:1080px; height:352px; background:linear-gradient(180deg, rgba(24,16,10,0) 0%, rgba(24,16,10,.58) 22%, rgba(24,16,10,.66) 100%); }
 #care-hd1 { position:absolute; left:64px; top:636px; width:952px; }
-#care-hd1 .s { display:block; font:600 50px var(--min); color:rgba(251,248,242,.92); text-shadow:0 2px 14px rgba(0,0,0,.6); }
-#care-hd1 .b { display:block; margin-top:6px; font:800 96px/1.15 var(--min); color:var(--paper); white-space:nowrap; text-shadow:0 4px 26px rgba(0,0,0,.6); }
+#care-hd1 .s { display:block; font:var(--hw-s) 50px var(--head); color:var(--ink-hs); text-shadow:0 2px 14px rgba(0,0,0,.6); }
+#care-hd1 .b { display:block; margin-top:6px; font:var(--hw-b) 96px/1.15 var(--head); color:var(--ink-h); white-space:nowrap; text-shadow:0 4px 26px rgba(0,0,0,.6); }
 #care-hd1 .w { display:inline-block; }
-#care-hd2 { position:absolute; left:64px; top:722px; width:952px; font:800 78px/1.2 var(--min); color:var(--paper); white-space:nowrap; text-shadow:0 4px 26px rgba(0,0,0,.6); }
+#care-hd2 { position:absolute; left:64px; top:722px; width:952px; font:var(--hw-b) 78px/1.2 var(--head); color:var(--ink-h); white-space:nowrap; text-shadow:0 4px 26px rgba(0,0,0,.6); }
 #care-ul { position:absolute; left:64px; top:822px; width:400px; height:28px; }
 .care-ic { position:absolute; top:884px; width:200px; height:178px; padding-top:20px; border-radius:24px; background:rgba(251,248,242,.95); text-align:center; font:700 34px var(--sans); color:var(--ink); box-shadow:0 12px 36px rgba(0,0,0,.32); }
 .care-ic svg { display:block; margin:0 auto 6px; }
 #care-ic1 { left:290px; } #care-ic2 { left:590px; }
-.care-q { position:absolute; right:-18px; top:-20px; width:64px; height:64px; border-radius:50%; background:rgba(30,22,16,.85); color:var(--paper); font:800 42px/62px var(--min); text-align:center; box-shadow:0 6px 18px rgba(0,0,0,.3); }
+.care-q { position:absolute; right:-18px; top:-20px; width:64px; height:64px; border-radius:50%; background:rgba(30,22,16,.85); color:var(--paper); font:var(--hw-b) 42px/62px var(--head); text-align:center; box-shadow:0 6px 18px rgba(0,0,0,.3); }
 #care-ex { position:absolute; left:64px; top:874px; width:952px; height:176px; border-radius:26px; background:rgba(251,248,242,.95); box-shadow:0 14px 40px rgba(0,0,0,.30); }
 #care-ex-frame { position:absolute; left:0; top:0; width:952px; height:176px; overflow:visible; }
 #care-ex-frame rect { fill:none; stroke:var(--ink); stroke-width:3; stroke-dasharray:10 9; }
@@ -61,12 +69,12 @@
 #care-ex .it1 { left:40px; } #care-ex .it2 { left:500px; }
 
 /* 好みの「か」 */
-#ka { position:absolute; left:496px; top:908px; width:88px; height:88px; border-radius:50%; background:rgba(30,22,16,.75); border:3px solid var(--paper); color:var(--paper); font:800 52px/78px var(--min); text-align:center; box-shadow:0 8px 22px rgba(0,0,0,.35); }
+#ka { position:absolute; left:496px; top:908px; width:88px; height:88px; border-radius:50%; background:rgba(30,22,16,.75); border:3px solid var(--paper); color:var(--ink-h); font:var(--hw-b) 52px/78px var(--head); text-align:center; box-shadow:0 8px 22px rgba(0,0,0,.35); }
 
 /* 答え・終わり */
-#ans-s { position:absolute; left:64px; top:330px; font:600 54px var(--min); color:rgba(251,248,242,.92); text-shadow:0 2px 14px rgba(0,0,0,.6); }
+#ans-s { position:absolute; left:64px; top:330px; font:var(--hw-s) 54px var(--head); color:var(--ink-hs); text-shadow:0 2px 14px rgba(0,0,0,.6); }
 #ans-b { position:absolute; left:64px; top:410px; width:960px; }
-#ans-b .l { display:block; font:800 112px/1.2 var(--min); color:var(--paper); white-space:nowrap; text-shadow:0 4px 26px rgba(0,0,0,.6); }
+#ans-b .l { display:block; font:var(--hw-b) 112px/1.2 var(--head); color:var(--ink-h); white-space:nowrap; text-shadow:0 4px 26px rgba(0,0,0,.6); }
 #ans-b .w { display:inline-block; }
 #cta { position:absolute; left:64px; top:740px; height:76px; padding:0 30px; display:flex; align-items:center; border-radius:18px; background:rgba(251,248,242,.95); color:var(--ink); font:700 40px var(--sans); white-space:nowrap; box-shadow:0 12px 34px rgba(0,0,0,.35); }
 #cta-ul { position:absolute; left:94px; top:826px; width:520px; height:24px; }
@@ -89,6 +97,7 @@
 {{cam:b-mug}}
 {{cam:b-col}}
     <div class="shade-bot"></div>
+    <div id="scrim-bot" class="scrim-bot"></div>
   </div>
   <div id="top" class="panel">
 {{cam:t-aft}}

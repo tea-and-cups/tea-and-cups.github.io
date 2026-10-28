@@ -2,7 +2,8 @@
 深さは案A（写真4枚: 上 #t-aft・下 #b-mug と #b-col・全面 #f-gift／場面3つ）に固定。場面の数は一般化しない。
 
 テンプレートが持つもの（型）: CSS・字の入りの関数（soft・slide・out・split）・0コマ目の固定の set・エンドカード（ロゴ・AI表示・H0 からの動き）・index.html の形。
-データが持つもの（1本ごと）: 区間の秒・字の文言・写真と色調整・カメラの値・指す場所（spot・lead）・マスク・区間ごとの手順（cues）。
+データが持つもの（1本ごと）: 区間の秒・字の文言・写真と色調整・カメラの値・指す場所（spot・lead）・マスク・区間ごとの手順（cues）・読みの例外（lexicon）・
+  qa が使う表（qa_text_sync 字の同期・qa_subjects 主題の帯・qa_points 点の位置）。尺（index.html の data-duration）は work/timeline.json の duration から入れる。
 
 cues の1件は次のどれか。秒（t）と値は JS の式としてそのまま書く（数か、"E0 + 1.40" のような文字列）。
   "文字列"                                   その行をそのまま（注釈・const・forEach など）
@@ -305,6 +306,8 @@ def load_data(d):
 def build(d, rt):
     """composition/ を組み直す（.hyperframes/ は残す。書き出しの履歴の id を変えないため）。返り値: composition のパス"""
     _, data = load_data(d)
+    # 尺は声の時刻表（work/timeline.json）が正本。film.json には書かない（TAIL を変えても手で合わせ直さなくて済むように）
+    data = {**data, "duration": json.loads((d / "work" / "timeline.json").read_text(encoding="utf-8"))["duration"]}
     comp = d / "composition"
     comp.mkdir(exist_ok=True)
     for p in comp.iterdir():
@@ -319,7 +322,7 @@ def build(d, rt):
     for name, spec in data.get("masks", {}).items():
         make_mask(comp / "assets" / "img" / name, spec)
     make_logo(rt.asset("logo"), comp / "assets" / "brand" / "badge-circle.png")
-    for name in ("font_sans", "font_serif"):
+    for name in ("font_sans", "font_serif", "font_head_bold", "font_head_semibold"):
         shutil.copyfile(rt.asset(name), comp / "assets" / "fonts" / Path(rt.asset(name)).name)
     shutil.copyfile(rt.asset("gsap"), comp / "gsap.min.js")
     shutil.copyfile(d / "work" / "narration.wav", comp / "assets" / "narration.wav")

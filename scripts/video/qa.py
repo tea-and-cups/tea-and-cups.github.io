@@ -8,7 +8,13 @@ gate（すべて true で合格）は AI表示の5項目（2026-10-28-4 の 6節
   ai_credit_contrast コントラスト: 終わりの 0.05秒前のコマをスマホ幅 390px に縮め、字と、字の外縁から 10px の帯の WCAG のコントラスト比が CONTRAST 以上
   ai_credit_in_band  位置: 字の画素の外接が帯 BAND（y）・画面の横幅に収まり、ロゴの下にある
   ai_credit_text     文言: composition の #credit の文字列が型の定数（film.CREDIT）と一致
-R8(b)（0.5秒差 >25 のまとまり）・点のコントラスト・字の同期のずれは測るだけで、合否の線はまだ決めていない（gate に入れない）。
+2026-10-28 (b) で足した gate（データからの計算は video/rules.py）:
+  r7_chars              1画面の字数（同時に見えている字・章の札を除く）が 30字以下
+  r7_subject_in_band    主題（qa_subjects の gate の行）が帯 BAND の中・段の境目で切れていない・写真が段を覆っている
+  pointing_not_clipped  点（qa_points）が見える範囲の端で切れていない
+  head_font_glyphs      見出しの字体（Zen Old Mincho の Bold・SemiBold）に、見出し・答えの字がそろっている
+  g_text_sync           G区間（答え・導線）の字の入りと声の句の頭の差が G_SYNC_S 以内
+R8(b)（0.5秒差 >25 のまとまり）・点のコントラストは測るだけで、合否の線はまだ決めていない（gate に入れない）。
 """
 import json
 import os
@@ -18,7 +24,7 @@ import subprocess
 import numpy as np
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
-from video import click, film
+from video import click, film, rules
 from video.render import sha256
 
 FPS = 30
@@ -27,6 +33,7 @@ VISIBLE_S = 2.5
 GLYPH_PX = 38
 CONTRAST = 4.5
 CREDIT_CSS_PX = 40
+G_SYNC_S = 0.15   # G区間の字の入りと声の句の頭の差（秒）
 CREDIT_TOP = film.LOGO_CY + film.LOGO_D // 2 + 28   # #credit の top（型の CSS と同じ）
 
 
@@ -158,6 +165,37 @@ def pcm(rt, path, sr=8000):
     return np.frombuffer(raw, dtype=np.int16).astype(np.float32)
 
 
+def frame_at(rt, mp4, t):
+    cmd = [rt.ffmpeg, "-v", "error", "-ss", f"{t:.3f}", "-i", str(mp4), "-frames:v", "1", "-pix_fmt", "rgb24", "-f", "rawvideo", "-"]
+    return np.frombuffer(run(cmd, binary=True).stdout, dtype=np.uint8).reshape(1920, 1080, 3)
+
+
+def points(rt, mp4, data, traj):
+    """点（指し方の円）の画面の位置・端切れ・コントラスト。qa_points（名前・カメラ・測る秒）の各行。
+    端切れ: 円と線の端が見える範囲（画面・境目）の外に出ていないか（clipped）。
+    コントラスト: その秒のコマをスマホ幅 390px に縮め、円の内側（半径の 0.7 倍）と、円の外縁から 1〜10px の輪の WCAG のコントラスト比（測るだけ・合否の線は未決定）"""
+    c = rules.constants(data)
+    k = 390 / 1080
+    rows = []
+    for row in data.get("qa_points", []):
+        if len(row) < 3:
+            continue
+        name, cam, t = row[0], row[1], rules.ev(row[2], c)
+        g = rules.point_geometry(data, traj, name, cam, t)
+        im = np.asarray(Image.fromarray(frame_at(rt, mp4, t)).resize((390, round(1920 * k)), Image.LANCZOS))
+        lp = lum(im)
+        h, w = lp.shape
+        yy, xx = np.mgrid[0:h, 0:w]
+        cx, cy, r = g["center"][0] * k, g["center"][1] * k, g["radius"] * k
+        d = np.hypot(xx - cx, yy - cy)
+        inner = lp[d <= max(1.2, 0.7 * r / 1.15)]
+        ring = lp[(d >= r + 1) & (d <= r + 10)]
+        g.update({"name": name, "cam": cam, "t": round(t, 3), "contrast_390px": cr(inner.mean(), ring.mean()) if len(inner) and len(ring) else None,
+                  "inner_lum": round(float(inner.mean()), 1) if len(inner) else None, "ring_lum": round(float(ring.mean()), 1) if len(ring) else None})
+        rows.append(g)
+    return rows
+
+
 def run_qa(d, rt, mp4, out_json):
     _, data = film.load_data(d)
     h0 = float(data["sections"]["H"])
@@ -165,10 +203,28 @@ def run_qa(d, rt, mp4, out_json):
     qd = d / "qa"
     qd.mkdir(exist_ok=True)
     res = {"mp4": os.path.relpath(mp4, d), "mp4_sha256": sha256(mp4)}
+    tl = json.loads((d / "work" / "timeline.json").read_text(encoding="utf-8"))
 
     gate, measure, alpha = endcard(rt, mp4, h0, comp_film)
+
+    # R7: 1画面の字数（30字以下）・主題が帯の中・点の端切れ（データから計算。mp4 は読まない）
+    traj = rules.simulate(data, tl["duration"])
+    (smax, st, sids), srows, stexts = rules.screens(data, tl["duration"], film.CREDIT)
+    gate["r7_chars"] = smax <= rules.MAX_SCREEN_CHARS
+    measure["r7_chars"] = {"max_chars": smax, "limit": rules.MAX_SCREEN_CHARS, "at": st, "ids": sids,
+                           "over": [{"at": t, "chars": n, "ids": ids} for t, n, ids in srows if n > rules.MAX_SCREEN_CHARS]}
+    subj = rules.subjects(data, traj)
+    gate["r7_subject_in_band"] = all(r["ok"] for r in subj if r["gate"])
+    measure["r7_subject_in_band"] = {"band": list(rules.BAND), "rows": subj}
+    have = rules.cmap_chars(rt.asset("font_head_bold")) & rules.cmap_chars(rt.asset("font_head_semibold"))
+    missing = sorted({c for c in rules.head_text(data) if ord(c) not in have})
+    gate["head_font_glyphs"] = not missing
+    measure["head_font_glyphs"] = {"font": "Zen Old Mincho（Bold・SemiBold）", "chars_checked": len(set(rules.head_text(data))), "missing": missing}
+    pts = points(rt, mp4, data, traj)
+    gate["pointing_not_clipped"] = not any(p["clipped"] for p in pts)
+    measure["pointing"] = pts   # クリップは gate、コントラストは測るだけ
+
     res["gate"] = gate
-    res["passed"] = all(gate.values())
     res["measure"] = measure
 
     # 仕様
@@ -212,9 +268,14 @@ def run_qa(d, rt, mp4, out_json):
         sync.append({"cue": name, "planned": t, "visual_peak": round(pk, 3), "voice_start": voice,
                      "peak_minus_planned": round(pk - t, 3), "peak_minus_voice": None if voice is None else round(pk - voice, 3)})
     res["text_sync"] = sync
+    # G区間（答え・導線）の字は、声の句の頭との差が G_SYNC_S 以内
+    g0 = float(data["sections"]["G"])
+    g_rows = [s for s in sync if s["voice_start"] is not None and s["planned"] >= g0 and s["cue"][:3] in ("ans", "cta")]
+    res["gate"]["g_text_sync"] = bool(g_rows) and all(abs(s["peak_minus_voice"]) <= G_SYNC_S for s in g_rows)
+    res["measure"]["g_text_sync"] = {"limit_s": G_SYNC_S, "rows": [{"cue": s["cue"], "peak_minus_voice": s["peak_minus_voice"]} for s in g_rows]}
+    res["passed"] = all(res["gate"].values())
 
     # クリップ音
-    tl = json.loads((d / "work" / "timeline.json").read_text(encoding="utf-8"))
     res["click"] = click.detect(click.audio(rt, mp4), tl)
 
     # 変化の速さ（R4・metrics.py と同じ）と R8(b)
