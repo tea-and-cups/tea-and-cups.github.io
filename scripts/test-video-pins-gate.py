@@ -55,18 +55,18 @@ def check(label, ok, detail=""):
         FAILURES.append(label)
 
 
-def setup_v2(tmp, name, qa=True, gate=None, passed=True, qa_sha=None, pin_sha=None, qa_line=None):
-    """動画2の一式を tmp/name/ に作る。*_sha は既定で現物の sha256（pin_sha="no" で審査行に sha256 を書かない）。
+def setup_v2(tmp, name, qa=True, gate=None, passed=True, qa_sha=None, pin_sha=None, qa_line=None, n=2):
+    """動画N（既定は2）の一式を tmp/name/ に作る。*_sha は既定で現物の sha256（pin_sha="no" で審査行に sha256 を書かない）。
     qa_line を渡すと「- 機械QA:」行をその文字列に置き換える（"" なら行を消す）。戻り値: (md のパス, 現物の sha256)。"""
     d = os.path.join(tmp, name)
     os.makedirs(d)
-    mp4 = os.path.join(d, "video-2.mp4")
+    mp4 = os.path.join(d, "video-%d.mp4" % n)
     Path(mp4).write_bytes(b"dummy mp4 " + name.encode())
     actual = pvp.file_sha256(mp4)
-    qa_path = os.path.join(d, "video-2.qa.json")
+    qa_path = os.path.join(d, "video-%d.qa.json" % n)
     if qa:
         Path(qa_path).write_text(json.dumps({
-            "mp4": "video-2.mp4", "mp4_sha256": qa_sha or actual, "passed": passed,
+            "mp4": "video-%d.mp4" % n, "mp4_sha256": qa_sha or actual, "passed": passed,
             "gate": gate or {"ai_credit_visible": True, "ai_credit_text": True, "r7_chars": True}}), encoding="utf-8")
     lines = []
     for l in Path(REAL_MD).read_text(encoding="utf-8").splitlines():
@@ -75,7 +75,7 @@ def setup_v2(tmp, name, qa=True, gate=None, passed=True, qa_sha=None, pin_sha=No
         if l.startswith("- 動画ファイル:"):
             l = "- 動画ファイル: " + mp4.replace(os.sep, "/")
         elif l.startswith("- 誘導先URL:"):
-            l = l.replace("utm_content=video1", "utm_content=video2")
+            l = l.replace("utm_content=video1", "utm_content=video%d" % n)
         elif l.startswith("- 機械QA:"):
             l = "- 機械QA: " + qa_path.replace(os.sep, "/") if qa_line is None else qa_line
             if not l:
@@ -83,7 +83,7 @@ def setup_v2(tmp, name, qa=True, gate=None, passed=True, qa_sha=None, pin_sha=No
         lines.append(l)
     lines.append("- 審査: 公開可 2026-10-28" + ("" if pin_sha == "no" else " sha256:" + (pin_sha or actual)))
     lines.append("- X・Threads審査: 公開可 2026-10-28 sha256:" + actual)
-    md = os.path.join(d, "video-2.md")
+    md = os.path.join(d, "video-%d.md" % n)
     Path(md).write_text("\n".join(lines) + "\n", encoding="utf-8")
     return md, actual
 
@@ -198,12 +198,108 @@ def test_daily_limit(tmp):
         pp.LEDGER_PATH, pp._load_post_video_pins, pvp.probe_video, pvp.check_board, pp.check_url_ok = saved
 
 
+V2_SLUG = "kinrou-kansha-no-hi-koucha-petit-gift"
+V2_MD = os.path.join(ROOT, "output", "videos", V2_SLUG, "video-2.md")
+# 動画2の直す前の投稿文（審査の指摘2: 同じ記事の画像ピン346・348と言い回しが重なる）。前のセッションの記録から取った。置き換えの組は (最終版, 直す前)
+V2_BEFORE = [
+    ("- X用説明文: 勤労感謝の日の紅茶のプチギフトは、渡しやすさで選ぶと迷いにくくなります。",
+     "- X用説明文: 勤労感謝の日の紅茶のプチギフトは、渡しやすさで選ぶ。個包装・軽さ・種類の3つを動画で。"),
+    ("勤労感謝の日の紅茶のプチギフトは、渡しやすさで選ぶと迷いにくくなります。11月23日に向けて、職場や家族へのお礼にも、頑張った自分へのごほうびにも。メール便や取り寄せの商品は早めの注文がおすすめです。発送の目安は購入前に商品ページで確かめてください。",
+     "勤労感謝の日の紅茶のプチギフトは、個包装・軽さ・種類の3つで選ぶと失敗しにくくなります。11月23日に向けて、職場や家族へのお礼にも、頑張った自分へのごほうびにも。メール便や取り寄せの商品は早めの注文がおすすめです。"),
+    ("勤労感謝の日の紅茶のプチギフトは、渡しやすさで選ぶと迷いにくくなります。\n動画では、個包装（",
+     "勤労感謝の日の紅茶のプチギフトは、個包装・軽さ・種類の3つで選ぶと失敗しにくくなります。\n動画では、個包装（"),
+]
+
+
+def _fields(text, slug="s", title="タイトル", description=""):
+    return {"md_text": text, "title": title, "description": description, "slug": slug, "md_path": os.path.join("x", slug, "video-3.md")}
+
+
+def _overlap(fields, pins_dir):
+    try:
+        return None, pvp.check_text_overlap(fields, pins_dir)
+    except pvp._Stop as e:
+        return str(e), []
+
+
+def test_text_overlap(tmp):
+    pins = os.path.join(tmp, "pins")
+    os.makedirs(pins)
+
+    def put_pin(text, name="2026-10-01-pin-100-s-01.md"):
+        Path(pins, name).write_text("# ピン100\n\nタイトル: 別のタイトル\n説明文: %s\n- X用説明文: x\n" % text, encoding="utf-8")
+
+    check("動画の線: 投稿文の重なりは動画3から・連続15字まで共有してよい",
+          pvp.TEXT_OVERLAP_START == 3 and pvp.TEXT_OVERLAP_MAX_RUN == 15)
+    run15, run16 = "あいうえおかきくけこさしすせそ", "あいうえおかきくけこさしすせそた"
+    put_pin("前置き。" + run15 + "ヤ。#ハッシュタグ")
+    reason, lines = _overlap(_fields("- X用説明文: 先頭" + run15 + "ユ"), pins)
+    check("重なり: 連続ちょうど15字なら通る", reason is None and "最長の共通 15字" in lines[0], (reason, lines))
+    put_pin("前置き。" + run16 + "つなぎA。")
+    reason, _ = _overlap(_fields("- X用説明文: 先頭" + run16 + "つなぎB"), pins)
+    check("重なり: 連続16字なら止まる（X用説明文）", reason is not None and "言い回しを共有" in reason and "X用説明文" in reason, reason)
+    reason, _ = _overlap(_fields("- Threads用文: 先頭" + run16 + "つなぎB"), pins)
+    check("重なり: 連続16字なら止まる（Threads用文）", reason is not None and "Threads用文" in reason, reason)
+    reason, _ = _overlap(_fields("", description="頭。" + run16 + "尻。"), pins)
+    check("重なり: 連続16字なら止まる（説明文）", reason is not None and "説明文" in reason, reason)
+    reason, _ = _overlap(_fields("", title=run16), pins)
+    check("重なり: 連続16字なら止まる（タイトル）", reason is not None and "タイトル" in reason, reason)
+    reason, _ = _overlap(_fields("- X用説明文: 先頭、" + "あいうえお、かきくけこ、" + "さしすせそ" + "た"), pins)
+    check("重なり: 句読点・記号を除いて比べる（読点で割っても同じ並びなら止まる）", reason is not None, reason)
+    reason, _ = _overlap(_fields("- X用説明文: 全く別の言い回しの短い文です。"), pins)
+    check("重なり: 別の言い回しなら通る", reason is None, reason)
+    reason, lines = _overlap(_fields("- X用説明文: " + run16, slug="no-pin"), pins)
+    check("重なり: 同じ slug の画像ピンが無ければ通る（0件）", reason is None and "画像ピン 0件" in lines[0], (reason, lines))
+
+    # check_review を通る経路（動画3は見る・動画2は見ない）。画像ピンの置き場は一時フォルダ
+    saved = pvp.PINS_DIR
+    pvp.PINS_DIR = pins
+    try:
+        slug = "iifuufu-no-hi-pair-cup-erabikata"
+        x_text = next(l.split(":", 1)[1].strip() for l in Path(REAL_MD).read_text(encoding="utf-8").splitlines() if l.startswith("- X用説明文:"))
+        Path(pins, "2026-10-01-pin-101-%s-01.md" % slug).write_text("説明文: " + x_text + "\n", encoding="utf-8")
+        md, _ = setup_v2(tmp, "ov3", n=3)
+        reason, _ = review(md)
+        check("動画3: check_review が画像ピンとの重なりで止まる", reason is not None and "言い回しを共有" in reason, reason)
+        md, _ = setup_v2(tmp, "ov2", n=2)
+        reason, lines = review(md)
+        check("動画2: 同じ重なりでも対象外（通る）", reason is None and not any("投稿文の重なり" in l for l in lines), (reason, lines))
+        os.remove(os.path.join(pins, "2026-10-01-pin-101-%s-01.md" % slug))
+        md, _ = setup_v2(tmp, "ov3ok", n=3)
+        reason, lines = review(md)
+        check("動画3: 重なりが無ければ通り、結果の行に最長の共通を出す", reason is None and any("投稿文の重なり" in l for l in lines), (reason, lines))
+    finally:
+        pvp.PINS_DIR = saved
+
+    # 動画2の実データ: 直す前の文は止まり、最終版は通る（画像ピンは本物の output/pins/）
+    if not os.path.isfile(V2_MD) or not os.path.isdir(pvp.PINS_DIR):
+        print("SKIP 動画2の実データ: %s が無い" % V2_MD)
+        return
+    final = Path(V2_MD).read_text(encoding="utf-8")
+    before = final
+    for new, old in V2_BEFORE:
+        assert new in before, new
+        before = before.replace(new, old)
+    for label, text, stop in (("動画2の直す前の文", before, True), ("動画2の最終版", final, False)):
+        d = os.path.join(tmp, "v2real-%d" % stop)
+        os.makedirs(d)
+        md = os.path.join(d, "video-2.md")
+        Path(md).write_text(text, encoding="utf-8")
+        fields = pvp.parse_video_md(md, pp)
+        fields["slug"] = V2_SLUG
+        reason, lines = _overlap(fields, pvp.PINS_DIR)
+        check("%s: 同じ記事の画像ピン（本物）との重なりで%s" % (label, "止まる" if stop else "通る"),
+              (reason is not None and "言い回しを共有" in reason) if stop else (reason is None and "画像ピン 4件" in lines[0]),
+              reason or lines)
+
+
 def main():
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
     tmp = tempfile.mkdtemp(prefix="test-video-pins-gate-")
     try:
         test_gate(tmp)
+        test_text_overlap(tmp)
         test_daily_limit(tmp)
     finally:
         shutil.rmtree(tmp, ignore_errors=True)

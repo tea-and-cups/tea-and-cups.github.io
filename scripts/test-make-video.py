@@ -289,9 +289,116 @@ def test_next_candidates():
     check("--create: 候補の中は注意なしで通る", mv.create_verdict("c", set(), set(), {"c"}) == (False, None))
 
 
+VIDEO2 = ROOT / "output" / "videos" / "video-2"
+# 動画2の画面の字の直し（審査の指摘 R3）。(直した後, 直す前)。直す前の film.json は残っていないため、直した後から逆に戻して作る（scratchpad の patch_gen.py の置き換えの逆）
+V2_TEXT_BEFORE = [("配るときに", "職場でも家族でも"), ("分けやすい", "1袋ずつ"), ("受け取る側は", "もらった人は"), ("自分のペースで", "好きなときに"),
+                  ("コンパクト", "かさばらない"), ("持ち歩ける", "バッグ"), ("渡す人にも、もらう人にも", "渡す側も受け取る側も"), ("気軽に", "負担に"),
+                  ("渡せる", "ならない"), ("遠くの家族にも", "離れて暮らす家族にも"), ("送るのもラク", "メール便なら送りやすい"),
+                  ("クセ控えめ", "クセの強い茶葉より"), ("飲みやすさ重視", "飲みやすい紅茶"), ("いろいろ試せる", "数種類の飲み比べ"), (">贈る</text>", ">お礼</text>")]
+
+
+def swap(obj, pairs):
+    if isinstance(obj, dict):
+        return {k: swap(v, pairs) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [swap(v, pairs) for v in obj]
+    if isinstance(obj, str):
+        for a, b in pairs:
+            obj = obj.replace(a, b)
+    return obj
+
+
+def v2_before(film_data):
+    """動画2の直す前: 画面の字を声の写しに戻し、E区間のぼかしの戻し（E0 + 0.8 の t-aft-img）を外す。"""
+    f = swap(film_data, V2_TEXT_BEFORE)
+    f["cues"]["E"] = [c for c in f["cues"]["E"] if not (isinstance(c, dict) and c.get("to") == "#t-aft-img" and c.get("t") == "E0 + 0.8")]
+    return f
+
+
+def test_script_checks():
+    """動画3以降の台本・film.json の検査（D-0306）: (a) 同文率 (b) 最初の問い (c) 終わりの声 (d) ぼかしの戻し。"""
+    from video import script_checks as sc
+    p = VIDEO2 / "video-2.film.json"
+    if not p.exists() or not (VIDEO2 / "script.json").exists():
+        print("SKIP script_checks: 動画2の film.json か script.json が無い")
+        return
+    film_data = json.loads(p.read_text(encoding="utf-8"))
+    script = json.loads((VIDEO2 / "script.json").read_text(encoding="utf-8"))
+    check("線: 動画3から・同文率 0.30・ぼかしは 0.5 以上を 4.0秒以内に戻す",
+          sc.NEW_CHECK_START == 3 and sc.SAME_TEXT_MAX == 0.30 and sc.BLUR_STRONG == 0.5 and sc.BLUR_HOLD_MAX == 4.0)
+
+    # (a) 画面の字と声の同文率
+    after, before = sc.same_text_ratio(film_data, script)[0], sc.same_text_ratio(v2_before(film_data), script)[0]
+    check("(a) 動画2の最終版の同文率は 0.30 台（審査は「約30%」）、直す前は 0.55 を超える", 0.30 < after < 0.33 and before > 0.55, f"最終 {after:.3f}・直す前 {before:.3f}")
+    ng_before, _ = sc.run({**script, "sentences": script["sentences"]}, v2_before(film_data), 3)
+    check("(a) 直す前の画面の字（声の写し）は動画3の検査で不合格", any("声と同じ文言" in m for m in ng_before), ng_before)
+    ok_film = swap(film_data, [("受け取る側は", "贈られた人は")])
+    check("(a) 最終版の1単位を声に無い言い方にすると 0.30 以下で合格", sc.same_text_ratio(ok_film, script)[0] <= 0.30
+          and not any("声と同じ文言" in m for m in sc.run(script, ok_film, 3)[0]))
+
+    # (b) 声の最初が問い
+    def with_first(*phrases):
+        s = json.loads(json.dumps(script))
+        s["sentences"][0]["phrases"] = list(phrases)
+        return s
+    check("(b) 最初の文が問いでない（動画2の S1）→ 不合格", any("問いの形ではない" in m for m in sc.check_opening(script)))
+    for phrases in (("お礼の紅茶、", "何で選ぶ？"), ("お礼の紅茶は、", "何で選びますか。"), ("どれを選ぶか、", "迷っていませんか？"), ("お礼に贈るなら、どれにするかな。",)):
+        check(f"(b) 問いの形は合格: {''.join(phrases)}", sc.check_opening(with_first(*phrases)) == [])
+    check("(b) 問いのあとに答えが続いても、最初の文が問いなら合格", sc.check_opening(with_first("何で選ぶ？", "答えは、渡しやすさ。")) == [])
+    check("(b) 最初の文が答えで、2文目が問いなら不合格", sc.check_opening(with_first("答えは渡しやすさ。", "何で選ぶ？")) != [])
+
+    # (c) 終わりの声
+    def with_last(*phrases):
+        s = json.loads(json.dumps(script))
+        s["sentences"][-1]["phrases"] = list(phrases)
+        return s
+    check("(c) 動画2の終わりの声（見出しの言い直しで終わる）→ 不合格", len(sc.check_closing(script)) >= 3, sc.check_closing(script))
+    good = ("答えは、", "渡しやすさで選ぶことです。", "予算別のおすすめは", "記事にまとめています。", "リンクからどうぞ。")
+    check("(c) 形を満たす終わりの声（答え→記事に載っていること→リンクから）は合格", sc.check_closing(with_last(*good)) == [], sc.check_closing(with_last(*good)))
+    for label, phrases, want in (
+            ("短い言い直し（渡しやすさで選ぶ。記事を読む。）", ("渡しやすさで選ぶ。", "記事を読む。"), "文"),
+            ("リンクの案内が無い", ("答えは、渡しやすさで選ぶことです。", "予算別のおすすめは記事にまとめています。", "気になる方はぜひ。"), "リンク"),
+            ("記事に何が載っているかを言わない", ("答えは、渡しやすさで選ぶことです。", "とても役に立つ内容です。", "リンクからどうぞ。"), "記事"),
+            ("記事の文が短い（記事で読む。）", ("答えは、渡しやすさで選ぶことです。", "続きは記事で。", "リンクからどうぞ。"), "短い"),
+            ("最後の文が行き方でない", ("答えは、渡しやすさで選ぶことです。", "リンクから記事に進めます。", "予算別のおすすめは記事にまとめています。"), "最後の文"),
+            ("答えの文より前に記事を言う", ("予算別のおすすめは記事にまとめています。", "答えは、渡しやすさで選ぶことです。", "リンクからどうぞ。"), "答えの文より前"),
+            ("字数が足りない", ("答えは渡す人。", "詳しくは記事で見られます。", "リンクからどうぞ。"), "字（")):
+        res = sc.check_closing(with_last(*phrases))
+        check(f"(c) 不合格: {label}", any(want in m for m in res), res)
+
+    # (d) ぼかしなどの戻し
+    check("(d) 動画2の最終版は合格（E0 + 0.8 の戻しがある）", sc.check_effects(film_data) == [], sc.check_effects(film_data))
+    bad = sc.check_effects(v2_before(film_data))
+    check("(d) 直す前（E0 + 0.8 の戻しが無い）は不合格・寄りのぼかしが13秒戻らない", len(bad) == 1 and "#t-aft-img" in bad[0] and "13.0秒後" in bad[0], bad)
+    v1 = json.loads((VIDEO1 / "video-1.film.json").read_text(encoding="utf-8")) if (VIDEO1 / "video-1.film.json").exists() else None
+    if v1:
+        check("(d) 動画1の最終版（E0 + 1.10 の戻し）も合格", sc.check_effects(v1) == [], sc.check_effects(v1))
+    no_initial = json.loads(json.dumps(film_data))
+    no_initial["photos"]["b-col"]["blur"] = 1
+    check("(d) 写真の初期のぼかしを戻す cue が無ければ不合格", any("#b-col-img" in m and "初期" in m for m in sc.check_effects(no_initial)), sc.check_effects(no_initial))
+    late = json.loads(json.dumps(film_data))
+    for c in late["cues"]["E"]:
+        if isinstance(c, dict) and c.get("t") == "E0 + 0.8" and c.get("to") == "#t-aft-img":
+            c["t"] = "E0 + 5"
+    check("(d) 戻しが 4.0秒より遅ければ不合格", any("4.0秒以内" in m for m in sc.check_effects(late)), sc.check_effects(late))
+    text_bad = json.loads(json.dumps(film_data))
+    text_bad["cues"]["E"].append({"fromTo": "#care-hd2", "from": {"opacity": 0, "filter": "blur(8px)"}, "v": {"opacity": 1}, "t": 34.8})
+    text_bad["cues"]["E"].append({"to": "#care-hd1", "v": {"filter": "blur(6px)", "duration": 0.3}, "t": 35})
+    res = sc.check_effects(text_bad)
+    check("(d) 文字の blur が戻らない fromTo と、消えない to は不合格", len(res) == 2, res)
+
+    # 対象外: 動画1・2は止めない（INFO で出す）・動画3は止める
+    ng2, info2 = sc.run(script, v2_before(film_data), 2)
+    ng3, _ = sc.run(script, v2_before(film_data), 3)
+    check("動画2は対象外（NG に数えず INFO で出す）・動画3は同じ内容で不合格", ng2 == [] and any("対象外" in m for m in info2) and len(ng3) >= 5, (ng2, len(ng3)))
+    ng_none, info_none = sc.run(script, None, 3)
+    check("film.json が無い間は台本の分（b・c）だけ検査し、(a)(d) は後で検査すると INFO で出す", len(ng_none) >= 4 and any("film.json がまだ無い" in m for m in info_none), (ng_none, info_none))
+
+
 def main():
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    test_script_checks()
     test_next_candidates()
     test_candidates()
     test_synthetic()

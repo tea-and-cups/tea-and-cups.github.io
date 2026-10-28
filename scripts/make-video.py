@@ -14,7 +14,9 @@ r"""動画を作る（本運用の入口・D-0300）。部品は site/scripts/vi
                                    --date は基準日の差し替え（検証用・既定は今日）。投稿済み・制作中の slug は候補に出さない
                                    --create で output/videos/video-N/ の骨組み（script.json の雛形・prompts/・build.json の created_at）を作る。
                                    投稿済み・制作中の slug は拒否（終了コード1・何も作らない）。候補の範囲外は「【注意】題材の範囲外」を出して作る
-  check-script <動画>              script.json の形と句の字数（1行14字・1画面30字）を確かめ、読み辞書を当てた声の入力を出す（声は作らない）
+  check-script <動画>              script.json の形と句の字数（1行14字・1画面30字）を確かめ、読み辞書を当てた声の入力を出す（声は作らない）。
+                                   動画3以降は、声の最初が問い・終わりの声の形・画面の字と声の同文率・ぼかしの戻しも検査する
+                                   （video/script_checks.py・film.json が無い間は台本の分だけ）。build の最初も同じ検査を通る
   build <動画> [--from 段|--only 段] [--redo S3,S4]
                                    段: voice → images → comp → render → finalize → qa（--from はその段から最後まで、--only はその段だけ）
                                    voice: 声の無い文（--redo の文は作り直し）だけ TTS → take の選択・末尾の処理・つなぎ → 読み違いの目安
@@ -206,6 +208,21 @@ def cmd_next(args):
 
 # ---- check-script
 
+def script_gate(d, sc, need_film=False):
+    """台本と film.json の検査（video/script_checks.py・D-0306）。INFO は出し、NG の一覧を返す。
+    need_film（build の最初）は、動画 NEW_CHECK_START 以降で film.json が無ければ NG にする。"""
+    from video import script_checks
+    n = number(d)
+    films = sorted(d.glob("video-*.film.json"))
+    film_data = json.loads(films[0].read_text(encoding="utf-8")) if films else None
+    ng, info = script_checks.run(sc, film_data, n)
+    for line in info:
+        print(line)
+    if need_film and film_data is None and n >= script_checks.NEW_CHECK_START:
+        ng.append(f"video-{n}.film.json が無い（画面の字の同文率・戻し手順を検査できない）")
+    return ng
+
+
 def cmd_check_script(args):
     from video.lexicon import applied, merged_lexicon, voice_text
     d = video_dir(args.video)
@@ -229,6 +246,7 @@ def cmd_check_script(args):
                 ng.append(f"{sid}: 句が {len(p)}字（1画面 {SCREEN_CHARS}字まで）: {p}")
             elif len(p) > LINE_CHARS:
                 print(f"INFO {sid}: 句が {len(p)}字（1行 {LINE_CHARS}字を超えるので2行になる）: {p}")
+    ng += script_gate(d, sc)
     lex = merged_lexicon(d)
     print("id\tscreen\tvoice\texceptions")
     for s in sc.get("sentences", []):
@@ -331,6 +349,12 @@ def cmd_build(args, rt):
         print("--from と --only は一緒に使えない")
         return 2
     todo = [args.only] if args.only else list(STAGES[STAGES.index(args.from_ or "voice"):])
+    gate_ng = script_gate(d, json.loads((d / "script.json").read_text(encoding="utf-8")), need_film=True)
+    if gate_ng:
+        for m in gate_ng:
+            print("NG", m)
+        print(f"STOP script_gate: 台本・film.json の検査に不合格（{len(gate_ng)}件・check-script と同じ検査）")
+        return 1
     rc = 0
     for st in todo:
         t0 = datetime.datetime.now()

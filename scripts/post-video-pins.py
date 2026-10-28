@@ -15,6 +15,8 @@ data/pin-posted.md とは別。動画の番号 N は画像ピンの連番に入�
       動画 QA_GATE_START（2）以降は、続けて機械QA を見る（check_qa・D-0302）: 「- 機械QA: <qa.json>」行の
       qa.json（制作側 output/videos/video-N/video-N.qa.json）が在り、gate が全項目合格（passed があればそれも）で、
       mp4_sha256 が投稿する mp4 の現物と一致しなければ止める。post-video-to-buffer.py もこの check_review を通る。
+      動画 TEXT_OVERLAP_START（3）以降は、続けて投稿文の重なりを見る（check_text_overlap・D-0306）: タイトル・説明文・X用説明文・
+      Threads用文が、同じ slug の画像ピン（output/pins/）の投稿文と連続 TEXT_OVERLAP_MAX_RUN 字を超えて同じなら止める。
   (4) ffprobe で動画の要件（mp4/mov/m4v・H.264/H.265・4秒以上15分以下・2GB以下・縦横比 1:2〜1.91:1）を確かめる。
   (5) ボードを data/pinterest-boards.md で引き、通年のボードであることを確かめる。
   (6) 重複の照合（3重）: 台帳に同じ N がある／台帳に同じ sha256 がある／GET /v5/pins に
@@ -50,6 +52,7 @@ data/pin-posted.md とは別。動画の番号 N は画像ピンの連番に入�
 """
 
 import datetime
+import difflib
 import hashlib
 import importlib.util
 import json
@@ -65,6 +68,7 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(SCRIPT_DIR))
 VIDEOS_DIR = os.path.join(ROOT, "output", "videos")
 LEDGER_PATH = os.path.join(ROOT, "data", "video-posted.md")
+PINS_DIR = os.path.join(ROOT, "output", "pins")
 
 if SCRIPT_DIR not in sys.path:
     sys.path.insert(0, SCRIPT_DIR)
@@ -82,6 +86,13 @@ DESC_HEAD_RE = re.compile(r"^説明文:\s*(.*)$")
 REVIEW_SHA_RE = re.compile(r"^-\s*審査:\s*公開可\s+(\d{4}-\d{2}-\d{2})\s+sha256:([0-9a-f]{64})\s*$")
 QA_LINE_RE = re.compile(r"^-\s*機械QA:\s*(.+)$")
 QA_GATE_START = 2   # 機械QA・X・Threads審査行の sha256 を必須にする最初の動画番号（動画1は対象外・D-0302）
+TEXT_OVERLAP_START = 3     # 投稿文の重なりを見る最初の動画番号（動画1・2は対象外・D-0306）
+TEXT_OVERLAP_MAX_RUN = 15  # 同じ記事の画像ピンと連続して共有してよい最大の字数（比較は句読点・記号・ハッシュタグ・URL を除く）。
+#   動画2の最終版は最長 9字、直す前の文は 19字（reports/ の D-0306 の経緯）。話題の語（「勤労感謝の日の紅茶のプチギフト」15字）は共有してよい線
+TEXT_PUNCT_RE = re.compile(r"[\s、。，．,.「」『』（）()・！？!?：:；;…～〜―｜|]")
+X_TEXT_RE = re.compile(r"^-\s*X用説明文:\s*(.*)$")
+THREADS_TEXT_RE = re.compile(r"^-\s*Threads用文:\s*(.*)$")
+PIN_TEXT_RE = re.compile(r"^(?:-\s*)?(?:タイトル|説明文|X用説明文|Threads用問いかけ):\s*(.+)$")
 LEDGER_N_RE = re.compile(r"^動画(\d+)$")
 PROGRESS_RE = re.compile(r"^#\s*途中:\s*動画(\d+)\s+media=(\S+)\s+(\S+)\s+(\d{4}-\d{2}-\d{2})\s*$")
 
@@ -256,7 +267,64 @@ def check_review(fields):
     lines = ["審査行: 公開可 %s" % last.group(1), "sha256: 審査行と現物が一致（%s）" % actual]
     if fields["n"] >= QA_GATE_START:
         lines += check_qa(fields)
+    if fields["n"] >= TEXT_OVERLAP_START:
+        lines += check_text_overlap(fields)
     return lines
+
+
+def _plain(text):
+    """重なりの比較用: ハッシュタグ・URL・空白・句読点と記号を除く。"""
+    return TEXT_PUNCT_RE.sub("", re.sub(r"#\S+|https?://\S+", "", text))
+
+
+def longest_common_run(a, b):
+    """連続して同じ文字列の最長。戻り値: (長さ, その文字列)。"""
+    m = difflib.SequenceMatcher(None, a, b, autojunk=False).find_longest_match(0, len(a), 0, len(b))
+    return m.size, a[m.a:m.a + m.size]
+
+
+def video_post_texts(fields):
+    """動画md の投稿文。戻り値: [(項目名, 本文)]（タイトル・説明文・X用説明文・Threads用文）。"""
+    texts = [("タイトル", fields["title"]), ("説明文", fields["description"])]
+    for label, regex in (("X用説明文", X_TEXT_RE), ("Threads用文", THREADS_TEXT_RE)):
+        for raw in fields["md_text"].splitlines():
+            m = regex.match(raw.strip())
+            if m and m.group(1).strip():
+                texts.append((label, m.group(1).strip()))
+    return texts
+
+
+def pin_post_texts(slug, pins_dir):
+    """同じ slug の画像ピン（output/pins/*-pin-<番号>-<slug>-<連番>.md）の投稿文。戻り値: {ファイル名: [本文…]}。"""
+    out = {}
+    if not os.path.isdir(pins_dir):
+        return out
+    name_re = re.compile(r"-pin-\d+-%s-\d+\.md$" % re.escape(slug))
+    for name in sorted(os.listdir(pins_dir)):
+        if not name_re.search(name):
+            continue
+        with open(os.path.join(pins_dir, name), encoding="utf-8") as f:
+            out[name] = [m.group(1).strip() for m in (PIN_TEXT_RE.match(l.strip()) for l in f.read().splitlines()) if m]
+    return out
+
+
+def check_text_overlap(fields, pins_dir=None):
+    """投稿文の重なり: 動画の投稿文が同じ slug の画像ピンの投稿文と、連続した同じ文字列を TEXT_OVERLAP_MAX_RUN 字を超えて
+    共有していたら止める（動画 TEXT_OVERLAP_START 以降・D-0306）。同じ記事の別の入口に同じ言い回しを出さないため。
+    戻り値: 結果の行のリスト。"""
+    slug = fields.get("slug") or os.path.basename(os.path.dirname(os.path.abspath(fields["md_path"])))
+    pins = pin_post_texts(slug, pins_dir or PINS_DIR)
+    worst = (0, "", "", "")
+    for label, text in video_post_texts(fields):
+        a = _plain(text)
+        for name, bodies in pins.items():
+            size, run = longest_common_run(a, _plain("".join(bodies)))
+            if size > worst[0]:
+                worst = (size, run, label, name)
+    if worst[0] > TEXT_OVERLAP_MAX_RUN:
+        raise _Stop("投稿文が同じ記事の画像ピンと言い回しを共有しています（動画の%s と %s が連続 %d字・上限 %d字）: 「%s」"
+                    "（言い回しを変えてから審査に出し直す）" % (worst[2], worst[3], worst[0], TEXT_OVERLAP_MAX_RUN, worst[1]))
+    return ["投稿文の重なり: 同じ記事の画像ピン %d件との最長の共通 %d字（上限 %d字）" % (len(pins), worst[0], TEXT_OVERLAP_MAX_RUN)]
 
 
 def check_qa(fields):

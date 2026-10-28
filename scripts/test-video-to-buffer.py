@@ -238,18 +238,18 @@ def test_prune_guard():
     check("画像の掃除: 動画の投稿がキューにあれば止まる（None）", numbers is None, note)
 
 
-def setup_v2(tmp, name, qa=True, gate=None, passed=True, qa_sha=None, pin_sha=None, sns_sha=None):
-    """動画2の一式（ダミーの mp4・qa.json・動画md・Pinterest 台帳）を tmp/name/ に作る。
+def setup_v2(tmp, name, qa=True, gate=None, passed=True, qa_sha=None, pin_sha=None, sns_sha=None, n=2):
+    """動画N（既定は2）の一式（ダミーの mp4・qa.json・動画md・Pinterest 台帳）を tmp/name/ に作る。
     *_sha は既定で現物の sha256。"no" を渡すと、その審査行に sha256 を書かない。"""
     d = os.path.join(tmp, name)
     os.makedirs(d)
-    mp4 = os.path.join(d, "video-2.mp4")
+    mp4 = os.path.join(d, "video-%d.mp4" % n)
     Path(mp4).write_bytes(b"dummy mp4 " + name.encode())
     actual = vb.pvp().file_sha256(mp4)
-    qa_path = os.path.join(d, "video-2.qa.json")
+    qa_path = os.path.join(d, "video-%d.qa.json" % n)
     if qa:
         Path(qa_path).write_text(json.dumps({
-            "mp4": "video-2.mp4", "mp4_sha256": qa_sha or actual, "passed": passed,
+            "mp4": "video-%d.mp4" % n, "mp4_sha256": qa_sha or actual, "passed": passed,
             "gate": gate or {"ai_credit_visible": True, "ai_credit_text": True, "r7_chars": True}}), encoding="utf-8")
     lines = []
     for l in Path(REAL_MD).read_text(encoding="utf-8").splitlines():
@@ -258,18 +258,51 @@ def setup_v2(tmp, name, qa=True, gate=None, passed=True, qa_sha=None, pin_sha=No
         if l.startswith("- 動画ファイル:"):
             l = "- 動画ファイル: " + mp4.replace(os.sep, "/")
         elif l.startswith("- 誘導先URL:"):
-            l = l.replace("utm_content=video1", "utm_content=video2")
+            l = l.replace("utm_content=video1", "utm_content=video%d" % n)
         elif l.startswith("- 機械QA:"):
             l = "- 機械QA: " + qa_path.replace(os.sep, "/")
         lines.append(l)
     lines.append("- 審査: 公開可 2026-10-28" + ("" if pin_sha == "no" else " sha256:" + (pin_sha or actual)))
     lines.append("- X・Threads審査: 公開可 2026-10-28" + ("" if sns_sha == "no" else " sha256:" + (sns_sha or actual)))
-    md = os.path.join(d, "video-2.md")
+    md = os.path.join(d, "video-%d.md" % n)
     Path(md).write_text("\n".join(lines) + "\n", encoding="utf-8")
     pinned = os.path.join(d, "video-posted.md")
-    Path(pinned).write_text(vb.pvp().LEDGER_HEADER + "動画2 | iifuufu-no-hi-pair-cup-erabikata | 作成済み | "
-                            "公開可 2026-10-28 | 2026-10-28 | %s | 2\n" % actual, encoding="utf-8")
+    Path(pinned).write_text(vb.pvp().LEDGER_HEADER + "動画%d | iifuufu-no-hi-pair-cup-erabikata | 作成済み | "
+                            "公開可 2026-10-28 | 2026-10-28 | %s | 2\n" % (n, actual), encoding="utf-8")
     return md, pinned, actual
+
+
+def test_text_overlap(tmp):
+    """投稿文の重なり（D-0306）: Buffer 側の投稿も check_review の中で止まる。動画3以降だけ。画像ピンは一時フォルダのダミー。"""
+    slug = "iifuufu-no-hi-pair-cup-erabikata"
+    shared = next(l.split(":", 1)[1].strip() for l in Path(REAL_MD).read_text(encoding="utf-8").splitlines()
+                  if l.startswith("- X用説明文:"))
+    pins = os.path.join(tmp, "overlap-pins")
+    os.makedirs(pins)
+    saved = vb.pvp().PINS_DIR
+    vb.pvp().PINS_DIR = pins
+    try:
+        for label, body in (("同じ記事の画像ピンと連続16字を超えて同じ", "説明文: " + shared + " #ペアカップ"),
+                            ("画像ピンとは別の言い回し", "説明文: 夜のくつろぎ時間に、湯気の立つカップを2つ並べるだけで、ふたりの食卓が少し特別になります。")):
+            for f in os.listdir(pins):
+                os.remove(os.path.join(pins, f))
+            Path(pins, "2026-10-01-pin-100-%s-01.md" % slug).write_text("# ピン100\n\nタイトル: 別のタイトル\n" + body + "\n", encoding="utf-8")
+            md, pinned, _sha = setup_v2(tmp, "ov%d" % len(label), n=3)
+            fake, stage_calls = FakeBuffer(), []
+            rc, lines = run_post(md, pinned, os.path.join(tmp, "ov%d.tsv" % len(label)), fake, stage_calls=stage_calls)
+            if label.startswith("同じ"):
+                check("動画3: %s → createPost の前で止まる" % label,
+                      rc == 1 and not fake.calls and not stage_calls
+                      and any(l.startswith("  [NG]") and "言い回しを共有" in l for l in lines), lines)
+                md2, pinned2, _ = setup_v2(tmp, "ov-v2", n=2)
+                rc2, lines2 = run_post(md2, pinned2, os.path.join(tmp, "ov-v2.tsv"), FakeBuffer(), dry_run=True)
+                check("動画2: 同じ重なりでも対象外（止めない）", rc2 == 0 and not any("言い回しを共有" in l for l in lines2), lines2)
+            else:
+                check("動画3: %s → 通って X・Threads に送る" % label,
+                      rc == 0 and [c["channelId"] for c in fake.creates()] == ["CT", "CH"]
+                      and any("投稿文の重なり" in l for l in lines), lines)
+    finally:
+        vb.pvp().PINS_DIR = saved
 
 
 def test_gate_v2(tmp):
@@ -478,6 +511,7 @@ def main():
             test_prune_guard()
             test_measure(tmp)
             test_gate_v2(tmp)
+            test_text_overlap(tmp)
             test_daily_limit(tmp)
         finally:
             ppb.LEDGER_PATH = saved
