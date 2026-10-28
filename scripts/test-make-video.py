@@ -8,6 +8,9 @@ r"""make-video.py の部品（site/scripts/video/）のテスト。読むだけ�
 3. 読みの例外表: 画面の字を漢字のまま入力し、例外（鍵→カギ・・→、・琥珀時間）だけが直ること。kanji_left は無い。
 4. 型: video-1.film.json から film.html が描けること（置き残しの {{ }} が無い・区間の秒・下の段の幕）。TAIL が 3.45。
 5. R7（データから計算・mp4 は読まない）: 1画面の字数が30字以下、下の段・上の段の主題が帯の中、点が端で切れていない。ease・カメラの再現の基本。
+6. (d) の gate（D-0303）: はみ出し 0px（動画1の全面の写真 B・G は不合格、0px は合格・0.5px は不合格）と、点のコントラスト 3.0
+   （合成したコマで、中も縁取りも背景に近いと不合格・濃い縁取りか明るい中のどちらかが背景と離れていれば合格・lead の書き漏れは不合格）。
+   点は中の大きさを変えずに縁取りを外へ足す形で描かれる。
 
 使い方: python site/scripts/test-make-video.py
 終了コード: 全件合格で0、1件でも不合格で1
@@ -142,6 +145,58 @@ def test_rules():
     check("見出しの字体が Zen Maru Gothic（太さ 700・500）", '--head:"Zen Maru Gothic"' in html and "--hw-b:700" in html and "--hw-s:500" in html)
 
 
+def dot_frame(bg, fill, ring, ring_w, core=10.0):
+    """背景 bg の 1080×1920 に、中心 (540, 960) の点（中 fill・縁取り ring・太さ ring_w × core）を 4倍で描いて縮めたコマと、その幾何"""
+    from PIL import Image, ImageDraw
+    s, cx, cy = 4, 540, 960
+    fr, outer = film.DOT_FILL * core, (film.DOT_FILL + ring_w) * core
+    im = Image.new("RGB", (240 * s, 240 * s), (bg,) * 3)
+    d = ImageDraw.Draw(im)
+    c = 120 * s
+    d.ellipse([c - outer * s, c - outer * s, c + outer * s, c + outer * s], fill=(ring,) * 3)
+    d.ellipse([c - fr * s, c - fr * s, c + fr * s, c + fr * s], fill=(fill,) * 3)
+    frame = Image.new("RGB", (1080, 1920), (bg,) * 3)
+    frame.paste(im.resize((240, 240), Image.BOX), (cx - 120, cy - 120))
+    return np.asarray(frame), {"center": [cx, cy], "radius": round(outer, 1), "fill_radius": round(fr, 2), "core": core}
+
+
+def test_new_gates():
+    from video import qa
+    check("(d) の gate の線: はみ出し 0px・点のコントラスト 3.0・動画2から", qa.OVERFLOW_PX == 0 and qa.POINT_CONTRAST == 3.0 and qa.NEW_GATES_FROM == 2)
+    # はみ出し
+    row = {"name": "x", "cam": "#f-gift", "band_worst_at": 1.0}
+    ok0, _ = qa.overflow_check([{**row, "band_worst": 0.0}])
+    ok1, m1 = qa.overflow_check([{**row, "band_worst": -0.5}])
+    okn, _ = qa.overflow_check([])
+    check("はみ出し: 帯の端ちょうど（0px）は合格・0.5px 出ると不合格・行が無いと不合格", ok0 and not ok1 and m1["max_px"] == 0.5 and not okn)
+    p = VIDEO1 / "video-1.film.json"
+    tl = VIDEO1 / "work" / "timeline.json"
+    if p.exists() and tl.exists():
+        data = json.loads(p.read_text(encoding="utf-8"))
+        traj = rules.simulate(data, json.loads(tl.read_text(encoding="utf-8"))["duration"])
+        ok, m = qa.overflow_check(rules.subjects(data, traj))
+        over = {r["name"][:4]: r["overflow_px"] for r in m["rows"] if r["overflow_px"] > 0}
+        check("はみ出し: 動画1の作り直しは、全面の写真 B・G だけが帯の下に出て不合格", not ok and sorted(over) == ["参考 B", "参考 G"]
+              and over["参考 B"] >= 79 and over["参考 G"] >= 132, str(over))
+        leads = [e["lead"] for ph in data["photos"].values() for e in ph.get("extras", []) if isinstance(e, dict) and "lead" in e]
+        pts = [{"name": n, "best_390px": 5.0, "contrast_390px": 5.0, "outline_contrast_390px": 1.0} for n in leads]
+        okc, _ = qa.contrast_check(data, pts)
+        okm, mm = qa.contrast_check(data, pts[1:])
+        check("点のコントラスト: lead がすべて qa_points にあれば合格・1つ書き漏れると不合格", okc and not okm and mm["leads_missing"] == [leads[0]])
+        html = film.render_film(data)
+        r = next(e["r"] for e in data["photos"]["b-mug"]["extras"] if isinstance(e, dict) and e.get("lead") == "handle")
+        check("点: 中の大きさを変えずに縁取りを外へ足す（円の半径＝中＋太さの半分・線の太さ＝太さ）",
+              f'r="{r * (film.DOT_FILL + film.DOT_RING / 2):.2f}" style="stroke-width:{r * film.DOT_RING:.2f}px"' in html)
+    # 点のコントラスト（合成のコマ。中・縁取り・背景の明るさだけを変える）
+    weak = qa.point_contrast(*dot_frame(bg=95, fill=160, ring=70, ring_w=film.DOT_RING))
+    dark = qa.point_contrast(*dot_frame(bg=150, fill=160, ring=10, ring_w=film.DOT_RING))
+    light = qa.point_contrast(*dot_frame(bg=40, fill=250, ring=40, ring_w=film.DOT_RING))
+    check("点のコントラスト: 中も縁取りも背景に近いと 3.0 未満", weak["best_390px"] < qa.POINT_CONTRAST, str(weak))
+    check("点のコントラスト: 濃い縁取りが明るい背景と離れていれば、中が背景に近くても 3.0 以上",
+          dark["contrast_390px"] < qa.POINT_CONTRAST <= dark["outline_contrast_390px"] and dark["best_390px"] >= qa.POINT_CONTRAST, str(dark))
+    check("点のコントラスト: 明るい中が暗い背景と離れていれば 3.0 以上", light["contrast_390px"] >= qa.POINT_CONTRAST, str(light))
+
+
 def main():
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -150,6 +205,7 @@ def main():
     test_lexicon()
     test_template()
     test_rules()
+    test_new_gates()
     print(f"{sum(results)}/{len(results)} passed")
     return 0 if all(results) else 1
 

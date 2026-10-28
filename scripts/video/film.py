@@ -33,6 +33,11 @@ CAMS = ("b-mug", "b-col", "t-aft", "f-gift")
 SECTIONS = ("A", "B", "C", "D", "E", "F", "G")
 CREDIT = "画像・文・ナレーション　AIの紅茶案内人"   # AI表示の文言（型の定数。qa が画面の字と照合する）
 LOGO_D, LOGO_CX, LOGO_CY = 520, 540, 960       # エンドカードのロゴ（直径・中心）
+# 点（lead の circle）: 明るい中の半径と、その外に足す濃い縁取りの太さ（どちらも lead の r に対する比）。
+# 縁取りの色はテンプレートの .lead circle の stroke。背景に左右されず見えるための型（2026-10-28 (d)・qa の pointing_contrast が測る）
+# DOT_RING は、動画1の縁と取っ手の点が 3.0 に届いた最小の太さ（0.3 → 1.1。1.0 では取っ手が 2.99・reports/2026-10-28-8.md）
+DOT_FILL = 0.85
+DOT_RING = 1.1
 RAW_VALUE = re.compile(r"^[-+*/0-9. ()A-Z_]+$")
 
 
@@ -200,8 +205,10 @@ def cam_html(cam, p, grade):
             lines.append(f'  <img class="spot" id="spot-{e["spot"]}" src="assets/img/{p["file"]}" alt="" style="{style}">')
         elif "lead" in e:
             (x1, y1), (x2, y2), r = e["from"], e["to"], e["r"]
+            # 線（stroke）は円周の内外に半分ずつ出るので、中の半径を変えずに縁取りを外へ足すよう円の半径をずらす
             lines.append(f'  <svg id="c-{e["lead"]}" class="line lead" viewBox="0 0 1440 2160"><path d="M {x1} {y1} L {x2} {y2}" '
-                         f'style="stroke-width:{r / 4:.2f}px" /><circle cx="{x2}" cy="{y2}" r="{r}" style="stroke-width:{r * 0.3:.2f}px" /></svg>')
+                         f'style="stroke-width:{r / 4:.2f}px" /><circle cx="{x2}" cy="{y2}" r="{r * (DOT_FILL + DOT_RING / 2):.2f}" '
+                         f'style="stroke-width:{r * DOT_RING:.2f}px" /></svg>')
     lines.append("</div>")
     return indent(lines, 4)
 

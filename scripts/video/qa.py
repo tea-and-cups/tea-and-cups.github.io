@@ -14,7 +14,10 @@ gate（すべて true で合格）は AI表示の5項目（2026-10-28-4 の 6節
   pointing_not_clipped  点（qa_points）が見える範囲の端で切れていない
   head_font_glyphs      見出しの字体（Zen Maru Gothic の Bold・Medium）に、見出し・答えの字がそろっている
   g_text_sync           G区間（答え・導線）の字の入りと声の句の頭の差が G_SYNC_S 以内
-R8(b)（0.5秒差 >25 のまとまり）・点のコントラストは測るだけで、合否の線はまだ決めていない（gate に入れない）。
+2026-10-28 (d) で足した gate（動画 NEW_GATES_FROM 以降。動画1は測るだけで gate に入れない・D-0303）:
+  subject_overflow_0px  qa_subjects の全行（参考の行・全面の写真も）で、主題が帯 BAND の外に出る量が OVERFLOW_PX（0px）以下
+  pointing_contrast     点（qa_points）の中か縁取りのどちらかが、外の背景に対して POINT_CONTRAST（3.0）以上。photos の lead はすべて qa_points に要る
+R8(b)（0.5秒差 >25 のまとまり）は測るだけで、合否の線はまだ決めていない（gate に入れない）。
 """
 import json
 import os
@@ -34,6 +37,9 @@ GLYPH_PX = 38
 CONTRAST = 4.5
 CREDIT_CSS_PX = 40
 G_SYNC_S = 0.15   # G区間の字の入りと声の句の頭の差（秒）
+OVERFLOW_PX = 0          # 主題が帯の外に出てよい量（px）
+POINT_CONTRAST = 3.0     # 点の層と背景のコントラスト比（WCAG の図形の値）
+NEW_GATES_FROM = 2       # subject_overflow_0px・pointing_contrast を gate に入れる最初の動画の番号
 CREDIT_TOP = film.LOGO_CY + film.LOGO_D // 2 + 28   # #credit の top（型の CSS と同じ）
 
 
@@ -170,30 +176,58 @@ def frame_at(rt, mp4, t):
     return np.frombuffer(run(cmd, binary=True).stdout, dtype=np.uint8).reshape(1920, 1080, 3)
 
 
+def point_contrast(img, g):
+    """1コマ（1080×1920 の RGB）と point_geometry の値から、スマホ幅 390px での点の層ごとのコントラスト。
+    中: 中心から core の 0.7 倍の円／縁取り: 中の外縁から外縁までの輪（390px で 1px に満たなければ輪の中央 ±0.5px）／
+    背景: 外縁から 1〜10px の輪。中・縁取りそれぞれと背景の WCAG のコントラスト比を出し、大きいほうを best にする。"""
+    k = 390 / 1080
+    lp = lum(np.asarray(Image.fromarray(img).resize((390, round(1920 * k)), Image.LANCZOS)))
+    yy, xx = np.mgrid[0:lp.shape[0], 0:lp.shape[1]]
+    d = np.hypot(xx - g["center"][0] * k, yy - g["center"][1] * k)
+    a, b = g["fill_radius"] * k, g["radius"] * k
+    inner = lp[d <= max(1.2, 0.7 * g["core"] * k)]
+    band = (d >= a) & (d <= b)
+    if b - a < 1 or not band.any():
+        band = np.abs(d - (a + b) / 2) <= 0.5
+    outline = lp[band]
+    ring = lp[(d >= b + 1) & (d <= b + 10)]
+    if not (len(inner) and len(outline) and len(ring)):
+        return {"contrast_390px": None, "outline_contrast_390px": None, "best_390px": None, "inner_lum": None, "outline_lum": None, "ring_lum": None}
+    c_in, c_out = cr(inner.mean(), ring.mean()), cr(outline.mean(), ring.mean())
+    return {"contrast_390px": c_in, "outline_contrast_390px": c_out, "best_390px": max(c_in, c_out),
+            "inner_lum": round(float(inner.mean()), 1), "outline_lum": round(float(outline.mean()), 1), "ring_lum": round(float(ring.mean()), 1)}
+
+
 def points(rt, mp4, data, traj):
     """点（指し方の円）の画面の位置・端切れ・コントラスト。qa_points（名前・カメラ・測る秒）の各行。
-    端切れ: 円と線の端が見える範囲（画面・境目）の外に出ていないか（clipped）。
-    コントラスト: その秒のコマをスマホ幅 390px に縮め、円の内側（半径の 0.7 倍）と、円の外縁から 1〜10px の輪の WCAG のコントラスト比（測るだけ・合否の線は未決定）"""
+    端切れ: 円と線の端が見える範囲（画面・境目）の外に出ていないか（clipped）。コントラスト: その秒のコマで point_contrast。"""
     c = rules.constants(data)
-    k = 390 / 1080
     rows = []
     for row in data.get("qa_points", []):
         if len(row) < 3:
             continue
         name, cam, t = row[0], row[1], rules.ev(row[2], c)
         g = rules.point_geometry(data, traj, name, cam, t)
-        im = np.asarray(Image.fromarray(frame_at(rt, mp4, t)).resize((390, round(1920 * k)), Image.LANCZOS))
-        lp = lum(im)
-        h, w = lp.shape
-        yy, xx = np.mgrid[0:h, 0:w]
-        cx, cy, r = g["center"][0] * k, g["center"][1] * k, g["radius"] * k
-        d = np.hypot(xx - cx, yy - cy)
-        inner = lp[d <= max(1.2, 0.7 * r / 1.15)]
-        ring = lp[(d >= r + 1) & (d <= r + 10)]
-        g.update({"name": name, "cam": cam, "t": round(t, 3), "contrast_390px": cr(inner.mean(), ring.mean()) if len(inner) and len(ring) else None,
-                  "inner_lum": round(float(inner.mean()), 1) if len(inner) else None, "ring_lum": round(float(ring.mean()), 1) if len(ring) else None})
+        g.update({"name": name, "cam": cam, "t": round(t, 3), **point_contrast(frame_at(rt, mp4, t), g)})
         rows.append(g)
     return rows
+
+
+def overflow_check(subj):
+    """はみ出し: rules.subjects の全行（参考の行も）で、主題が帯の外に出た最大の px（band_worst が負の分）。返り値: (合否, 測定値)"""
+    rows = [{"name": r["name"], "cam": r["cam"], "overflow_px": round(max(0.0, -r["band_worst"]), 1), "at": r["band_worst_at"]} for r in subj]
+    worst = max((r["overflow_px"] for r in rows), default=None)
+    return bool(rows) and worst <= OVERFLOW_PX, {"limit_px": OVERFLOW_PX, "max_px": worst, "rows": rows}
+
+
+def contrast_check(data, pts):
+    """点のコントラスト: qa_points の全行で best が POINT_CONTRAST 以上、かつ photos の lead がすべて qa_points にある。返り値: (合否, 測定値)"""
+    leads = sorted(e["lead"] for p in data["photos"].values() for e in p.get("extras", []) if isinstance(e, dict) and "lead" in e)
+    missing = [n for n in leads if n not in {p["name"] for p in pts}]
+    rows = [{"name": p["name"], "best_390px": p["best_390px"], "contrast_390px": p["contrast_390px"],
+             "outline_contrast_390px": p["outline_contrast_390px"]} for p in pts]
+    ok = not missing and all(r["best_390px"] is not None and r["best_390px"] >= POINT_CONTRAST for r in rows)
+    return ok, {"need": POINT_CONTRAST, "rows": rows, "leads_missing": missing}
 
 
 def run_qa(d, rt, mp4, out_json):
@@ -222,7 +256,13 @@ def run_qa(d, rt, mp4, out_json):
     measure["head_font_glyphs"] = {"font": "Zen Maru Gothic（Bold・Medium）", "chars_checked": len(set(rules.head_text(data))), "missing": missing}
     pts = points(rt, mp4, data, traj)
     gate["pointing_not_clipped"] = not any(p["clipped"] for p in pts)
-    measure["pointing"] = pts   # クリップは gate、コントラストは測るだけ
+    measure["pointing"] = pts
+    # はみ出し 0px・点のコントラスト 3.0（動画 NEW_GATES_FROM 以降だけ gate。動画1は測るだけ）
+    new = data["n"] >= NEW_GATES_FROM
+    for key, (ok, m) in (("subject_overflow_0px", overflow_check(subj)), ("pointing_contrast", contrast_check(data, pts))):
+        measure[key] = {**m, "ok": ok, "gate": new}
+        if new:
+            gate[key] = ok
 
     res["gate"] = gate
     res["measure"] = measure

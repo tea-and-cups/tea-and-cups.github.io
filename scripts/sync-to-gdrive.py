@@ -94,6 +94,7 @@ TARGET_FILES = [
     (os.path.join(PROJECT_ROOT, "rules", "pinterest-api.md"), "Tea_TeaCut rules/pinterest-api.md"),
     (os.path.join(PROJECT_ROOT, "rules", "product-linking.md"), "Tea_TeaCut rules/product-linking.md"),
     (os.path.join(PROJECT_ROOT, "rules", "command-execution.md"), "Tea_TeaCut rules/command-execution.md"),
+    (os.path.join(PROJECT_ROOT, "rules", "video-production.md"), "Tea_TeaCut rules/video-production.md"),
     (os.path.join(PROJECT_ROOT, "docs", "script-index.md"), "Tea_TeaCut script-index.md"),
     (os.path.join(PROJECT_ROOT, "docs", "gsc-log.md"), "Tea_TeaCut gsc-log.md"),
     # data/ はGit管理外（D-0043）で版管理もバックアップも無い。教訓リストは

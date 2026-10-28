@@ -8,6 +8,7 @@
 画面の座標: 写真の点 (px, py) は、画面（1080×1920）の (x + scale·px, y + scale·py)。
 字数（R7(b)）: 同じ時刻に見えている字（空白を除く）の合計。章の札（#p1〜#p3）は数えない。エンドカードは AI表示（credit）を数える。
 主題（R7(c)）: video-N.film.json の qa_subjects（名前・カメラ・写真の中の主題の外接矩形・区間）の、画面での y の上端・下端が帯 BAND に入ること。
+  band_worst は区間内で帯への余りが最も小さい値（負ならその px だけ帯の外）。qa の subject_overflow_0px は参考の行も含めてこれを見る。
 """
 import math
 import re
@@ -175,6 +176,7 @@ def subjects(data, traj):
         ref = len(row) > 5 and row[5] == "ref"
         t0, t1 = ev(t0, c), ev(t1, c)
         worst = None
+        band_worst = None   # 区間内で帯への余りが最も小さいコマ（はみ出しの量。worst は3つの余白の最小で選ぶので別に持つ）
         for i in range(int(round(t0 * FPS)), int(round(t1 * FPS)) + 1):
             x, y, s = cam_at(traj, cam, i)
             sp = traj[(SPLIT, "y")][i]
@@ -189,9 +191,12 @@ def subjects(data, traj):
             cur = (min(band, panel, cover), band, panel, i / FPS, top, bot, cover)
             if worst is None or cur[0] < worst[0]:
                 worst = cur
+            if band_worst is None or band < band_worst[0]:
+                band_worst = (band, i / FPS)
         rows.append({"name": name, "cam": cam, "window": [round(t0, 2), round(t1, 2)], "band_margin": round(worst[1], 1),
                      "panel_margin": round(worst[2], 1) if worst[2] < 1e8 else None, "cover_margin": round(worst[6], 1), "worst_at": round(worst[3], 3),
-                     "screen_y": [round(worst[4]), round(worst[5])], "ok": worst[0] >= 0, "gate": not ref})
+                     "screen_y": [round(worst[4]), round(worst[5])], "ok": worst[0] >= 0, "gate": not ref,
+                     "band_worst": round(band_worst[0], 1), "band_worst_at": round(band_worst[1], 3)})
     return rows
 
 
@@ -230,20 +235,22 @@ def head_text(data):
 # ---- 点（指し方の点と線）の画面の位置と端切れ
 
 def point_geometry(data, traj, name, cam, t):
-    """点（lead の circle）の、時刻 t の画面の中心と半径（px）と、見える範囲の端までの余白（px）。"""
+    """点（lead の circle）の、時刻 t の画面の中心と半径（px）と、見える範囲の端までの余白（px）。
+    radius は縁取りの外縁、fill_radius は明るい中の外縁、core は lead の r（中の測り方の基準）を画面の px にしたもの。"""
+    from video import film
     lead = next(e for e in data["photos"][cam.lstrip("#")]["extras"] if isinstance(e, dict) and e.get("lead") == name)
     i = int(round(t * FPS))
     x, y, s = cam_at(traj, cam, i)
     sp = traj[(SPLIT, "y")][i]
     (x1, y1), (x2, y2), r = lead["from"], lead["to"], lead["r"]
-    cx, cy, rr = x + s * x2, y + s * y2, r * s * 1.15  # 外縁の線の太さの分を 15% 足す
+    cx, cy, rr = x + s * x2, y + s * y2, r * s * (film.DOT_FILL + film.DOT_RING)  # 中の外に縁取りの太さを足した外縁
     lx, ly = x + s * x1, y + s * y1
     side = PANEL[cam]
     top = 0 if side != "bottom" else 968 + sp
     bot = 1920 if side != "top" else 952 + sp
     edges = {"left": min(cx - rr, lx), "right": 1080 - max(cx + rr, lx), "top": min(cy - rr, ly) - top, "bottom": bot - max(cy + rr, ly)}
-    return {"center": [round(cx, 1), round(cy, 1)], "radius": round(rr, 1), "margin": {k: round(v, 1) for k, v in edges.items()},
-            "clipped": min(edges.values()) < 0}
+    return {"center": [round(cx, 1), round(cy, 1)], "radius": round(rr, 1), "fill_radius": round(r * s * film.DOT_FILL, 2), "core": round(r * s, 2),
+            "margin": {k: round(v, 1) for k, v in edges.items()}, "clipped": min(edges.values()) < 0}
 
 
 # ---- R7(b) 字数
