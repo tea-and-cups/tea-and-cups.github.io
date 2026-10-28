@@ -2,14 +2,14 @@
 <style>
 @font-face { font-family:"Noto Serif JP"; font-weight:200 900; src:url("assets/fonts/NotoSerifJP-VF.ttf") format("truetype"); }
 @font-face { font-family:"Noto Sans JP"; font-weight:100 900; src:url("assets/fonts/NotoSansJP-VF.ttf") format("truetype"); }
-@font-face { font-family:"Zen Old Mincho"; font-weight:700; src:url("assets/fonts/ZenOldMincho-Bold.ttf") format("truetype"); }
-@font-face { font-family:"Zen Old Mincho"; font-weight:600; src:url("assets/fonts/ZenOldMincho-SemiBold.ttf") format("truetype"); }
+@font-face { font-family:"Zen Maru Gothic"; font-weight:700; src:url("assets/fonts/ZenMaruGothic-Bold.ttf") format("truetype"); }
+@font-face { font-family:"Zen Maru Gothic"; font-weight:500; src:url("assets/fonts/ZenMaruGothic-Medium.ttf") format("truetype"); }
 #root { position:absolute; inset:0; overflow:hidden; background:#1e1610;
   --paper:#fbf8f2; --ink:#3a2a1f; --amber:#c8873f; --amber-hi:#e2a95e; --deep:#8e531c;
   --min:"Noto Serif JP", serif; --sans:"Noto Sans JP", sans-serif;
   /* 見出し・答えの字体（問い #q・手入れの見出し・「か」・答え）。字体・太さ・色はここだけで変える。
-     Zen Old Mincho（柔らかい明朝・OFL）。Noto Serif JP の太字が硬く冷たく見えるため（2026-10-28 (b)・Sho の選択） */
-  --head:"Zen Old Mincho", "Noto Serif JP", serif; --hw-b:700; --hw-s:600; --ink-h:var(--paper); --ink-hs:rgba(251,248,242,.92); }
+     Zen Maru Gothic（丸ゴシック・OFL）。Noto Serif JP の太字・Zen Old Mincho が硬く冷たく見えるため（2026-10-28 (c)・Sho の選択） */
+  --head:"Zen Maru Gothic", "Noto Sans JP", sans-serif; --hw-b:700; --hw-s:500; --ink-h:var(--paper); --ink-hs:rgba(251,248,242,.92); }
 #root * { box-sizing:border-box; }
 
 /* 上下の2枚。境目の位置は clip-path で動かす。写真の寄りは外側の .cam にかける */

@@ -322,7 +322,7 @@ def build(d, rt):
     for name, spec in data.get("masks", {}).items():
         make_mask(comp / "assets" / "img" / name, spec)
     make_logo(rt.asset("logo"), comp / "assets" / "brand" / "badge-circle.png")
-    for name in ("font_sans", "font_serif", "font_head_bold", "font_head_semibold"):
+    for name in ("font_sans", "font_serif", "font_head_bold", "font_head_medium"):
         shutil.copyfile(rt.asset(name), comp / "assets" / "fonts" / Path(rt.asset(name)).name)
     shutil.copyfile(rt.asset("gsap"), comp / "gsap.min.js")
     shutil.copyfile(d / "work" / "narration.wav", comp / "assets" / "narration.wav")

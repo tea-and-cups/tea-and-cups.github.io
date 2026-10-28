@@ -12,7 +12,7 @@ gate（すべて true で合格）は AI表示の5項目（2026-10-28-4 の 6節
   r7_chars              1画面の字数（同時に見えている字・章の札を除く）が 30字以下
   r7_subject_in_band    主題（qa_subjects の gate の行）が帯 BAND の中・段の境目で切れていない・写真が段を覆っている
   pointing_not_clipped  点（qa_points）が見える範囲の端で切れていない
-  head_font_glyphs      見出しの字体（Zen Old Mincho の Bold・SemiBold）に、見出し・答えの字がそろっている
+  head_font_glyphs      見出しの字体（Zen Maru Gothic の Bold・Medium）に、見出し・答えの字がそろっている
   g_text_sync           G区間（答え・導線）の字の入りと声の句の頭の差が G_SYNC_S 以内
 R8(b)（0.5秒差 >25 のまとまり）・点のコントラストは測るだけで、合否の線はまだ決めていない（gate に入れない）。
 """
@@ -216,10 +216,10 @@ def run_qa(d, rt, mp4, out_json):
     subj = rules.subjects(data, traj)
     gate["r7_subject_in_band"] = all(r["ok"] for r in subj if r["gate"])
     measure["r7_subject_in_band"] = {"band": list(rules.BAND), "rows": subj}
-    have = rules.cmap_chars(rt.asset("font_head_bold")) & rules.cmap_chars(rt.asset("font_head_semibold"))
+    have = rules.cmap_chars(rt.asset("font_head_bold")) & rules.cmap_chars(rt.asset("font_head_medium"))
     missing = sorted({c for c in rules.head_text(data) if ord(c) not in have})
     gate["head_font_glyphs"] = not missing
-    measure["head_font_glyphs"] = {"font": "Zen Old Mincho（Bold・SemiBold）", "chars_checked": len(set(rules.head_text(data))), "missing": missing}
+    measure["head_font_glyphs"] = {"font": "Zen Maru Gothic（Bold・Medium）", "chars_checked": len(set(rules.head_text(data))), "missing": missing}
     pts = points(rt, mp4, data, traj)
     gate["pointing_not_clipped"] = not any(p["clipped"] for p in pts)
     measure["pointing"] = pts   # クリップは gate、コントラストは測るだけ

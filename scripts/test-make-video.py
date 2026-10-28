@@ -135,11 +135,11 @@ def test_rules():
     check("点が見える範囲の端で切れていない", pts and not any(g["clipped"] for g in pts))
     from video.runtime import Runtime
     rt = Runtime()
-    have = rules.cmap_chars(rt.asset("font_head_bold")) & rules.cmap_chars(rt.asset("font_head_semibold"))
+    have = rules.cmap_chars(rt.asset("font_head_bold")) & rules.cmap_chars(rt.asset("font_head_medium"))
     missing = [ch for ch in rules.head_text(data) if ord(ch) not in have]
-    check("見出しの字体（Zen Old Mincho）に見出し・答えの字がそろっている", not missing and len(have) > 7000, f"{len(have)}字・不足 {missing}")
+    check("見出しの字体（Zen Maru Gothic）に見出し・答えの字がそろっている", not missing and len(have) > 7000, f"{len(have)}字・不足 {missing}")
     html = film.render_film(data)
-    check("見出しの字体が Zen Old Mincho（太さ 700・600）", '--head:"Zen Old Mincho"' in html and "--hw-b:700" in html and "--hw-s:600" in html)
+    check("見出しの字体が Zen Maru Gothic（太さ 700・500）", '--head:"Zen Maru Gothic"' in html and "--hw-b:700" in html and "--hw-s:500" in html)
 
 
 def main():

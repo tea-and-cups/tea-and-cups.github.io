@@ -195,7 +195,7 @@ def subjects(data, traj):
     return rows
 
 
-# ---- 見出しの字体に字がそろっているか（Zen Old Mincho は 7,815字。足りない字は別の字体で出てしまう）
+# ---- 見出しの字体に字がそろっているか（Zen Maru Gothic は 7,812字。足りない字は別の字体で出てしまう）
 
 def cmap_chars(path):
     """TrueType の cmap（format 4・12）にある文字コードの集まり。"""
