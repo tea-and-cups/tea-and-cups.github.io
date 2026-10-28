@@ -8,8 +8,12 @@ r"""動画を作る（本運用の入口・D-0300）。部品は site/scripts/vi
   work/video-N.raw.mp4（書き出し）・video-N.mp4（faststart の完成）・video-N.qa.json（機械QA）・video-N.build.json（段ごとの記録）
 
 操作:
-  next [--create <slug>]           次の番号 N（data/video-posted.md と output/videos/video-* の最大＋1）と、動画の無い公開記事を出す。
-                                   --create で output/videos/video-N/ の骨組み（script.json の雛形・prompts/）を作る
+  next [--date YYYY-MM-DD] [--create <slug>]
+                                   題材の候補（先行ピンと同じ山の窓の seasons・gift の公開記事を、山が近い順→slug の昇順）と次の番号 N を出す。
+                                   1行目は「NEXT_SLUG: <slug>」。候補が無ければ「VIDEO_NO_CANDIDATES」の1行だけ（終了コードは0・何も作らない）。
+                                   --date は基準日の差し替え（検証用・既定は今日）。投稿済み・制作中の slug は候補に出さない
+                                   --create で output/videos/video-N/ の骨組み（script.json の雛形・prompts/・build.json の created_at）を作る。
+                                   投稿済み・制作中の slug は拒否（終了コード1・何も作らない）。候補の範囲外は「【注意】題材の範囲外」を出して作る
   check-script <動画>              script.json の形と句の字数（1行14字・1画面30字）を確かめ、読み辞書を当てた声の入力を出す（声は作らない）
   build <動画> [--from 段|--only 段] [--redo S3,S4]
                                    段: voice → images → comp → render → finalize → qa（--from はその段から最後まで、--only はその段だけ）
@@ -17,7 +21,7 @@ r"""動画を作る（本運用の入口・D-0300）。部品は site/scripts/vi
                                    images: 無い写真だけ gateway で作る → 1440×2160 に整える
                                    comp: 型テンプレート＋video-N.film.json → composition/
                                    render: 全編の書き出し（所要と履歴の増加量を記録）／finalize: faststart だけ／qa: video-N.qa.json
-  status <動画>                     段ごとの成果物・sha256・qa の合否・台帳（Pinterest・Buffer）・書き出しの履歴を、読み取りだけで出す
+  status <動画>                     作成からの経過・段ごとの成果物・sha256・qa の合否・台帳（Pinterest・Buffer）・書き出しの履歴を、読み取りだけで出す
   clean-history [--keep 1]          書き出しの履歴（実行環境の home の history の下の UUID 形のフォルダ）を、新しい keep 件を残して消す
 
 終了コード: 0 正常 / 1 段の失敗・検査の NG・qa の不合格 / 2 実行環境の照合が RUNTIME_OK でない・引数の誤り
@@ -25,6 +29,7 @@ r"""動画を作る（本運用の入口・D-0300）。部品は site/scripts/vi
 
 import argparse
 import datetime
+import importlib.util
 import json
 import os
 import re
@@ -92,32 +97,102 @@ def posted_numbers():
     return out
 
 
+def advance_pin():
+    """先行ピンの山の窓と山の計算の正本（check-advance-pin-today.py）。値はここへ書き写さない。"""
+    spec = importlib.util.spec_from_file_location("check_advance_pin_today", os.path.join(SCRIPT_DIR, "check-advance-pin-today.py"))
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def wip_slugs_of(entries, posted):
+    """制作中の slug の集合。entries は (N, slug)。台帳にある番号と slug の無いものは数えない。"""
+    return {slug for n, slug in entries if slug and n not in posted}
+
+
+def wip_entries(posted):
+    """制作中の動画: output/videos/video-N/ のうち台帳に無い番号の (N, 題材の slug)。slug は script.json、無ければ film.json から。"""
+    out = []
+    for p in sorted(VIDEOS.glob("video-*")):
+        m = re.match(r"^video-(\d+)$", p.name)
+        if not (p.is_dir() and m) or int(m.group(1)) in posted:
+            continue
+        slug = None
+        for f in [p / "script.json", *sorted(p.glob("video-*.film.json"))]:
+            if f.exists():
+                try:
+                    slug = json.loads(f.read_text(encoding="utf-8")).get("slug")
+                except ValueError:
+                    slug = None
+                if slug:
+                    break
+        out.append((int(m.group(1)), slug))
+    return out
+
+
+def pick_candidates(target, calendar, posts, excluded, adv):
+    """題材の候補。公開中の seasons・gift で、台帳に山があり、基準日から次の山までが窓の中の記事。除外（投稿済み・制作中）を除き、山が近い順→slug の昇順。"""
+    out = []
+    for slug, entry in calendar.items():
+        post = posts.get(slug)
+        if slug in excluded or not entry["peaks"] or not post or post["category"] not in adv.TARGET_CATEGORIES:
+            continue
+        peak = adv.next_peak(entry["peaks"], target)
+        days = (peak - target).days
+        if adv.WINDOW_MIN_DAYS <= days <= adv.WINDOW_MAX_DAYS:
+            out.append({"slug": slug, "peak": peak, "days": days})
+    return sorted(out, key=lambda c: (c["days"], c["slug"]))
+
+
+def create_verdict(slug, posted_slugs, wip_slugs, candidate_slugs):
+    """--create の可否。戻り値 (拒否か, 出す1行 または None)。範囲外は拒否せず注意だけ。"""
+    if slug in posted_slugs:
+        return True, f"拒否: {slug} は投稿済み（data/video-posted.md）"
+    if slug in wip_slugs:
+        return True, f"拒否: {slug} は制作中（output/videos/ に同じ slug の制作フォルダがある）"
+    if slug not in candidate_slugs:
+        return False, "【注意】題材の範囲外（先行ピンと同じ山の窓の seasons・gift の公開記事ではない）"
+    return False, None
+
+
 def cmd_next(args):
+    adv = advance_pin()
+    if args.date:
+        try:
+            target = datetime.date.fromisoformat(args.date)
+        except ValueError:
+            print(f"--date は YYYY-MM-DD: {args.date}")
+            return 2
+    else:
+        target = adv.today_jst()
     posted = posted_numbers()
+    wip_slugs = wip_slugs_of(wip_entries(posted), posted)
+    calendar, _ = adv.load_calendar()
+    cands = pick_candidates(target, calendar, adv.published_posts(), set(posted.values()) | wip_slugs, adv)
+    if not args.create and not cands:
+        print("VIDEO_NO_CANDIDATES")
+        return 0
     local = [int(m.group(1)) for p in VIDEOS.glob("video-*") if p.is_dir() and (m := re.match(r"^video-(\d+)$", p.name))]
     n = max([0, *posted, *local]) + 1
-    print(f"NEXT_N {n}（台帳の最大 {max(posted, default=0)}・作業フォルダの最大 {max(local, default=0)}）")
-    done = set(posted.values())
-    cands = []
-    for f in POSTS.glob("*.md"):
-        text = f.read_text(encoding="utf-8")
-        head = text.split("---", 2)[1] if text.startswith("---") else ""
-        if "status: published" not in head:
-            continue
-        slug = re.search(r"^slug: (.+)$", head, re.M)
-        date = re.search(r"^date: (.+)$", head, re.M)
-        if slug and slug.group(1).strip() not in done:
-            cands.append((date.group(1).strip() if date else "", slug.group(1).strip()))
-    print("CANDIDATES（動画の無い公開記事・新しい順に5件）")
-    for date, slug in sorted(cands, reverse=True)[:5]:
-        print(f"  {date} {slug}")
-    if args.create:
+    if not args.create:
+        print(f"NEXT_SLUG: {cands[0]['slug']}")
+        print(f"NEXT_N {n}（台帳の最大 {max(posted, default=0)}・作業フォルダの最大 {max(local, default=0)}）")
+        print(f"CANDIDATES（基準日 {target.isoformat()}・山が近い順）")
+        for c in cands:
+            print(f"  {c['slug']}  山 {c['peak'].isoformat()}  残り{c['days']}日")
+    else:
         if not (POSTS / f"{args.create}.md").exists():
             print(f"記事が無い: site/src/content/posts/{args.create}.md")
+            return 1
+        refused, msg = create_verdict(args.create, set(posted.values()), wip_slugs, {c["slug"] for c in cands})
+        if msg:
+            print(msg)
+        if refused:
             return 1
         d = VIDEOS / f"video-{n}"
         for sub in ("prompts", "images", "voice/raw", "work"):
             (d / sub).mkdir(parents=True, exist_ok=True)
+        (d / f"video-{n}.build.json").write_text(json.dumps({"created_at": now(), "runs": []}, ensure_ascii=False, indent=1), encoding="utf-8")
         sc = d / "script.json"
         if not sc.exists():
             sc.write_text(json.dumps({
@@ -125,7 +200,7 @@ def cmd_next(args):
                          "事実の出どころは source（記事の本文）。記事に無い事実・商品・体験は足さない。",
                 "slug": args.create, "article_url": f"https://kohaku-jikan.com/posts/{args.create}/", "lexicon": [], "gap_after": {},
                 "sentences": [{"id": "S1", "scene": "hook", "phrases": [], "source": ""}]}, ensure_ascii=False, indent=1), encoding="utf-8")
-        print(f"CREATED output/videos/video-{n}/（script.json・prompts/）。video-{n}.film.json は型のデータとして別に作る")
+        print(f"CREATED output/videos/video-{n}/（script.json・prompts/・video-{n}.build.json の created_at）。video-{n}.film.json は型のデータとして別に作る")
     return 0
 
 
@@ -274,6 +349,17 @@ def cmd_build(args, rt):
 
 # ---- status
 
+def elapsed_line(log_path):
+    """作成からの経過（build.json の created_at から今まで）と、記録済みの段の stage_seconds の合計。1本全体の時間は created_at から審査行が書かれるまで（rules/video-production.md 0-1）。"""
+    log = json.loads(log_path.read_text(encoding="utf-8")) if log_path.exists() else {}
+    if not log.get("created_at"):
+        return "作成からの経過: 記録なし（build.json に created_at が無い）"
+    sec = int((datetime.datetime.now() - datetime.datetime.fromisoformat(log["created_at"])).total_seconds())
+    stages = [r["stage_seconds"] for r in log.get("runs", []) if isinstance(r.get("stage_seconds"), (int, float))]
+    return (f"作成からの経過: {sec // 3600}時間{sec % 3600 // 60}分（{log['created_at']} から）・"
+            f"記録済みの段の stage_seconds の合計 {round(sum(stages), 1)}秒（{len(stages)}回）")
+
+
 def cmd_status(args, rt):
     from video import render
     d = video_dir(args.video)
@@ -286,6 +372,7 @@ def cmd_status(args, rt):
         from video import film
         _, data = film.load_data(d)
     print(f"動画{n}  output/videos/{d.name}/  slug={data['slug'] if data else '-'}")
+    print("  " + elapsed_line(p["log"]))
 
     def line(stage, text):
         r = last.get(stage)
@@ -353,6 +440,7 @@ def main():
     sub = ap.add_subparsers(dest="cmd", required=True)
     a = sub.add_parser("next")
     a.add_argument("--create", metavar="slug")
+    a.add_argument("--date", metavar="YYYY-MM-DD")
     a = sub.add_parser("check-script")
     a.add_argument("video")
     a = sub.add_parser("build")

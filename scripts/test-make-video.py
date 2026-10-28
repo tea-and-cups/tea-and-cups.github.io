@@ -11,6 +11,7 @@ r"""make-video.py の部品（site/scripts/video/）のテスト。読むだけ�
 6. (d) の gate（D-0303）: はみ出し 0px（動画1の全面の写真 B・G は不合格、0px は合格・0.5px は不合格）と、点のコントラスト 3.0
    （合成したコマで、中も縁取りも背景に近いと不合格・濃い縁取りか明るい中のどちらかが背景と離れていれば合格・lead の書き漏れは不合格）。
    点は中の大きさを変えずに縁取りを外へ足す形で描かれる。
+7. 題材の候補（make-video.py next・D-0305）: 窓の内側・外側、投稿済み・制作中の除外、0件、並び順、--create の拒否と範囲外の注意（メモリ上のデータだけ）。
 
 使い方: python site/scripts/test-make-video.py
 終了コード: 全件合格で0、1件でも不合格で1
@@ -246,9 +247,52 @@ def test_dot_layer_and_windows():
     check("許容範囲: 依頼文の行に 2:3・9:16 の % が入る", len(lines) == 2 and all("2:3 なら" in ln and "9:16 をそのまま" in ln for ln in lines))
 
 
+def test_next_candidates():
+    """題材の候補（make-video.py next・D-0305）。メモリ上のデータだけを使い、ファイルには書かない。窓の値は check-advance-pin-today.py のものを使う。"""
+    import datetime
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("make_video", os.path.join(SCRIPT_DIR, "make-video.py"))
+    mv = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mv)
+    adv = mv.advance_pin()
+    target = datetime.date(2026, 10, 28)
+
+    def peak_in(days):
+        d = target + datetime.timedelta(days=days)
+        return [(d.month, d.day)]
+
+    lo, hi = adv.WINDOW_MIN_DAYS, adv.WINDOW_MAX_DAYS
+    calendar = {"in-min": {"peaks": peak_in(lo)}, "in-max": {"peaks": peak_in(hi)}, "out-near": {"peaks": peak_in(lo - 1)},
+                "out-far": {"peaks": peak_in(hi + 1)}, "no-peak": {"peaks": []}, "not-target": {"peaks": peak_in(lo + 5)},
+                "unpublished": {"peaks": peak_in(lo + 5)}}
+    posts = {s: {"category": "gift", "date": "2026-01-01"} for s in ("in-min", "in-max", "out-near", "out-far", "no-peak")}
+    posts["not-target"] = {"category": "tea", "date": "2026-01-01"}   # unpublished は posts に無い
+    slugs = lambda cs: [c["slug"] for c in cs]   # noqa: E731
+    cands = mv.pick_candidates(target, calendar, posts, set(), adv)
+    check("候補: 窓の内側（下限・上限ちょうど）だけ。外側・山なし・対象外のカテゴリ・未公開は出ない", slugs(cands) == ["in-min", "in-max"], str(slugs(cands)))
+    check("候補: 残り日数が窓の値（check-advance-pin-today.py の WINDOW_MIN_DAYS・WINDOW_MAX_DAYS）と一致", [c["days"] for c in cands] == [lo, hi])
+    check("候補: 投稿済みの slug は出ない", slugs(mv.pick_candidates(target, calendar, posts, {"in-min"}, adv)) == ["in-max"])
+    wip = mv.wip_slugs_of([(1, "in-min"), (2, "in-max"), (3, None)], {1: "in-min"})
+    check("制作中: 台帳に無い番号のフォルダの slug だけ（台帳にある番号・slug の無いフォルダは数えない）", wip == {"in-max"}, str(wip))
+    check("候補: 制作中の slug は出ない", slugs(mv.pick_candidates(target, calendar, posts, wip, adv)) == ["in-min"])
+    check("候補: 投稿済みと制作中で窓の中がすべて除かれると 0件", mv.pick_candidates(target, calendar, posts, {"in-min", "in-max"}, adv) == [])
+    tie = {"b-tie": {"peaks": peak_in(lo + 3)}, "a-tie": {"peaks": peak_in(lo + 3)}, "z-near": {"peaks": peak_in(lo + 1)}}
+    tie_posts = {s: {"category": "seasons", "date": "2026-01-01"} for s in tie}
+    check("並び順: 山が近い順 → slug の昇順", slugs(mv.pick_candidates(target, tie, tie_posts, set(), adv)) == ["z-near", "a-tie", "b-tie"])
+    year = {"x": {"peaks": [(1, 5), (12, 1)]}}
+    yc = mv.pick_candidates(datetime.date(2026, 12, 1) - datetime.timedelta(days=lo), year, {"x": posts["in-min"]}, set(), adv)
+    check("候補: 複数の山のうち次の山で数える", slugs(yc) == ["x"] and yc[0]["days"] == lo)
+    check("--create: 投稿済みは拒否（理由を1行）", mv.create_verdict("in-min", {"in-min"}, set(), {"in-max"})[0] is True)
+    check("--create: 制作中は拒否（理由を1行）", mv.create_verdict("in-max", set(), {"in-max"}, {"in-min"})[0] is True)
+    refused, msg = mv.create_verdict("elsewhere", {"in-min"}, {"in-max"}, {"c"})
+    check("--create: 候補の範囲外は拒否せず「【注意】題材の範囲外」", refused is False and msg and msg.startswith("【注意】題材の範囲外"), str(msg))
+    check("--create: 候補の中は注意なしで通る", mv.create_verdict("c", set(), set(), {"c"}) == (False, None))
+
+
 def main():
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    test_next_candidates()
     test_candidates()
     test_synthetic()
     test_lexicon()
