@@ -162,27 +162,15 @@
   // 鍵のカードの札の位置（あとで上の列へ運ぶ）
 {{pill_from}}
 
-{{cues_A}}
+{{cues}}
 
-{{cues_B}}
-
-{{cues_C}}
-
-{{cues_D}}
-
-{{cues_E}}
-
-{{cues_F}}
-
-{{cues_G}}
-
-  // ==== H 終わり（{{H0}}–）: 写真がぼけて暗くなる中からロゴが浮かび上がり、少し遅れて AI 表示が出る（ブランドのエンドカード）
-  tl.to("#f-gift-img", { "--hf-color-grading-blur": 1, "--hf-color-grading-exposure": -1.6, duration: 0.8, ease: "power2.out" }, H0);
-  tl.to(["#q", "#ans-s", "#ans-b", "#cta", "#cta-ul", "#qplate"], { opacity: 0, filter: "blur(6px)", duration: 0.3, ease: "power2.inOut" }, H0);
-  tl.to("#logo", { opacity: 1, duration: 0.6, ease: "sine.inOut" }, H0);  // 出だしを遅く（G の字・明るい写真と重ならない）
-  tl.to("#logo", { scale: 1, duration: 0.9, ease: "sine.out" }, H0);
-  tl.fromTo("#credit", { opacity: 0, y: 10, filter: "blur(6px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.35, ease: "power2.out" }, H0 + 0.2);
-{{cues_H}}
+  // ==== {{end}} 終わり（{{end_t}}–）: 写真がぼけて暗くなる中からロゴが浮かび上がり、少し遅れて AI 表示が出る（ブランドのエンドカード）
+  tl.to("#f-gift-img", { "--hf-color-grading-blur": 1, "--hf-color-grading-exposure": -1.6, duration: 0.8, ease: "power2.out" }, {{end0}});
+  tl.to(["#q", "#ans-s", "#ans-b", "#cta", "#cta-ul", "#qplate"], { opacity: 0, filter: "blur(6px)", duration: 0.3, ease: "power2.inOut" }, {{end0}});
+  tl.to("#logo", { opacity: 1, duration: 0.6, ease: "sine.inOut" }, {{end0}});  // 出だしを遅く（G の字・明るい写真と重ならない）
+  tl.to("#logo", { scale: 1, duration: 0.9, ease: "sine.out" }, {{end0}});
+  tl.fromTo("#credit", { opacity: 0, y: 10, filter: "blur(6px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.35, ease: "power2.out" }, {{end0}} + 0.2);
+{{cues_end}}
 
   window.__timelines = window.__timelines || {};
   window.__timelines["film"] = tl;

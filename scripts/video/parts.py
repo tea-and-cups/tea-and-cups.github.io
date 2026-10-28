@@ -2,9 +2,11 @@
 型のデータ video-N.film.json を作る（D-0307）。作った film.json は film.py が今までどおり型テンプレート（film-planA.html）へ差し込む。
 動画 PARTS_FROM 以降が対象。動画1・2は案Aの作り（手で作った film.json）のまま。
 
-部品（1つ＝1つの画面の割り方を一定の時間保つ場面。案Aのテンプレートの区間 A〜H に順に当たる）
-  scene: "split"（上下の比べ）・"full"（全面の寄り）・"endcard"（エンドカード）。割り方・写真が見える矩形・所要の目安・指紋の語は SCENES。
-  つなぎ（割り方が変わる所）は場面の中の fx の拍で受ける。前と次の割り方は FX（film.py の5種の切り替え）。
+部品（1つ＝1つの画面の割り方を一定の時間保つ場面。並べた順に区間 A・B・C…になる。数は固定しない（2〜26・最後は endcard）・D-0310）
+  scene: "split"（上下の比べ）・"full"（全面の寄り）・"trace"（部品 a: 1枚の写真を部位ごとになぞる）・"steps"（部品 b: 手順を時間の流れで見せる）・
+  "endcard"（エンドカード）。割り方・写真が見える矩形・所要の目安・指紋の語・要る拍の数・主役の要否は SCENES。
+  最初の部品は cover（カバーの問いとカメラの初期値）を持つ。最初の部品が全面（full・trace・steps）なら、0コマ目から全面の写真を出す。
+  つなぎ（割り方が変わる所）は場面の中の fx の拍で受ける。前と次の割り方は FX（film.py の5種の切り替え）。全面どうし（full→trace など）はつなぎなしで続けられる。
   name・note は区間の見出しの注釈。start は区間の始まり（最初の部品は 0 秒で書かない）。chapter は章の番号（字の注釈の見出しに使う）。
   texts は場面で使う字の要素（kind: text・follow・icon・headline・underline）。box（画面の矩形 x0,y0,x1,y1）があれば字の同期を測れる。
   beats は場面の中の拍（書いた順に cues になる）。拍の種類は BEATS の関数の説明。
@@ -31,18 +33,34 @@ from pathlib import Path
 from video import film
 
 PARTS_FROM = 3
-LETTERS = "ABCDEFGH"   # 案Aのテンプレートの区間（film-planA.html の cues_A〜cues_H）。部品はこの数だけ並べる
+DEFAULT_CONSTS = tuple(film.const_letters(film.letters_for(8)))   # 区間を名前だけで指すとき（Ctx を直に作るとき）の定数の区間。案Aの8区間の E〜H
 HIDDEN_PER_LINE = 10   # 最初に隠す字の一覧（hidden）を、部品ごとのまとまりで1行に詰める数（見た目の整形だけ）
 PANEL_POS = {"#t-aft": "上", "#b-mug": "下", "#b-col": "下", "#f-gift": ""}
 
-# 場面の部品。layout は割り方、visible は写真が見える画面の矩形（split は境目のずれ）、min・max は所要の目安（秒・判定はしない）、words は指紋の語、
-# compare は比べ方（指紋の語。比べない場面は None）
+# 場面の部品。layout は割り方（指紋の語）、panel は割り方の種類（つなぎの向きと合わせる: split・full）、visible は写真が見える画面の矩形
+# （split は境目のずれ）、min・max は所要の目安（秒・判定はしない）、words は指紋の語、compare は比べ方（指紋の語。比べない場面は None）、
+# needs はこの場面に要る拍の種類と数（下限, 上限。その拍はこの場面でしか使えない）、subject は主役（拍の subject）が要るか
+FULL_VISIBLE = {"#f-gift": "0,0,1080,1920"}
 SCENES = {
-    "split": {"layout": "上下", "visible": {"#t-aft": "0,0,1080,952+split", "#b-mug": "0,968+split,1080,1920", "#b-col": "0,968+split,1080,1920"},
+    "split": {"layout": "上下", "panel": "split", "visible": {"#t-aft": "0,0,1080,952+split", "#b-mug": "0,968+split,1080,1920", "#b-col": "0,968+split,1080,1920"},
               "min": 5.0, "max": 10.0, "words": ("上下の比べ",), "compare": "上下"},
-    "full": {"layout": "全面", "visible": {"#f-gift": "0,0,1080,1920"}, "min": 3.0, "max": 6.0, "words": ("全面の寄り",), "compare": None},
-    "endcard": {"layout": "全面", "visible": {"#f-gift": "0,0,1080,1920"}, "min": 2.5, "max": 3.5, "words": ("エンドカード",), "compare": None},
+    "full": {"layout": "全面", "panel": "full", "visible": FULL_VISIBLE, "min": 3.0, "max": 6.0, "words": ("全面の寄り",), "compare": None},
+    # 部品 a: 全面の写真1枚の上を、部位ごとに光の線（テンプレートの #rim-sweep）が輪郭を走り、点と線と札が順に出る（trace の拍1つ＝1部位）。
+    # カメラは cam の拍でゆっくり寄るか止める（部位が画面から外れないように）。合う記事: 1つの器・茶葉・道具の部位の話
+    "trace": {"layout": "全面", "panel": "full", "visible": FULL_VISIBLE, "min": 4.0, "max": 10.0, "words": ("部位をなぞる",), "compare": None,
+              "needs": {"trace": (2, 5)}, "subject": True},
+    # 部品 b: 全面の写真の下寄りに目盛りの線が左から伸び、句に合わせて目盛りの点と札が順に乗る（steps の拍1つ・札は2〜5）。
+    # 線の伸びは情報を運ぶ動き（R5(b)）。合う記事: 淹れ方・保存などの手順・時間の how-to
+    "steps": {"layout": "全面", "panel": "full", "visible": FULL_VISIBLE, "min": 4.0, "max": 10.0, "words": ("時間の流れ",), "compare": None,
+              "needs": {"steps": (1, 1)}, "subject": True},
+    "endcard": {"layout": "全面", "panel": "full", "visible": FULL_VISIBLE, "min": 2.5, "max": 3.5, "words": ("エンドカード",), "compare": None},
 }
+SCENE_ONLY = {k: s for s, spec in SCENES.items() for k in spec.get("needs", {})}   # 拍の種類 → それを使える場面
+SWEEP_MAX = 1500        # なぞる線の長さの上限（写真の px。テンプレートの #rim-sweep の破線 150 1500 の間隔）
+SWEEP_TAIL = 150        # なぞる線の光の長さ（同じ破線の 150）
+STEPS_Y, STEPS_X0, STEPS_X1 = 1200, 120, 960   # 時間の流れの線の既定の位置（画面の px・帯 168〜1330 の中）
+STEPS_TAG_H, STEPS_TAG_GAP, STEPS_TAG_FONT = 76, 50, 44   # 札の高さ・線から札の下端までの間・札の字の大きさ（.tag の字）
+PEAK_AFTER = Decimal("0.3")   # 見せ場の秒: 部品の中で最後の点・字が出きってからの間
 # つなぎ（film.py の5種の切り替え）: 前の割り方 → 次の割り方・構図が落ち着くまでの秒（film.py の #full・#div・カメラの動きの長さ）・関わるカメラの項目・指紋の語
 FX = {
     "dissolve": {"from": "split", "to": "full", "settle": "0.8", "cams": ("cam",), "words": ("溶かし",)},
@@ -106,7 +124,8 @@ class Time:
 
 
 class Ctx:
-    def __init__(self, timeline, bounds, letter, marks=None):
+    def __init__(self, timeline, bounds, letter, marks=None, consts=DEFAULT_CONSTS):
+        self.consts = consts
         self.heads = {}
         self.ends = {}
         for s in timeline["sentences"]:
@@ -141,9 +160,9 @@ class Ctx:
         return Time(self.marks[mark] + off, "mark", name=mark, off=off)
 
     def t(self, s, where=""):
-        """cues に書く時刻。区間の始まりからの時刻は、型が定数を持つ区間（film.CONST_SECTIONS）なら「E0 + 0.25」の式、mark は「DS + 0.8」の式、ほかは数"""
+        """cues に書く時刻。区間の始まりからの時刻は、型が定数を持つ区間（film.const_letters）なら「E0 + 0.25」の式、mark は「DS + 0.8」の式、ほかは数"""
         r = self.ref(s, where)
-        if r.kind == "start" and self.letter in film.CONST_SECTIONS:
+        if r.kind == "start" and self.letter in self.consts:
             return f"{self.letter}0{off_text(r.off)}"
         if r.kind == "mark":
             return f"{r.name}{off_text(r.off)}"
@@ -152,8 +171,8 @@ class Ctx:
     def until(self, at, until, next_letter, where=""):
         """at から until までの長さ。始まり→次の区間の始まりで、両方に型の定数があれば「H0 - G0 + 0.6」の式"""
         a, u = self.ref(at, where), self.ref(until, where)
-        if (a.kind == "start" and a.off == 0 and u.kind == "end" and self.letter in film.CONST_SECTIONS
-                and next_letter in film.CONST_SECTIONS):
+        if (a.kind == "start" and a.off == 0 and u.kind == "end" and self.letter in self.consts
+                and next_letter in self.consts):
             return f"{next_letter}0 - {self.letter}0{off_text(u.off)}"
         return num(u.value - a.value)
 
@@ -411,6 +430,10 @@ def beat_point(ctx, b, out, st):
 
 
 def beat_chapter(ctx, b, out, st):
+    """章の札の点灯。写真の小窓つきカード（cards）を使わない組み立てでは、札は最初は隠れていて、最初の点灯で一緒に出る"""
+    if not st.cards and not st.pills_shown:
+        out.cues.append({"fromTo": pill_sels(st), "from": {"opacity": 0}, "v": {"opacity": 1, "duration": 0.4, "ease": "power2.out"}, "t": ctx.t(b["at"])})
+        st.pills_shown = True
     out.cues.append({"pill": b["chapter"], "t": ctx.t(b["at"])})
     out.words += OVERLAYS["chapter"]["words"]
 
@@ -437,6 +460,7 @@ def beat_cards(ctx, b, out, st):
                  '  tl.fromTo(p, { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: IN, ease: "power3.out" }, t + 0.06);',
                  "});"]
     out.hidden += [".card", *pill_sels(st)]
+    st.cards = True
     out.pill_from = [c["pill_from"] for c in cards]
     for i, c in enumerate(cards, 1):
         r = ctx.ref(c["at"])
@@ -475,13 +499,106 @@ def beat_answer(ctx, b, out, st):
     out.words += OVERLAYS["answer"]["words"]
 
 
+def smooth_path(pts):
+    """通り道の点（写真の座標・2点以上）を Catmull-Rom でなめらかにつないだ SVG の d と、その長さ（px・曲線を細かく折れ線にして測る）"""
+    import math
+    p = [(float(x), float(y)) for x, y in pts]
+    if len(p) < 2:
+        raise PartsError(f"なぞる通り道 path は2点以上: {pts}")
+    d, length, prev = [f"M {p[0][0]:g} {p[0][1]:g}"], 0.0, p[0]
+    for i in range(len(p) - 1):
+        p0, p1, p2, p3 = p[max(i - 1, 0)], p[i], p[i + 1], p[min(i + 2, len(p) - 1)]
+        c1 = (p1[0] + (p2[0] - p0[0]) / 6, p1[1] + (p2[1] - p0[1]) / 6)
+        c2 = (p2[0] - (p3[0] - p1[0]) / 6, p2[1] - (p3[1] - p1[1]) / 6)
+        d.append(f"C {c1[0]:.1f} {c1[1]:.1f} {c2[0]:.1f} {c2[1]:.1f} {p2[0]:g} {p2[1]:g}")
+        for k in range(1, 21):
+            t = k / 20
+            x = (1 - t) ** 3 * p1[0] + 3 * (1 - t) ** 2 * t * c1[0] + 3 * (1 - t) * t ** 2 * c2[0] + t ** 3 * p2[0]
+            y = (1 - t) ** 3 * p1[1] + 3 * (1 - t) ** 2 * t * c1[1] + 3 * (1 - t) * t ** 2 * c2[1] + t ** 3 * p2[1]
+            length += math.hypot(x - prev[0], y - prev[1])
+            prev = (x, y)
+    return " ".join(d), length
+
+
+def beat_trace(ctx, b, out, st):
+    """部品 a の1部位: 光の線（テンプレートの #rim-sweep の glow と core）が部位の輪郭（path: 写真の座標の通り道）を at から d 秒で走り、
+    点と線（lead・dot・line・ld）と札（tag）が point の拍と同じ作りで出る。until（既定 end-0.25）で点と札を消す。
+    札の字の同期の領域は、そのときのカメラの値（直前までの cam の拍の終わりの値）から画面の矩形にして作る（手で書かない）"""
+    name, cam = b["trace"], b.get("cam", "#f-gift")
+    if cam not in SCENES["trace"]["visible"]:
+        raise PartsError(f"{ctx.letter}: なぞるのは全面の写真（{'・'.join(SCENES['trace']['visible'])}）: {cam}")
+    path, length = smooth_path(b["path"])
+    if length > SWEEP_MAX:
+        raise PartsError(f"{ctx.letter}: なぞる線 {name} の長さ {length:.0f}px が上限 {SWEEP_MAX}px を超える（部位を分ける）")
+    st.sweeps.setdefault(cam, []).append(f'<g id="sw-{name}"><path class="glow" d="{path}" /><path class="core" d="{path}" /></g>')
+    sel, dd = f"#sw-{name} path", Decimal(str(b.get("d", "0.8")))
+    t0 = ctx.ref(b["at"]).value
+    out.cues += [{"to": sel, "v": {"opacity": 1, "duration": 0.15, "ease": "power1.out"}, "t": ctx.t(b["at"])},
+                 {"to": sel, "v": {"strokeDashoffset": -round(length + 20), "duration": num(dd), "ease": "power1.inOut"}, "t": ctx.t(b["at"])},
+                 {"to": sel, "v": {"opacity": 0, "duration": 0.25, "ease": "power1.in"}, "t": num(t0 + dd - Decimal("0.25"))}]
+    beat_point(ctx, {k: v for k, v in {"point": name, "cam": cam, "lead": b["lead"], "dot": b["dot"], "line": b["line"], "ld": b["ld"],
+                                       "tag": b.get("tag")}.items() if v is not None}, out, st)
+    hide = ctx.t(b.get("until", "end-0.25"))
+    out.cues.append({"to": f"#c-{name}", "v": {"opacity": 0, "duration": 0.2, "ease": "power2.in"}, "t": hide})
+    tag = b.get("tag")
+    if tag:
+        c = st.cam.get(cam, {})
+        s, x, y = (float(Decimal(str(c.get(k, d0)))) for k, d0 in (("scale", 1), ("x", 0), ("y", 0)))
+        box = [round(x + s * (tag["x"] - tag["w"] / 2)), round(y + s * tag["y"]), round(x + s * (tag["x"] + tag["w"] / 2)), round(y + s * (tag["y"] + 84))]
+        r = ctx.ref(tag["at"])
+        out.text_sync.append([f"{name}tag {tag['text']}", num(r.value), num(r.voice) if r.voice is not None else None, box])
+        out.cues.append({"out": f"#{name}tag", "t": hide})
+
+
+def beat_steps(ctx, b, out, st):
+    """部品 b: 画面の y（既定 STEPS_Y）に x0〜x1 の目盛りの線を出し（at）、items の句ごとに線が次の目盛りまで伸びて、目盛りの点と札が乗る。
+    目盛りは x0〜x1 を札の数で等分した位置。until（既定 end-0.25）で全部を消す。札の領域は位置と字数から作る（手で書かない）"""
+    sid, items = b["steps"], b["items"]
+    if not 2 <= len(items) <= 5:
+        raise PartsError(f"{ctx.letter}: 時間の流れの札は2〜5個（{len(items)}個）")
+    y, x0, x1 = b.get("y", STEPS_Y), b.get("x0", STEPS_X0), b.get("x1", STEPS_X1)
+    n, span = len(items), x1 - x0
+    ticks = [round(x0 + span * k / n) for k in range(1, n + 1)]
+    out.overlays.append(
+        f'<svg id="{sid}" viewBox="0 0 1080 1920" style="position:absolute; left:0; top:0; width:1080px; height:1920px; overflow:visible; '
+        f'filter:drop-shadow(0 2px 8px rgba(0,0,0,.55))"><path d="M {x0} {y} L {x1} {y}" style="fill:none; stroke:rgba(251,248,242,.38); stroke-width:6; '
+        f'stroke-linecap:round" /><path id="{sid}-bar" d="M {x0} {y} L {x1} {y}" style="fill:none; stroke:#fbf8f2; stroke-width:8; stroke-linecap:round; '
+        f'stroke-dasharray:{span}; stroke-dashoffset:{span}" />'
+        + "".join(f'<circle id="{sid}-k{k}" cx="{tx}" cy="{y}" r="15" style="fill:#c8873f; stroke:#fbf8f2; stroke-width:5" />' for k, tx in enumerate(ticks, 1))
+        + "</svg>")
+    out.cues.append({"fromTo": f"#{sid}", "from": {"opacity": 0}, "v": {"opacity": 1, "duration": 0.3, "ease": "power2.out"}, "t": ctx.t(b["at"])})
+    prev, right = ctx.ref(b["at"]).value + Decimal("0.3"), 0
+    labels = []
+    for k, (it, tx) in enumerate(zip(items, ticks), 1):
+        r = ctx.ref(it["at"], f" {sid}")
+        if r.value - prev < Decimal("0.15"):
+            raise PartsError(f"{ctx.letter}: 時間の流れの札 {k} の時刻 {r.value} が前（{prev}）に近すぎる（0.15秒以上あける）")
+        w = STEPS_TAG_FONT * len(it["text"]) + 44
+        left, top = min(max(tx - w // 2, 40), 1040 - w), y - STEPS_TAG_GAP - STEPS_TAG_H
+        if left < right + 12:
+            raise PartsError(f"{ctx.letter}: 時間の流れの札 {it['text']} が前の札と重なる（字を短くするか x0・x1 を広げる）")
+        right = left + w
+        grow = max(prev, r.value - Decimal("0.45"))
+        tag = f"{sid}-t{k}"
+        labels.append(f"#{tag}")
+        out.overlays.append({"id": tag, "class": "tag", "style": f"left:{left}px; top:{top}px", "text": it["text"]})
+        out.cues += [{"to": f"#{sid}-bar", "v": {"strokeDashoffset": round(span * (n - k) / n), "duration": num(r.value - grow), "ease": "power2.out"}, "t": num(grow)},
+                     {"fromTo": f"#{sid}-k{k}", "from": {"opacity": 0, "scale": 0, "transformOrigin": "50% 50%"},
+                      "v": {"opacity": 1, "scale": 1, "duration": 0.2, "ease": "back.out(2)"}, "t": ctx.t(it["at"])},
+                     {"fromTo": f"#{tag}", "from": {"opacity": 0, "y": 16}, "v": {"opacity": 1, "y": 0, "duration": "IN", "ease": "power3.out"}, "t": ctx.t(it["at"])}]
+        out.text_sync.append([f"{tag} {it['text']}", num(r.value), num(r.voice) if r.voice is not None else None, [left, top, left + w, top + STEPS_TAG_H]])
+        prev = r.value
+    out.cues.append({"out": [f"#{sid}", *labels], "t": ctx.t(b.get("until", "end-0.25"))})
+    out.hidden += [f"#{sid}", *(f"#{sid}-k{k}" for k in range(1, n + 1)), *labels]
+
+
 BEATS = {"cam": beat_cam, "grade": beat_grade, "show": beat_show, "hide": beat_hide, "draw": beat_draw, "tween": beat_tween,
          "split": beat_split, "mark": beat_mark, "comment": beat_comment, "fx": beat_fx, "point": beat_point,
          "chapter": beat_chapter, "chapters_off": beat_chapters_off, "cards": beat_cards, "cards_done": beat_cards_done,
-         "answer": beat_answer}
+         "answer": beat_answer, "trace": beat_trace, "steps": beat_steps}
 
 
-BEAT_ORDER = ("fx", "point", "answer", "cards", "cards_done", "chapters_off", "chapter", "mark", "comment", "split", "show", "hide",
+BEAT_ORDER = ("trace", "steps", "fx", "point", "answer","cards", "cards_done", "chapters_off", "chapter", "mark", "comment", "split", "show", "hide",
               "draw", "grade", "tween", "cam")   # 拍の種類を見分ける順（fx・point も cam の項目を持つので先に見る）
 
 
@@ -503,6 +620,9 @@ class State:
         self.answer = None
         self.fx = []
         self.next_letter = None
+        self.cards = False          # 写真の小窓つきカードを使ったか（使わなければ章の札は最初の点灯で出る）
+        self.pills_shown = False
+        self.sweeps = {}            # カメラ → なぞる線（#rim-sweep の中の g）
 
 
 def subject_rows(letter, scene, anchors, end):
@@ -523,20 +643,25 @@ def subject_rows(letter, scene, anchors, end):
 def compile_film(defn, timeline, script=None):
     """parts.json の定義と timeline.json から film.json のデータを作る。返り値: (film のデータ, 部品の要約の一覧)"""
     parts = defn["parts"]
-    if len(parts) != len(LETTERS):
-        raise PartsError(f"案Aのテンプレートは {len(LETTERS)} 区間（{LETTERS}）。部品が {len(parts)} 個")
+    try:
+        letters = film.letters_for(len(parts))
+    except ValueError as e:
+        raise PartsError(f"部品の数: {e}")
+    consts = tuple(film.const_letters(letters))
     if parts[-1].get("scene") != "endcard":
         raise PartsError("最後の部品は endcard（エンドカード）")
+    if any(p.get("scene") == "endcard" for p in parts[:-1]):
+        raise PartsError("endcard は最後の部品だけ")
     duration = Decimal(str(timeline["duration"]))
     # 区間の始まり（最初は 0）
     starts = [Decimal(0)]
     for k, p in enumerate(parts[1:], 1):
         if "start" not in p:
-            raise PartsError(f"{LETTERS[k]}: start が無い")
-        starts.append(Ctx(timeline, (None, None), LETTERS[k]).ref(p["start"], " start").value)
+            raise PartsError(f"{letters[k]}: start が無い")
+        starts.append(Ctx(timeline, (None, None), letters[k], consts=consts).ref(p["start"], " start").value)
     for k in range(1, len(starts)):
         if starts[k] <= starts[k - 1]:
-            raise PartsError(f"{LETTERS[k]}: 始まり {starts[k]} が前の部品の始まり {starts[k - 1]} より後でない")
+            raise PartsError(f"{letters[k]}: 始まり {starts[k]} が前の部品の始まり {starts[k - 1]} より後でない")
     if starts[-1] >= duration:
         raise PartsError(f"エンドカードの始まり {starts[-1]} が声の尺 {duration} より後")
     bounds = [(starts[k], starts[k + 1] if k + 1 < len(starts) else duration) for k in range(len(starts))]
@@ -552,19 +677,19 @@ def compile_film(defn, timeline, script=None):
     pill_from, summary = None, []
     prev_layout = None
     for k, p in enumerate(parts):
-        letter, scene = LETTERS[k], p.get("scene")
+        letter, scene = letters[k], p.get("scene")
         if scene not in SCENES:
             raise PartsError(f"{letter}: scene が分からない: {scene}（{'・'.join(SCENES)}）")
         spec = SCENES[scene]
-        st.next_letter = LETTERS[k + 1] if k + 1 < len(LETTERS) else None
+        st.next_letter = letters[k + 1] if k + 1 < len(letters) else None
         marks = {}
-        base = Ctx(timeline, bounds[k], letter)
+        base = Ctx(timeline, bounds[k], letter, consts=consts)
         for b in p.get("beats", []):
             if "mark" in b:
                 if not re.match(r"^[A-Z]{2,4}$", b["mark"]):
                     raise PartsError(f"{letter}: mark の名前は大文字2〜4字: {b['mark']}")
                 marks[b["mark"]] = base.ref(b["at"], f" mark {b['mark']}").value
-        ctx = Ctx(timeline, bounds[k], letter, marks)
+        ctx = Ctx(timeline, bounds[k], letter, marks, consts)
         for e in p.get("texts", []):
             st.elements[element_id(e)] = e
         out = Out()
@@ -575,16 +700,25 @@ def compile_film(defn, timeline, script=None):
         if scene != "endcard":
             s, e = bounds[k]
             out.cues.append(f"// ==== {letter} {p['name']}（{'0.0' if s == 0 else f'{s:.2f}'}–{e:.2f}）: {p['note']}")
+        kinds = []
         for b in p.get("beats", []):
             kind = beat_kind(b)
             if kind in ("cam",) and b["cam"] not in spec["visible"]:
                 raise PartsError(f"{letter}: {spec['layout']}の場面で {b['cam']} は見えない")
+            if kind in SCENE_ONLY and SCENE_ONLY[kind] != scene:
+                raise PartsError(f"{letter}: {kind} の拍は {SCENE_ONLY[kind]} の場面でだけ使える（この部品は {scene}）")
+            kinds.append(kind)
             BEATS[kind](ctx, b, out, st)
+        for kind, (lo, hi) in spec.get("needs", {}).items():
+            if not lo <= kinds.count(kind) <= hi:
+                raise PartsError(f"{letter}: {scene} の場面は {kind} の拍が {lo}〜{hi}個（今 {kinds.count(kind)}個）")
+        if spec.get("subject") and not any(a[4] for a in out.anchors):
+            raise PartsError(f"{letter}: {scene} の場面に主役が無い（cam か fx の拍に subject を書く）")
         # つなぎと割り方の対応
+        here = spec["panel"]
         for name, fx in st.fx:
-            if fx["to"] != (scene if scene != "endcard" else "full") or (prev_layout and fx["from"] != prev_layout):
-                raise PartsError(f"{letter}: つなぎ {name} は {fx['from']}→{fx['to']}。前の部品 {prev_layout}→この部品 {scene} に合わない")
-        here = "full" if scene == "endcard" else scene
+            if fx["to"] != here or (prev_layout and fx["from"] != prev_layout):
+                raise PartsError(f"{letter}: つなぎ {name} は {fx['from']}→{fx['to']}。前の部品 {prev_layout}→この部品 {scene}（{here}）に合わない")
         if not st.fx and prev_layout and prev_layout != here:
             raise PartsError(f"{letter}: 割り方が {prev_layout}→{here} と変わるのに、つなぎ（fx の拍）が無い")
         prev_layout = here
@@ -610,15 +744,27 @@ def compile_film(defn, timeline, script=None):
         cams = {}
         for cam, kind in out.cams:
             cams.setdefault(cam, []).append(kind)
+        # 見せ場の秒（静止画を撮る秒）: 部品の中で最後の点・字が出きって PEAK_AFTER たった時。無ければ部品の真ん中。エンドカードは AI表示が出たあと
+        shown = [Decimal(str(x[2])) for x in out.points] + [Decimal(str(r[1])) for r in out.text_sync if s <= Decimal(str(r[1])) < e]
+        peak = s + Decimal("2.0") if scene == "endcard" else (max(shown) + PEAK_AFTER if shown else (s + e) / 2)
+        peak = min(max(peak, s), e - Decimal("0.05"))
         summary.append({"letter": letter, "scene": scene, "name": p.get("name", "エンドカード"), "start": float(s), "end": float(e),
                         "seconds": round(length, 2), "min": spec["min"], "max": spec["max"], "in_range": spec["min"] <= length <= spec["max"],
                         "layout": spec["layout"], "visible": spec["visible"], "camera": cams or {"-": ["止め"]},
                         "subjects": [r[0] for r in rows],
-                        "points": [x[0] for x in out.points], "texts": [r[0] for r in out.text_sync], "words": list(dict.fromkeys(out.words))})
+                        "points": [x[0] for x in out.points], "texts": [r[0] for r in out.text_sync], "words": list(dict.fromkeys(out.words)),
+                        "peak": round(float(peak), 2)})
 
     if st.answer is None:
         raise PartsError("答え（answer の拍）が無い")
+    for cam, groups in st.sweeps.items():   # なぞる線は点・札より下（写真のすぐ上）
+        extras[cam] = [f'<svg id="rim-sweep" viewBox="0 0 1440 2160">{"".join(groups)}</svg>', *extras.get(cam, [])]
     chapters = st.chapters
+    if chapters and not st.cards:   # 章の札は最初の点灯（beat_chapter）まで隠す
+        hidden_groups.append(pill_sels(st))
+    cover_set = cover["cams"]
+    if SCENES[parts[0]["scene"]]["panel"] == "full":   # 0コマ目から全面の写真（上下の段と境目は下に隠れる）
+        cover_set = {**cover["cams"], "#full": {"opacity": 1}, "#div": {"scaleX": 0}}
     overlays = []
     if chapters:
         overlays.append("<style>" + "".join(f'#p{i}{{left:{c["left"]}px;width:{c["width"]}px}}' for i, c in enumerate(chapters, 1)) + "</style>")
@@ -635,22 +781,23 @@ def compile_film(defn, timeline, script=None):
         photos[cam] = {**ph, "extras": extras.get(f"#{cam}", [])}
     lexicon = defn["lexicon"] if "lexicon" in defn else (script or {}).get("lexicon", [])
     data = {
-        "_comment": f"動画{defn['n']}。部品の定義 video-{defn['n']}.parts.json と声の時刻表（work/timeline.json）から make-video が作った（手で直さない。直すのは parts.json）",
+        "_comment": (f"動画{defn['n']}。部品の定義 video-{defn['n']}.parts.json" if defn.get("n") is not None else "下書き（番号なし）。部品の定義")
+                    + "と声の時刻表（work/timeline.json）から make-video が作った（手で直さない。直すのは parts.json）",
         "n": defn["n"], "lexicon": lexicon, "slug": defn["slug"], "title": defn["title"], "timeline_label": defn["timeline_label"],
-        "sections": {LETTERS[k]: num(s) for k, (s, _) in enumerate(bounds)},
+        "sections": {letters[k]: num(s) for k, (s, _) in enumerate(bounds)},
         "grade": defn["grade"], "photos": photos, "masks": defn.get("masks", {}),
         "kick": cover["kick"], "q": cover["q"], "overlays": overlays,
         "ans_s": st.answer["s"], "ans_b": st.answer["b"], "cta": st.answer["cta"],
-        "pills": [c["text"] for c in chapters], "cover": cover["cams"], "hidden": hidden, "pill_from": pill_from or [],
+        "pills": [c["text"] for c in chapters], "cover": cover_set, "hidden": hidden, "pill_from": pill_from or [],
         "qa_text_sync": [[NOTE_TEXT_SYNC], *text_sync], "qa_subjects": [[NOTE_SUBJECTS], *subjects], "qa_points": [[NOTE_POINTS], *points],
         "cues": cues,
     }
     return data, summary
 
 
-def load(d):
-    """動画フォルダの parts.json・timeline.json・script.json を読む。返り値: (定義, 時刻表, 台本)"""
-    defn = json.loads(parts_path(d).read_text(encoding="utf-8"))
+def load(d, need_parts=True):
+    """動画フォルダの parts.json・timeline.json・script.json を読む。返り値: (定義, 時刻表, 台本)。need_parts=False なら定義は無くてよい（None）"""
+    defn = json.loads(parts_path(d).read_text(encoding="utf-8")) if need_parts or parts_path(d).exists() else None
     tl = d / "work" / "timeline.json"
     if not tl.exists():
         raise PartsError(f"声の時刻表が無い（先に voice の段）: {tl}")
@@ -706,7 +853,7 @@ def fingerprint(defn, script=None):
     for k, p in enumerate(parts):
         spec = SCENES.get(p.get("scene"))
         if not spec:
-            raise PartsError(f"{LETTERS[k] if k < len(LETTERS) else k}: scene が分からない: {p.get('scene')}")
+            raise PartsError(f"{chr(ord('A') + k) if k < 26 else k}: scene が分からない: {p.get('scene')}")
         over = ["cover"] if k == 0 and "cover" in p else []
         for b in p.get("beats", []):
             kind = beat_kind(b)
@@ -770,5 +917,5 @@ def summary_lines(summary):
         cam = "・".join(f"{c} {'/'.join(k)}" for c, k in s["camera"].items())
         rng = "" if s["in_range"] else f"（目安 {s['min']}〜{s['max']}秒の外）"
         out.append(f"{s['letter']} {s['scene']:<7} {s['name']}  {s['start']:.2f}–{s['end']:.2f}（{s['seconds']}秒{rng}）  割り方 {s['layout']}  カメラ {cam}  "
-                   f"主役 {len(s['subjects'])}・点 {len(s['points'])}・字の同期 {len(s['texts'])}  語 {'・'.join(s['words'])}")
+                   f"主役 {len(s['subjects'])}・点 {len(s['points'])}・字の同期 {len(s['texts'])}  見せ場 {s['peak']}秒  語 {'・'.join(s['words'])}")
     return out

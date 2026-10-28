@@ -1,7 +1,8 @@
 """型の段（comp）: 型テンプレート templates/film-planA.html と1本ごとのデータ video-N.film.json から composition を組む。
-深さは案A（写真4枚: 上 #t-aft・下 #b-mug と #b-col・全面 #f-gift／場面3つ）に固定。場面の数は一般化しない。
+写真は案Aの4枚（上 #t-aft・下 #b-mug と #b-col・全面 #f-gift）に固定。区間（場面）の数は固定しない（D-0310）:
+区間は sections の順の A・B・C…で、最後の区間がエンドカード。案Aの動画1・2は8区間（A〜H）。
 
-テンプレートが持つもの（型）: CSS・字の入りの関数（soft・slide・out・split）・0コマ目の固定の set・エンドカード（ロゴ・AI表示・H0 からの動き）・index.html の形。
+テンプレートが持つもの（型）: CSS・字の入りの関数（soft・slide・out・split）・0コマ目の固定の set・エンドカード（ロゴ・AI表示・最後の区間の始まりからの動き）・index.html の形。
 データが持つもの（1本ごと）: 区間の秒・字の文言・写真と色調整・カメラの値・指す場所（spot・lead）・マスク・区間ごとの手順（cues）・読みの例外（lexicon）・
   qa が使う表（qa_text_sync 字の同期・qa_subjects 主題の帯・qa_points 点の位置）。尺（index.html の data-duration）は work/timeline.json の duration から入れる。
 
@@ -30,8 +31,7 @@ TEMPLATES = Path(__file__).resolve().parent / "templates"
 FILM_TEMPLATE = TEMPLATES / "film-planA.html"
 INDEX_TEMPLATE = TEMPLATES / "index.html"
 CAMS = ("b-mug", "b-col", "t-aft", "f-gift")
-SECTIONS = ("A", "B", "C", "D", "E", "F", "G")
-CONST_SECTIONS = ("E", "F", "G", "H")   # 区間の始まりを JS の定数（E0 など）に持つ区間。cues の秒は「E0 + 0.25」の式で書ける
+CONST_FROM = 4   # 区間の始まりを JS の定数（E0 など）に持つのは、5つ目（E）以降の区間とエンドカード（案Aの E0〜H0 と同じ）。cues の秒は「E0 + 0.25」の式で書ける
 CREDIT = "画像・文・ナレーション　AIの紅茶案内人"   # AI表示の文言（型の定数。qa が画面の字と照合する）
 LOGO_D, LOGO_CX, LOGO_CY = 520, 540, 960       # エンドカードのロゴ（直径・中心）
 # 点（lead の circle）: 明るい中の半径と、その外に足す濃い縁取りの太さ（どちらも lead の r に対する比）。
@@ -43,6 +43,34 @@ DOT_RING = 1.1
 # 陰の下に置くと白い中が陰の分だけ灰色に写る（取っ手 175・縁 197。reports/2026-10-28-9.md）。全面（#f-gift）には陰が無いので写真と同じ層のまま
 DOT_LAYER_CAMS = ("t-aft", "b-mug", "b-col")
 RAW_VALUE = re.compile(r"^[-+*/0-9. ()A-Z_]+$")
+
+
+# ---- 区間（場面）の名前
+
+def letters_for(n):
+    """n 個の区間の名前（A・B・C…）"""
+    if not 2 <= n <= 26:
+        raise ValueError(f"区間の数は 2〜26: {n}")
+    return [chr(ord("A") + i) for i in range(n)]
+
+
+def section_letters(data):
+    """film.json の区間の名前（sections の順）。最後がエンドカード"""
+    return list(data["sections"])
+
+
+def const_letters(letters):
+    """始まりを JS の定数に持つ区間（CONST_FROM 以降とエンドカード）"""
+    return list(dict.fromkeys([*letters[CONST_FROM:], letters[-1]]))
+
+
+def answer_letter(data):
+    """答え（#ans-s の入り）がある区間。見つからなければエンドカードの1つ前"""
+    letters = section_letters(data)
+    for k in letters:
+        if any(isinstance(c, dict) and "#ans-s" in json.dumps(c, ensure_ascii=False) for c in data["cues"][k]):
+            return k
+    return letters[-2]
 
 
 # ---- 値と秒の書き方
@@ -250,6 +278,8 @@ def overlay_html(items):
 def render_film(data, template=None):
     s = (template or FILM_TEMPLATE.read_text(encoding="utf-8"))
     sec = data["sections"]
+    letters = section_letters(data)
+    end = letters[-1]
     rep = {
         "cams": {c: cam_html(c, data["photos"][c], data["grade"]) for c in CAMS},
         "kick": data["kick"],
@@ -261,17 +291,19 @@ def render_film(data, template=None):
         "pills": indent([f'<div id="p{i}" class="pill">{i} {k}</div>' for i, k in enumerate(data["pills"], 1)]),
         "credit": CREDIT,
         "timeline_label": data["timeline_label"],
-        "sections": " / ".join(f"{k} {js_value(sec[k])}" for k in (*SECTIONS, "H")),
-        "consts": ", ".join(f"{k}0 = {js_value(sec[k])}" for k in CONST_SECTIONS),
-        "H0": js_value(sec["H"]),
+        "sections": " / ".join(f"{k} {js_value(sec[k])}" for k in letters),
+        "consts": ", ".join(f"{k}0 = {js_value(sec[k])}" for k in const_letters(letters)),
+        "end": end,
+        "end0": f"{end}0",
+        "end_t": js_value(sec[end]),
         "cover": indent([f'gsap.set("{c}", {js_vars(v)});' for c, v in data["cover"].items()]),
         "hidden": indent(["gsap.set([" + (",\n" + "    ").join(", ".join(json.dumps(x, ensure_ascii=False) for x in ln) for ln in data["hidden"])
                           + ', "#credit", "#logo"], { opacity: 0 });']),
         "pill_from": indent([f'gsap.set("#p{i}", {js_vars(v)});' for i, v in enumerate(data["pill_from"], 1)]),
-        "cues_H": indent([ln for c in data["cues"]["H"] for ln in cue_lines(c)]),
+        # エンドカードの前の区間の cues を、区間ごとに空行1つで区切って並べる（案Aの cues_A〜cues_G の差し込み口と同じ並び）
+        "cues": "\n\n".join(indent([ln for c in data["cues"][k] for ln in cue_lines(c)]) for k in letters[:-1]),
+        "cues_end": indent([ln for c in data["cues"][end] for ln in cue_lines(c)]),
     }
-    for k in SECTIONS:
-        rep[f"cues_{k}"] = indent([ln for c in data["cues"][k] for ln in cue_lines(c)])
 
     def sub(m):
         key = m.group(1)
@@ -332,12 +364,14 @@ def load_data(d):
     return found[0], json.loads(found[0].read_text(encoding="utf-8"))
 
 
-def build(d, rt):
-    """composition/ を組み直す（.hyperframes/ は残す。書き出しの履歴の id を変えないため）。返り値: composition のパス"""
-    _, data = load_data(d)
+def build(d, rt, data=None, comp=None):
+    """composition/ を組み直す（.hyperframes/ は残す。書き出しの履歴の id を変えないため）。返り値: composition のパス。
+    data・comp を渡すと、動画フォルダの film.json の代わりに data を使い、comp に組む（下書きの見比べ用・写真と声は動画フォルダから）"""
+    if data is None:
+        _, data = load_data(d)
     # 尺は声の時刻表（work/timeline.json）が正本。film.json には書かない（TAIL を変えても手で合わせ直さなくて済むように）
     data = {**data, "duration": json.loads((d / "work" / "timeline.json").read_text(encoding="utf-8"))["duration"]}
-    comp = d / "composition"
+    comp = comp or d / "composition"
     comp.mkdir(exist_ok=True)
     for p in comp.iterdir():
         if p.name == ".hyperframes":

@@ -232,7 +232,7 @@ def contrast_check(data, pts):
 
 def run_qa(d, rt, mp4, out_json):
     _, data = film.load_data(d)
-    h0 = float(data["sections"]["H"])
+    h0 = float(data["sections"][film.section_letters(data)[-1]])   # エンドカードの始まり
     comp_film = (d / "composition" / "compositions" / "film.html").read_text(encoding="utf-8")
     qd = d / "qa"
     qd.mkdir(exist_ok=True)
@@ -308,8 +308,8 @@ def run_qa(d, rt, mp4, out_json):
         sync.append({"cue": name, "planned": t, "visual_peak": round(pk, 3), "voice_start": voice,
                      "peak_minus_planned": round(pk - t, 3), "peak_minus_voice": None if voice is None else round(pk - voice, 3)})
     res["text_sync"] = sync
-    # G区間（答え・導線）の字は、声の句の頭との差が G_SYNC_S 以内
-    g0 = float(data["sections"]["G"])
+    # 答え・導線の区間（案Aの G・film.answer_letter）の字は、声の句の頭との差が G_SYNC_S 以内
+    g0 = float(data["sections"][film.answer_letter(data)])
     g_rows = [s for s in sync if s["voice_start"] is not None and s["planned"] >= g0 and s["cue"][:3] in ("ans", "cta")]
     res["gate"]["g_text_sync"] = bool(g_rows) and all(abs(s["peak_minus_voice"]) <= G_SYNC_S for s in g_rows)
     res["measure"]["g_text_sync"] = {"limit_s": G_SYNC_S, "rows": [{"cue": s["cue"], "peak_minus_voice": s["peak_minus_voice"]} for s in g_rows]}

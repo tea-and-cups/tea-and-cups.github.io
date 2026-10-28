@@ -21,6 +21,9 @@ r"""make-video.py の部品（site/scripts/video/）のテスト。本物のフ�
    release は季節の題材の【注意】で止まり、--confirmed で保留の行を消して mode=released。output/videos/ と台帳は一時フォルダの写し
 10. 画像生成の上限（D-0308）: 1本6回・直近7日の動画の写真12回・日次の画像生成から5時間。基準日を差し替えたダミーの記録で、超えると1枚も作らずに止まる
 11. 外部送信の遮断（D-0308）: os.environ に鍵があっても HyperFrames へ渡す env から外れ、snapshot は --describe false で呼ぶ
+12. 場面の数を固定しない・部品 a・b・最初の試作の準備（D-0310）: 部品6つと10の組み立てから film.json・film.html・qa の3つの表を作り、film の段と
+   check-script（D-0306・似すぎ）を通る。動画1・2の film.html は一般化の前と同じ。部品 a（なぞる）・b（時間の流れ）の宣言と止まる所。
+   投稿済みの slug の --test（release は拒否）・--images-from（生成0回）。output/videos/drafts/ の試作の下書きが似すぎの判定を通る
 
 使い方: python site/scripts/test-make-video.py
 終了コード: 全件合格で0、1件でも不合格で1
@@ -420,7 +423,16 @@ def test_parts():
     comp = (VIDEO2 / "composition" / "compositions" / "film.html").read_bytes()
     check("部品の形: 作った film.html が今の composition の film.html とバイト単位で同じ",
           film.render_film(gen).replace("\n", "\r\n").encode("utf-8") == comp)
-    check("部品の形: 部品は8つ（A〜H）で、最後はエンドカード", [s["letter"] for s in summary] == list("ABCDEFGH") and summary[-1]["scene"] == "endcard")
+    check("部品の形: 動画2の部品は8つ（A〜H）で、最後はエンドカード", [s["letter"] for s in summary] == list("ABCDEFGH") and summary[-1]["scene"] == "endcard")
+    check("区間の数の一般化: 動画1・2の film.json は、答えの区間が G・エンドカードが H・定数の区間が E〜H（案Aと同じ）",
+          film.answer_letter(hand) == "G" and film.section_letters(hand)[-1] == "H" and film.const_letters(film.section_letters(hand)) == list("EFGH")
+          and film.answer_letter(json.loads((VIDEO1 / "video-1.film.json").read_text(encoding="utf-8"))) == "G")
+    # 動画1の composition（11:57 に組んだもの）は、そのあとの型の更新（14:10）の前の出力で、今の型の出力とは元から違う。比べる相手は、区間の数を一般化する前の
+    # film.py・型で動画1の film.json を描いた出力の sha256（2026-10-28・reports/2026-10-28-15.md）
+    import hashlib
+    v1 = film.render_film(json.loads((VIDEO1 / "video-1.film.json").read_text(encoding="utf-8"))).replace("\n", "\r\n").encode("utf-8")
+    check("区間の数の一般化: 動画1の film.json から描いた film.html が、一般化の前の型の出力と同じ（sha256 29c112ea…29ba）",
+          hashlib.sha256(v1).hexdigest() == "29c112ea396eb35514c78bad91f95fcdca2568ef307103d878c656cb526a29ba")
 
     # qa_text_sync: 予定秒と領域は同じ。声は句の頭で指したときの句（カードの2・3枚目は句の途中の語なので句の頭 11.8 になる）。名前は id で始まる
     th, tg = hand["qa_text_sync"][1:], gen["qa_text_sync"][1:]
@@ -478,14 +490,15 @@ def test_parts():
             return None
         except parts.PartsError as ex:
             return str(ex)
-    msgs = {"部品の数": broken(lambda x: x["parts"].pop(2)),
+    msgs = {"部品の数（1つ）": broken(lambda x: x.update({"parts": x["parts"][-1:]})),
+            "エンドカードが途中": broken(lambda x: x["parts"].insert(3, {"scene": "endcard", "start": "S4.p1-0.40", "beats": []})),
             "つなぎの向き": broken(lambda x: x["parts"][1]["beats"][0].update({"fx": "wipe", "top": {"cam": "#t-aft", "from": {}, "to": {}},
                                                                                "bot": {"cam": "#b-mug", "from": {}, "to": {}}})),
             "つなぎ無しで割り方が変わる": broken(lambda x: x["parts"][3]["beats"].pop(0)),
             "見えないカメラ": broken(lambda x: x["parts"][2]["beats"].append({"cam": "#t-aft", "to": {"x": 0}, "d": 1, "ease": "none", "at": "start"})),
             "カメラを tween で書く": broken(lambda x: x["parts"][2]["beats"].append({"tween": "#f-gift", "v": {"x": 0}, "at": "start"})),
             "始まりが前の部品より前": broken(lambda x: x["parts"][4].update({"start": "S3.p1"}))}
-    check("部品の検査: 部品の数・つなぎの向き・つなぎ無しの割り方の変化・見えないカメラ・カメラの tween・始まりの順は止まる",
+    check("部品の検査: 部品の数（2〜26）・途中のエンドカード・つなぎの向き・つなぎ無しの割り方の変化・見えないカメラ・カメラの tween・始まりの順は止まる",
           all(msgs.values()), {k: (v or "")[:40] for k, v in msgs.items()})
     # 動画1・2は案Aの film.json のまま（film の段・film の操作は書かない）
     import argparse
@@ -667,6 +680,259 @@ def test_fingerprint_and_test_mode():
         shutil.rmtree(tmp, ignore_errors=True)
 
 
+FULL_SUBJECT = {"name": "贈り物の一式", "rect": [86, 940, 1400, 1442]}
+
+
+def full_cover_part(v2parts):
+    """全面のカバー（0コマ目から動画2の全面の写真）"""
+    a = json.loads(json.dumps(v2parts[0]))
+    return {"scene": "full", "name": "問い", "note": "全面のカバー",
+            "cover": {**a["cover"], "cams": {**a["cover"]["cams"], "#f-gift": {"x": -150, "y": -12, "scale": 0.9}}},
+            "beats": [{"cam": "#f-gift", "to": {"x": -160, "y": -20, "scale": 0.91}, "d": 4.7, "ease": "none", "at": "start", "subject": FULL_SUBJECT},
+                      a["beats"][3]]}
+
+
+def trace_part(start, base, pre="", tags=("小分けの袋", "小さな箱", "一杯の紅茶"), extra=()):
+    """部品 a（なぞる）: 動画2の全面の写真の袋→箱→カップ。base は句（S3.p2 など）"""
+    return {"scene": "trace", "name": "なぞる", "note": "部品 a", "start": start,
+            "beats": [*extra, {"cam": "#f-gift", "to": {"x": -175, "y": -32, "scale": 0.92}, "d": 1.0, "ease": "power2.inOut", "at": "start",
+                               "subject": FULL_SUBJECT},
+                      {"trace": f"{pre}bags", "path": [[648, 1399], [702, 1264], [1015, 1231], [1161, 1404]], "at": f"{base}-0.55", "d": 0.6,
+                       "lead": {"from": [1080, 1235], "to": [1085, 1330], "r": 11}, "dot": base, "line": f"{base}-0.05", "ld": 0.25,
+                       "tag": {"text": tags[0], "x": 1060, "y": 1140, "w": 260, "at": f"{base}+0.06"}},
+                      {"trace": f"{pre}box", "path": [[734, 1220], [726, 1010], [900, 1003], [1064, 999]], "at": f"{base}+0.45", "d": 0.6,
+                       "lead": {"from": [1064, 900], "to": [1064, 990], "r": 11}, "dot": f"{base}+1.05", "line": f"{base}+1.0", "ld": 0.25,
+                       "tag": {"text": tags[1], "x": 1064, "y": 806, "w": 220, "at": f"{base}+1.1"}},
+                      {"trace": f"{pre}cup", "path": [[181, 1007], [420, 1063], [659, 1007], [420, 951], [181, 1007]], "at": f"{base}+1.15", "d": 0.6,
+                       "lead": {"from": [420, 900], "to": [420, 1060], "r": 11}, "dot": f"{base}+1.75", "line": f"{base}+1.7", "ld": 0.25,
+                       "tag": {"text": tags[2], "x": 440, "y": 806, "w": 260, "at": f"{base}+1.8"}}]}
+
+
+def steps_part(start, sid, items, fx=None, extra=()):
+    """部品 b（時間の流れ）。fx があれば上下から合わさって入る（merge）"""
+    beats = list(extra)
+    if fx:
+        beats.append({"fx": "merge", "at": "start", "cam": "#f-gift", "from": {"x": -470, "y": -420, "scale": 1.15}, "exposure": 0, "split_y": 952,
+                      "to": {"x": -500, "y": -450, "scale": 1.1}, "until": "start+1.0", "subject": {"name": "箱", "rect": [724, 940, 1400, 1350]}})
+    else:
+        beats.append({"cam": "#f-gift", "to": {"x": -500, "y": -450, "scale": 1.1}, "d": 1.0, "ease": "power2.inOut", "at": "start",
+                      "subject": {"name": "箱", "rect": [724, 940, 1400, 1350]}})
+    beats.append({"steps": sid, "at": "start+0.3", "items": [{"text": t, "at": at} for t, at in items]})
+    return {"scene": "steps", "name": "流れ", "note": "部品 b", "start": start, "beats": beats}
+
+
+def plain_full(start, name, extra=()):
+    return {"scene": "full", "name": name, "note": "全面", "start": start,
+            "beats": [*extra, {"cam": "#f-gift", "to": {"x": -122, "y": -67, "scale": 0.92}, "d": 1.0, "ease": "power2.inOut", "at": "start",
+                               "subject": {"name": "全面", "rect": [78, 916, 1402, 1447]}}]}
+
+
+def answer_part(v2parts, start=None, merge=True):
+    g = json.loads(json.dumps(v2parts[6]))
+    if start:
+        g["start"] = start
+    if not merge:
+        g["beats"] = [b for b in g["beats"] if "fx" not in b] + [
+            {"cam": "#f-gift", "to": {"x": -122, "y": -67, "scale": 0.92}, "d": 1.0, "ease": "power2.inOut", "at": "start",
+             "subject": {"name": "全面", "rect": [78, 916, 1402, 1447]}}]
+    return g
+
+
+def count_defns(defn2):
+    """部品の数が8でない組み立て（6と10）。動画2の写真・声の時刻表・場面を使い、部品 a・b を含む"""
+    P = defn2["parts"]
+    cp = lambda x: json.loads(json.dumps(x))   # noqa: E731
+    base = {**cp(defn2), "photos": {**cp(defn2["photos"]), "f-gift": {**defn2["photos"]["f-gift"], "blur": 0}}}
+    unblur_mug = {"grade": "#b-mug", "blur": 0, "d": 0.5, "ease": "power2.inOut", "at": "start"}
+    hide_d = {"hide": ["#d-tag1", "#d-tag2", "#d-tag3", "#d-tag4"], "at": "start-0.1"}
+    six = {**base, "parts": [full_cover_part(P), trace_part("S2.p1-0.10", "S3.p2", extra=[{"hide": ["#kick", "#kick-ul"], "at": "start"}]),
+                             {**cp(P[3]), "beats": [{"hide": "#q", "at": "start"}, *cp(P[3])["beats"]]},
+                             steps_part("S5.p1-0.26", "st", [("小さい", "S5.p2"), ("軽い", "S5.p3"), ("送れる", "S5.p6")], fx=True,
+                                        extra=[hide_d, unblur_mug]),
+                             answer_part(P, merge=False), cp(P[7])]}
+    unspot = [{"hide": ["#b-tag", "#boxtag"], "at": "start+0.05"},
+              {"tween": "#c-box", "v": {"opacity": 0, "duration": 0.2, "ease": "power2.in"}, "at": "start+0.05"},
+              {"tween": "#spot-box", "v": {"opacity": 0, "duration": 0.5, "ease": "power2.in"}, "at": "start+0.05"},
+              {"grade": "#f-gift", "blur": 0, "exposure": 0, "d": 0.5, "ease": "power2.inOut", "at": "start+0.05"}]
+    b = cp(P[1])
+    b["beats"] = [x for x in b["beats"] if "fx" not in x] + [{"cam": "#f-gift", "to": {"x": -470, "y": -499, "scale": 1.12}, "d": 5.0, "ease": "none",
+                                                              "at": "start", "subject": FULL_SUBJECT}]
+    ten = {**base, "parts": [full_cover_part(P), b, trace_part("S3.p1-0.09", "S3.p2", extra=unspot),
+                             {**cp(P[3]), "beats": [{"hide": "#q", "at": "start"}, *cp(P[3])["beats"]]},
+                             steps_part("S5.p1-0.26", "st", [("小さい", "S5.p2"), ("軽い", "S5.p3"), ("送れる", "S5.p6")], fx=True,
+                                        extra=[hide_d, unblur_mug]),
+                             plain_full("S5.p6-0.3", "軽さ2"),
+                             trace_part("S6.p1-0.34", "S6.p2", pre="g", tags=("袋", "箱", "器")),
+                             plain_full("S6.p5-0.2", "種類2"),
+                             answer_part(P, merge=False), cp(P[7])]}
+    return six, ten
+
+
+def d0306_script(sc2):
+    """D-0306 の (b)(c) を満たす台本（動画2の台本の最初と最後の文だけ差し替え・テスト用）"""
+    sc = json.loads(json.dumps(sc2))
+    sc["sentences"][0]["phrases"] = ["お礼の紅茶、", "何で選ぶ？"]
+    sc["sentences"][2]["phrases"] = ["選ぶ視点は、", "3つあります。"]
+    sc["sentences"][-1]["phrases"] = ["答えは、渡しやすさで選ぶことです。", "予算別の選び方は記事にまとめています。", "リンクからどうぞ。"]
+    return sc
+
+
+def test_scene_count_and_new_parts():
+    """場面の数を固定しない（6と10）・部品 a・b・最初の試作の準備（D-0310）。output/videos/ は一時フォルダの写し"""
+    import argparse
+    import shutil
+    import tempfile
+    from video import images, parts, script_checks
+    if not (VIDEO2 / "video-2.parts.json").exists() or not (VIDEO2 / "work" / "timeline.json").exists():
+        print("SKIP 場面の数: 動画2のファイルが無い")
+        return
+    defn2, tl, sc2 = parts.load(VIDEO2)
+    six, ten = count_defns(defn2)
+    sc3 = d0306_script(sc2)
+
+    # 1. 場面の数（6と10）: film.json・film.html・qa の3つの表
+    for name, d in (("6", six), ("10", ten)):
+        data, summary = parts.compile_film(d, tl, sc3)
+        html = film.render_film(data)
+        letters = film.letters_for(int(name))
+        end = letters[-1]
+        check(f"場面の数 {name}: 区間 A〜{end}・最後がエンドカード・film.html に置き残しが無く、エンドカードの定数が {end}0",
+              list(data["sections"]) == letters and summary[-1]["scene"] == "endcard" and "{{" not in html
+              and f'"#logo", {{ opacity: 1, duration: 0.6, ease: "sine.inOut" }}, {end}0)' in html
+              and f"const {film.const_letters(letters)[0]}0 = " in html, end)
+        check(f"場面の数 {name}: qa の3つの表を部品から作る（主役・点・字の同期の行がある）",
+              len(data["qa_subjects"]) > 3 and len(data["qa_points"]) > 3 and len(data["qa_text_sync"]) > 5,
+              (len(data["qa_subjects"]), len(data["qa_points"]), len(data["qa_text_sync"])))
+        traj = rules.simulate(data, tl["duration"])
+        check(f"場面の数 {name}: 案Aの物差し（字数・主役が帯の中・点の端切れ・答えの区間）が計算できる",
+              rules.screens(data, tl["duration"], film.CREDIT)[0][0] <= rules.MAX_SCREEN_CHARS
+              and all(r["ok"] for r in rules.subjects(data, traj) if r["gate"])
+              and not any(rules.point_geometry(data, traj, r[0], r[1], r[2])["clipped"] for r in data["qa_points"][1:])
+              and film.answer_letter(data) == letters[-2])
+
+    mv = load_mv()
+    tmp = Path(tempfile.mkdtemp(prefix="test-scene-count-"))
+    saved = mv.VIDEOS, mv.PIN_LEDGER, mv.advance_pin
+    try:
+        mv.VIDEOS, mv.PIN_LEDGER = tmp / "videos", tmp / "video-posted.md"
+        mv.VIDEOS.mkdir()
+        shutil.copy2(ROOT / "data" / "video-posted.md", mv.PIN_LEDGER)
+        for n, names in ((1, ("video-1.film.json", "script.json", "video-1.build.json")),
+                         (2, ("video-2.parts.json", "video-2.film.json", "script.json", "video-2.build.json", "work/timeline.json",
+                              "prompts/img1.txt", "images/img1.png", "images/img2.png", "images/img3.png", "images/img4.png",
+                              "work/img/img1.jpg", "work/img/img2.jpg", "work/img/img3.jpg", "work/img/img4.jpg"))):
+            for nm in names:
+                if (ROOT / "output" / "videos" / f"video-{n}" / nm).exists():
+                    (mv.VIDEOS / f"video-{n}" / nm).parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(ROOT / "output" / "videos" / f"video-{n}" / nm, mv.VIDEOS / f"video-{n}" / nm)
+        for name, d in (("6", six), ("10", ten)):
+            v3 = mv.VIDEOS / "video-3"
+            (v3 / "work").mkdir(parents=True)
+            (v3 / "video-3.parts.json").write_text(json.dumps({**d, "n": 3}, ensure_ascii=False), encoding="utf-8")
+            shutil.copy2(VIDEO2 / "work" / "timeline.json", v3 / "work" / "timeline.json")
+            (v3 / "script.json").write_text(json.dumps(sc3, ensure_ascii=False), encoding="utf-8")
+            rec, out = quiet(mv.stage_film, v3, None, None)
+            fj = v3 / "video-3.film.json"
+            check(f"場面の数 {name}: film の段が film.json を書き、check-script と同じ検査（D-0306）と似すぎを通る",
+                  isinstance(rec, dict) and rec.get("source") == "parts.json" and fj.exists(), (rec, out[-600:]))
+            rc, out2 = quiet(mv.cmd_check_script, argparse.Namespace(video="video-3"))
+            scores = [ln for ln in out2.splitlines() if "似すぎではない" in ln]
+            check(f"場面の数 {name}: check-script が SCRIPT_OK（似すぎは動画2・1と比べて線の下）", rc == 0 and "SCRIPT_OK" in out2 and len(scores) == 2,
+                  out2[-600:])
+            print(f"NOTE 場面の数 {name}: {' / '.join(s.split('（')[0].replace('INFO 似すぎではない ', '') + ' ' + s.split(': ')[-1] for s in scores)}")
+            shutil.rmtree(v3)
+
+        # 2. 部品 a・b の宣言（なぞる線・点・札・時間の流れの線と札）と止まる所
+        data, summary = parts.compile_film(six, tl, sc3)
+        ex = data["photos"]["f-gift"]["extras"]
+        check("部品 a: なぞる線は写真の層の #rim-sweep（テンプレートの線）の中に部位ごとの g（glow・core）で、点・札より下",
+              isinstance(ex[0], str) and ex[0].startswith('<svg id="rim-sweep"') and all(f'id="sw-{k}"' in ex[0] for k in ("bags", "box", "cup"))
+              and ex[0].count('class="glow"') == 3 and ex[0].count('class="core"') == 3)
+        pts = {r[0] for r in data["qa_points"][1:]}
+        ts = {r[0].split()[0]: r for r in data["qa_text_sync"][1:]}
+        check("部品 a: 部位ごとに点（qa_points）と札（qa_text_sync・画面の矩形は帯の中）が作られる",
+              {"bags", "box", "cup"} <= pts and all(f"{k}tag" in ts and 168 <= ts[f"{k}tag"][3][1] and ts[f"{k}tag"][3][3] <= 1330 for k in ("bags", "box", "cup")),
+              {k: ts.get(f"{k}tag") for k in ("bags", "box", "cup")})
+        check("部品 b: 時間の流れの札は字の同期の行（矩形は帯の中・重ならない）、線・目盛り・札は最初は隠れる",
+              all(f"st-t{k}" in ts and 168 <= ts[f"st-t{k}"][3][1] and ts[f"st-t{k}"][3][3] <= 1330 for k in (1, 2, 3))
+              and ts["st-t1"][3][2] < ts["st-t2"][3][0] and ts["st-t2"][3][2] < ts["st-t3"][3][0]
+              and {"#st", "#st-k1", "#st-k3", "#st-t1", "#st-t3"} <= {h for g in data["hidden"] for h in g})
+        s_ab = {s["scene"]: s for s in summary}
+        check("部品 a・b: 要約に割り方・カメラ・主役・点・字・見せ場の秒（部品の中）・指紋の語が出る",
+              s_ab["trace"]["words"][0] == "部位をなぞる" and s_ab["steps"]["words"][0] == "時間の流れ"
+              and all(s_ab[k]["start"] <= s_ab[k]["peak"] < s_ab[k]["end"] and s_ab[k]["subjects"] for k in ("trace", "steps"))
+              and len(s_ab["trace"]["points"]) == 3 and len(s_ab["steps"]["texts"]) == 3)
+        fp = parts.fingerprint(six, sc3)
+        check("部品 a・b: 指紋の部品の並びに「部位をなぞる」「時間の流れ」、冒頭は全面", "部位をなぞる" in fp["parts"] and "時間の流れ" in fp["parts"]
+              and fp["opening"].startswith("全面"), fp["parts"])
+
+        def broken(edit):
+            d2 = json.loads(json.dumps(six))
+            edit(d2)
+            try:
+                parts.compile_film(d2, tl, sc3)
+                return None
+            except parts.PartsError as e:
+                return str(e)
+        msgs = {"trace を全面の寄りで": broken(lambda x: x["parts"][1].update({"scene": "full"})),
+                "部位が1つ": broken(lambda x: x["parts"][1].update({"beats": x["parts"][1]["beats"][:3]})),
+                "主役が無い": broken(lambda x: x["parts"][1]["beats"][1].pop("subject")),
+                "線が長すぎる": broken(lambda x: x["parts"][1]["beats"][3].update({"path": [[0, 0], [1440, 0], [0, 10]]})),
+                "札が重なる": broken(lambda x: x["parts"][3]["beats"][-1]["items"][1].update({"text": "とても長い札の字です"})),
+                "札の時刻が近い": broken(lambda x: x["parts"][3]["beats"][-1]["items"][1].update({"at": "S5.p2+0.05"}))}
+        check("部品 a・b の検査: 場面の違い・部位の数・主役なし・線の長さ・札の重なり・札の間隔は止まる", all(msgs.values()),
+              {k: (v or "")[:40] for k, v in msgs.items()})
+
+        # 3. 最初の試作の準備: 投稿済みの slug のテスト・release の拒否・--images-from
+        posted = mv.posted_numbers()
+        slug2 = posted[2]
+        rc, out = quiet(mv.cmd_next, argparse.Namespace(create=slug2, test=False, images_from=None, date=None))
+        check("試作: 投稿済みの slug は本番（--test なし）では今どおり拒否", rc == 1 and "拒否" in out and not (mv.VIDEOS / "video-3").exists(), out)
+        rc, out = quiet(mv.cmd_next, argparse.Namespace(create=slug2, test=True, images_from="video-2", date=None))
+        v3 = mv.VIDEOS / "video-3"
+        log = json.loads((v3 / "video-3.build.json").read_text(encoding="utf-8")) if v3.exists() else {}
+        check("試作: 投稿済みの slug でも --test なら作れる（【注意】・mode=test・same_slug_posted に動画2）",
+              rc == 0 and "【注意】" in out and log.get("mode") == "test" and log.get("same_slug_posted") == [2], out)
+        same = all((v3 / f).read_bytes() == (mv.VIDEOS / "video-2" / f).read_bytes() for f in log.get("images_from", {}).get("files", []))
+        check("試作: --images-from video-2 で写真（images の png・prompts・work/img の jpg）を写し、build.json に記録、image_gens は無い",
+              same and log["images_from"]["video"] == "video-2" and "images/img4.png" in log["images_from"]["files"]
+              and "work/img/img4.jpg" in log["images_from"]["files"] and "image_gens" not in log, log.get("images_from"))
+        ok_b, lines_b = images.budget(v3, mv.VIDEOS, 0)
+        calls = []
+        saved_run = images.subprocess.run
+        images.subprocess.run = lambda *a, **k: calls.append(a) or (_ for _ in ()).throw(AssertionError("gateway を呼んだ"))
+        try:
+            made, _ = quiet(images.generate, v3, ["img1", "img2", "img3", "img4"], "p", v3 / "video-3.build.json", mv.VIDEOS)
+        finally:
+            images.subprocess.run = saved_run
+        check("試作: 写した写真は images の段が作らない（生成0回と数える: この動画 0回・gateway を呼ばない）",
+              made == [] and not calls and "この動画 0+0/" in lines_b[0], (made, lines_b[0]))
+        rc, out = quiet(mv.cmd_release, argparse.Namespace(video="video-3", confirmed=False))
+        rc2, out2 = quiet(mv.cmd_release, argparse.Namespace(video="video-3", confirmed=True))
+        check("試作: 同じ記事が投稿済みの動画の release は拒否（--confirmed でも・mode=test と保留の行はそのまま）",
+              rc == 1 and rc2 == 1 and "投稿済み" in out2 and mv.mode_of(v3) == "test"
+              and mv.HOLD_LINE in (mv.VIDEOS / slug2 / "video-3.md").read_text(encoding="utf-8"), out2)
+        mv.set_mode(v3, "dropped")
+        rc, out = quiet(mv.cmd_next, argparse.Namespace(create=slug2, test=True, images_from="video-9", date=None))
+        check("試作: --images-from の動画が無ければ何も作らない", rc == 1 and "--images-from: 動画フォルダが無い" in out
+              and not (mv.VIDEOS / "video-4").exists(), out)
+
+        # 4. 明日の試作の下書き（output/videos/drafts/）が似すぎの判定を通る
+        draft = ROOT / "output" / "videos" / "drafts" / "kinrou-kansha-no-hi-koucha-petit-gift.trial-1.parts.json"
+        if draft.exists():
+            dd = json.loads(draft.read_text(encoding="utf-8"))
+            ng, info = mv.similarity_gate(mv.VIDEOS / "video-2", dd, "下書き")
+            scores = [ln for ln in info if "似すぎではない" in ln]
+            check("下書き: 試作の parts.json は部品 a を含み、直近（動画2・1）と比べて似すぎではない",
+                  ng == [] and len(scores) == 2 and any(p["scene"] in ("trace", "steps") for p in dd["parts"]), (ng, scores))
+            print(f"NOTE 下書き: {' / '.join(s.split(': ')[-1] for s in scores)}")
+            data, _ = parts.compile_film(dd, tl, sc2)
+            check("下書き: 動画2の声の時刻表で組める（部品7つ）", len(data["sections"]) == 7)
+    finally:
+        mv.VIDEOS, mv.PIN_LEDGER, mv.advance_pin = saved
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
 def test_image_budget():
     """画像生成の上限（D-0308）: 1本・直近7日の動画の写真・日次の画像生成からの時間。基準日（now）を差し替えたダミーの記録で見る。"""
     import shutil
@@ -765,6 +1031,7 @@ def main():
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     test_fingerprint_and_test_mode()
+    test_scene_count_and_new_parts()
     test_image_budget()
     test_external()
     test_parts()

@@ -24,10 +24,15 @@ SPLIT = "split"
 
 # ---- 式の評価（cues の秒・値は JS の式。数・定数・四則だけ）
 
+def letters(data):
+    """区間の名前（sections の順。最後がエンドカード・film.section_letters と同じ）"""
+    return list(data["sections"])
+
+
 def constants(data):
     sec = data["sections"]
-    c = {f"{k}0": float(sec[k]) for k in ("A", "B", "C", "D", "E", "F", "G", "H")}
-    for k in ("A", "B", "C", "D", "E", "F", "G", "H"):
+    c = {f"{k}0": float(sec[k]) for k in letters(data)}
+    for k in letters(data):
         for cue in data["cues"][k]:
             if isinstance(cue, str):
                 m = re.match(r"\s*const (\w+) = (.+);\s*$", cue)
@@ -84,7 +89,7 @@ def tweens(data):
     def add_split(y, t, d, e):
         out.append({"sel": SPLIT, "props": {"y": ev(y, c)}, "start": ev(t, c), "dur": ev(d, c), "ease": e})
 
-    for k in ("A", "B", "C", "D", "E", "F", "G", "H"):
+    for k in letters(data):
         for cue in data["cues"][k]:
             if isinstance(cue, str):
                 continue
@@ -362,7 +367,7 @@ def screens(data, duration, credit):
     hidden = {first_id(s) for grp in data["hidden"] for s in grp}
     events = []   # (秒, 順, 種類, id)
     n = 0
-    for k in ("A", "B", "C", "D", "E", "F", "G", "H"):
+    for k in letters(data):
         for cue in data["cues"][k]:
             if isinstance(cue, str):
                 continue
@@ -381,7 +386,7 @@ def screens(data, duration, credit):
                     if i in texts:
                         events.append((ev(cue["t"], c), n, kind, i))
                         n += 1
-    h0 = c["H0"]
+    h0 = c[f"{letters(data)[-1]}0"]   # エンドカードの始まり
     visible = {i for i in texts if i not in hidden}
     start = {i: 0.0 for i in visible}
     spans = []

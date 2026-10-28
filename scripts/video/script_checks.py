@@ -139,7 +139,7 @@ def blur_events(film_data):
     for cam, p in film_data["photos"].items():
         if p.get("blur", 0):
             ev.setdefault(f"#{cam}-img", []).append((0.0, float(p["blur"]), "initial"))
-    for sec in ("A", "B", "C", "D", "E", "F", "G", "H"):
+    for sec in rules.letters(film_data):
         for cue in film_data["cues"][sec]:
             if isinstance(cue, str):
                 continue
@@ -168,11 +168,12 @@ def check_effects(film_data):
             elif not later or later[0][0] - t > BLUR_HOLD_MAX:
                 when = f"{later[0][0] - t:.1f}秒後" if later else "最後まで"
                 ng.append(f"{sel}: {t:.2f}秒に入れたぼかし {val} の戻しが {BLUR_HOLD_MAX}秒以内に無い（戻りは{when}・{src}）")
-    for sec in ("A", "B", "C", "D", "E", "F", "G", "H"):
+    from video import rules
+    for sec in rules.letters(film_data):
         for cue in film_data["cues"][sec]:
             if isinstance(cue, str):
                 continue
-            v, frm = cue.get("v") or {}, cue.get("from") or {}
+            v, frm =cue.get("v") or {}, cue.get("from") or {}
             if "fromTo" in cue and FILTER_BLUR.search(str(frm.get("filter", ""))):
                 end = FILTER_BLUR.search(str(v.get("filter", "")))
                 if not end or float(end.group(1)) > 0:

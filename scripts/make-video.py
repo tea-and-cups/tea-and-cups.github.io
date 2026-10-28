@@ -9,17 +9,22 @@ r"""動画を作る（本運用の入口・D-0300）。部品は site/scripts/vi
   work/video-N.raw.mp4（書き出し）・video-N.mp4（faststart の完成）・video-N.qa.json（機械QA）・video-N.build.json（段ごとの記録）
 
 操作:
-  next [--date YYYY-MM-DD] [--create <slug> [--test]]
+  next [--date YYYY-MM-DD] [--create <slug> [--test] [--images-from video-N]]
                                    題材の候補（先行ピンと同じ山の窓の seasons・gift の公開記事を、山が近い順→slug の昇順）と次の番号 N を出す。
                                    1行目は「NEXT_SLUG: <slug>」。候補が無ければ「VIDEO_NO_CANDIDATES」の1行だけ（終了コードは0・何も作らない）。
                                    --date は基準日の差し替え（検証用・既定は今日）。投稿済み・制作中の slug は候補に出さない
                                    --create で output/videos/video-N/ の骨組み（script.json の雛形・prompts/・build.json の created_at）を作る。
                                    投稿済み・制作中の slug は拒否（終了コード1・何も作らない）。候補の範囲外は「【注意】題材の範囲外」を出して作る。
                                    --test は投稿しないテスト（D-0308）: build.json に mode=test を書き、動画md（output/videos/<slug>/video-N.md）に
-                                   保留の行（HOLD_LINE）を入れる。post-video-pins.py・post-video-to-buffer.py の check_review が、保留の行か mode=test で止める
+                                   保留の行（HOLD_LINE）を入れる。post-video-pins.py・post-video-to-buffer.py の check_review が、保留の行か mode=test で止める。
+                                   --test に限り、投稿済みの slug でも作れる（同じ記事で組み立てだけ変える試作・評価専用。build.json に same_slug_posted。
+                                   この動画の release は拒否する＝同じ記事の2本目を試作から出さない・D-0310）
+                                   --images-from video-N は、その動画の写真（images/ の png・prompts/・work/img/ の jpg）を写して使う（D-0310）。
+                                   写した写真は images の段が作り直さないので、画像生成は0回（build.json の images_from に記録・image_gens は足さない）
   release <動画> [--confirmed]     テストの保留を外す（Sho の「投稿して」のあと）: 動画md の保留の行を消し、build.json を mode=released にする。
                                    季節の題材で、作ったときに向けた山を過ぎた・今日から山までが窓の外なら【注意】を出して外さない（終了コード1）。
-                                   Sho が確かめたら --confirmed で外す。mp4・qa.json・審査行は変えない（作り直さない）
+                                   Sho が確かめたら --confirmed で外す。mp4・qa.json・審査行は変えない（作り直さない）。
+                                   同じ slug の動画が投稿済みなら拒否する（--confirmed でも外さない・試作は評価専用）
   drop <動画> [--reason 文]         見送り: build.json を mode=dropped にする。slug は題材の候補に戻り、似すぎの比べる相手から外れる。番号は使い切り。投稿済みは拒否
   snapshot <動画> --at 秒,… [--out DIR]
                                    composition の静止画（HyperFrames CLI の snapshot・--no-end）。既定の置き場所は qa/snapshots/
@@ -34,9 +39,15 @@ r"""動画を作る（本運用の入口・D-0300）。部品は site/scripts/vi
 画像生成の上限（D-0308）: images の段が作る前に video/images.py の budget を見て、超えるなら1枚も作らずに止める（status にも残りを出す）
 外部送信の遮断（D-0308）: HyperFrames（render・snapshot）へ渡す env は video/runtime.py の env("hyperframes")（外部の解析の鍵を外す）。
   snapshot は --describe false も付ける。照合は check-video-runtime.py
-  film <動画> [--out DIR]          video-N.parts.json と work/timeline.json から video-N.film.json を作り、部品の要約を出す（video/parts.py）。
-                                   --out は動画フォルダに書かず、DIR に film.json と film.html を書く（検証・見比べ用）。
+  film <動画> [--out DIR] [--parts FILE] [--comp] [--peaks [--at 秒,…]]
+                                   video-N.parts.json と work/timeline.json から video-N.film.json を作り、部品の要約を出す（video/parts.py）。
+                                   --out は動画フォルダに書かず、DIR に film.json と film.html を書く（検証・見比べ用。似すぎなら書いたうえで終了コード1）。
                                    動画 PARTS_FROM 未満（動画1・2）は --out なしでは書かない（案Aの film.json のまま）
+                                   --parts は動画の parts.json の代わりに FILE（番号を取る前の下書き）を、その動画の声の時刻表で組む（--out が要る）。
+                                   似すぎは番号を問わず直近の parts.SIMILAR_RECENT 本と比べる（下書きはどの番号にもなりうるため）
+                                   --comp は DIR/composition に composition を組む（写真・声・字体はその動画のもの）。
+                                   --peaks は --comp に加えて、部品ごとの見せ場の秒（要約の「見せ場」）の静止画を DIR/snapshots/ に撮る（全編の書き出しはしない）。
+                                   --at は見せ場に足して撮る秒（動きの途中を見るとき）
   build <動画> [--from 段|--only 段] [--redo S3,S4]
                                    段: voice → film → images → comp → render → finalize → qa（--from はその段から最後まで、--only はその段だけ）
                                    voice: 声の無い文（--redo の文は作り直し）だけ TTS → take の選択・末尾の処理・つなぎ → 読み違いの目安
@@ -215,15 +226,42 @@ def pick_candidates(target, calendar, posts, excluded, adv):
     return sorted(out, key=lambda c: (c["days"], c["slug"]))
 
 
-def create_verdict(slug, posted_slugs, wip_slugs, candidate_slugs):
-    """--create の可否。戻り値 (拒否か, 出す1行 または None)。範囲外は拒否せず注意だけ。"""
-    if slug in posted_slugs:
+def create_verdict(slug, posted_slugs, wip_slugs, candidate_slugs, test=False):
+    """--create の可否。戻り値 (拒否か, 出す1行 または None)。範囲外は拒否せず注意だけ。
+    投稿済みの slug は、テスト（test）に限り注意だけで作れる（組み立てだけ変える試作・評価専用。release は cmd_release が拒否する）"""
+    if slug in posted_slugs and not test:
         return True, f"拒否: {slug} は投稿済み（data/video-posted.md）"
     if slug in wip_slugs:
         return True, f"拒否: {slug} は制作中（output/videos/ に同じ slug の制作フォルダがある）"
+    if slug in posted_slugs:
+        return False, (f"【注意】{slug} は投稿済み（data/video-posted.md）。テストとして作る（評価専用: この動画の release は拒否され、"
+                       "同じ記事の2本目は出さない）")
     if slug not in candidate_slugs:
         return False, "【注意】題材の範囲外（先行ピンと同じ山の窓の seasons・gift の公開記事ではない）"
     return False, None
+
+
+def images_source(name):
+    """--images-from の動画フォルダ。返り値: (パス, None) か (None, 理由)。images/ に png が1枚以上ある video-N だけ"""
+    d = VIDEOS / name
+    if not re.match(r"^video-\d+$", name) or not d.is_dir():
+        return None, f"動画フォルダが無い: output/videos/{name}"
+    if not list((d / "images").glob("*.png")):
+        return None, f"写真が無い: output/videos/{name}/images/*.png"
+    return d, None
+
+
+def copy_images(src, d):
+    """src の写真（images/*.png・prompts/*.txt・work/img/*.jpg）を d へ写す。生成の記録（images/gen.log）は写さない。返り値: build.json の images_from"""
+    import shutil
+    files = []
+    for sub, pat in (("images", "*.png"), ("prompts", "*.txt"), ("work/img", "*.jpg")):
+        for p in sorted((src / sub).glob(pat)):
+            (d / sub).mkdir(parents=True, exist_ok=True)
+            shutil.copy2(p, d / sub / p.name)
+            files.append(f"{sub}/{p.name}")
+    return {"video": src.name, "at": now(), "files": files,
+            "sha256": {f: runtime_sha(d / f) for f in files if f.startswith("images/")}}
 
 
 def cmd_next(args):
@@ -255,17 +293,30 @@ def cmd_next(args):
         if not (POSTS / f"{args.create}.md").exists():
             print(f"記事が無い: site/src/content/posts/{args.create}.md")
             return 1
-        refused, msg = create_verdict(args.create, set(posted.values()), wip_slugs, {c["slug"] for c in cands})
+        test = bool(getattr(args, "test", False))
+        refused, msg = create_verdict(args.create, set(posted.values()), wip_slugs, {c["slug"] for c in cands}, test)
         if msg:
             print(msg)
         if refused:
             return 1
+        src = None
+        if getattr(args, "images_from", None):
+            src, why = images_source(args.images_from)
+            if src is None:
+                print(f"--images-from: {why}")
+                return 1
         d = VIDEOS / f"video-{n}"
         for sub in ("prompts", "images", "voice/raw", "work"):
             (d / sub).mkdir(parents=True, exist_ok=True)
         log = {"created_at": now(), "runs": []}
-        if args.test:
+        if test:
             log.update({"mode": "test", "mode_log": [{"mode": "test", "at": log["created_at"]}]})
+            same = sorted(k for k, s in posted.items() if s == args.create)
+            if same:
+                log["same_slug_posted"] = same
+        if src is not None:
+            log["images_from"] = copy_images(src, d)
+            print(f"IMAGES_FROM {src.name}: 写した {log['images_from']['files']}（画像生成は0回・images の段は作り直さない）")
         (d / f"video-{n}.build.json").write_text(json.dumps(log, ensure_ascii=False, indent=1), encoding="utf-8")
         if args.test:
             md = VIDEOS / args.create / f"video-{n}.md"
@@ -313,11 +364,13 @@ def script_gate(d, sc, need_film=False):
 
 # ---- film（部品の定義から film.json）
 
-def compile_parts(d):
-    """parts.json と timeline.json から film.json のデータと部品の要約を作る（書かない）。指紋（fingerprint）も入れる。返り値: (データ, 要約)"""
+def compile_parts(d, defn=None):
+    """parts.json と timeline.json から film.json のデータと部品の要約を作る（書かない）。指紋（fingerprint）も入れる。返り値: (データ, 要約)。
+    defn を渡すと動画の parts.json の代わりに使う（下書き）"""
     from video import parts
     try:
-        defn, tl, sc = parts.load(d)
+        own, tl, sc = parts.load(d, need_parts=defn is None)
+        defn = defn if defn is not None else own
         data, summary = parts.compile_film(defn, tl, sc)
         data["fingerprint"] = parts.fingerprint(defn, sc)
         return data, summary
@@ -363,7 +416,8 @@ def fingerprint_of(d, prefer_parts):
 
 
 def similar_targets(n):
-    """比べる相手: 投稿済み（data/video-posted.md）か保留中のテスト（mode が test・released）の番号の新しい順に parts.SIMILAR_RECENT 本。見送りは除く"""
+    """比べる相手: 投稿済み（data/video-posted.md）か保留中のテスト（mode が test・released）の番号の新しい順に parts.SIMILAR_RECENT 本。見送りは除く。
+    n が None（番号を取る前の下書き）なら、どの番号も除かない"""
     from video import parts
     posted = posted_numbers()
     out = []
@@ -377,16 +431,22 @@ def similar_targets(n):
     return sorted(out, reverse=True)[:parts.SIMILAR_RECENT]
 
 
-def similarity_gate(d):
-    """組み立ての似すぎの判定。返り値: (NG の一覧, INFO の一覧)。動画 PARTS_FROM 未満は NG を INFO に回す（対象外）"""
+def similarity_gate(d, defn=None, label="下書き"):
+    """組み立ての似すぎの判定。返り値: (NG の一覧, INFO の一覧)。動画 PARTS_FROM 未満は NG を INFO に回す（対象外）。
+    defn（下書きの parts.json の中身）を渡すと、その組み立てを動画 d の台本（冒頭の問い）で判定し、番号を問わず直近と比べる"""
     from video import parts
-    n = number(d)
+    n = None if defn is not None else number(d)
     ng, info = [], []
     try:
-        fp, src = fingerprint_of(d, prefer_parts=True)
+        if defn is not None:
+            fp, src = parts.fingerprint(defn, read_json(d / "script.json")), label
+        else:
+            fp, src = fingerprint_of(d, prefer_parts=True)
     except (parts.PartsError, KeyError, ValueError) as e:
         fp, src = None, f"指紋を作れない: {e}"
     if fp is None:
+        if defn is not None:
+            return [f"組み立ての指紋を作れない（{src}）"], info
         if n >= parts.PARTS_FROM and parts.parts_path(d).exists():
             ng.append(f"組み立ての指紋を作れない（{src}）")
         else:
@@ -403,31 +463,45 @@ def similarity_gate(d):
             info.append(f"INFO 動画{k}の指紋が無いので比べない（{src2}）")
             continue
         score, rows = parts.similarity(fp, fp2)
-        head = f"動画{n} 対 動画{k}（{src2}）: {score:.3f}（線 {parts.SIMILAR_LINE:.2f}）"
+        head = f"{label if n is None else f'動画{n}'} 対 動画{k}（{src2}）: {score:.3f}（線 {parts.SIMILAR_LINE:.2f}）"
         if score >= parts.SIMILAR_LINE:
             ng.append("\n".join([f"組み立てが似すぎ {head}。重なりの大きい項目から変える（video/parts.py の SIMILAR_WEIGHTS）",
                                  *parts.similarity_lines(score, rows)]))
         else:
             info.append(f"INFO 似すぎではない {head}")
-    if n < parts.PARTS_FROM:
+            if n is None:
+                info += [f"INFO   {ln.strip()}" for ln in parts.similarity_lines(score, rows)]
+    if n is not None and n < parts.PARTS_FROM:
         return [], info + [f"INFO（動画{n}は対象外・動画{parts.PARTS_FROM}以降） {m}" for m in ng]
     return ng, info
 
 
-def cmd_film(args):
+def cmd_film(args, rt=None):
     from video import film, parts
     d = video_dir(args.video)
-    if not parts.parts_path(d).exists():
+    draft = getattr(args, "parts", None)
+    comp, peaks = getattr(args, "comp", False) or getattr(args, "peaks", False), getattr(args, "peaks", False)
+    if (draft or comp) and not args.out:
+        print("--parts・--comp・--peaks は --out DIR と一緒に使う（動画フォルダには書かない）")
+        return 2
+    defn = None
+    if draft:
+        try:
+            defn = json.loads(Path(draft).read_text(encoding="utf-8"))
+        except (OSError, ValueError) as e:
+            print(f"--parts を読めない: {e}")
+            return 1
+    elif not parts.parts_path(d).exists():
         print(f"{parts.parts_path(d).name} が無い（output/videos/{d.name}/）")
         return 1
     n = number(d)
     if not args.out and n < parts.PARTS_FROM:
         print(f"拒否: 動画{n}は案Aの作りのまま（parts.json から film.json を作り直さない・PARTS_FROM {parts.PARTS_FROM}）。見比べるときは --out DIR")
         return 1
-    data, summary = compile_parts(d)
+    data, summary = compile_parts(d, defn)
     for ln in parts.summary_lines(summary):
         print(ln)
-    sim_ng, sim_info = similarity_gate(d)
+    sim_ng, sim_info = similarity_gate(d, defn, f"下書き {Path(draft).name}" if draft else "下書き")
     for line in sim_info + [f"NG {m}" for m in sim_ng]:
         print(line)
     if sim_ng and not args.out:
@@ -436,9 +510,25 @@ def cmd_film(args):
     if args.out:
         out = Path(args.out)
         out.mkdir(parents=True, exist_ok=True)
-        (out / f"video-{n}.film.json").write_text(parts.dump(data), encoding="utf-8")
+        stem = f"video-{n}" if not draft else Path(draft).name.replace(".parts.json", "")
+        (out / f"{stem}.film.json").write_text(parts.dump(data), encoding="utf-8")
         (out / "film.html").write_text(film.render_film(data), encoding="utf-8", newline="\r\n")
-        print(f"WROTE {out / f'video-{n}.film.json'}・{out / 'film.html'}（{runtime_sha(out / 'film.html')}）")
+        print(f"WROTE {out / f'{stem}.film.json'}・{out / 'film.html'}（{runtime_sha(out / 'film.html')}）")
+        if comp:
+            c = film.build(d, rt, data=data, comp=out / "composition")
+            print(f"COMP {c}（写真・声は output/videos/{d.name}/ から。film.html {runtime_sha(c / 'compositions' / 'film.html')}）")
+        if peaks:
+            from video import render
+            at = ",".join([f"{s['peak']:.2f}" for s in summary] + [x for x in (getattr(args, "at", None) or "").split(",") if x])
+            rc, text = render.snapshot(out / "composition", rt, at, out / "snapshots")
+            print(text.strip())
+            for s in summary:
+                print(f"PEAK {s['letter']} {s['scene']} {s['name']} {s['peak']:.2f}秒")
+            print(f"snapshot: 終了コード {rc}・{out / 'snapshots'}（外部の解析なし: 鍵を外した env・--describe false）")
+            if rc != 0:
+                return 1
+        if sim_ng:
+            return 1
     else:
         p = d / f"video-{n}.film.json"
         p.write_text(parts.dump(data), encoding="utf-8")
@@ -660,6 +750,12 @@ def cmd_status(args, rt):
     print("  " + elapsed_line(p["log"]))
     mode = mode_of(d)
     print(f"  状態 {mode or '本番'}" + (f"（{MODES[mode]}）" if mode in MODES else ""))
+    blog = load_log(d)
+    if blog.get("same_slug_posted"):
+        print(f"  同じ記事の投稿済み: 動画{'・'.join(map(str, blog['same_slug_posted']))}（評価専用の試作。release は拒否される）")
+    if blog.get("images_from"):
+        f = blog["images_from"]
+        print(f"  写真: {f['video']} から写した {len(f['files'])}ファイル（{f['at']}・画像生成は0回）")
     from video import images
     print("  " + images.budget(d, VIDEOS, 0)[1][0])
 
@@ -695,7 +791,7 @@ def cmd_status(args, rt):
         line("qa", f"{p['qa'].name} 無し")
     if data:
         from video import rules
-        rows = rules.full_windows(data, rules.simulate(data, dur or float(data["sections"]["H"]) + 5))
+        rows = rules.full_windows(data, rules.simulate(data, dur or float(data["sections"][rules.letters(data)[-1]]) + 5))
         if rows:
             print("  全面の写真で主役がはみ出さない範囲（写真の作り直しの依頼文にそのまま使う。rules/video-production.md 3節）")
             for ln in rules.full_window_lines(rows):
@@ -736,8 +832,13 @@ def cmd_release(args):
         print(f"拒否: 動画{n}は保留中のテストではない（mode={log.get('mode') or '本番'}）")
         return 1
     slug = slug_of(d)
+    same = sorted(k for k, s in posted_numbers().items() if s == slug and k != n)
+    if same or log.get("same_slug_posted"):
+        print(f"拒否: 同じ記事（{slug}）の動画{'・'.join(map(str, same or log['same_slug_posted']))}が投稿済み。"
+              f"この動画は組み立てを比べる試作（評価専用）で、同じ記事の2本目は出さない（--confirmed でも外さない）。使わないなら drop video-{n}")
+        return 1
     adv = advance_pin()
-    created = datetime.datetime.fromisoformat(log["created_at"]).date() if log.get("created_at") else adv.today_jst()
+    created =datetime.datetime.fromisoformat(log["created_at"]).date() if log.get("created_at") else adv.today_jst()
     notes = season_notices(slug, created, adv.today_jst(), adv, adv.load_calendar()[0]) if slug else []
     for m in notes:
         print(m)
@@ -805,6 +906,7 @@ def main():
     a = sub.add_parser("next")
     a.add_argument("--create", metavar="slug")
     a.add_argument("--test", action="store_true")
+    a.add_argument("--images-from", dest="images_from", metavar="video-N")
     a.add_argument("--date", metavar="YYYY-MM-DD")
     a = sub.add_parser("release")
     a.add_argument("video")
@@ -821,6 +923,10 @@ def main():
     a = sub.add_parser("film")
     a.add_argument("video")
     a.add_argument("--out", metavar="DIR")
+    a.add_argument("--parts", metavar="FILE")
+    a.add_argument("--comp", action="store_true")
+    a.add_argument("--peaks", action="store_true")
+    a.add_argument("--at", metavar="秒,秒")
     a = sub.add_parser("build")
     a.add_argument("video")
     a.add_argument("--from", dest="from_", choices=STAGES)
@@ -839,8 +945,8 @@ def main():
         return 2
     rt = runtime.Runtime()
     if args.cmd == "next":
-        if args.test and not args.create:
-            print("--test は --create と一緒に使う")
+        if (args.test or args.images_from) and not args.create:
+            print("--test・--images-from は --create と一緒に使う")
             return 2
         return cmd_next(args)
     if args.cmd == "release":
@@ -852,7 +958,7 @@ def main():
     if args.cmd == "check-script":
         return cmd_check_script(args)
     if args.cmd == "film":
-        return cmd_film(args)
+        return cmd_film(args, rt)
     if args.cmd == "build":
         return cmd_build(args, rt)
     if args.cmd == "status":
