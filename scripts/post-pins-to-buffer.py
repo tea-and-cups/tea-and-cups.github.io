@@ -28,7 +28,8 @@ r"""未投稿ピンをBuffer経由でX・Instagram・Threadsへ送る本体ス�
       commit・push に含めない。保留は失敗ではないため終了コードは変えない。
   (4) 上限判定。「当日すでに投稿した件数 ＋ 今回の対象件数」が
       DAILY_LIMIT（30件＝10ピン×3チャンネル）を超えるなら、1件も投稿せず
-      件数だけ報告して終了する。
+      件数だけ報告して終了する。当日の件数には動画の送信（data/video-buffer-posted.tsv）も
+      含める（count_today_posted・D-0302。post-video-to-buffer.py も同じ関数・同じ上限で判定する）。
   (5) 本文の組み立て。送信先で構成が違う。
       リンク付きの回とリンクなしの回（D-0256）: 同じ記事（誘導先URLのslug）の
         ピンを番号順に並べ、1番目だけをリンク付きにする。2番目以降（先行ピンを
@@ -393,6 +394,16 @@ def _load_check_pin_posting_status():
     return mod
 
 
+def _load_post_video_to_buffer():
+    """post-video-to-buffer.py をモジュールとして読み込む（動画の台帳の読み方はあちらが正本）。
+    module直下で読まず関数の中で読むのは、あちらがこのファイルを読み込むため（循環を避ける）。"""
+    path = os.path.join(SCRIPT_DIR, "post-video-to-buffer.py")
+    spec = importlib.util.spec_from_file_location("post_video_to_buffer", path)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
 def _load_publish_pin_images():
     """publish-pin-images.py をモジュールとして読み込む（同上）。"""
     path = os.path.join(SCRIPT_DIR, "publish-pin-images.py")
@@ -435,16 +446,26 @@ def load_posted_pairs(path=LEDGER_PATH):
     return posted
 
 
-def count_today_posted(today_str, path=LEDGER_PATH):
-    """台帳の「投稿日: YYYY-MM-DD N service」行のうち today_str と一致する件数。"""
-    if not os.path.isfile(path):
-        return 0
+def count_today_posted(today_str, path=None, video_path=None):
+    """当日すでに Buffer へ送った件数（D-0302）。画像ピンは台帳の「投稿日: YYYY-MM-DD N service」行、
+    動画は data/video-buffer-posted.tsv の投稿日時（日本時間）の日付が today_str の行を数えて足す。
+    post-video-to-buffer.py もこの関数で数える。"""
+    path = path or LEDGER_PATH
     count = 0
-    with open(path, encoding="utf-8") as f:
-        for line in f:
-            m = POSTED_DATE_LINE_RE.match(line.strip())
-            if m and m.group(1) == today_str:
-                count += 1
+    if os.path.isfile(path):
+        with open(path, encoding="utf-8") as f:
+            for line in f:
+                m = POSTED_DATE_LINE_RE.match(line.strip())
+                if m and m.group(1) == today_str:
+                    count += 1
+    pvb = _load_post_video_to_buffer()
+    for row in pvb.load_ledger(video_path or pvb.LEDGER_PATH):
+        try:
+            day = datetime.datetime.fromisoformat(row["投稿日時"]).astimezone(pvb.JST).date().isoformat()
+        except ValueError:
+            day = row["投稿日時"][:10]
+        if day == today_str:
+            count += 1
     return count
 
 

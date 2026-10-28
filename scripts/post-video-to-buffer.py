@@ -14,15 +14,20 @@ AI表示の項目（isAiGenerated・aiAssisted 等）は付けない（Sho 判�
 投稿文（動画md の行・1行ずつ）:
   - X用説明文: <答えの1行>          → 送る本文は「<この行>\n<誘導先URL（utm_source=x）>」
   - Threads用文: <説明文の①と③>    → 送る本文は「<この行>\n<誘導先URL（utm_source=threads）>」
-  - X・Threads審査: 公開可 YYYY-MM-DD （quality-reviewer の公開可のあとに足す）
+  - X・Threads審査: 公開可 YYYY-MM-DD sha256:<64桁> （quality-reviewer の公開可のあとに足す。sha256 は
+    動画2以降で必須・投稿する mp4 の現物と照合する。動画1は日付だけの行のまま・D-0302）
   誘導先URLは動画md の「- 誘導先URL:」の utm_source だけを post-pins-to-buffer.py の
   rewrite_utm_source で差し替えたもの（utm_medium=social・utm_campaign=<slug>・utm_content=videoN はそのまま）。
 
 処理順序（1動画ずつ・最初に止まった項目でその動画を止める）:
   (1) 緊急停止スイッチ（data/ 直下の buffer-auto-post-off*・post-pins-to-buffer.py と共通）。あれば何もしない。
-  (2) 動画md を読み、post-video-pins.py と同じ検査（項目・utm_content・文字数・審査行の sha256）を通す。
+  (2) 動画md を読み、post-video-pins.py と同じ検査（項目・utm_content・文字数・審査行の sha256・
+      動画2以降は機械QA の qa.json）を通す（check_review を共有）。
   (3) 投稿文の検査: 2行の存在、X は check-x-post-length.py の verdict（実文字数・X重みとも280以下）、
-      Threads は実文字数500以下、UTM の4項目、「- X・Threads審査: 公開可」行。
+      Threads は実文字数500以下、UTM の4項目、「- X・Threads審査: 公開可」行（動画2以降は sha256 も照合）。
+  (3-2) 1日の上限（D-0302）: 当日すでに送った件数（画像ピン＋動画・post-pins-to-buffer.py の
+      count_today_posted）＋この動画の送信先の数が DAILY_LIMIT（30）を超えるなら、公開も createPost も
+      しない（保留。失敗には数えない）。
   -- --dry-run はここまで（コピー・push・createPost・台帳への書き込みをしない）--
   (4) mp4 を video-tmp に <slug>-video-N.mp4 としてコピー（.nojekyll も置く）、commit・push。
   (5) 公開URLが 200・Content-Type video/mp4・転送なし・長さが現物と一致になるまで30秒間隔で確かめる（上限10分）。
@@ -85,7 +90,8 @@ LEDGER_COLUMNS = ("動画キー", "service", "postId", "投稿日時", "公開UR
 
 X_TEXT_RE = re.compile(r"^-\s*X用説明文:\s*(.*)$")
 THREADS_TEXT_RE = re.compile(r"^-\s*Threads用文:\s*(.*)$")
-SNS_REVIEW_RE = re.compile(r"^-\s*X・Threads審査:\s*公開可\s+(\d{4}-\d{2}-\d{2})(?!\d)", re.M)
+SNS_REVIEW_RE = re.compile(r"^-\s*X・Threads審査:\s*公開可\s+(\d{4}-\d{2}-\d{2})(?!\d)"
+                           r"(?:\s+sha256:([0-9a-f]{64})(?![0-9a-f]))?", re.M)
 
 THREADS_CHAR_LIMIT = 500
 JST = dt.timezone(dt.timedelta(hours=9))
@@ -147,7 +153,7 @@ def public_url(key):
 
 
 def read_sns_lines(text):
-    """動画md の X用説明文・Threads用文（各1行）と審査日を返す。"""
+    """動画md の X用説明文・Threads用文（各1行）と、最後の審査行の (審査日, sha256 か空文字) を返す。"""
     found = {"x": [], "threads": []}
     for raw in text.splitlines():
         line = raw.strip()
@@ -172,7 +178,8 @@ def check_utm(url, service, fields):
 def build_texts(fields, require_review=True):
     """(3) の検査。戻り値: ({service: 本文}, 結果の行のリスト)。満たさなければ _Stop。
     require_review=False（--publish-only）は審査行を見ない（createPost を呼ばないため）。"""
-    found, review_date = read_sns_lines(fields["md_text"])
+    found, review = read_sns_lines(fields["md_text"])
+    review_date, review_sha = review if review else (None, "")
     lines = []
     for key, label in (("x", "X用説明文"), ("threads", "Threads用文")):
         if len(found[key]) != 1 or not found[key][0]:
@@ -199,7 +206,17 @@ def build_texts(fields, require_review=True):
             lines.append("X・Threads審査: なし（--publish-only のため見ない）")
             return texts, lines
         raise _Stop("「- X・Threads審査: 公開可 YYYY-MM-DD」行がありません（未審査のため投稿しない）")
-    lines.append("X・Threads審査: 公開可 %s" % review_date)
+    if fields["n"] < pvp().QA_GATE_START:
+        lines.append("X・Threads審査: 公開可 %s" % review_date)
+        return texts, lines
+    # 動画 QA_GATE_START 以降は審査行に sha256 を必須にし、現物（check_review が出した fields["sha256"]）と照合する
+    if not review_sha:
+        raise _Stop("最後の「- X・Threads審査:」行に sha256:<64桁> がありません（動画%d 以降は必須）"
+                    % pvp().QA_GATE_START)
+    if review_sha != fields["sha256"]:
+        raise _Stop("X・Threads審査行の sha256 が一致しません（審査行 %s / 現物 %s）。審査後に動画が変わっています"
+                    % (review_sha, fields["sha256"]))
+    lines.append("X・Threads審査: 公開可 %s・sha256 が現物と一致" % review_date)
     return texts, lines
 
 
@@ -483,6 +500,16 @@ def cmd_post(md_path=None, ledger_path=None, video_ledger_path=None, dry_run=Fal
                     out("  [OK] %s" % line)
                 out("%s / スキップ（X・Threads とも台帳に投稿済み）" % key)
                 continue
+            if not publish_only:
+                day = (now or dt.datetime.now(JST)).astimezone(JST).date().isoformat()
+                today_count = ppb().count_today_posted(day, video_path=ledger_path)
+                lines.append("1日の上限: 本日すでに送信 %d件（画像ピン＋動画）＋ この動画 %d件 / 上限 %d件"
+                             % (today_count, len(services), ppb().DAILY_LIMIT))
+                if today_count + len(services) > ppb().DAILY_LIMIT:
+                    for line in lines:
+                        out("  [OK] %s" % line)
+                    out("%s / 保留（1日の上限を超えるため、公開・createPost をしない。失敗には数えない）" % key)
+                    continue
             if dry_run:
                 for line in lines:
                     out("  [OK] %s" % line)
@@ -522,7 +549,7 @@ def cmd_post(md_path=None, ledger_path=None, video_ledger_path=None, dry_run=Fal
                                "公開URL": url, "削除日": ""}, ledger_path)
                 lines.append("createPost（%s）: postId=%s %s（台帳に記録）" % (service, post_id, detail))
             label = "成功"
-        except _Stop as e:
+        except (_Stop, pvp()._Stop) as e:   # post-video-pins.py の検査（check_review 等）の停止も同じ扱い
             stopped += 1
             for line in lines:
                 out("  [OK] %s" % line)

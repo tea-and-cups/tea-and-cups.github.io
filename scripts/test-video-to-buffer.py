@@ -15,6 +15,12 @@ r"""動画の X・Threads 投稿（post-video-to-buffer.py）と、それに合�
   6. 画像の掃除（fetch_scheduled_pin_numbers）: 動画の投稿がキューにあれば止まる側に倒れる
   7. experiments.py: 動画の postId を前・後から除き、sns-posts-7d には video: true で残す。
      動画の投稿を一覧から丸ごと抜いた場合と件数・中央値が同じ
+  8. 動画2以降の安全策（D-0302）: qa.json が無い・gate に不合格・passed が不合格・qa.json の mp4_sha256 が
+     現物と違う・Pinterest 用／X・Threads 用の審査行の sha256 が現物と違う・審査行に sha256 が無い、のどれでも
+     createPost の前で止まる。審査行・qa.json・現物の3つが一致するときだけ送る（mp4・qa.json はダミー）
+  9. 1日の上限の合算（D-0302）: 当日の画像ピン＋動画の送信が DAILY_LIMIT に達していれば、動画の公開・createPost の
+     前で止まる（保留・終了コード0）。画像ピン側の count_today_posted も動画の送信を数える（日本時間の日付で）。
+     画像ピンの台帳は一時ファイルへ差し替える（本物の data/buffer-posted.md は読まない）
 
 使い方:
   python site/scripts/test-video-to-buffer.py
@@ -27,6 +33,7 @@ r"""動画の X・Threads 投稿（post-video-to-buffer.py）と、それに合�
 
 import datetime as dt
 import importlib.util
+import json
 import os
 import shutil
 import sys
@@ -231,6 +238,137 @@ def test_prune_guard():
     check("画像の掃除: 動画の投稿がキューにあれば止まる（None）", numbers is None, note)
 
 
+def setup_v2(tmp, name, qa=True, gate=None, passed=True, qa_sha=None, pin_sha=None, sns_sha=None):
+    """動画2の一式（ダミーの mp4・qa.json・動画md・Pinterest 台帳）を tmp/name/ に作る。
+    *_sha は既定で現物の sha256。"no" を渡すと、その審査行に sha256 を書かない。"""
+    d = os.path.join(tmp, name)
+    os.makedirs(d)
+    mp4 = os.path.join(d, "video-2.mp4")
+    Path(mp4).write_bytes(b"dummy mp4 " + name.encode())
+    actual = vb.pvp().file_sha256(mp4)
+    qa_path = os.path.join(d, "video-2.qa.json")
+    if qa:
+        Path(qa_path).write_text(json.dumps({
+            "mp4": "video-2.mp4", "mp4_sha256": qa_sha or actual, "passed": passed,
+            "gate": gate or {"ai_credit_visible": True, "ai_credit_text": True, "r7_chars": True}}), encoding="utf-8")
+    lines = []
+    for l in Path(REAL_MD).read_text(encoding="utf-8").splitlines():
+        if l.startswith("- 審査:") or l.startswith("- X・Threads審査:"):
+            continue
+        if l.startswith("- 動画ファイル:"):
+            l = "- 動画ファイル: " + mp4.replace(os.sep, "/")
+        elif l.startswith("- 誘導先URL:"):
+            l = l.replace("utm_content=video1", "utm_content=video2")
+        elif l.startswith("- 機械QA:"):
+            l = "- 機械QA: " + qa_path.replace(os.sep, "/")
+        lines.append(l)
+    lines.append("- 審査: 公開可 2026-10-28" + ("" if pin_sha == "no" else " sha256:" + (pin_sha or actual)))
+    lines.append("- X・Threads審査: 公開可 2026-10-28" + ("" if sns_sha == "no" else " sha256:" + (sns_sha or actual)))
+    md = os.path.join(d, "video-2.md")
+    Path(md).write_text("\n".join(lines) + "\n", encoding="utf-8")
+    pinned = os.path.join(d, "video-posted.md")
+    Path(pinned).write_text(vb.pvp().LEDGER_HEADER + "動画2 | iifuufu-no-hi-pair-cup-erabikata | 作成済み | "
+                            "公開可 2026-10-28 | 2026-10-28 | %s | 2\n" % actual, encoding="utf-8")
+    return md, pinned, actual
+
+
+def test_gate_v2(tmp):
+    other = "0" * 64
+    cases = [
+        ("qa.json が無い", dict(qa=False), "qa.json がありません"),
+        ("gate に不合格の項目がある", dict(gate={"ai_credit_visible": True, "ai_credit_text": False}), "gate に不合格"),
+        ("passed が合格でない", dict(passed=False), "passed が合格ではありません"),
+        ("qa.json の mp4_sha256 が現物と違う", dict(qa_sha=other), "mp4_sha256 が現物と一致しません"),
+        ("Pinterest 用の審査行の sha256 が現物と違う", dict(pin_sha=other), "sha256 が一致しません"),
+        ("Pinterest 用の審査行に sha256 が無い", dict(pin_sha="no"), "sha256:<64桁> がありません"),
+        ("X・Threads 用の審査行の sha256 が現物と違う", dict(sns_sha=other), "X・Threads審査行の sha256 が一致しません"),
+        ("X・Threads 用の審査行に sha256 が無い", dict(sns_sha="no"), "X・Threads審査:」行に sha256"),
+    ]
+    for i, (label, kw, expect) in enumerate(cases):
+        md, pinned, _sha = setup_v2(tmp, "gate%d" % i, **kw)
+        fake, stage_calls = FakeBuffer(), []
+        ledger = os.path.join(tmp, "gate%d.tsv" % i)
+        rc, lines = run_post(md, pinned, ledger, fake, stage_calls=stage_calls)
+        check("動画2: %s → createPost の前で止まる（終了コード1・公開も台帳も無し）" % label,
+              rc == 1 and not fake.calls and not stage_calls and not os.path.exists(ledger)
+              and any(l.startswith("  [NG]") and expect in l for l in lines), lines)
+    md, pinned, sha = setup_v2(tmp, "gate-ok")
+    fake, stage_calls = FakeBuffer(), []
+    rc, lines = run_post(md, pinned, os.path.join(tmp, "gate-ok.tsv"), fake, stage_calls=stage_calls)
+    check("動画2: 審査行（2本）・qa.json・現物の sha256 が一致すれば送る",
+          rc == 0 and [c["channelId"] for c in fake.creates()] == ["CT", "CH"]
+          and any("機械QA: gate 3項目すべて合格" in l for l in lines)
+          and any("X・Threads審査: 公開可 2026-10-28・sha256 が現物と一致" in l for l in lines), lines)
+    md, pinned = setup(tmp)
+    rc, lines = run_post(md, pinned, os.path.join(tmp, "v1.tsv"), FakeBuffer(), dry_run=True)
+    check("動画1: 機械QA・X・Threads審査行の sha256 を求めない（対象外）",
+          rc == 0 and not any("機械QA" in l for l in lines), lines)
+
+
+def _image_ledger(path, day, count, other_day_count=0):
+    rows = ["投稿日: %s %d twitter" % (day, 400 + i) for i in range(count)]
+    rows += ["投稿日: 2026-10-01 %d threads" % (300 + i) for i in range(other_day_count)]
+    Path(path).write_text("# 台帳（テスト用）\n" + "\n".join(rows) + "\n", encoding="utf-8")
+
+
+def test_daily_limit(tmp):
+    day = "2026-10-27"   # run_post の now の日付（日本時間）
+    image = os.path.join(tmp, "limit-image.md")
+    video = os.path.join(tmp, "limit-video.tsv")
+    url = "https://kohaku-jikan.com/video-tmp/x.mp4"
+    vb._write_rows([
+        {"動画キー": "s-video-9", "service": "twitter", "postId": "A", "投稿日時": "2026-10-27T09:00:00+09:00",
+         "公開URL": url, "削除日": ""},
+        {"動画キー": "s-video-9", "service": "threads", "postId": "B", "投稿日時": "2026-10-26T15:30:00+00:00",
+         "公開URL": url, "削除日": ""},   # 日本時間では 10-27 00:30
+        {"動画キー": "s-video-8", "service": "twitter", "postId": "C", "投稿日時": "2026-10-27T14:59:00+00:00",
+         "公開URL": url, "削除日": ""}], video)   # 日本時間では 10-27 23:59
+    _image_ledger(image, day, 3, other_day_count=2)
+    check("合算: 画像ピン3件＋動画3件（日本時間の日付で数える）= 6",
+          ppb.count_today_posted(day, path=image, video_path=video) == 6,
+          ppb.count_today_posted(day, path=image, video_path=video))
+    check("合算: 別の日は数えない（10-26 は動画0件）",
+          ppb.count_today_posted("2026-10-26", path=image, video_path=video) == 0)
+
+    # 画像ピン側（main は count_today_posted(today_str) を引数なしで呼ぶ）も動画の送信を数える
+    saved_loader = ppb._load_post_video_to_buffer
+    saved_path = ppb.LEDGER_PATH
+    mod = saved_loader()
+    mod.LEDGER_PATH = video
+    ppb._load_post_video_to_buffer = lambda: mod
+    ppb.LEDGER_PATH = image
+    try:
+        check("画像ピン側の既定の数え方（引数なし）にも動画の送信が入る",
+              ppb.count_today_posted(day) == 6, ppb.count_today_posted(day))
+        empty = os.path.join(tmp, "limit-video-empty.tsv")
+        mod.LEDGER_PATH = empty
+        check("当日に動画の送信が無ければ、画像ピンだけの件数と同じ（3）", ppb.count_today_posted(day) == 3,
+              ppb.count_today_posted(day))
+    finally:
+        ppb._load_post_video_to_buffer = saved_loader
+
+    try:
+        md, pinned = setup(tmp)
+        # 動画の台帳（この動画用）に別の動画の当日分1件を入れておく
+        ledger = os.path.join(tmp, "limit-run.tsv")
+        vb._write_rows([{"動画キー": "s-video-9", "service": "twitter", "postId": "A",
+                         "投稿日時": "2026-10-27T09:00:00+09:00", "公開URL": url, "削除日": ""}], ledger)
+        _image_ledger(image, day, 28)   # 28＋動画1＋この動画2 = 31 > 30
+        fake, stage_calls = FakeBuffer(), []
+        rc, lines = run_post(md, pinned, ledger, fake, stage_calls=stage_calls)
+        check("上限: 画像28＋動画1＋今回2 = 31 > 30 → 公開・createPost の前で止まる（保留・終了コード0）",
+              rc == 0 and not fake.calls and not stage_calls and any("保留" in l for l in lines)
+              and any("本日すでに送信 29件" in l for l in lines), lines)
+        rc, lines = run_post(md, pinned, ledger, FakeBuffer(), dry_run=True)
+        check("上限: dry-run でも同じ判定を出す", rc == 0 and any("保留" in l for l in lines), lines)
+        _image_ledger(image, day, 27)   # 27＋1＋2 = 30 → 上限内
+        fake = FakeBuffer()
+        rc, lines = run_post(md, pinned, ledger, fake)
+        check("上限: ちょうど30件なら送る", rc == 0 and len(fake.creates()) == 2, lines)
+    finally:
+        ppb.LEDGER_PATH = saved_path
+
+
 def _post(pid, day, views, service="twitter"):
     return {"entity_id": pid, "service": service, "text": "t",
             "sent_at": "%sT01:00:00Z" % day, "metrics": [{"type": "impressions", "value": views}]}
@@ -330,6 +468,8 @@ def main():
         real_check(dt.date.fromisoformat(sys.argv[i + 1]))
     else:
         tmp = tempfile.mkdtemp(prefix="test-video-to-buffer-")
+        saved = ppb.LEDGER_PATH
+        ppb.LEDGER_PATH = os.path.join(tmp, "buffer-posted.md")   # 画像ピンの台帳（当日の件数）は空の一時ファイル
         try:
             test_texts(tmp)
             test_post_and_rerun(tmp)
@@ -337,7 +477,10 @@ def main():
             test_cleanup(tmp)
             test_prune_guard()
             test_measure(tmp)
+            test_gate_v2(tmp)
+            test_daily_limit(tmp)
         finally:
+            ppb.LEDGER_PATH = saved
             shutil.rmtree(tmp, ignore_errors=True)
     print("TEST_%s %d件NG" % ("NG" if FAILURES else "OK", len(FAILURES)))
     return 1 if FAILURES else 0

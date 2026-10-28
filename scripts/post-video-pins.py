@@ -12,10 +12,16 @@ data/pin-posted.md とは別。動画の番号 N は画像ピンの連番に入�
       URL2048）を確かめる。
   (3) 審査行「- 審査: 公開可 YYYY-MM-DD sha256:<64桁>」が無ければ止める（判定は pin_review.REVIEW_LINE_RE）。
       審査行の sha256 と現物の sha256 が違えば止める（審査後の差し替えを投稿しない）。
+      動画 QA_GATE_START（2）以降は、続けて機械QA を見る（check_qa・D-0302）: 「- 機械QA: <qa.json>」行の
+      qa.json（制作側 output/videos/video-N/video-N.qa.json）が在り、gate が全項目合格（passed があればそれも）で、
+      mp4_sha256 が投稿する mp4 の現物と一致しなければ止める。post-video-to-buffer.py もこの check_review を通る。
   (4) ffprobe で動画の要件（mp4/mov/m4v・H.264/H.265・4秒以上15分以下・2GB以下・縦横比 1:2〜1.91:1）を確かめる。
   (5) ボードを data/pinterest-boards.md で引き、通年のボードであることを確かめる。
   (6) 重複の照合（3重）: 台帳に同じ N がある／台帳に同じ sha256 がある／GET /v5/pins に
       link の utm_content=video<N> のピンがある、のどれかで止める。
+  (6-2) 1日の上限（D-0302）: 当日すでに投稿した件数（画像ピン＋動画ピン・post-pins-to-pinterest.py の
+      count_today_posted）＋1 が MAX_BATCH_SIZE（50）を超えるなら投稿しない（保留。失敗には数えない）。
+      台帳の照合のあと、GET /v5/pins の照合の前に見る。
   (7) 誘導先URLの200を確かめる（post-pins-to-pinterest.py の check_url_ok）。
   -- --dry-run はここまで（登録・アップロード・作成・台帳への書き込みをしない）--
   (8) POST /v5/media で登録し、media_id を台帳の # 行へ書く。
@@ -74,6 +80,8 @@ COVER_RE = re.compile(r"^-\s*cover_image_key_frame_time:\s*(.+)$")
 ALT_RE = re.compile(r"^代替テキスト:\s*(.+)$")
 DESC_HEAD_RE = re.compile(r"^説明文:\s*(.*)$")
 REVIEW_SHA_RE = re.compile(r"^-\s*審査:\s*公開可\s+(\d{4}-\d{2}-\d{2})\s+sha256:([0-9a-f]{64})\s*$")
+QA_LINE_RE = re.compile(r"^-\s*機械QA:\s*(.+)$")
+QA_GATE_START = 2   # 機械QA・X・Threads審査行の sha256 を必須にする最初の動画番号（動画1は対象外・D-0302）
 LEDGER_N_RE = re.compile(r"^動画(\d+)$")
 PROGRESS_RE = re.compile(r"^#\s*途中:\s*動画(\d+)\s+media=(\S+)\s+(\S+)\s+(\d{4}-\d{2}-\d{2})\s*$")
 
@@ -245,7 +253,49 @@ def check_review(fields):
                     % (last.group(2), actual))
     fields["review_date"] = last.group(1)
     fields["sha256"] = actual
-    return ["審査行: 公開可 %s" % last.group(1), "sha256: 審査行と現物が一致（%s）" % actual]
+    lines = ["審査行: 公開可 %s" % last.group(1), "sha256: 審査行と現物が一致（%s）" % actual]
+    if fields["n"] >= QA_GATE_START:
+        lines += check_qa(fields)
+    return lines
+
+
+def check_qa(fields):
+    """機械QA（D-0302・動画 QA_GATE_START 以降）: 「- 機械QA:」行の qa.json が在り、gate が全項目合格
+    （passed があればそれも合格）で、qa.json の mp4_sha256 が投稿する mp4 の現物と一致すること。"""
+    found = [m.group(1).strip() for m in (QA_LINE_RE.match(l.strip()) for l in fields["md_text"].splitlines()) if m]
+    if len(found) != 1 or not found[0].endswith(".qa.json") or " " in found[0] or "・" in found[0]:
+        raise _Stop("「- 機械QA: output/videos/video-N/video-N.qa.json」行がちょうど1行・qa.json 1つだけの形で"
+                    "ありません（%s）" % ("、".join(found) or "行なし"))
+    rel = found[0]
+    path = os.path.join(ROOT, rel.replace("/", os.sep))
+    if not os.path.isfile(path):
+        raise _Stop("機械QA の qa.json がありません: %s（機械QA を通っていないため投稿しない）" % rel)
+    try:
+        with open(path, encoding="utf-8") as f:
+            qa = json.load(f)
+    except (OSError, ValueError) as e:
+        raise _Stop("機械QA の qa.json を読めません: %s（%s）" % (rel, e))
+    gate = qa.get("gate") if isinstance(qa, dict) else None
+    if not isinstance(gate, dict) or not gate:
+        raise _Stop("機械QA の qa.json に gate がありません: %s" % rel)
+    bad = [k for k, v in gate.items() if v is not True]
+    if bad:
+        raise _Stop("機械QA の gate に不合格の項目があります: %s（%s）" % ("、".join(bad), rel))
+    if "passed" in qa and qa["passed"] is not True:
+        raise _Stop("機械QA の passed が合格ではありません（%s: %r）" % (rel, qa["passed"]))
+    if qa.get("mp4_sha256") != fields["sha256"]:
+        raise _Stop("機械QA の mp4_sha256 が現物と一致しません（qa.json %s / 現物 %s）。機械QA のあとに動画が変わっています"
+                    % (qa.get("mp4_sha256"), fields["sha256"]))
+    return ["機械QA: gate %d項目すべて合格・mp4_sha256 が現物と一致（%s）" % (len(gate), rel)]
+
+
+def check_daily_limit(fields, pp, ledger_path, today_str):
+    """1日の上限（D-0302）: 当日すでに Pinterest へ投稿した件数（画像ピン＋動画ピン・pp.count_today_posted）＋
+    この1本が pp.MAX_BATCH_SIZE を超えるなら投稿しない。戻り値: (上限内か, 結果の行)。"""
+    today_count = pp.count_today_posted(today_str, video_path=ledger_path)
+    line = "1日の上限: 本日すでに投稿 %d件（画像ピン＋動画ピン）＋ この動画 1件 / 上限 %d件" % (
+        today_count, pp.MAX_BATCH_SIZE)
+    return today_count + 1 <= pp.MAX_BATCH_SIZE, line
 
 
 def probe_video(fields):
@@ -298,7 +348,7 @@ def check_board(fields, pp, board_id_map):
 # --- 台帳 -----------------------------------------------------------------------
 
 def load_ledger(path):
-    """台帳を読む。戻り値: {"rows": {N: {"slug":…, "sha256":…, "pin_id":…}}, "progress": {N: [(media_id, 段階, 日付)]}}"""
+    """台帳を読む。戻り値: {"rows": {N: {"slug":…, "created":…, "sha256":…, "pin_id":…}}, "progress": {N: [(media_id, 段階, 日付)]}}"""
     rows, progress = {}, {}
     if not os.path.isfile(path):
         return {"rows": rows, "progress": progress}
@@ -317,6 +367,7 @@ def load_ledger(path):
             if not m:
                 continue
             rows[int(m.group(1))] = {"slug": cells[1] if len(cells) > 1 else "",
+                                     "created": cells[4] if len(cells) > 4 else "",
                                      "sha256": cells[5] if len(cells) > 5 else "",
                                      "pin_id": cells[6] if len(cells) > 6 else ""}
     return {"rows": rows, "progress": progress}
@@ -484,6 +535,11 @@ def process(fields_path, pp, ctx, out):
     out += probe_video(fields)
     out += check_board(fields, pp, ctx["board_id_map"])
     out += check_ledger(fields, ctx["ledger"])
+    ok, line = check_daily_limit(fields, pp, ctx["ledger_path"], ctx["today"])
+    out.append(line)
+    if not ok:
+        out.append("上限を超えるため、この動画は投稿しません（画像ピンの上限超えと同じく失敗には数えない）")
+        return "保留(1日の上限)"
     if ctx["listing"] is None:
         ctx["listing"] = fetch_listing(ctx["token"])
     dup = find_existing_pin(fields["n"], ctx["listing"])

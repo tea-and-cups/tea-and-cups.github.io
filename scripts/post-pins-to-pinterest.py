@@ -13,8 +13,9 @@ r"""未投稿ピンをPinterestへ実投稿する本体スクリプト（D-0120�
       「- 審査: 公開可 YYYY-MM-DD」行が無いもの）は投稿対象から外し、
       「HELD_UNREVIEWED: 番号一覧」を1行出す。保留は失敗ではないため終了コードは
       変えない。未審査の差し替えピンは投稿されないので、旧ピンも削除されない。
-  (2) 今回の投稿対象が50件を超える場合、1件も投稿せず件数のみ報告して終了する
-      （オーナー承認済みの自主規制値）。
+  (2) 当日すでに投稿した件数＋今回の投稿対象が50件を超える場合、1件も投稿せず件数のみ報告して
+      終了する（オーナー承認済みの自主規制値）。当日の件数は動画ピン（data/video-posted.md）も含める
+      （count_today_posted・D-0302。post-video-pins.py も同じ関数・同じ上限で判定する）。
   (3) 各ピンファイルから ボード名・タイトル・説明文・誘導先URL・画像ファイルパス を
       読み取る。必須項目が1つでも欠ける／空ならスキップし理由を出力する。
   (4) ボード名を data/pinterest-boards.md と突き合わせて board_id を解決する。
@@ -410,18 +411,30 @@ def check_board_group_rules(items):
     return violations
 
 
-def count_today_posted(today_str):
-    """data/pin-posted.md の「投稿日: YYYY-MM-DD N」行から、today_strと一致する
-    件数を数える（T3）。日付が無い既存行（過去の投稿）はカウントしない。"""
-    if not os.path.isfile(LEDGER_PATH):
-        return 0
+def _load_post_video_pins():
+    """post-video-pins.py をモジュールとして読み込む（動画の台帳の読み方はあちらが正本）。
+    module直下で読まず関数の中で読むのは、あちらがこのファイルを読み込むため（循環を避ける）。"""
+    path = os.path.join(SCRIPT_DIR, "post-video-pins.py")
+    spec = importlib.util.spec_from_file_location("post_video_pins", path)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def count_today_posted(today_str, video_path=None):
+    """当日すでに Pinterest へ投稿した件数（T3・D-0302）。画像ピンは data/pin-posted.md の
+    「投稿日: YYYY-MM-DD N」行、動画ピンは data/video-posted.md の作成日が today_str の行を数えて足す。
+    日付が無い既存行（過去の投稿）はカウントしない。post-video-pins.py もこの関数で数える。"""
     count = 0
-    with open(LEDGER_PATH, encoding="utf-8") as f:
-        for line in f:
-            m = POSTED_DATE_LINE_RE.match(line.strip())
-            if m and m.group(1) == today_str:
-                count += 1
-    return count
+    if os.path.isfile(LEDGER_PATH):
+        with open(LEDGER_PATH, encoding="utf-8") as f:
+            for line in f:
+                m = POSTED_DATE_LINE_RE.match(line.strip())
+                if m and m.group(1) == today_str:
+                    count += 1
+    pvp = _load_post_video_pins()
+    rows = pvp.load_ledger(video_path or pvp.LEDGER_PATH)["rows"]
+    return count + sum(1 for row in rows.values() if row["created"] == today_str)
 
 
 def find_duplicate(fields, recent_pins):
