@@ -38,6 +38,9 @@ LOGO_D, LOGO_CX, LOGO_CY = 520, 540, 960       # エンドカードのロゴ（�
 # DOT_RING は、動画1の縁と取っ手の点が 3.0 に届いた最小の太さ（0.3 → 1.1。1.0 では取っ手が 2.99・reports/2026-10-28-8.md）
 DOT_FILL = 0.85
 DOT_RING = 1.1
+# 上下の段（陰 .shade-top・.shade-bot が写真の上に重なる）のカメラは、点と線を別の層（#<cam>-d）にして陰の上に出す。
+# 陰の下に置くと白い中が陰の分だけ灰色に写る（取っ手 175・縁 197。reports/2026-10-28-9.md）。全面（#f-gift）には陰が無いので写真と同じ層のまま
+DOT_LAYER_CAMS = ("t-aft", "b-mug", "b-col")
 RAW_VALUE = re.compile(r"^[-+*/0-9. ()A-Z_]+$")
 
 
@@ -188,6 +191,26 @@ def grade_attr(grade):
     return json.dumps(grade, separators=(",", ":"), ensure_ascii=False).replace('"', "&quot;")
 
 
+def lead_html(e):
+    (x1, y1), (x2, y2), r = e["from"], e["to"], e["r"]
+    # 線（stroke）は円周の内外に半分ずつ出るので、中の半径を変えずに縁取りを外へ足すよう円の半径をずらす
+    return (f'  <svg id="c-{e["lead"]}" class="line lead" viewBox="0 0 1440 2160"><path d="M {x1} {y1} L {x2} {y2}" '
+            f'style="stroke-width:{r / 4:.2f}px" /><circle cx="{x2}" cy="{y2}" r="{r * (DOT_FILL + DOT_RING / 2):.2f}" '
+            f'style="stroke-width:{r * DOT_RING:.2f}px" /></svg>')
+
+
+def dots_html(cam, p):
+    """陰（.shade-top・.shade-bot）の上に出す、点と線だけの層（#<cam>-d）。カメラと同じ動きを cues から受ける（mirror_cams）。"""
+    leads = [lead_html(e) for e in p.get("extras", []) if isinstance(e, dict) and "lead" in e]
+    return indent([f'<div id="{cam}-d" class="cam dots" data-layout-allow-overflow>', *leads, "</div>"], 4)
+
+
+def mirror_cams(js):
+    """カメラ（DOT_LAYER_CAMS）を指す "#t-aft" 形の対象に、点の層（"#t-aft-d"）を足す。同じ tween が両方の層に同じ値を当てる。
+    "#t-aft-img" のように続きのある文字列は変えない。"""
+    return re.sub(r'"#(%s)"' % "|".join(DOT_LAYER_CAMS), r'"#\1, #\1-d"', js)
+
+
 def cam_html(cam, p, grade):
     lines = [f'<div id="{cam}" class="cam" data-layout-allow-overflow>',
              f'  <img data-color-grading="{grade_attr(grade)}" id="{cam}-img" style="--hf-color-grading-blur: {p.get("blur", 0)}; '
@@ -203,12 +226,8 @@ def cam_html(cam, p, grade):
                 m = ", ".join(f"radial-gradient(ellipse {rx}px {ry}px at {x}px {y}px, #000 80%, transparent 100%)" for rx, ry, x, y in e["ellipses"])
                 style = f"-webkit-mask-image:{m}; mask-image:{m}"
             lines.append(f'  <img class="spot" id="spot-{e["spot"]}" src="assets/img/{p["file"]}" alt="" style="{style}">')
-        elif "lead" in e:
-            (x1, y1), (x2, y2), r = e["from"], e["to"], e["r"]
-            # 線（stroke）は円周の内外に半分ずつ出るので、中の半径を変えずに縁取りを外へ足すよう円の半径をずらす
-            lines.append(f'  <svg id="c-{e["lead"]}" class="line lead" viewBox="0 0 1440 2160"><path d="M {x1} {y1} L {x2} {y2}" '
-                         f'style="stroke-width:{r / 4:.2f}px" /><circle cx="{x2}" cy="{y2}" r="{r * (DOT_FILL + DOT_RING / 2):.2f}" '
-                         f'style="stroke-width:{r * DOT_RING:.2f}px" /></svg>')
+        elif "lead" in e and cam not in DOT_LAYER_CAMS:
+            lines.append(lead_html(e))
     lines.append("</div>")
     return indent(lines, 4)
 
@@ -257,8 +276,10 @@ def render_film(data, template=None):
         key = m.group(1)
         if key.startswith("cam:"):
             return rep["cams"][key[4:]]
+        if key.startswith("dots:"):
+            return dots_html(key[5:], data["photos"][key[5:]])
         return str(rep[key])
-    return re.sub(r"\{\{([a-zA-Z0-9_:\-]+)\}\}", sub, s)
+    return mirror_cams(re.sub(r"\{\{([a-zA-Z0-9_:\-]+)\}\}", sub, s))
 
 
 def render_index(data):

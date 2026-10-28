@@ -313,8 +313,15 @@ def cmd_status(args, rt):
         line("qa", f"{p['qa'].name} 合格 {q['passed']}・gate {q['gate']}・mp4 と一致 {q['mp4_sha256'] == cur}")
     else:
         line("qa", f"{p['qa'].name} 無し")
+    if data:
+        from video import rules
+        rows = rules.full_windows(data, rules.simulate(data, dur or float(data["sections"]["H"]) + 5))
+        if rows:
+            print("  全面の写真で主役がはみ出さない範囲（写真の作り直しの依頼文にそのまま使う。rules/video-production.md 3節）")
+            for ln in rules.full_window_lines(rows):
+                print(f"    {ln}")
 
-    pin = [ln for ln in (PIN_LEDGER.read_text(encoding="utf-8").splitlines() if PIN_LEDGER.exists() else [])
+    pin =[ln for ln in (PIN_LEDGER.read_text(encoding="utf-8").splitlines() if PIN_LEDGER.exists() else [])
            if re.match(rf"^動画{n} \|", ln)]
     print(f"  Pinterest 台帳 {pin[0] if pin else '無し'}")
     if BUFFER_LEDGER.exists() and data:

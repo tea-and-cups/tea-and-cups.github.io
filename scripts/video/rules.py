@@ -200,6 +200,60 @@ def subjects(data, traj):
     return rows
 
 
+PHOTO_W, PHOTO_H = 1440, 2160
+RATIO_9_16_H = round(PHOTO_W * 16 / 9)   # 9:16 の写真を幅 1440 に合わせたときの高さ（2560）
+
+
+def full_windows(data, traj):
+    """全面の写真（#f-gift）の qa_subjects の各行について、はみ出し 0px で収まる主役の範囲。カメラの動きが区間内で動くので、
+    区間の全コマで「上端 ≥ 帯の上端・下端 ≤ 帯の下端」になる写真の y（px）の範囲 [lo, hi] を出す（主役がこの中なら全コマではみ出さない）。
+    比率ごとの「写真の上端からの %」:
+      p23     2:3 の写真（1440×2160）。lo/2160〜hi/2160
+      p916    9:16 の写真をそのまま使う場合（幅 1440・高さ 2560・上端を写真の座標 0 に置く）。lo/2560〜hi/2560
+      p916_src 9:16 の写真を今の images の段（中央を 2:3 に切る）で使う場合の、元の写真の上端からの %。上下に切り捨てる分だけずれる
+    幅（hi−lo の px）は比率によらず同じ（カメラと帯が決める）。主役の今の位置（subject_*）と、帯に収めるのに足りない px（shift_up_px）も付ける。"""
+    c = constants(data)
+    out = []
+    for row in data.get("qa_subjects", []):
+        if len(row) < 5:
+            continue
+        name, cam, (x0, y0, x1, y1), t0, t1 = row[:5]
+        if PANEL.get(cam) != "full":
+            continue
+        t0, t1 = ev(t0, c), ev(t1, c)
+        lo, hi = -1e9, 1e9
+        for i in range(int(round(t0 * FPS)), int(round(t1 * FPS)) + 1):
+            x, y, s = cam_at(traj, cam, i)
+            lo, hi = max(lo, (BAND[0] - y) / s), min(hi, (BAND[1] - y) / s)
+        lo, hi = max(lo, 0.0), min(hi, float(PHOTO_H))
+        cut = RATIO_9_16_H - PHOTO_H            # 9:16 を 2:3 に切るとき、上下で捨てる px の合計（400）
+        pct = lambda v, h: round(v / h * 100, 1)
+        out.append({"name": name, "cam": cam, "window": [round(t0, 2), round(t1, 2)],
+                    "lo_px": round(lo, 1), "hi_px": round(hi, 1), "width_px": round(hi - lo, 1),
+                    "p23": [pct(lo, PHOTO_H), pct(hi, PHOTO_H)],
+                    "p916": [pct(lo, RATIO_9_16_H), pct(hi, RATIO_9_16_H)],
+                    "p916_src": [pct(lo + cut / 2, RATIO_9_16_H), pct(hi + cut / 2, RATIO_9_16_H)],
+                    "subject_px": [y0, y1], "subject_p23": [pct(y0, PHOTO_H), pct(y1, PHOTO_H)],
+                    "subject_p916_src": [pct(y0 + cut / 2, RATIO_9_16_H), pct(y1 + cut / 2, RATIO_9_16_H)],
+                    "fits": hi - lo >= y1 - y0,
+                    "shift_up_px": round(max(0.0, y1 - hi), 1), "shift_down_px": round(max(0.0, lo - y0), 1)})
+    return out
+
+
+def full_window_lines(rows):
+    """full_windows の行を、作り直しの依頼文にそのまま貼れる形の文にする。"""
+    lines = []
+    for r in rows:
+        fit = "" if r["fits"] else f"（主役の高さ {r['subject_px'][1] - r['subject_px'][0]}px が範囲の幅より大きい。主役を小さくする）"
+        move = (f"・今は {r['shift_up_px']}px（2:3 で {round(r['shift_up_px'] / PHOTO_H * 100, 1)}%）上へ寄せる必要" if r["shift_up_px"] > 0
+                else f"・今は {r['shift_down_px']}px 下へ寄せる必要" if r["shift_down_px"] > 0 else "・今は範囲の中")
+        lines.append(f"{r['name']}（{r['window'][0]}〜{r['window'][1]}秒）: 主役の上端〜下端を写真の上端から "
+                     f"2:3 なら {r['p23'][0]}〜{r['p23'][1]}%／9:16 をそのまま（幅1440・高さ{RATIO_9_16_H}）なら {r['p916'][0]}〜{r['p916'][1]}%"
+                     f"／9:16 を中央で 2:3 に切る今の段なら元の写真の {r['p916_src'][0]}〜{r['p916_src'][1]}% の中に収める"
+                     f"（幅 {r['width_px']}px）{move}{fit}")
+    return lines
+
+
 # ---- 見出しの字体に字がそろっているか（Zen Maru Gothic は 7,812字。足りない字は別の字体で出てしまう）
 
 def cmap_chars(path):

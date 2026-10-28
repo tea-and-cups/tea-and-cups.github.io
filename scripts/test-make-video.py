@@ -197,6 +197,55 @@ def test_new_gates():
     check("点のコントラスト: 明るい中が暗い背景と離れていれば 3.0 以上", light["contrast_390px"] >= qa.POINT_CONTRAST, str(light))
 
 
+def test_dot_layer_and_windows():
+    """点の層（陰の上・D-0304）と、全面の写真の許容範囲（rules.full_windows）。"""
+    p = VIDEO1 / "video-1.film.json"
+    tl = VIDEO1 / "work" / "timeline.json"
+    if not p.exists() or not tl.exists():
+        print("SKIP 点の層・許容範囲: video-1.film.json か timeline.json が無い")
+        return
+    data = json.loads(p.read_text(encoding="utf-8"))
+    html = film.render_film(data)
+    pos = {k: html.find(k) for k in ('class="shade-bot"', 'id="b-mug-d"', 'id="b-col-d"', 'id="scrim-bot"', 'class="shade-top"', 'id="t-aft-d"',
+                                      'id="c-handle"', 'id="c-saucer"', 'id="c-rim"', 'id="c-box"', 'id="f-gift"', 'id="b-mug"')}
+    check("点の層: 下の段の点は陰（.shade-bot）の後・幕（scrim-bot）の前、上の段の点は陰（.shade-top）の後",
+          min(pos.values()) >= 0 and pos['class="shade-bot"'] < pos['id="b-mug-d"'] < pos['id="b-col-d"'] < pos['id="scrim-bot"']
+          and pos['class="shade-top"'] < pos['id="t-aft-d"'], str(pos))
+    check("点の層: handle は下の段の点の層・saucer と rim は上の段の点の層に入り、写真の層（#b-mug）には無い",
+          pos['id="b-col-d"'] > pos['id="c-handle"'] > pos['id="b-mug-d"'] and pos['id="c-saucer"'] > pos['id="t-aft-d"'] and pos['id="c-rim"'] > pos['id="t-aft-d"']
+          and not (pos['id="b-mug"'] < pos['id="c-handle"'] < pos['class="shade-bot"']))
+    check("点の層: 全面の写真（陰が無い）の点 box は写真と同じ層のまま（-d の層は無い）", 'id="f-gift-d"' not in html and pos['id="c-box"'] > pos['id="f-gift"'])
+    check("点の層: カメラの動き（#t-aft 形の対象）は点の層にも同じ値を当て、#t-aft-img は変えない",
+          'gsap.set("#t-aft, #t-aft-d", ' in html and 'tl.to("#b-mug, #b-mug-d", ' in html and '"#t-aft-img, ' not in html and "#b-mug-d-img" not in html)
+    check("点の層: mirror_cams は #t-aft 形だけに足し、#t-aft-img・#c-handle は変えない",
+          film.mirror_cams('a("#t-aft"); b("#t-aft-img"); c("#c-handle")') == 'a("#t-aft, #t-aft-d"); b("#t-aft-img"); c("#c-handle")')
+    # 許容範囲
+    traj = rules.simulate(data, json.loads(tl.read_text(encoding="utf-8"))["duration"])
+    rows = rules.full_windows(data, traj)
+    by = {r["name"][:4]: r for r in rows}
+    check("許容範囲: 全面の行は動画1で B・G の2行", sorted(by) == ["参考 B", "参考 G"], str(sorted(by)))
+    b, g = by.get("参考 B"), by.get("参考 G")
+    if b and g:
+        check("許容範囲: 幅（px）は比率によらず同じで、2:3 の %・9:16 の % はその px を高さで割った値",
+              abs(b["width_px"] - (b["p23"][1] - b["p23"][0]) / 100 * rules.PHOTO_H) < 5
+              and abs(b["width_px"] - (b["p916"][1] - b["p916"][0]) / 100 * rules.RATIO_9_16_H) < 5
+              and abs(g["p916_src"][0] - g["p916"][0] - 200 / rules.RATIO_9_16_H * 100) < 0.2, f"B {b['p23']} {b['p916']} {b['p916_src']}")
+        check("許容範囲: 動画1 の B は 77px・G は 144px 上へ寄せれば収まる（下に出ている量）", 76 <= b["shift_up_px"] <= 79 and 143 <= g["shift_up_px"] <= 146,
+              f"B {b['shift_up_px']}・G {g['shift_up_px']}")
+        # 範囲どおりに主役を動かすと、gate のはみ出し（rules.subjects）が 0 になる
+        def move_up(r):
+            if len(r) < 5 or r[1] != "#f-gift":
+                return r
+            dy = by[r[0][:4]]["shift_up_px"] + 0.5
+            x0, y0, x1, y1 = r[2]
+            return [r[0], r[1], [x0, y0 - dy, x1, y1 - dy], *r[3:]]
+        moved = {**data, "qa_subjects": [move_up(r) for r in data["qa_subjects"]]}
+        over = [x["band_worst"] for x in rules.subjects(moved, traj) if x["cam"] == "#f-gift"]
+        check("許容範囲: 範囲の分だけ主役を上へ動かすと、全面の行のはみ出しが 0px になる", over and min(over) >= 0, str(over))
+    lines = rules.full_window_lines(rows)
+    check("許容範囲: 依頼文の行に 2:3・9:16 の % が入る", len(lines) == 2 and all("2:3 なら" in ln and "9:16 をそのまま" in ln for ln in lines))
+
+
 def main():
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -206,6 +255,7 @@ def main():
     test_template()
     test_rules()
     test_new_gates()
+    test_dot_layer_and_windows()
     print(f"{sum(results)}/{len(results)} passed")
     return 0 if all(results) else 1
 
