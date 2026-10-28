@@ -9,6 +9,12 @@ PROJECT_ROOT = os.path.dirname(os.path.dirname(SCRIPTS_DIR))
 CONFIG = os.path.join(PROJECT_ROOT, "data", "video-runtime.json")
 CHECKER = os.path.join(SCRIPTS_DIR, "check-video-runtime.py")
 GATEWAY = os.path.join(SCRIPTS_DIR, "codex-gateway.py")
+# HyperFrames が画面のコマ・素材を外部の解析（Gemini・OpenRouter・Vertex など）へ送る鍵。env("hyperframes") が外す（D-0308）。
+# snapshot の --describe は GEMINI_API_KEY（か GOOGLE_API_KEY）があると既定で動く。鍵が無ければ送らない（CLI が「not set, skipping」で飛ばす）。
+# CLI が読む鍵の名前がここに無いものに増えたら、check-video-runtime.py が RUNTIME_MISMATCH を出す（HF_EXTERNAL_NAME の形で dist を調べる）
+HF_EXTERNAL_ENV = ("GEMINI_API_KEY", "GOOGLE_API_KEY", "OPENROUTER_API_KEY", "ELEVENLABS_API_KEY", "FIGMA_TOKEN",
+                   "HYPERFRAMES_VERTEX_PROJECT_ID", "HYPERFRAMES_VERTEX_SERVICE_ACCOUNT")
+HF_EXTERNAL_NAME = r"_API_KEY$|_TOKEN$|^HYPERFRAMES_VERTEX_(?:PROJECT_ID|SERVICE_ACCOUNT)$"
 
 
 def check():
@@ -62,8 +68,12 @@ class Runtime:
         return self.path(self.cfg["tts"]["runner"]["path"])
 
     def env(self, section):
-        """os.environ に json の env（{root} を置き換えたもの）を重ねる。section は tts か hyperframes。"""
+        """os.environ に json の env（{root} を置き換えたもの）を重ねる。section は tts か hyperframes。
+        hyperframes は外部の解析の鍵（HF_EXTERNAL_ENV）を外す（json に書いてあっても外す）。"""
         env = dict(os.environ)
         for k, v in self.cfg[section]["env"].items():
             env[k] = v.replace("{root}", self.root)
+        if section == "hyperframes":
+            for k in HF_EXTERNAL_ENV:
+                env.pop(k, None)
         return env

@@ -14,7 +14,9 @@ r"""動画の実行環境（声・書き出し・ffmpeg・素材）が、data/vi
   各パスの存在 / 小さいファイル（SMALL_BYTES 以下）の sha256 / 大きいファイル（重み・exe）の bytes /
   uv・python・ffmpeg・ffprobe の版（--version の出力）/ hyperframes の版（package.json）/ node の版の下限 /
   Irodori-TTS の commit（.git を読む）/ .venv の home・版・torch と transformers の dist-info /
-  env の必須値（通信を止める項目と、ブラウザ・ffprobe・ffmpeg のパスが json の実物と同じか）
+  env の必須値（通信を止める項目と、ブラウザ・ffprobe・ffmpeg のパスが json の実物と同じか）/
+  外部の解析の遮断（json の env に鍵が無い・CLI の dist が読む鍵の名前が video/runtime.py の HF_EXTERNAL_ENV にすべてある・
+  os.environ に鍵があっても runtime.env("hyperframes") から外れる。D-0308）
 
 使い方:
   python site/scripts/check-video-runtime.py
@@ -38,7 +40,10 @@ import shutil
 import subprocess
 import sys
 
-PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+if SCRIPT_DIR not in sys.path:
+    sys.path.insert(0, SCRIPT_DIR)
+PROJECT_ROOT = os.path.dirname(os.path.dirname(SCRIPT_DIR))
 DEFAULT_CONFIG = os.path.join(PROJECT_ROOT, "data", "video-runtime.json")
 SMALL_BYTES = 64 * 1024 * 1024  # これ以下は毎回 sha256、超えるものは bytes のみ（--verify-full で sha256 も）
 REQUIRED_ENV = {
@@ -220,6 +225,36 @@ def check_hyperframes(c, h):
         c.same("hyperframes.env." + k, v, env.get(k, "missing"))
     c.same("hyperframes.env.HYPERFRAMES_BROWSER_PATH", c.path(h["browser"]["path"]).replace("\\", "/"),
            resolve_env(env.get("HYPERFRAMES_BROWSER_PATH", "missing"), c.root))
+    check_external(c, h)
+
+
+def check_external(c, h):
+    """外部の解析の遮断（D-0308）: json の env が外部の解析の鍵を持たない・CLI が読む鍵の名前がすべて HF_EXTERNAL_ENV にある・
+    os.environ に鍵があっても make-video が渡す env（runtime.env("hyperframes")）から外れる"""
+    from video import runtime
+    set_keys = sorted(k for k in h["env"] if k in runtime.HF_EXTERNAL_ENV)
+    c.same("hyperframes.env.external_keys", "none", ",".join(set_keys) or "none")
+    dist = os.path.join(os.path.dirname(os.path.dirname(c.path(h["cli"]["path"]))), "dist")
+    if c.exists("hyperframes.dist", os.path.relpath(dist, c.root)):
+        found = set()
+        for p in glob.glob(os.path.join(dist, "*.js")):
+            text = open(p, encoding="utf-8", errors="replace").read()
+            found.update(a or b for a, b in re.findall(r'process\.env(?:\.([A-Z0-9_]+)|\["([A-Z0-9_]+)"\])', text))
+        unknown = sorted(k for k in found if re.search(runtime.HF_EXTERNAL_NAME, k) and k not in runtime.HF_EXTERNAL_ENV)
+        c.same("hyperframes.external_keys_known", "none", ",".join(unknown) or "none")
+    saved = {k: os.environ.get(k) for k in runtime.HF_EXTERNAL_ENV}
+    try:
+        os.environ.update({k: "check-video-runtime" for k in runtime.HF_EXTERNAL_ENV})
+        rt = runtime.Runtime.__new__(runtime.Runtime)
+        rt.cfg, rt.root = {"hyperframes": h}, c.root
+        left = sorted(k for k in rt.env("hyperframes") if k.upper() in runtime.HF_EXTERNAL_ENV)
+    finally:
+        for k, v in saved.items():
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
+    c.same("hyperframes.env.external_removed", "none", ",".join(left) or "none")
 
 
 def check_ffmpeg(c, f):

@@ -10,7 +10,9 @@ data/pin-posted.md とは別。動画の番号 N は画像ピンの連番に入�
   (2) 動画md を読む（動画ファイル・誘導先URL・ボード・ai_disclosures（任意）・カバー・タイトル・説明文・代替テキスト）。
       誘導先URLの utm_content が video<N> であること、文字数（タイトル100・説明文800・代替テキスト500・
       URL2048）を確かめる。
-  (3) 審査行「- 審査: 公開可 YYYY-MM-DD sha256:<64桁>」が無ければ止める（判定は pin_review.REVIEW_LINE_RE）。
+  (3) 保留・見送り（check_hold・D-0308）: 動画md に「- 保留:」の行がある、または制作側の output/videos/video-N/video-N.build.json の
+      mode が test（投稿しないテスト）・dropped（見送り）なら止める。引数なしの一括でも1本ずつここで止まる。
+      審査行「- 審査: 公開可 YYYY-MM-DD sha256:<64桁>」が無ければ止める（判定は pin_review.REVIEW_LINE_RE）。
       審査行の sha256 と現物の sha256 が違えば止める（審査後の差し替えを投稿しない）。
       動画 QA_GATE_START（2）以降は、続けて機械QA を見る（check_qa・D-0302）: 「- 機械QA: <qa.json>」行の
       qa.json（制作側 output/videos/video-N/video-N.qa.json）が在り、gate が全項目合格（passed があればそれも）で、
@@ -85,6 +87,7 @@ ALT_RE = re.compile(r"^代替テキスト:\s*(.+)$")
 DESC_HEAD_RE = re.compile(r"^説明文:\s*(.*)$")
 REVIEW_SHA_RE = re.compile(r"^-\s*審査:\s*公開可\s+(\d{4}-\d{2}-\d{2})\s+sha256:([0-9a-f]{64})\s*$")
 QA_LINE_RE = re.compile(r"^-\s*機械QA:\s*(.+)$")
+HOLD_RE = re.compile(r"^-\s*保留:")   # 投稿しないテストの保留の行（make-video.py の HOLD_RE と同じ形・D-0308）
 QA_GATE_START = 2   # 機械QA・X・Threads審査行の sha256 を必須にする最初の動画番号（動画1は対象外・D-0302）
 TEXT_OVERLAP_START = 3     # 投稿文の重なりを見る最初の動画番号（動画1・2は対象外・D-0306）
 TEXT_OVERLAP_MAX_RUN = 15  # 同じ記事の画像ピンと連続して共有してよい最大の字数（比較は句読点・記号・ハッシュタグ・URL を除く）。
@@ -247,8 +250,32 @@ def file_sha256(path):
     return h.hexdigest()
 
 
+def check_hold(fields):
+    """投稿しないテストの保留と見送り（D-0308）: 動画md に保留の行がある、または制作側の build.json の mode が
+    test（保留中のテスト）・dropped（見送り）なら止める。外すのは make-video.py release（保留の行と mode をそろえて外す）。"""
+    held = [l.strip() for l in fields["md_text"].splitlines() if HOLD_RE.match(l.strip())]
+    if held:
+        raise _Stop("保留の行があります（%s）。投稿は Sho の一言のあと make-video.py release video-%d で外してから"
+                    % (held[0], fields["n"]))
+    path = os.path.join(VIDEOS_DIR, "video-%d" % fields["n"], "video-%d.build.json" % fields["n"])
+    try:
+        with open(path, encoding="utf-8") as f:
+            mode = json.load(f).get("mode")
+    except FileNotFoundError:
+        return ["保留: なし（build.json なし）"]
+    except (OSError, ValueError) as e:
+        raise _Stop("制作側の build.json を読めません: %s（%s）" % (path, e))
+    if mode == "test":
+        raise _Stop("動画%d は保留中のテストです（video-%d.build.json の mode=test）。保留の行を手で消しても投稿しない。"
+                    "make-video.py release video-%d で外してから" % (fields["n"], fields["n"], fields["n"]))
+    if mode == "dropped":
+        raise _Stop("動画%d は見送りです（video-%d.build.json の mode=dropped）" % (fields["n"], fields["n"]))
+    return ["保留: なし（mode=%s）" % (mode or "本番")]
+
+
 def check_review(fields):
-    """審査行と sha256 を確かめる。"""
+    """保留・見送りと、審査行と sha256 を確かめる。"""
+    hold = check_hold(fields)
     if not os.path.isfile(fields["video_path"]):
         raise _Stop("動画ファイルが見つかりません: %s" % fields["video_rel"])
     if not pin_review.REVIEW_LINE_RE.search(fields["md_text"]):
@@ -264,7 +291,7 @@ def check_review(fields):
                     % (last.group(2), actual))
     fields["review_date"] = last.group(1)
     fields["sha256"] = actual
-    lines = ["審査行: 公開可 %s" % last.group(1), "sha256: 審査行と現物が一致（%s）" % actual]
+    lines = hold + ["審査行: 公開可 %s" % last.group(1), "sha256: 審査行と現物が一致（%s）" % actual]
     if fields["n"] >= QA_GATE_START:
         lines += check_qa(fields)
     if fields["n"] >= TEXT_OVERLAP_START:

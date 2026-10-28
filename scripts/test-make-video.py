@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-r"""make-video.py の部品（site/scripts/video/）のテスト。読むだけ（一時フォルダにも書かない）。
+r"""make-video.py の部品（site/scripts/video/）のテスト。本物のファイルは読むだけ（9・10 は一時フォルダに書き、終わりに消す）。
 
 1. cut_tail の線（2026-10-28 (b)・Sho が聞いて選んだ線B）: ①は −9dB 以下の塊だけ削る。
    output/videos/_listen-2026-10-28/tts/raw の B-1・A-2・B-2・新S3 の生の take で、語（「手入れ」「好み」「このみ」「コノミ」）を食べず、
@@ -15,6 +15,12 @@ r"""make-video.py の部品（site/scripts/video/）のテスト。読むだけ�
 8. 部品の形（D-0307）: 動画2を部品の形で書き直した video-2.parts.json から作った film.json が、qa の表と注釈を除いて今の video-2.film.json と同じで、
    film.html が今の composition の film.html とバイト単位で同じ。部品から作った qa の3つの表が手書きの表と同じ（違いは名前・句の頭でない声の秒・
    区間の 0.1秒以内・点を測る秒の 0.15秒以内だけで、gate の結果は同じ）。時刻の書き方・割り方とつなぎの検査・動画1・2の film.json を書き換えない守り。
+9. 組み立ての指紋と似すぎ・投稿しないテスト（D-0308）: 動画1 対 動画2 は線以上、部品を入れ替えたダミーは線の下。似すぎは check-script・film の段・
+   film の操作・build の最初（どの段も走らない）で終了コード1。比べる相手は投稿済み＋保留中のテストの直近3本で、見送りは除く。
+   next --create --test は build.json の mode=test と動画md の保留の行を作り、drop で slug が候補に戻る（番号は使い切り）。
+   release は季節の題材の【注意】で止まり、--confirmed で保留の行を消して mode=released。output/videos/ と台帳は一時フォルダの写し
+10. 画像生成の上限（D-0308）: 1本6回・直近7日の動画の写真12回・日次の画像生成から5時間。基準日を差し替えたダミーの記録で、超えると1枚も作らずに止まる
+11. 外部送信の遮断（D-0308）: os.environ に鍵があっても HyperFrames へ渡す env から外れ、snapshot は --describe false で呼ぶ
 
 使い方: python site/scripts/test-make-video.py
 終了コード: 全件合格で0、1件でも不合格で1
@@ -494,9 +500,273 @@ def test_parts():
           parts.PARTS_FROM == 3 and rec == {"source": "film.json"} and rc == 1 and (VIDEO2 / "video-2.film.json").read_bytes() == before)
 
 
+def load_mv():
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("make_video", os.path.join(SCRIPT_DIR, "make-video.py"))
+    mv = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mv)
+    return mv
+
+
+def quiet(fn, *a, **k):
+    """標準出力を受けて (戻り値か SystemExit の文, 出力) を返す"""
+    import contextlib
+    import io
+    buf = io.StringIO()
+    try:
+        with contextlib.redirect_stdout(buf):
+            res = fn(*a, **k)
+    except SystemExit as e:
+        res = f"SystemExit: {e}"
+    return res, buf.getvalue()
+
+
+def dummy_defn(defn):
+    """部品を入れ替えたダミーの組み立て（動画2と同じ冒頭の部品・同じ問いの形・同じエンドカード。ほかは全面の場面と別のつなぎ・章の見せ方）"""
+    a, b = json.loads(json.dumps(defn["parts"][0])), json.loads(json.dumps(defn["parts"][1]))
+    pt = {"point": "x", "cam": "#f-gift"}
+    return {**defn, "parts": [a, b,
+                              {"scene": "full", "beats": [{"chapter": 1}, pt, {"cam": "#f-gift", "to": {"scale": 1.2}, "ease": "power2.out"}]},
+                              {"scene": "full", "beats": [{"chapter": 2}, pt]},
+                              {"scene": "full", "beats": [{"chapter": 3}, {"answer": {}}]},
+                              {"scene": "endcard", "beats": []}]}
+
+
+def test_fingerprint_and_test_mode():
+    """組み立ての指紋と似すぎ・投稿しないテスト・見送り・保留を外す（D-0308）。output/videos/ は一時フォルダに差し替え、本物の動画1・2は読むだけ。"""
+    import argparse
+    import datetime
+    import shutil
+    import tempfile
+    from video import parts
+    if not (VIDEO2 / "video-2.parts.json").exists() or not (VIDEO1 / "video-1.film.json").exists():
+        print("SKIP 指紋: 動画1・2のファイルが無い")
+        return
+    mv = load_mv()
+    tmp = Path(tempfile.mkdtemp(prefix="test-make-video-"))
+    saved = mv.VIDEOS, mv.PIN_LEDGER, mv.advance_pin, mv.script_gate
+    try:
+        mv.VIDEOS, mv.PIN_LEDGER = tmp / "videos", tmp / "video-posted.md"
+        mv.VIDEOS.mkdir()
+        shutil.copy2(ROOT / "data" / "video-posted.md", mv.PIN_LEDGER)   # 投稿済みは動画1・2
+        for n, names in ((1, ("video-1.film.json", "script.json", "video-1.build.json")),
+                         (2, ("video-2.parts.json", "video-2.film.json", "script.json", "video-2.build.json", "work/timeline.json"))):
+            for name in names:
+                (mv.VIDEOS / f"video-{n}" / name).parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(ROOT / "output" / "videos" / f"video-{n}" / name, mv.VIDEOS / f"video-{n}" / name)
+        defn2 = json.loads((VIDEO2 / "video-2.parts.json").read_text(encoding="utf-8"))
+        sc2 = json.loads((VIDEO2 / "script.json").read_text(encoding="utf-8"))
+
+        # 1. 指紋と似すぎ（動画1 対 動画2）
+        fp1, src1 = mv.fingerprint_of(mv.VIDEOS / "video-1", prefer_parts=False)
+        fp2, src2 = mv.fingerprint_of(mv.VIDEOS / "video-2", prefer_parts=False)
+        s12, rows12 = parts.similarity(fp1, fp2)
+        check("指紋: 動画1は動画2の parts.json を借り（film.json の区間・つなぎ・章の数が一致）、動画2は parts.json から作る",
+              fp1 is not None and "video-2.parts.json の並び" in src1 and src2 == "video-2.parts.json", (src1, src2))
+        check(f"似すぎ: 動画1 対 動画2 は線 {parts.SIMILAR_LINE} 以上（{s12}）", s12 >= parts.SIMILAR_LINE, rows12)
+        dfp = parts.fingerprint(dummy_defn(defn2), sc2)
+        sd, rowsd = parts.similarity(dfp, fp2)
+        check(f"似すぎ: 部品を入れ替えたダミーは線の下で通る（動画2と {sd}・冒頭の部品と問いの形・比べ方は同じまま）",
+              sd < parts.SIMILAR_LINE and dfp["opening"] == fp2["opening"] and dfp["compare"] == fp2["compare"], rowsd)
+        print(f"NOTE 指紋 動画2: {json.dumps(fp2, ensure_ascii=False)}")
+        print(f"NOTE 似すぎの点数 動画1 対 動画2 {s12}・ダミー 対 動画2 {sd}（線 {parts.SIMILAR_LINE}）")
+        for ln in parts.similarity_lines(sd, rowsd):
+            print(f"NOTE ダミー {ln.strip()}")
+        check("指紋: 冒頭の問いの形（誤解・数字・選び方・予告）", [parts.hook_form(q) for q in
+              ("実は熱湯はNG？", "何分蒸らす？", "お礼の紅茶、何で選ぶ？", "ミルクティーのコツ、知ってる？", "おいしい？")]
+              == ["誤解", "数字", "選び方", "予告", "その他の問い"])
+
+        # 2. 似すぎで止まる所: check-script・film の段・build の最初（どの段も書き出しの前）・film の操作
+        v3 = mv.VIDEOS / "video-3"
+        (v3 / "work").mkdir(parents=True)
+        shutil.copy2(VIDEO2 / "video-2.parts.json", v3 / "video-3.parts.json")
+        shutil.copy2(VIDEO2 / "work" / "timeline.json", v3 / "work" / "timeline.json")
+        (v3 / "script.json").write_text(json.dumps(sc2, ensure_ascii=False), encoding="utf-8")
+        (v3 / "video-3.build.json").write_text(json.dumps({"created_at": "2026-10-28T10:00:00", "runs": []}), encoding="utf-8")
+        ng, info = mv.similarity_gate(v3)
+        check("似すぎ: 動画2と同じ組み立ての動画3は、動画2・動画1の両方に似すぎ（重なった項目を出す）",
+              len(ng) == 2 and all("組み立てが似すぎ" in m and "部品の並び 近さ 1.00" in m for m in ng), ng)
+        rc, out = quiet(mv.cmd_check_script, argparse.Namespace(video="video-3"))
+        check("似すぎ: check-script が終了コード1（NG に「組み立てが似すぎ」）", rc == 1 and "NG 組み立てが似すぎ" in out, out[-400:])
+        rc, out = quiet(mv.stage_film, v3, None, None)
+        check("似すぎ: film の段が止まり（SystemExit）、film.json を書かない", "似すぎ" in str(rc) and not (v3 / "video-3.film.json").exists(), rc)
+        rc, out = quiet(mv.cmd_film, argparse.Namespace(video="video-3", out=None))
+        check("似すぎ: film の操作も終了コード1で film.json を書かない", rc == 1 and not (v3 / "video-3.film.json").exists(), out[-200:])
+        mv.script_gate = lambda *a, **k: []   # 台本の検査（D-0306）は別のテスト。ここは似すぎだけを見る
+        for only in (None, "render"):
+            rc, out = quiet(mv.cmd_build, argparse.Namespace(video="video-3", only=only, from_=None, redo=None), None)
+            runs = json.loads((v3 / "video-3.build.json").read_text(encoding="utf-8"))["runs"]
+            check(f"似すぎ: build（{only or '全段'}）は最初に終了コード1で止まり、どの段も走らない（書き出しの前）",
+                  rc == 1 and "STOP similar" in out and runs == [], out[-300:])
+        mv.script_gate = saved[3]
+        v4 = mv.VIDEOS / "video-4"
+        v4.mkdir()
+        (v4 / "video-4.parts.json").write_text(json.dumps(dummy_defn(defn2), ensure_ascii=False), encoding="utf-8")
+        (v4 / "script.json").write_text(json.dumps(sc2, ensure_ascii=False), encoding="utf-8")
+        ng4, info4 = mv.similarity_gate(v4)
+        check("似すぎ: 部品を入れ替えたダミー（動画4）は動画2・動画1と比べて通る", ng4 == [] and sum("似すぎではない" in x for x in info4) == 2, info4)
+
+        # 3. 比べる相手: 投稿済み＋保留中のテスト（見送りは除く）の直近3本
+        check("比べる相手: 投稿済みだけなら動画2・1（制作中の本番の動画3は入らない）", mv.similar_targets(4) == [2, 1], mv.similar_targets(4))
+        mv.set_mode(v3, "test")
+        check("比べる相手: 保留中のテストの動画3を入れる", mv.similar_targets(4) == [3, 2, 1], mv.similar_targets(4))
+        ng4b, _ = mv.similarity_gate(v4)
+        mv.set_mode(v3, "dropped")
+        check("比べる相手: 見送りの動画3は外す", mv.similar_targets(4) == [2, 1], mv.similar_targets(4))
+        check("比べる相手: ダミーは保留中のテスト（動画2と同じ組み立て）とも似すぎにならない", ng4b == [], ng4b)
+        shutil.rmtree(v3)
+        shutil.rmtree(v4)
+
+        # 4. 投稿しないテスト（next --create --test）・見送り（drop）・保留を外す（release）
+        adv = mv.advance_pin()
+        posted = mv.posted_numbers()
+        slug = next(s for s in sorted(adv.published_posts()) if s not in posted.values())
+        rc, out = quiet(mv.cmd_next, argparse.Namespace(create=slug, test=True, date=None))
+        v = mv.VIDEOS / "video-3"
+        md = mv.VIDEOS / slug / "video-3.md"
+        log = json.loads((v / "video-3.build.json").read_text(encoding="utf-8")) if v.exists() else {}
+        check("テスト: next --create --test で動画3（次の番号）を作り、build.json に mode=test・動画md に保留の行",
+              rc == 0 and log.get("mode") == "test" and md.exists() and mv.HOLD_LINE in md.read_text(encoding="utf-8").splitlines(), out)
+        check("テスト: 保留中のテストは制作中に数える（題材の候補から外れ、--create は拒否）",
+              slug in mv.wip_slugs_of(mv.wip_entries(posted), posted)
+              and quiet(mv.cmd_next, argparse.Namespace(create=slug, test=False, date=None))[0] == 1)
+        rc, out = quiet(mv.cmd_drop, argparse.Namespace(video="video-3", reason="テストの見送り"))
+        check("見送り: drop で mode=dropped・slug は候補に戻る（制作中に数えない）",
+              rc == 0 and mv.mode_of(v) == "dropped" and slug not in mv.wip_slugs_of(mv.wip_entries(posted), posted), out)
+        rc, out = quiet(mv.cmd_next, argparse.Namespace(create=slug, test=True, date=None))
+        check("見送り: 番号は使い切り（同じ slug の次のテストは動画4・動画3のフォルダは残る）",
+              rc == 0 and (mv.VIDEOS / "video-4").exists() and v.exists() and (mv.VIDEOS / slug / "video-4.md").exists(), out)
+        rc, out = quiet(mv.cmd_drop, argparse.Namespace(video="video-2", reason=None))
+        check("見送り: 投稿済みの動画は拒否", rc == 1 and mv.mode_of(mv.VIDEOS / "video-2") is None, out)
+
+        real = adv
+        cal = {slug: {"peaks": [(12, 25)]}}
+
+        def fake_adv(today):
+            return argparse.Namespace(today_jst=lambda: today, load_calendar=lambda: (cal, []), next_peak=real.next_peak,
+                                      WINDOW_MIN_DAYS=real.WINDOW_MIN_DAYS, WINDOW_MAX_DAYS=real.WINDOW_MAX_DAYS)
+        c = datetime.date(2026, 10, 28)
+        check("保留を外す前の注意: 山を過ぎた・窓の外・窓の中・山の無い題材",
+              "過ぎている" in "".join(mv.season_notices(slug, c, datetime.date(2026, 12, 26), real, cal))
+              and "窓" in "".join(mv.season_notices(slug, c, datetime.date(2026, 12, 10), real, cal))
+              and mv.season_notices(slug, c, datetime.date(2026, 11, 15), real, cal) == []
+              and mv.season_notices("no-peak", c, datetime.date(2026, 12, 26), real, {"no-peak": {"peaks": []}}) == [])
+        v4, md4 = mv.VIDEOS / "video-4", mv.VIDEOS / slug / "video-4.md"
+        mv.advance_pin = lambda: fake_adv(datetime.date(2026, 12, 26))
+        rc, out = quiet(mv.cmd_release, argparse.Namespace(video="video-4", confirmed=False))
+        check("保留を外す: 山を過ぎた季節の題材は【注意】を出して外さない（終了コード1・行も mode もそのまま）",
+              rc == 1 and "【注意】" in out and mv.mode_of(v4) == "test" and mv.HOLD_LINE in md4.read_text(encoding="utf-8"), out)
+        rc, out = quiet(mv.cmd_release, argparse.Namespace(video="video-4", confirmed=True))
+        check("保留を外す: --confirmed で保留の行を消し mode=released（注意は build.json に残す）",
+              rc == 0 and mv.mode_of(v4) == "released" and mv.HOLD_LINE not in md4.read_text(encoding="utf-8")
+              and bool(json.loads((v4 / "video-4.build.json").read_text(encoding="utf-8"))["mode_log"][-1].get("notices")), out)
+        rc, out = quiet(mv.cmd_release, argparse.Namespace(video="video-4", confirmed=False))
+        check("保留を外す: 保留中のテストでない動画は拒否", rc == 1, out)
+    finally:
+        mv.VIDEOS, mv.PIN_LEDGER, mv.advance_pin, mv.script_gate = saved
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
+def test_image_budget():
+    """画像生成の上限（D-0308）: 1本・直近7日の動画の写真・日次の画像生成からの時間。基準日（now）を差し替えたダミーの記録で見る。"""
+    import shutil
+    import tempfile
+    from datetime import datetime, timedelta
+    from video import images
+    tmp = Path(tempfile.mkdtemp(prefix="test-image-budget-"))
+    base = datetime(2026, 11, 10, 12, 0)
+
+    def video(name, gens=(), legacy=None):
+        d = tmp / "videos" / name
+        d.mkdir(parents=True)
+        log = {"runs": [], "image_gens": [{"at": t.isoformat(timespec="seconds"), "name": "img"} for t in gens]}
+        if legacy:
+            log["runs"].append(legacy)
+        (d / f"{name}.build.json").write_text(json.dumps(log), encoding="utf-8")
+        return d
+
+    def gw(*times):
+        for t in times:
+            (tmp / "gw" / f"{t:%Y%m%d-%H%M%S}-image-gen.jsonl").write_text("{}", encoding="utf-8")
+    try:
+        (tmp / "gw").mkdir()
+        check("上限の値: 1本6回・7日12回・日次から5時間", (images.VIDEO_GEN_MAX, images.WEEK_GEN_MAX, images.WEEK_DAYS, images.DAILY_GAP_HOURS) == (6, 12, 7, 5))
+        v7 = video("video-7", [base - timedelta(days=1)] * 5)
+        b = lambda d, want, now=base: images.budget(d, tmp / "videos", want, now, tmp / "gw")   # noqa: E731
+        check("1本: 5回作った動画は、あと1回なら作れる", b(v7, 1)[0] is True, b(v7, 1)[1])
+        check("1本: 5回作った動画で2回作ろうとすると止まる（6回を超える）", b(v7, 2)[0] is False and "1本の上限" in "".join(b(v7, 2)[1]), b(v7, 2)[1])
+        video("video-8", legacy={"stage": "images", "at": (base - timedelta(days=2)).isoformat(), "generated": ["a", "b", "c", "d", "e", "f"],
+                                 "stage_seconds": 300})
+        video("video-9", [base - timedelta(days=6)])
+        res = b(v7, 1)
+        check("7日: 動画7の5回＋動画8の6回（この仕組みの前の記録の数え方）＋動画9の1回＝12回に1回足すと止まる",
+              res[0] is False and "直近7日の動画の写真の上限" in "".join(res[1]) and "12+1/12" in res[1][0], res[1])
+        res = b(v7, 1, base + timedelta(days=1, hours=1))
+        check("7日: 基準日を1日あとに差し替えると、動画9の1回が7日の外に出て作れる（11+1）", res[0] is True and "11+1/12" in res[1][0], res[1])
+        gw(base - timedelta(hours=3))
+        res = b(v7, 1, base + timedelta(days=1, hours=1))
+        check("日次: 5時間より前の日次の画像生成は数えない（基準日の差し替えで28時間前）", res[0] is True, res[1])
+        res = b(v7, 1)
+        check("日次: 3時間前に日次の画像生成があれば止まる", res[0] is False and "5時間たっていない" in "".join(res[1]), res[1])
+        gw(base - timedelta(days=1) + timedelta(seconds=40))
+        res = b(v7, 0, base - timedelta(days=1) + timedelta(hours=1))
+        check("日次: 動画の写真の記録の時刻の直後の gateway のログは、動画の生成として日次に数えない", "日次の画像生成 0回" in res[1][0], res[1])
+        calls = []
+        saved = images.subprocess.run
+        images.subprocess.run = lambda *a, **k: calls.append(a) or (_ for _ in ()).throw(AssertionError("gateway を呼んだ"))
+        try:
+            saved_logs = images.GATEWAY_LOGS
+            images.GATEWAY_LOGS = tmp / "gw"
+            before = (v7 / "video-7.build.json").read_text(encoding="utf-8")
+            res, out = quiet(images.generate, v7, ["n1", "n2"], "p", v7 / "video-7.build.json", tmp / "videos", base)
+        finally:
+            images.subprocess.run, images.GATEWAY_LOGS = saved, saved_logs
+        check("images の段: 上限を超えるなら1枚も作らずに止まる（gateway を呼ばない・記録も足さない）",
+              "画像生成の上限で止めた" in str(res) and not calls and (v7 / "video-7.build.json").read_text(encoding="utf-8") == before, (res, out))
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
+def test_external():
+    """外部送信の遮断（D-0308）: HyperFrames へ渡す env から外部の解析の鍵を外し、snapshot は --describe false も付ける。"""
+    from video import render, runtime
+    saved = {k: os.environ.get(k) for k in runtime.HF_EXTERNAL_ENV}
+    try:
+        os.environ.update({k: "dummy" for k in runtime.HF_EXTERNAL_ENV})
+        rt = runtime.Runtime()
+        env = rt.env("hyperframes")
+        check("外部送信: os.environ に鍵があっても env('hyperframes') には残らない（GEMINI_API_KEY ほか）",
+              not any(k in env for k in runtime.HF_EXTERNAL_ENV) and env.get("HYPERFRAMES_NO_TELEMETRY") == "1")
+        seen = []
+        saved_run = render.subprocess.run
+        render.subprocess.run = lambda args, **k: seen.append((args, k["env"])) or argparse_ns(returncode=0, stdout="", stderr="")
+        try:
+            render.snapshot(Path("comp"), rt, "1,2", Path("out"))
+        finally:
+            render.subprocess.run = saved_run
+        args, senv = seen[0]
+        check("外部送信: snapshot は --describe false・--no-end を付け、鍵を外した env で呼ぶ",
+              args[2] == "snapshot" and args[args.index("--describe") + 1] == "false" and "--no-end" in args
+              and not any(k in senv for k in runtime.HF_EXTERNAL_ENV), args)
+    finally:
+        for k, v in saved.items():
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
+
+
+def argparse_ns(**k):
+    import argparse
+    return argparse.Namespace(**k)
+
+
 def main():
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    test_fingerprint_and_test_mode()
+    test_image_budget()
+    test_external()
     test_parts()
     test_script_checks()
     test_next_candidates()

@@ -1,5 +1,6 @@
 """書き出しの段（render）と仕上げの段（finalize）。試作の hf.py の render を移したもの。
-render: 実行環境の HyperFrames CLI を node で呼ぶ（--workers 1 --player-ready-timeout 180000）。env は data/video-runtime.json の hyperframes.env。
+render: 実行環境の HyperFrames CLI を node で呼ぶ（--workers 1 --player-ready-timeout 180000）。env は data/video-runtime.json の hyperframes.env
+  （runtime.env が外部の解析の鍵を外したもの・D-0308。snapshot も同じ）。
   lint の中身を見られるよう --lint-verbose を付け、CLI の出力は work/render.log に残す。所要秒と履歴（home の history）の増加量を返す。
 finalize: faststart（moov を先頭へ）だけを行う。映像と音は写すだけ（-c copy）。音の載せ直しとメタデータの書き込みはしない。
   写したあと、moov が mdat より前にあること・映像と音のパケットが元と同じこと（streamhash）を確かめる。
@@ -73,6 +74,15 @@ def render(comp, rt, out, log):
         rec["bytes"] = out.stat().st_size
         rec["sha256"] = sha256(out)
     return rec
+
+
+def snapshot(comp, rt, at, out):
+    """composition の静止画（HyperFrames CLI の snapshot）。外部の解析は2重に止める: env は runtime.env("hyperframes")（鍵を外す）、
+    引数に --describe false（D-0308）。返り値: (終了コード, 出力の全文)"""
+    r = subprocess.run(["node", rt.hf_cli, "snapshot", str(comp), "--at", at, "--no-end", "--no-browser-gpu", "--describe", "false",
+                        "--output", str(out)],
+                       env=rt.env("hyperframes"), capture_output=True, text=True, encoding="utf-8", errors="replace")
+    return r.returncode, r.stdout + ("\n--- stderr ---\n" + r.stderr if r.stderr.strip() else "")
 
 
 def top_atoms(p):

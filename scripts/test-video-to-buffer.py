@@ -21,6 +21,8 @@ r"""動画の X・Threads 投稿（post-video-to-buffer.py）と、それに合�
   9. 1日の上限の合算（D-0302）: 当日の画像ピン＋動画の送信が DAILY_LIMIT に達していれば、動画の公開・createPost の
      前で止まる（保留・終了コード0）。画像ピン側の count_today_posted も動画の送信を数える（日本時間の日付で）。
      画像ピンの台帳は一時ファイルへ差し替える（本物の data/buffer-posted.md は読まない）
+  10. 投稿しないテストの保留（D-0308）: 保留の行・mode=test（行を手で消しても）・mode=dropped で、--md でも引数なしでも
+     公開・createPost の前で止まる。release の形（行なし・mode=released）なら送る（output/videos/ は一時ディレクトリに差し替え）
 
 使い方:
   python site/scripts/test-video-to-buffer.py
@@ -338,6 +340,39 @@ def test_gate_v2(tmp):
           rc == 0 and not any("機械QA" in l for l in lines), lines)
 
 
+def test_hold(tmp):
+    """投稿しないテストの保留（D-0308）: X・Threads も check_review（post-video-pins.py と共有）で、公開・createPost の前に止まる。
+    引数なし（Pinterest 台帳にある動画をすべて対象にする形）でも同じ。release の形にすると、mp4・qa.json・審査行をそのままで送る。"""
+    slug = "iifuufu-no-hi-pair-cup-erabikata"
+    videos = os.path.join(tmp, "hold-videos")
+    md, pinned, _sha = setup_v2(videos, slug)
+    text = Path(md).read_text(encoding="utf-8")
+    held = text.replace("\n- 動画ファイル:", "\n- 保留: テスト（Sho の確認待ち）\n- 動画ファイル:", 1)
+    build = Path(videos, "video-2", "video-2.build.json")
+    build.parent.mkdir(parents=True)
+    saved = vb.pvp().VIDEOS_DIR
+    vb.pvp().VIDEOS_DIR = videos
+    try:
+        for label, body, mode, md_arg in (("保留の行（--md）", held, "test", md), ("保留の行（引数なし）", held, "test", None),
+                                          ("保留の行を手で消しても mode=test", text, "test", md), ("見送り（mode=dropped）", text, "dropped", None)):
+            Path(md).write_text(body, encoding="utf-8")
+            build.write_text(json.dumps({"runs": [], "mode": mode}), encoding="utf-8")
+            fake, stage_calls = FakeBuffer(), []
+            ledger = os.path.join(tmp, "hold.tsv")
+            rc, lines = run_post(md_arg, pinned, ledger, fake, stage_calls=stage_calls)
+            check("保留: %s → 公開・createPost の前で止まる（終了コード1・台帳なし）" % label,
+                  rc == 1 and not fake.calls and not stage_calls and not os.path.exists(ledger)
+                  and any(l.startswith("  [NG]") and ("保留" in l or "見送り" in l) for l in lines), lines)
+        Path(md).write_text(text, encoding="utf-8")
+        build.write_text(json.dumps({"runs": [], "mode": "released"}), encoding="utf-8")
+        fake = FakeBuffer()
+        rc, lines = run_post(None, pinned, os.path.join(tmp, "hold-ok.tsv"), fake)
+        check("保留: release の形（行なし・mode=released）なら、作り直さずに X・Threads へ送る",
+              rc == 0 and [c["channelId"] for c in fake.creates()] == ["CT", "CH"] and any("保留: なし（mode=released）" in l for l in lines), lines)
+    finally:
+        vb.pvp().VIDEOS_DIR = saved
+
+
 def _image_ledger(path, day, count, other_day_count=0):
     rows = ["投稿日: %s %d twitter" % (day, 400 + i) for i in range(count)]
     rows += ["投稿日: 2026-10-01 %d threads" % (300 + i) for i in range(other_day_count)]
@@ -513,6 +548,7 @@ def main():
             test_gate_v2(tmp)
             test_text_overlap(tmp)
             test_daily_limit(tmp)
+            test_hold(tmp)
         finally:
             ppb.LEDGER_PATH = saved
             shutil.rmtree(tmp, ignore_errors=True)

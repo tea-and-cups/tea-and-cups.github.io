@@ -15,6 +15,9 @@ ffprobe・ボード・GET /v5/pins・誘導先URLの確認はダミーに差し�
   4. 1日の上限: count_today_posted は画像ピン（投稿日: 行）と動画ピン（台帳の作成日）を足す。
      画像ピン側の既定の数え方（引数なし）にも動画ピンが入る。当日に動画ピンが無ければ画像ピンだけの件数と同じ。
      当日の合計＋この1本が50を超えれば、GET /v5/pins の照合の前で保留（失敗に数えない）。ちょうど50なら進む
+  5. 投稿しないテストの保留（D-0308）: 動画md の保留の行・build.json の mode=test（行を手で消しても）・mode=dropped で止まり、
+     release の形（行なし・mode=released）なら mp4・qa.json・審査行をそのままで通る。引数なしの一括（main）でも投稿の前で止まる
+     （output/videos/ は一時ディレクトリに差し替え、ffprobe はダミー）
 
 使い方: python site/scripts/test-video-pins-gate.py
 終了コード: 全件合格で0、1件でも不合格で1
@@ -293,6 +296,70 @@ def test_text_overlap(tmp):
               reason or lines)
 
 
+def test_hold(tmp):
+    """投稿しないテストの保留（D-0308）: 動画md の保留の行・build.json の mode=test・dropped で、審査行・qa.json が揃っていても止まる。
+    make-video.py release と同じ形（保留の行を消し mode=released）にすると、mp4・qa.json・審査行をそのままで通る。
+    引数なしの一括（main）でも、その動画を投稿の前（ffprobe・GET /v5/pins・URL の確認より前）で止める。"""
+    import contextlib
+    import io
+    videos = os.path.join(tmp, "videos")
+    slug = "iifuufu-no-hi-pair-cup-erabikata"   # setup_v2 の誘導先URLの slug（フォルダ名と合わせる）
+    md, sha = setup_v2(videos, slug, n=2)
+    mvh = _load("make-video.py")
+    text = Path(md).read_text(encoding="utf-8")
+    Path(md).write_text(text.replace("\n- 動画ファイル:", "\n%s\n- 動画ファイル:" % mvh.HOLD_LINE, 1), encoding="utf-8")
+    build = Path(videos, "video-2", "video-2.build.json")
+    build.parent.mkdir(parents=True)
+
+    def mode(m):
+        build.write_text(json.dumps({"created_at": "2026-10-28T10:00:00", "runs": [], **({"mode": m} if m else {})}), encoding="utf-8")
+
+    qa_before = Path(videos, slug, "video-2.qa.json").read_bytes()
+    saved = pvp.VIDEOS_DIR
+    pvp.VIDEOS_DIR = videos
+    try:
+        mode("test")
+        reason, _ = review(md)
+        check("保留: 動画md の保留の行で止まる（審査行・qa.json・現物は一致している）", reason is not None and "保留の行があります" in reason, reason)
+        Path(md).write_text(text, encoding="utf-8")   # 保留の行だけを手で消す
+        reason, _ = review(md)
+        check("保留: 保留の行を手で消しても build.json の mode=test で止まる（書き忘れ・消し忘れの守り）",
+              reason is not None and "mode=test" in reason, reason)
+        mode("dropped")
+        reason, _ = review(md)
+        check("保留: 見送り（mode=dropped）は止まる", reason is not None and "見送り" in reason, reason)
+        mode("released")
+        reason, lines = review(md)
+        check("保留: release の形（保留の行なし・mode=released）なら、mp4・qa.json・審査行をそのままで通る",
+              reason is None and "保留: なし（mode=released）" in lines and any("機械QA: gate 3項目すべて合格" in l for l in lines)
+              and pvp.file_sha256(os.path.join(videos, slug, "video-2.mp4")) == sha
+              and Path(videos, slug, "video-2.qa.json").read_bytes() == qa_before, (reason, lines))
+
+        # 引数なしの一括: 保留の行のある動画だけが output/videos/ にある状態で main を走らせる
+        Path(md).write_text(text.replace("\n- 動画ファイル:", "\n%s\n- 動画ファイル:" % mvh.HOLD_LINE, 1), encoding="utf-8")
+        mode("test")
+        calls = []
+        saved_env, saved_probe = pvp.require_env, pvp.probe_video
+        pvp.require_env = lambda name: "dummy-token"
+        pvp.probe_video = lambda fields: calls.append("probe") or []
+        argv = sys.argv
+        sys.argv = ["post-video-pins.py", "--dry-run", "--ledger", os.path.join(tmp, "hold-ledger.md")]
+        buf = io.StringIO()
+        try:
+            with contextlib.redirect_stdout(buf):
+                pvp.main()
+            rc = 0
+        except SystemExit as e:
+            rc = e.code
+        finally:
+            sys.argv, pvp.require_env, pvp.probe_video = argv, saved_env, saved_probe
+        out = buf.getvalue()
+        check("保留: 引数なしの一括（--dry-run・--md なし）でも、その動画を投稿の前で止める（終了コード1・ffprobe より前）",
+              rc == 1 and "video-2.md / 停止" in out and "[NG] 保留の行があります" in out and not calls, (rc, out))
+    finally:
+        pvp.VIDEOS_DIR = saved
+
+
 def main():
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
@@ -301,6 +368,7 @@ def main():
         test_gate(tmp)
         test_text_overlap(tmp)
         test_daily_limit(tmp)
+        test_hold(tmp)
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
     print("TEST_%s %d件NG" % ("NG" if FAILURES else "OK", len(FAILURES)))

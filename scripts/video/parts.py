@@ -15,6 +15,9 @@
   start・end   この部品の始まり・終わり（＝次の部品の始まり）
   DS など      この部品の mark の拍で決めた時刻（大文字2〜4字）
 
+組み立ての指紋（fingerprint・D-0308）も部品の宣言から作る（AI が書かない・時刻は使わない）。似すぎの判定（similarity）の重み・線・比べる本数はこのファイルの定数。
+  部品の並び・つなぎの並び・割り方の並び・カメラの動きの種類・比べ方・冒頭のつかみ方（カバーの部品＋声の最初の問いの形）・章と答えの見せ方
+
 qa の3つの表は部品の宣言から作る（手で書かない）
   qa_subjects  拍の subject（主役の外接矩形）。区間は「その拍の動きが終わった時」から「同じカメラの次の構図の変化（カメラの寄り・引き、境目、切り替え）か部品の終わり」まで
   qa_points    point の拍。測る秒は点・線・光の範囲が出きった時
@@ -32,12 +35,13 @@ LETTERS = "ABCDEFGH"   # 案Aのテンプレートの区間（film-planA.html �
 HIDDEN_PER_LINE = 10   # 最初に隠す字の一覧（hidden）を、部品ごとのまとまりで1行に詰める数（見た目の整形だけ）
 PANEL_POS = {"#t-aft": "上", "#b-mug": "下", "#b-col": "下", "#f-gift": ""}
 
-# 場面の部品。layout は割り方、visible は写真が見える画面の矩形（split は境目のずれ）、min・max は所要の目安（秒・判定はしない）、words は指紋の語（持たせるだけ）
+# 場面の部品。layout は割り方、visible は写真が見える画面の矩形（split は境目のずれ）、min・max は所要の目安（秒・判定はしない）、words は指紋の語、
+# compare は比べ方（指紋の語。比べない場面は None）
 SCENES = {
     "split": {"layout": "上下", "visible": {"#t-aft": "0,0,1080,952+split", "#b-mug": "0,968+split,1080,1920", "#b-col": "0,968+split,1080,1920"},
-              "min": 5.0, "max": 10.0, "words": ("上下の比べ",)},
-    "full": {"layout": "全面", "visible": {"#f-gift": "0,0,1080,1920"}, "min": 3.0, "max": 6.0, "words": ("全面の寄り",)},
-    "endcard": {"layout": "全面", "visible": {"#f-gift": "0,0,1080,1920"}, "min": 2.5, "max": 3.5, "words": ("エンドカード",)},
+              "min": 5.0, "max": 10.0, "words": ("上下の比べ",), "compare": "上下"},
+    "full": {"layout": "全面", "visible": {"#f-gift": "0,0,1080,1920"}, "min": 3.0, "max": 6.0, "words": ("全面の寄り",), "compare": None},
+    "endcard": {"layout": "全面", "visible": {"#f-gift": "0,0,1080,1920"}, "min": 2.5, "max": 3.5, "words": ("エンドカード",), "compare": None},
 }
 # つなぎ（film.py の5種の切り替え）: 前の割り方 → 次の割り方・構図が落ち着くまでの秒（film.py の #full・#div・カメラの動きの長さ）・関わるカメラの項目・指紋の語
 FX = {
@@ -226,13 +230,40 @@ def kind_of(before, after, ease):
     return "止め"
 
 
+def cam_moves(kind, b, cams):
+    """cam・fx の拍で動くカメラと動きの種類（指紋の語）の一覧。cams（カメラの今の値）を拍のあとの値へ進める。
+    部品の要約（compile_film）と指紋（fingerprint）が同じものを使う"""
+    if kind == "cam":
+        cam = b["cam"]
+        out = [(cam, kind_of(cams.get(cam, {}), b["to"], b["ease"]))]
+        cams[cam] = {**cams.get(cam, {}), **b["to"]}
+        return out
+    moves = {"dissolve": [(b.get("cam"), b.get("to"))], "merge": [(b.get("cam"), b.get("to"))],
+             "wipe": [(b["top"]["cam"], b["top"]["to"]), (b["bot"]["cam"], b["bot"]["to"])] if b["fx"] == "wipe" else [],
+             "push_in": [(b.get("cam"), None), (b.get("other"), b.get("other_to"))],
+             "push_out": [(b.get("out"), {"x": b.get("out_x")}), (b.get("in"), {"x": b.get("in_x")})]}[b["fx"]]
+    if b["fx"] == "wipe":
+        for part in (b["top"], b["bot"]):
+            cams[part["cam"]] = {**cams.get(part["cam"], {}), **part["from"]}
+    if b["fx"] == "merge":
+        cams[b["cam"]] = {**cams.get(b["cam"], {}), **b["from"]}
+    out = []
+    for cam, to in moves:
+        if to is None:
+            out.append((cam, "押し込む"))
+            cams[cam] = {**cams.get(cam, {}), **b["to"]}
+        else:
+            out.append((cam, kind_of(cams.get(cam, {}), to, "none")))
+            cams[cam] = {**cams.get(cam, {}), **to}
+    return out
+
+
 def beat_cam(ctx, b, out, st):
     cam = b["cam"]
     t = ctx.t(b["at"], f" {cam}")
     out.cues.append({"to": cam, "v": {**b["to"], "duration": b["d"], "ease": b["ease"]}, "t": t})
     out.anchors.append((ctx.ref(b["at"]).value, cam, Decimal(str(b["d"])), b["ease"] != "none", b.get("subject")))
-    out.cams.append((cam, kind_of(st.cam.get(cam, {}), b["to"], b["ease"])))
-    st.cam[cam] = {**st.cam.get(cam, {}), **b["to"]}
+    out.cams += cam_moves("cam", b, st.cam)
 
 
 GRADE_KEYS = {"exposure": "--hf-color-grading-exposure", "blur": "--hf-color-grading-blur"}
@@ -347,23 +378,7 @@ def beat_fx(ctx, b, out, st):
         out.anchors.append((t, cam, Decimal(spec["settle"]), True, mine))
     out.words += spec["words"]
     st.fx.append((b["fx"], spec))
-    # カメラの動きの種類
-    moves = {"dissolve": [(b.get("cam"), b.get("to"))], "merge": [(b.get("cam"), b.get("to"))],
-             "wipe": [(b["top"]["cam"], b["top"]["to"]), (b["bot"]["cam"], b["bot"]["to"])] if b["fx"] == "wipe" else [],
-             "push_in": [(b.get("cam"), None), (b.get("other"), b.get("other_to"))],
-             "push_out": [(b.get("out"), {"x": b.get("out_x")}), (b.get("in"), {"x": b.get("in_x")})]}[b["fx"]]
-    if b["fx"] == "wipe":
-        for part in (b["top"], b["bot"]):
-            st.cam[part["cam"]] = {**st.cam.get(part["cam"], {}), **part["from"]}
-    if b["fx"] == "merge":
-        st.cam[b["cam"]] = {**st.cam.get(b["cam"], {}), **b["from"]}
-    for cam, to in moves:
-        if to is None:
-            out.cams.append((cam, "押し込む"))
-            st.cam[cam] = {**st.cam.get(cam, {}), **b["to"]}
-        else:
-            out.cams.append((cam, kind_of(st.cam.get(cam, {}), to, "none")))
-            st.cam[cam] = {**st.cam.get(cam, {}), **to}
+    out.cams += cam_moves("fx", b, st.cam)
 
 
 def beat_point(ctx, b, out, st):
@@ -645,6 +660,108 @@ def load(d):
 
 def dump(data):
     return json.dumps(data, ensure_ascii=False, indent=1) + "\n"
+
+
+# ---- 組み立ての指紋と似すぎの判定（reports/2026-10-28-12.md 5節・D-0308）
+
+SIMILAR_LINE = 0.60   # これ以上で「似すぎ」。仮の線（動画1・2の2点と仮の組み立てで決めた）。新しい作り方の2本目までの実物で見直す
+SIMILAR_RECENT = 3    # 比べる相手: 直近の本数（投稿済みと保留中のテスト。見送りは除く・選ぶのは make-video.py の similar_targets）
+# (項目, 重み, 比べ方 seq＝並びの一致率（difflib の ratio）・set＝集合の重なり（Jaccard）・same＝同じなら1, 名前)
+SIMILAR_WEIGHTS = (("parts", 0.35, "seq", "部品の並び"), ("fx", 0.15, "seq", "つなぎの並び"), ("layouts", 0.15, "seq", "割り方の並び"),
+                   ("camera", 0.10, "set", "カメラの動きの種類"), ("compare", 0.10, "same", "比べ方"),
+                   ("opening", 0.10, "same", "冒頭のつかみ方"), ("chapters", 0.05, "same", "章と答えの見せ方"))
+# 声の最初の問いの形（上から順に当てる。どれにも当たらなければ「その他の問い」）。問いは script_checks.is_question の形の文
+HOOK_FORMS = (("誤解", r"実は|本当は|本当に|間違|勘違い|思っていませんか|思っていない|NG|ダメ"),
+              ("数字", r"何(?:杯|度|℃|分|秒|回|個|枚|割|種類|グラム|g|ml)|いくつ|どのくらい|どれくらい"),
+              ("選び方", r"選|決め|どれ|どっち|どの|何から|何で"),
+              ("予告", r"知って|とは|理由|なぜ|どうして|コツ|秘密|違いは"))
+# 動画 PARTS_FROM より前で parts.json が無い動画は、ここに書いた動画の parts.json の並びとして扱う（声の最初の問いだけ自分の台本から）。
+# 動画1は動画2と同じ型・同じ区間の数・同じつなぎの並び・同じ章の数（make-video.py の fingerprint_of がそれを film.json で確かめてから借りる）
+FINGERPRINT_BORROW = {1: 2}
+
+
+def hook_form(text):
+    for name, pat in HOOK_FORMS:
+        if re.search(pat, text):
+            return name
+    return "その他の問い"
+
+
+def first_question(script, cover_q=""):
+    """冒頭の問い: 声の最初の文が問いの形ならその文（動画3以降は check-script がこれを求める）。そうでなければカバーの問い（動画1・2）"""
+    from video import script_checks
+    sentences = (script or {}).get("sentences") or []
+    if sentences and sentences[0].get("phrases"):
+        first = script_checks.voice_sentences(sentences[0]["phrases"])[0]
+        if script_checks.is_question(first):
+            return first
+    return cover_q
+
+
+def fingerprint(defn, script=None):
+    """部品の定義（parts.json）から組み立ての指紋を作る（時刻・timeline は使わない）。値は語の列・集合・語"""
+    parts = defn["parts"]
+    cams = {cam: dict(v) for cam, v in (parts[0].get("cover") or {}).get("cams", {}).items()}
+    tokens, fxs, layouts, kinds, compares, shows = [], [], [], set(), [], []
+    for k, p in enumerate(parts):
+        spec = SCENES.get(p.get("scene"))
+        if not spec:
+            raise PartsError(f"{LETTERS[k] if k < len(LETTERS) else k}: scene が分からない: {p.get('scene')}")
+        over = ["cover"] if k == 0 and "cover" in p else []
+        for b in p.get("beats", []):
+            kind = beat_kind(b)
+            if kind in ("cam", "fx"):
+                kinds.update(m for _, m in cam_moves(kind, b, cams))
+            if kind == "fx":
+                fxs.append(b["fx"])
+            if kind in OVERLAYS:
+                over.append(kind)
+        over = list(dict.fromkeys(over))
+        tokens.append("+".join([spec["words"][0], *(OVERLAYS[o]["words"][0] for o in over)]))
+        layouts.append(spec["layout"])
+        if spec["compare"] and spec["compare"] not in compares:
+            compares.append(spec["compare"])
+        shows += [o for o in over if o in ("chapter", "cards", "answer")]
+    cover = parts[0].get("cover") or {}
+    q = first_question(script, "".join(cover.get("q") or []))
+    opening = "・".join([SCENES[parts[0]["scene"]]["layout"], *(["カバーの問い"] if cover else []), hook_form(q)])
+    chap = [OVERLAYS[o]["words"][0] for o in dict.fromkeys(shows) if o != "answer"]
+    n_chap = len(defn.get("chapters") or [])
+    chapters = (f"章 {'・'.join(chap)} {n_chap}" if chap else "章なし") + " ／ " + ("・".join(OVERLAYS["answer"]["words"]) if "answer" in shows else "答えなし")
+    return {"parts": tokens, "fx": fxs, "layouts": layouts, "camera": sorted(kinds), "compare": "・".join(compares) or "なし",
+            "opening": opening, "opening_question": q, "chapters": chapters}
+
+
+def similarity(a, b):
+    """2本の指紋の点数（0〜1）と項目ごとの (項目, 重み, 近さ, 名前, 重なった中身)"""
+    import difflib
+    total, rows = 0.0, []
+    for key, w, how, label in SIMILAR_WEIGHTS:
+        x, y = a[key], b[key]
+        if how == "seq":
+            sm = difflib.SequenceMatcher(None, x, y, autojunk=False)
+            v = sm.ratio() if (x or y) else 1.0
+            common = [x[m.a + i] for m in sm.get_matching_blocks() for i in range(m.size)]
+        elif how == "set":
+            v = len(set(x) & set(y)) / len(set(x) | set(y)) if (x or y) else 1.0
+            common = sorted(set(x) & set(y))
+        else:
+            v = 1.0 if x == y else 0.0
+            common = [x] if x == y else []
+        total += w * v
+        rows.append((key, w, round(v, 3), label, common))
+    return round(total, 3), rows
+
+
+def similarity_lines(score, rows):
+    """似すぎの表示（AI が組み立てを直す手がかり）: 点数への寄与の大きい順に、項目の近さと重なった中身"""
+    out = []
+    for key, w, v, label, common in sorted(rows, key=lambda r: -r[1] * r[2]):
+        if v == 0:
+            continue
+        shown = "・".join(common) if common else "-"
+        out.append(f"  {label} 近さ {v:.2f}×{w:.2f}＝{v * w:.3f}  重なり: {shown}")
+    return out
 
 
 def summary_lines(summary):
