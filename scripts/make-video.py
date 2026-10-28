@@ -32,6 +32,9 @@ r"""動画を作る（本運用の入口・D-0300）。部品は site/scripts/vi
                                    動画3以降は、声の最初が問い・終わりの声の形・画面の字と声の同文率・ぼかしの戻しも検査する
                                    （video/script_checks.py・film.json が無い間は台本の分だけ）。build の最初も同じ検査を通る。
                                    動画3以降で parts.json があれば、組み立ての似すぎも判定する（下の「似すぎ」）
+                                   動画3以降は film.json があれば、主役の外接矩形が画面の横（0〜1080）から出ないかも見る（D-0311・線は video/rules.py の SIDE）。
+                                   意図して画面より大きく写す場面は、部品か拍の subject に "wide": true を宣言する（宣言の無い場面は止まる）。
+                                   film の段・film の操作（--out 付きは書いたうえで終了コード1）も同じ検査で止まる。動画1・2は対象外（INFO）
 
 似すぎ（D-0308）: 部品の定義から作る指紋（video/parts.py の fingerprint）を、直近の投稿済み・保留中のテスト（見送りは除く）と比べ、
   点数が parts.SIMILAR_LINE 以上なら NG（重なった項目を出す）。check-script・build の最初（どの段も書き出しの前）・film の段と film の操作で止まる。
@@ -504,8 +507,15 @@ def cmd_film(args, rt=None):
     sim_ng, sim_info = similarity_gate(d, defn, f"下書き {Path(draft).name}" if draft else "下書き")
     for line in sim_info + [f"NG {m}" for m in sim_ng]:
         print(line)
+    from video import script_checks
+    side_ng, side_info = script_checks.check_sides(data, data.get("n"))   # 下書き（n が無い）は番号を問わず止める
+    for line in side_info + [f"NG {m}" for m in side_ng]:
+        print(line)
     if sim_ng and not args.out:
         print("拒否: 組み立てが直近の動画と似すぎ。film.json は書かない（見比べるときは --out DIR）")
+        return 1
+    if side_ng and not args.out:
+        print("拒否: 主役が画面の横で切れる。film.json は書かない（見比べるときは --out DIR）")
         return 1
     if args.out:
         out = Path(args.out)
@@ -527,7 +537,7 @@ def cmd_film(args, rt=None):
             print(f"snapshot: 終了コード {rc}・{out / 'snapshots'}（外部の解析なし: 鍵を外した env・--describe false）")
             if rc != 0:
                 return 1
-        if sim_ng:
+        if sim_ng or side_ng:
             return 1
     else:
         p = d / f"video-{n}.film.json"
@@ -610,6 +620,14 @@ def stage_film(d, rt, args):
         for m in sim_ng:
             print("NG", m)
         raise SystemExit(f"組み立てが直近の動画と似すぎ（{len(sim_ng)}件）。film.json は書いていない")
+    from video import script_checks
+    side_ng, side_info = script_checks.check_sides(data, n)
+    for line in side_info:
+        print(line)
+    if side_ng:
+        for m in side_ng:
+            print("NG", m)
+        raise SystemExit(f"主役が画面の横で切れる（{len(side_ng)}件）。film.json は書いていない（parts.json のカメラを直すか、意図した寄りは wide を宣言する）")
     p = d / f"video-{n}.film.json"
     p.write_text(parts.dump(data), encoding="utf-8")
     for ln in parts.summary_lines(summary):

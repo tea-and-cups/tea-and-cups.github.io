@@ -17,6 +17,9 @@ gate（すべて true で合格）は AI表示の5項目（2026-10-28-4 の 6節
 2026-10-28 (d) で足した gate（動画 NEW_GATES_FROM 以降。動画1は測るだけで gate に入れない・D-0303）:
   subject_overflow_0px  qa_subjects の全行（参考の行・全面の写真も）で、主題が帯 BAND の外に出る量が OVERFLOW_PX（0px）以下
   pointing_contrast     点（qa_points）の中か縁取りのどちらかが、外の背景に対して POINT_CONTRAST（3.0）以上。photos の lead はすべて qa_points に要る
+2026-10-28 (e) で足した gate（動画 rules.SIDE_FROM 以降。動画1・2は測るだけ・D-0311）:
+  subject_overflow_x_0px  qa_subjects の全行（参考の行・全面の写真も）で、主題の外接矩形が画面の横（rules.SIDE）から出る量が rules.SIDE_OVERFLOW_PX（0px）以下。
+                          行に wide（意図して画面より大きく写す宣言）があれば除く。線は video/rules.py
 R8(b)（0.5秒差 >25 のまとまり）は測るだけで、合否の線はまだ決めていない（gate に入れない）。
 """
 import json
@@ -220,6 +223,14 @@ def overflow_check(subj):
     return bool(rows) and worst <= OVERFLOW_PX, {"limit_px": OVERFLOW_PX, "max_px": worst, "rows": rows}
 
 
+def side_check(rows):
+    """横の切れ: rules.subject_sides の全行で、主題が画面の横（rules.SIDE）から出る量が rules.SIDE_OVERFLOW_PX 以下（wide を宣言した行は除く）。返り値: (合否, 測定値)"""
+    worst = max((r["overflow_px"] for r in rows if not r["wide"]), default=0.0)
+    return bool(rows) and all(r["ok"] for r in rows), {
+        "limit_px": rules.SIDE_OVERFLOW_PX, "side": list(rules.SIDE), "max_px": worst,
+        "rows": [{"name": r["name"], "cam": r["cam"], "overflow_px": r["overflow_px"], "screen_x": r["screen_x"], "at": r["at"], "wide": r["wide"]} for r in rows]}
+
+
 def contrast_check(data, pts):
     """点のコントラスト: qa_points の全行で best が POINT_CONTRAST 以上、かつ photos の lead がすべて qa_points にある。返り値: (合否, 測定値)"""
     leads = sorted(e["lead"] for p in data["photos"].values() for e in p.get("extras", []) if isinstance(e, dict) and "lead" in e)
@@ -263,6 +274,13 @@ def run_qa(d, rt, mp4, out_json):
         measure[key] = {**m, "ok": ok, "gate": new}
         if new:
             gate[key] = ok
+
+    # 主役の横の切れ（D-0311）: 動画 rules.SIDE_FROM 以降だけ gate。動画1・2は測るだけ。wide を宣言した行は gate に入れない
+    side_rows = rules.sides_of(data, tl["duration"])
+    side_ok, side_m = side_check(side_rows)
+    measure["subject_overflow_x_0px"] = {**side_m, "ok": side_ok, "gate": data["n"] >= rules.SIDE_FROM}
+    if data["n"] >= rules.SIDE_FROM:
+        gate["subject_overflow_x_0px"] = side_ok
 
     res["gate"] = gate
     res["measure"] = measure

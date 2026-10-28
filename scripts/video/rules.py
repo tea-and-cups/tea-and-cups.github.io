@@ -9,6 +9,8 @@
 字数（R7(b)）: 同じ時刻に見えている字（空白を除く）の合計。章の札（#p1〜#p3）は数えない。エンドカードは AI表示（credit）を数える。
 主題（R7(c)）: video-N.film.json の qa_subjects（名前・カメラ・写真の中の主題の外接矩形・区間）の、画面での y の上端・下端が帯 BAND に入ること。
   band_worst は区間内で帯への余りが最も小さい値（負ならその px だけ帯の外）。qa の subject_overflow_0px は参考の行も含めてこれを見る。
+主題の横（D-0311）: 同じ行の外接矩形の画面での x の左端・右端が SIDE（0〜1080）に入ること（subject_sides）。参考の行・全面の行も見る。
+  行に WIDE（"wide"）の印があれば止めない。film の段・check-script（script_checks）と qa の subject_overflow_x_0px が同じ関数を使う。
 """
 import math
 import re
@@ -178,7 +180,7 @@ def subjects(data, traj):
         if len(row) < 5:
             continue   # _note の行
         name, cam, (x0, y0, x1, y1), t0, t1 = row[:5]
-        ref = len(row) > 5 and row[5] == "ref"
+        ref = "ref" in row[5:]
         t0, t1 = ev(t0, c), ev(t1, c)
         worst = None
         band_worst = None   # 区間内で帯への余りが最も小さいコマ（はみ出しの量。worst は3つの余白の最小で選ぶので別に持つ）
@@ -203,6 +205,50 @@ def subjects(data, traj):
                      "screen_y": [round(worst[4]), round(worst[5])], "ok": worst[0] >= 0, "gate": not ref,
                      "band_worst": round(band_worst[0], 1), "band_worst_at": round(band_worst[1], 3)})
     return rows
+
+
+SIDE = (0, 1080)       # R7(c) 横: 主題の外接矩形が収まる画面の横（px）。線の正本はここ（rules/video-production.md には場所だけ）
+SIDE_OVERFLOW_PX = 0   # 横に出てよい量（px）
+SIDE_FROM = 3          # 横の切れを止める（NG・gate）最初の動画の番号。動画1・2は INFO だけ（D-0311）
+WIDE = "wide"          # qa_subjects の行の印。意図して主役を画面より大きく写す場面が「横に切れてよい」と宣言する（部品の wide・拍の subject.wide）
+
+
+def subject_sides(data, traj):
+    """qa_subjects の全行（参考の行も）の、区間内で主題の外接矩形が画面の横（SIDE）から出る最大の量。
+    overflow_px は出た量（収まっていれば 0）、margin_px は収まっているときの余り（負なら出た量）、screen_x はそのコマの左端・右端、
+    wide は行に WIDE の印があるか（印のある行は gate に入れない）、ok は収まっている・または wide"""
+    c = constants(data)
+    rows = []
+    for row in data.get("qa_subjects", []):
+        if len(row) < 5:
+            continue   # _note の行
+        name, cam, (x0, y0, x1, y1), t0, t1 = row[:5]
+        t0, t1 = ev(t0, c), ev(t1, c)
+        worst = None
+        for i in range(int(round(t0 * FPS)), int(round(t1 * FPS)) + 1):
+            x, y, s = cam_at(traj, cam, i)
+            left, right = x + s * x0, x + s * x1
+            margin = min(left - SIDE[0], SIDE[1] - right)
+            if worst is None or margin < worst[0]:
+                worst = (margin, i / FPS, left, right)
+        wide = WIDE in row[5:]
+        rows.append({"name": name, "cam": cam, "window": [round(t0, 2), round(t1, 2)], "margin_px": round(worst[0], 1),
+                     "overflow_px": round(max(0.0, -worst[0]), 1), "at": round(worst[1], 3),
+                     "screen_x": [round(worst[2]), round(worst[3])], "wide": wide, "ok": wide or -worst[0] <= SIDE_OVERFLOW_PX + 1e-6})   # 1e-6 は浮動小数の誤差（矩形の端が写真の端と同じ位置のとき）
+    return rows
+
+
+def side_failures(rows):
+    """subject_sides の行のうち、横に出ていて宣言（wide）が無いもの。止める文の一覧"""
+    return [f"主役「{r['name']}」（{r['cam']}・{r['window'][0]}〜{r['window'][1]}秒）が画面の横から {r['overflow_px']}px 出る"
+            f"（{r['at']}秒・画面の x {r['screen_x'][0]}〜{r['screen_x'][1]}・収める範囲 {SIDE[0]}〜{SIDE[1]}・出てよい量 {SIDE_OVERFLOW_PX}px）。"
+            f"カメラの x・scale を直す。意図して画面より大きく写す場面は、部品か拍の subject に wide を宣言する"
+            for r in rows if not r["ok"]]
+
+
+def sides_of(data, duration=None):
+    """film.json のデータだけから横の行を出す（mp4・時刻表は読まない）。duration が無ければ最後の区間の始まり＋5秒"""
+    return subject_sides(data, simulate(data, duration or float(data["sections"][letters(data)[-1]]) + 5))
 
 
 PHOTO_W, PHOTO_H = 1440, 2160

@@ -22,6 +22,7 @@
 
 qa の3つの表は部品の宣言から作る（手で書かない）
   qa_subjects  拍の subject（主役の外接矩形）。区間は「その拍の動きが終わった時」から「同じカメラの次の構図の変化（カメラの寄り・引き、境目、切り替え）か部品の終わり」まで
+               主役が画面の横に切れてよい（意図して画面より大きく写す）場面は、部品に "wide": true か、拍の subject に "wide": true を書く。宣言の無い行は横の切れを止める（D-0311・rules.py）
   qa_points    point の拍。測る秒は点・線・光の範囲が出きった時
   qa_text_sync qa: true の拍（字の入り）。声の句の頭は、時刻を句で指したときのその句
 """
@@ -30,7 +31,7 @@ import re
 from decimal import Decimal
 from pathlib import Path
 
-from video import film
+from video import film, rules
 
 PARTS_FROM = 3
 DEFAULT_CONSTS = tuple(film.const_letters(film.letters_for(8)))   # 区間を名前だけで指すとき（Ctx を直に作るとき）の定数の区間。案Aの8区間の E〜H
@@ -93,7 +94,8 @@ ICONS = {
 DOT_IN = Decimal("0.2")   # 点（circle）が出きる長さ（film.spot の circle の duration）
 NOTE_TEXT_SYNC = "_note: 字の同期の測り方（qa が使う）。名前・字の入りの予定秒・対応する声の句の頭（無ければ null）・領域 x0,y0,x1,y1。エンドカードのロゴと AI表示は型から足す"
 NOTE_SUBJECTS = ("_note: 主題が帯 168〜1330 の中か（qa が使う）。名前・カメラ・写真の中の主題の外接矩形 x0,y0,x1,y1・区間の始め・終わり（秒または式）・"
-                 "[参考なら \"ref\"（gate に入れない）]。上の段は境目の上、下の段は境目の下にあること")
+                 "[参考なら \"ref\"（帯の gate に入れない）][意図して画面より大きく写す行なら \"wide\"（横の切れを止めない）]。上の段は境目の上、下の段は境目の下にあること。"
+                 "横は外接矩形が画面の 0〜1080 に入ること（wide の行を除く）")
 NOTE_POINTS = "_note: 点（指し方の円）の画面の位置・端切れ・コントラストを測る秒（qa が使う）。名前（photos の lead の名前）・カメラ・測る秒（点が出て円がそろったあと）"
 
 REF = re.compile(r"^(?:(S\d+)\.(?:p(\d+)|(end))|(start|end)|([A-Z]{2,4}))([+-]\d+(?:\.\d+)?)?$")
@@ -625,8 +627,9 @@ class State:
         self.sweeps = {}            # カメラ → なぞる線（#rim-sweep の中の g）
 
 
-def subject_rows(letter, scene, anchors, end):
-    """拍の subject から qa_subjects の行。区間は「その拍の動きが終わった時」から「同じカメラの次の構図の変化（または部品の終わり）」まで"""
+def subject_rows(letter, scene, anchors, end, wide=False):
+    """拍の subject から qa_subjects の行。区間は「その拍の動きが終わった時」から「同じカメラの次の構図の変化（または部品の終わり）」まで。
+    主役が画面の横に切れてよいと宣言した行（部品の "wide": true・拍の subject.wide）には rules.WIDE の印を付ける（D-0311）"""
     rows = []
     for i, (t, cam, settle, _, sub) in enumerate(anchors):
         if not sub:
@@ -636,7 +639,7 @@ def subject_rows(letter, scene, anchors, end):
         ref = scene != "split"
         pos = PANEL_POS[cam]
         name = f"参考 {letter} {sub['name']}" if ref else f"{letter}{pos} {sub['name']}"
-        rows.append([name, cam, list(sub["rect"]), num(t0), num(t1), *(["ref"] if ref else [])])
+        rows.append([name, cam, list(sub["rect"]), num(t0), num(t1), *(["ref"] if ref else []), *([rules.WIDE] if wide or sub.get("wide") else [])])
     return rows
 
 
@@ -732,7 +735,7 @@ def compile_film(defn, timeline, script=None):
                 og = [f"<!-- {st.chapters[p['chapter'] - 1]['text']} -->", *og]
             overlay_groups.append(og)
         text_sync += out.text_sync
-        rows = subject_rows(letter, scene, out.anchors, bounds[k][1])
+        rows = subject_rows(letter, scene, out.anchors, bounds[k][1], bool(p.get("wide")))
         subjects += rows
         points += out.points
         for cam, ex in out.extras.items():

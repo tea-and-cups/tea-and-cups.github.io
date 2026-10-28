@@ -24,6 +24,9 @@ r"""make-video.py の部品（site/scripts/video/）のテスト。本物のフ�
 12. 場面の数を固定しない・部品 a・b・最初の試作の準備（D-0310）: 部品6つと10の組み立てから film.json・film.html・qa の3つの表を作り、film の段と
    check-script（D-0306・似すぎ）を通る。動画1・2の film.html は一般化の前と同じ。部品 a（なぞる）・b（時間の流れ）の宣言と止まる所。
    投稿済みの slug の --test（release は拒否）・--images-from（生成0回）。output/videos/drafts/ の試作の下書きが似すぎの判定を通る
+13. 主役の横の切れ（D-0311）: 部品 a のダミーで、取っ手が左で切れる写し方は film の段・film の操作・check-script・qa の gate（subject_overflow_x_0px）で止まり、
+   収めた写し方は通る。0px の線の境目（0.5px 手前は合格・0.5px 外は不合格）。部品か拍の wide の宣言は止めず、宣言の無い行は止める。
+   動画1・2は INFO だけ（同じ film.json でも動画3なら止まる）。試作の下書きは全行 0px
 
 使い方: python site/scripts/test-make-video.py
 終了コード: 全件合格で0、1件でも不合格で1
@@ -683,20 +686,32 @@ def test_fingerprint_and_test_mode():
 FULL_SUBJECT = {"name": "贈り物の一式", "rect": [86, 940, 1400, 1442]}
 
 
-def full_cover_part(v2parts):
+# 贈り物の一式（取っ手〜箱の右端・幅 1314px）の写し方。cut は取っ手が左で切れる動画2・最初の下書きの写し方（D-0311）、fixed は幅 1080 に収めた写し方
+COVER_CAM = {"cut": ({"x": -150, "y": -12, "scale": 0.9}, {"x": -160, "y": -20, "scale": 0.91}),
+             "fixed": ({"x": -58, "y": 100, "scale": 0.8}, {"x": -60, "y": 98, "scale": 0.808})}
+TRACE_CAM = {"cut": {"x": -175, "y": -32, "scale": 0.92}, "fixed": {"x": -67.5, "y": 92, "scale": 0.818}}
+
+
+def wide_part(p):
+    """動画2の部品の写し（カメラは動画2のまま）。場面の数を見るテストでは、横の切れを止めないよう部品に wide を宣言する"""
+    return {**p, "wide": True}
+
+
+def full_cover_part(v2parts, cam="fixed"):
     """全面のカバー（0コマ目から動画2の全面の写真）"""
     a = json.loads(json.dumps(v2parts[0]))
+    start, end = COVER_CAM[cam]
     return {"scene": "full", "name": "問い", "note": "全面のカバー",
-            "cover": {**a["cover"], "cams": {**a["cover"]["cams"], "#f-gift": {"x": -150, "y": -12, "scale": 0.9}}},
-            "beats": [{"cam": "#f-gift", "to": {"x": -160, "y": -20, "scale": 0.91}, "d": 4.7, "ease": "none", "at": "start", "subject": FULL_SUBJECT},
+            "cover": {**a["cover"], "cams": {**a["cover"]["cams"], "#f-gift": dict(start)}},
+            "beats": [{"cam": "#f-gift", "to": dict(end), "d": 4.7, "ease": "none", "at": "start", "subject": FULL_SUBJECT},
                       a["beats"][3]]}
 
 
-def trace_part(start, base, pre="", tags=("小分けの袋", "小さな箱", "一杯の紅茶"), extra=()):
-    """部品 a（なぞる）: 動画2の全面の写真の袋→箱→カップ。base は句（S3.p2 など）"""
+def trace_part(start, base, pre="", tags=("小分けの袋", "小さな箱", "一杯の紅茶"), extra=(), cam="fixed", subject=FULL_SUBJECT):
+    """部品 a（なぞる）: 動画2の全面の写真の袋→箱→カップ。base は句（S3.p2 など）。cam は写し方（TRACE_CAM）"""
     return {"scene": "trace", "name": "なぞる", "note": "部品 a", "start": start,
-            "beats": [*extra, {"cam": "#f-gift", "to": {"x": -175, "y": -32, "scale": 0.92}, "d": 1.0, "ease": "power2.inOut", "at": "start",
-                               "subject": FULL_SUBJECT},
+            "beats": [*extra, {"cam": "#f-gift", "to": dict(TRACE_CAM[cam]), "d": 1.0, "ease": "power2.inOut", "at": "start",
+                               "subject": subject},
                       {"trace": f"{pre}bags", "path": [[648, 1399], [702, 1264], [1015, 1231], [1161, 1404]], "at": f"{base}-0.55", "d": 0.6,
                        "lead": {"from": [1080, 1235], "to": [1085, 1330], "r": 11}, "dot": base, "line": f"{base}-0.05", "ld": 0.25,
                        "tag": {"text": tags[0], "x": 1060, "y": 1140, "w": 260, "at": f"{base}+0.06"}},
@@ -738,18 +753,21 @@ def answer_part(v2parts, start=None, merge=True):
     return g
 
 
-def count_defns(defn2):
-    """部品の数が8でない組み立て（6と10）。動画2の写真・声の時刻表・場面を使い、部品 a・b を含む"""
+def count_defns(defn2, cam="fixed", cover_wide=False, trace_subject=FULL_SUBJECT):
+    """部品の数が8でない組み立て（6と10）。動画2の写真・声の時刻表・場面を使い、部品 a・b を含む。
+    cam・cover_wide・trace_subject は6の組み立ての、カバーと部品 a の写し方（COVER_CAM・TRACE_CAM）と wide の宣言（D-0311）。
+    動画2から写した部品は、場面の数を見るテストで横の切れを止めないよう wide を宣言する（カメラは動画2のまま）"""
     P = defn2["parts"]
     cp = lambda x: json.loads(json.dumps(x))   # noqa: E731
     base = {**cp(defn2), "photos": {**cp(defn2["photos"]), "f-gift": {**defn2["photos"]["f-gift"], "blur": 0}}}
     unblur_mug = {"grade": "#b-mug", "blur": 0, "d": 0.5, "ease": "power2.inOut", "at": "start"}
     hide_d = {"hide": ["#d-tag1", "#d-tag2", "#d-tag3", "#d-tag4"], "at": "start-0.1"}
-    six = {**base, "parts": [full_cover_part(P), trace_part("S2.p1-0.10", "S3.p2", extra=[{"hide": ["#kick", "#kick-ul"], "at": "start"}]),
-                             {**cp(P[3]), "beats": [{"hide": "#q", "at": "start"}, *cp(P[3])["beats"]]},
+    six = {**base, "parts": [{**full_cover_part(P, cam), **({"wide": True} if cover_wide else {})},
+                             trace_part("S2.p1-0.10", "S3.p2", extra=[{"hide": ["#kick", "#kick-ul"], "at": "start"}], cam=cam, subject=trace_subject),
+                             wide_part({**cp(P[3]), "beats": [{"hide": "#q", "at": "start"}, *cp(P[3])["beats"]]}),
                              steps_part("S5.p1-0.26", "st", [("小さい", "S5.p2"), ("軽い", "S5.p3"), ("送れる", "S5.p6")], fx=True,
                                         extra=[hide_d, unblur_mug]),
-                             answer_part(P, merge=False), cp(P[7])]}
+                             wide_part(answer_part(P, merge=False)), cp(P[7])]}
     unspot = [{"hide": ["#b-tag", "#boxtag"], "at": "start+0.05"},
               {"tween": "#c-box", "v": {"opacity": 0, "duration": 0.2, "ease": "power2.in"}, "at": "start+0.05"},
               {"tween": "#spot-box", "v": {"opacity": 0, "duration": 0.5, "ease": "power2.in"}, "at": "start+0.05"},
@@ -757,14 +775,14 @@ def count_defns(defn2):
     b = cp(P[1])
     b["beats"] = [x for x in b["beats"] if "fx" not in x] + [{"cam": "#f-gift", "to": {"x": -470, "y": -499, "scale": 1.12}, "d": 5.0, "ease": "none",
                                                               "at": "start", "subject": FULL_SUBJECT}]
-    ten = {**base, "parts": [full_cover_part(P), b, trace_part("S3.p1-0.09", "S3.p2", extra=unspot),
-                             {**cp(P[3]), "beats": [{"hide": "#q", "at": "start"}, *cp(P[3])["beats"]]},
+    ten = {**base, "parts": [full_cover_part(P), wide_part(b), trace_part("S3.p1-0.09", "S3.p2", extra=unspot),
+                             wide_part({**cp(P[3]), "beats": [{"hide": "#q", "at": "start"}, *cp(P[3])["beats"]]}),
                              steps_part("S5.p1-0.26", "st", [("小さい", "S5.p2"), ("軽い", "S5.p3"), ("送れる", "S5.p6")], fx=True,
                                         extra=[hide_d, unblur_mug]),
-                             plain_full("S5.p6-0.3", "軽さ2"),
+                             wide_part(plain_full("S5.p6-0.3", "軽さ2")),
                              trace_part("S6.p1-0.34", "S6.p2", pre="g", tags=("袋", "箱", "器")),
-                             plain_full("S6.p5-0.2", "種類2"),
-                             answer_part(P, merge=False), cp(P[7])]}
+                             wide_part(plain_full("S6.p5-0.2", "種類2")),
+                             wide_part(answer_part(P, merge=False)), cp(P[7])]}
     return six, ten
 
 
@@ -928,6 +946,147 @@ def test_scene_count_and_new_parts():
             print(f"NOTE 下書き: {' / '.join(s.split(': ')[-1] for s in scores)}")
             data, _ = parts.compile_film(dd, tl, sc2)
             check("下書き: 動画2の声の時刻表で組める（部品7つ）", len(data["sections"]) == 7)
+            side = rules.sides_of(data, tl["duration"])
+            check("下書き: 主役の外接矩形が画面の横（0〜1080）から出ない（D-0311・全行 0px）と、film の段・check-script と同じ判定を通る",
+                  len(side) == 8 and not rules.side_failures(side) and script_checks.check_sides(data, None)[0] == []
+                  and all(r["overflow_px"] == 0 and not r["wide"] for r in side), [(r["name"], r["screen_x"]) for r in side])
+            print(f"NOTE 下書きの横の余白: {' / '.join(r['name'].split()[0] + ' ' + str(r['margin_px']) for r in side)}")
+    finally:
+        mv.VIDEOS, mv.PIN_LEDGER, mv.advance_pin = saved
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
+def test_side_clip():
+    """主役の横の切れ（D-0311）: 部品 a のダミーで、取っ手が左で切れる写し方は film の段・check-script・qa の gate で止まり、収めた写し方は通る。
+    部品か拍の wide の宣言は止めない（宣言の無い行は止める）。動画1・2は対象外（INFO）。output/videos/ は一時フォルダの写し"""
+    import argparse
+    import shutil
+    import tempfile
+    from video import parts, qa, script_checks
+    if not (VIDEO2 / "video-2.parts.json").exists() or not (VIDEO2 / "work" / "timeline.json").exists():
+        print("SKIP 横の切れ: 動画2のファイルが無い")
+        return
+    defn2, tl, sc2 = parts.load(VIDEO2)
+    sc3 = d0306_script(sc2)
+    dur = tl["duration"]
+    names = lambda rows: [r["name"] for r in rows if not r["ok"]]   # noqa: E731
+    compile6 = lambda **k: parts.compile_film(count_defns(defn2, **k)[0], tl, sc3)[0]   # noqa: E731
+    cut, fixed = compile6(cam="cut"), compile6()
+    rc, rf = rules.sides_of(cut, dur), rules.sides_of(fixed, dur)
+
+    # 1. 線と測り方
+    check("線: 画面の横 0〜1080・出てよい量 0px・動画3から（線の正本は video/rules.py）",
+          rules.SIDE == (0, 1080) and rules.SIDE_OVERFLOW_PX == 0 and rules.SIDE_FROM == 3 and rules.WIDE == "wide")
+    a_cut = next(r for r in rc if r["name"] == "参考 A 贈り物の一式")
+    ab_cut = [r for r in rc if r["name"] in ("参考 A 贈り物の一式", "参考 B 贈り物の一式")]
+    check("部品 a のダミー（取っ手が写真の x 86）: 切れる写し方では取っ手側の左端が画面の外（x が負）で、行ごとに出た量が分かる。ほかの行は止まらない",
+          names(rc) == ["参考 A 贈り物の一式", "参考 B 贈り物の一式"] and a_cut["screen_x"][0] < 0 and a_cut["overflow_px"] > 50
+          and all(r["screen_x"][0] < 0 for r in ab_cut), [(r["name"], r["screen_x"], r["overflow_px"]) for r in rc])
+    own = [r for r in rf if not r["wide"]]   # 動画2から写した部品（wide を宣言）を除く、カバー・部品 a・部品 b の行
+    check("部品 a のダミー: 収めた写し方は宣言の無い全行 0px（矩形の幅 1314px を 1080 に入れる倍率 0.82 以下）",
+          names(rf) == [] and len(own) == 3 and all(r["overflow_px"] == 0 and r["margin_px"] >= 0 for r in own),
+          [(r["name"], r["screen_x"], r["margin_px"]) for r in rf])
+    check("測り方: 時刻表の尺を渡さなくても（最後の区間の始まり＋5秒）同じ結果", rules.sides_of(cut) == rc and rules.sides_of(fixed) == rf)
+    b = next(r for r in rf if r["name"] == "参考 B 贈り物の一式")
+    ex = {"qa_subjects": [list(x) for x in fixed["qa_subjects"]]}
+    for dx, ok in ((b["margin_px"] - 0.5, True), (b["margin_px"] + 0.5, False)):   # 余白より 0.5px 手前は合格・0.5px 出ると不合格（0px の線）
+        moved = {**fixed, "qa_subjects": [[*r[:2], [r[2][0], r[2][1], r[2][2] + dx / 0.818, r[2][3]], *r[3:]] if r[0] == b["name"] else r
+                                          for r in ex["qa_subjects"]]}
+        res = next(r for r in rules.sides_of(moved, dur) if r["name"] == b["name"])
+        check(f"線の境目: 矩形の右端を {'0.5px 手前' if ok else '0.5px 外'}にすると {'合格' if ok else '不合格（出た量 0.5px）'}",
+              res["ok"] is ok and (ok or abs(res["overflow_px"] - 0.5) <= 0.1), res)
+
+    # 2. film の段・check-script・film の操作（書き出しの前）・qa の gate
+    n_cut, info_cut = script_checks.check_sides(cut, 3)
+    n_fix, info_fix = script_checks.check_sides(fixed, 3)
+    n_2, info_2 = script_checks.check_sides(cut, 2)
+    check("check_sides: 切れる写し方は動画3で NG（画面の x・出た量・直し方を出す）・収めた写し方は NG なし・動画2は対象外（INFO に回す）",
+          len(n_cut) == 2 and "画面の横から" in n_cut[0] and "wide" in n_cut[0] and n_fix == [] and n_2 == [] and any("対象外" in x for x in info_2)
+          and any("主役の横の切れ" in x for x in info_fix), (n_cut, info_2))
+    mv = load_mv()
+    tmp = Path(tempfile.mkdtemp(prefix="test-side-clip-"))
+    saved = mv.VIDEOS, mv.PIN_LEDGER, mv.advance_pin
+    try:
+        mv.VIDEOS, mv.PIN_LEDGER = tmp / "videos", tmp / "video-posted.md"
+        mv.VIDEOS.mkdir()
+        shutil.copy2(ROOT / "data" / "video-posted.md", mv.PIN_LEDGER)
+        for n, nms in ((1, ("video-1.film.json", "script.json", "video-1.build.json")),
+                       (2, ("video-2.parts.json", "video-2.film.json", "script.json", "video-2.build.json", "work/timeline.json"))):
+            for nm in nms:
+                (mv.VIDEOS / f"video-{n}" / nm).parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(ROOT / "output" / "videos" / f"video-{n}" / nm, mv.VIDEOS / f"video-{n}" / nm)
+        v3 = mv.VIDEOS / "video-3"
+
+        def setup(defn):
+            if v3.exists():
+                shutil.rmtree(v3)
+            (v3 / "work").mkdir(parents=True)
+            (v3 / "video-3.parts.json").write_text(json.dumps({**defn, "n": 3}, ensure_ascii=False), encoding="utf-8")
+            shutil.copy2(VIDEO2 / "work" / "timeline.json", v3 / "work" / "timeline.json")
+            (v3 / "script.json").write_text(json.dumps(sc3, ensure_ascii=False), encoding="utf-8")
+
+        setup(count_defns(defn2, cam="cut")[0])
+        rec, out = quiet(mv.stage_film, v3, None, None)
+        check("film の段: 切れる写し方は止まり（SystemExit・書き出しの前）、film.json を書かず、NG の行を出す",
+              "主役が画面の横で切れる（2件）" in str(rec) and not (v3 / "video-3.film.json").exists() and out.count("NG 主役「参考") == 2, (rec, out[-300:]))
+        rc_f, out = quiet(mv.cmd_film, argparse.Namespace(video="video-3", out=None))
+        check("film の操作: 切れる写し方は終了コード1で film.json を書かない", rc_f == 1 and "拒否: 主役が画面の横で切れる" in out
+              and not (v3 / "video-3.film.json").exists(), out[-200:])
+        rc_o, out = quiet(mv.cmd_film, argparse.Namespace(video="video-3", out=str(tmp / "out"), parts=None, comp=False, peaks=False))
+        check("film の操作: --out（見比べ）は書いたうえで終了コード1", rc_o == 1 and (tmp / "out" / "video-3.film.json").exists(), out[-200:])
+        (v3 / "video-3.film.json").write_text(parts.dump({**cut, "n": 3}), encoding="utf-8")   # 切れる film.json が既にある状態の check-script（番号は film.json の n）
+        rc_c, out = quiet(mv.cmd_check_script, argparse.Namespace(video="video-3"))
+        check("check-script: 切れる film.json は終了コード1（NG 主役「…」が画面の横から…px 出る）・SCRIPT_NG",
+              rc_c == 1 and "NG 主役「参考 A 贈り物の一式」" in out and "画面の横から" in out and "SCRIPT_NG" in out, out[-300:])
+
+        setup(count_defns(defn2)[0])
+        rec, out = quiet(mv.stage_film, v3, None, None)
+        check("film の段: 収めた写し方は通って film.json を書く（INFO に横の切れ 0.0px）", isinstance(rec, dict) and (v3 / "video-3.film.json").exists()
+              and "INFO 主役の横の切れ 0.0px" in out, (rec, out[-300:]))
+        rc_c, out = quiet(mv.cmd_check_script, argparse.Namespace(video="video-3"))
+        check("check-script: 収めた写し方の film.json は SCRIPT_OK", rc_c == 0 and "SCRIPT_OK" in out, out[-300:])
+
+        # 3. wide の宣言（部品・拍）。宣言の無い行は止める
+        A, B = "参考 A 贈り物の一式", "参考 B 贈り物の一式"
+        for label, kw, stops in (("部品と拍の両方", {"cover_wide": True, "trace_subject": {**FULL_SUBJECT, "wide": True}}, []),
+                                 ("部品（カバー）だけ", {"cover_wide": True}, [B]),
+                                 ("拍（部品 a の主役）だけ", {"trace_subject": {**FULL_SUBJECT, "wide": True}}, [A])):
+            d = compile6(cam="cut", **kw)
+            rows = rules.sides_of(d, dur)
+            check(f"wide の宣言（{label}）: 宣言した行は止めず、宣言の無い行 {stops or 'なし'} だけが止まる",
+                  names(rows) == stops and {r["name"] for r in rows if r["wide"]} >= {A, B} - set(stops), [(r["name"], r["wide"], r["ok"]) for r in rows])
+            run_ng, run_info = script_checks.check_sides(d, 3)
+            check(f"wide の宣言（{label}）: check_sides の NG は {len(stops)}件（宣言した行は INFO に名前を出す）",
+                  len(run_ng) == len(stops) and any("wide の宣言" in x for x in run_info), (run_ng, run_info))
+        d = compile6(cam="cut", cover_wide=True, trace_subject={**FULL_SUBJECT, "wide": True})
+        marks = {r[0]: r[5:] for r in d["qa_subjects"] if len(r) > 5}
+        check("wide の宣言: 宣言した行には印が付く（参考の行は ['ref', 'wide']）。宣言の無い部品の行には印が付かない（['ref'] だけ）",
+              marks[A] == ["ref", "wide"] and marks[B] == ["ref", "wide"]
+              and {r[0]: r[5:] for r in compile6(cam="cut")["qa_subjects"] if len(r) > 5}[A] == ["ref"], marks)
+        sub_decl = rules.subjects(d, rules.simulate(d, dur))
+        check("wide の宣言: 印を足しても、帯の判定（rules.subjects の ref・gate）は変わらない（全面の行は gate に入らないまま）",
+              all(not r["gate"] for r in sub_decl if r["name"] in (A, B)), [(r["name"], r["gate"]) for r in sub_decl[:3]])
+
+        # 4. qa の gate（subject_overflow_x_0px）
+        ok_c, m_c = qa.side_check(rc)
+        ok_f, m_f = qa.side_check(rf)
+        ok_w, m_w = qa.side_check(rules.sides_of(d, dur))
+        check("qa: side_check は切れる写し方で不合格（最大の出た量・行ごとの画面の x を出す）・収めた写し方で合格・wide の行は除いて合格・行が無いと不合格",
+              not ok_c and m_c["max_px"] > 50 and m_c["limit_px"] == 0 and m_c["side"] == [0, 1080] and len(m_c["rows"]) == len(rc)
+              and ok_f and m_f["max_px"] == 0 and ok_w and m_w["max_px"] == 0 and {r["name"] for r in m_w["rows"] if r["wide"]} >= {A, B}
+              and not qa.side_check([])[0], (ok_c, m_c["max_px"], ok_w))
+        src = Path(SCRIPT_DIR, "video", "qa.py").read_text(encoding="utf-8")
+        check("qa: subject_overflow_x_0px は動画 rules.SIDE_FROM 以降だけ gate に入り、動画1・2は measure だけ（post-video-pins の読み方は gate の全項目 true のまま）",
+              'gate["subject_overflow_x_0px"] = side_ok' in src and 'data["n"] >= rules.SIDE_FROM' in src
+              and 'measure["subject_overflow_x_0px"]' in src)
+
+        # 5. 動画1・2は対象外（INFO だけ・止めない）。同じ film.json でも動画3なら止まる
+        for n in (1, 2):
+            data_n = json.loads((ROOT / "output" / "videos" / f"video-{n}" / f"video-{n}.film.json").read_text(encoding="utf-8"))
+            ng_n, info_n = script_checks.check_sides(data_n, data_n["n"])
+            ng_3, _ = script_checks.check_sides(data_n, 3)
+            check(f"動画{n}: 横の切れがあっても止めず（NG なし）INFO に回す。動画3として判定すれば NG になる（対象外は番号だけで決まる）",
+                  data_n["n"] == n and ng_n == [] and any("対象外" in x for x in info_n) and len(ng_3) > 0, (len(ng_3), info_n[:1]))
     finally:
         mv.VIDEOS, mv.PIN_LEDGER, mv.advance_pin = saved
         shutil.rmtree(tmp, ignore_errors=True)
@@ -1032,6 +1191,7 @@ def main():
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     test_fingerprint_and_test_mode()
     test_scene_count_and_new_parts()
+    test_side_clip()
     test_image_budget()
     test_external()
     test_parts()

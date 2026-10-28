@@ -16,6 +16,8 @@
         同じ画像へ BLUR_STRONG 未満へ戻す cue が要る。写真の初期のぼかし（photos の blur）は、あとで戻す cue が1つは要る
       ・文字の filter: blur(…) は、fromTo の終わりが blur(0) か、to なら opacity 0 への消え方だけ
       露出（暗くする）の戻しは、場面ごとに戻す先が違うため対象外（見るのは目と qa）
+  (e) 主役（qa_subjects の全行）の外接矩形が画面の横（rules.SIDE）から出ない（film.json が要る・D-0311）
+      カメラの値を rules.simulate で再現して見る。線・宣言（wide）の正本は video/rules.py。意図して画面より大きく写す場面は部品か拍で wide を宣言する
 
 対象は動画 NEW_CHECK_START 以降。それより前の動画は結果を INFO で出すだけで、止めない。
 """
@@ -185,6 +187,24 @@ def check_effects(film_data):
     return ng
 
 
+# ---- (e) 主役の横の切れ（D-0311）
+
+def check_sides(film_data, n=None):
+    """主役（qa_subjects の全行）の外接矩形が画面の横（rules.SIDE）から出ないか。カメラの再現（rules.simulate）で見る。
+    戻り値: (NG の一覧, INFO の一覧)。wide を宣言した行は止めない。動画 rules.SIDE_FROM 未満（n が分かるとき）は NG を INFO に回す。
+    film の段（make-video.py）も同じ関数を呼ぶ（film.json を書く前）"""
+    from video import rules
+    rows = rules.sides_of(film_data)
+    worst = max((r["overflow_px"] for r in rows if not r["wide"]), default=0.0)
+    wide = [r["name"] for r in rows if r["wide"]]
+    info = [f"INFO 主役の横の切れ {worst}px（{len(rows)}行・線 {rules.SIDE_OVERFLOW_PX}px・画面の x {rules.SIDE[0]}〜{rules.SIDE[1]}）"
+            + (f"・wide の宣言 {len(wide)}行: {'・'.join(wide)}" if wide else "")]
+    ng = rules.side_failures(rows)
+    if n is not None and n < rules.SIDE_FROM:
+        return [], info + [f"INFO（動画{n}は対象外・動画{rules.SIDE_FROM}以降） {m}" for m in ng]
+    return ng, info
+
+
 # ---- まとめ
 
 def run(script, film_data, n):
@@ -199,6 +219,9 @@ def run(script, film_data, n):
         if ratio > SAME_TEXT_MAX:
             found.append(f"画面の字のうち声と同じ文言が {ratio:.1%}（{SAME_TEXT_MAX:.0%}以下）。声の言い換えに直す: {'・'.join(same)}")
         found += check_effects(film_data)
+        side_ng, side_info = check_sides(film_data, n)
+        found += side_ng
+        info += side_info
     if n < NEW_CHECK_START:
         return [], info + [f"INFO（動画{n}は対象外・動画{NEW_CHECK_START}以降） {m}" for m in found]
     return found, info
