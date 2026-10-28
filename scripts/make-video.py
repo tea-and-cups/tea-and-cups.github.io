@@ -4,7 +4,8 @@ r"""動画を作る（本運用の入口・D-0300）。部品は site/scripts/vi
 道具と素材（CLI・ffmpeg・ロゴ・参照 WAV・字体・gsap）は実行環境（data/video-runtime.json・D-0299）から引く。
 起動の最初に check-video-runtime.py を呼び、RUNTIME_OK でなければ何もせずに止める。
 作品の場所は output/videos/<動画>/（<動画> はフォルダ名。例: video-1）。中身:
-  script.json（台本）・video-N.film.json（型に差し込む1本ごとのデータ）・prompts/・images/・voice/・work/・composition/・qa/
+  script.json（台本）・video-N.parts.json（部品の並び・動画3以降・D-0307）・video-N.film.json（型に差し込む1本ごとのデータ。動画3以降は parts.json から作る）・
+  prompts/・images/・voice/・work/・composition/・qa/
   work/video-N.raw.mp4（書き出し）・video-N.mp4（faststart の完成）・video-N.qa.json（機械QA）・video-N.build.json（段ごとの記録）
 
 操作:
@@ -17,9 +18,13 @@ r"""動画を作る（本運用の入口・D-0300）。部品は site/scripts/vi
   check-script <動画>              script.json の形と句の字数（1行14字・1画面30字）を確かめ、読み辞書を当てた声の入力を出す（声は作らない）。
                                    動画3以降は、声の最初が問い・終わりの声の形・画面の字と声の同文率・ぼかしの戻しも検査する
                                    （video/script_checks.py・film.json が無い間は台本の分だけ）。build の最初も同じ検査を通る
+  film <動画> [--out DIR]          video-N.parts.json と work/timeline.json から video-N.film.json を作り、部品の要約を出す（video/parts.py）。
+                                   --out は動画フォルダに書かず、DIR に film.json と film.html を書く（検証・見比べ用）。
+                                   動画 PARTS_FROM 未満（動画1・2）は --out なしでは書かない（案Aの film.json のまま）
   build <動画> [--from 段|--only 段] [--redo S3,S4]
-                                   段: voice → images → comp → render → finalize → qa（--from はその段から最後まで、--only はその段だけ）
+                                   段: voice → film → images → comp → render → finalize → qa（--from はその段から最後まで、--only はその段だけ）
                                    voice: 声の無い文（--redo の文は作り直し）だけ TTS → take の選択・末尾の処理・つなぎ → 読み違いの目安
+                                   film: parts.json があれば film.json を作り直し、check-script と同じ検査を通す（無い・動画1・2なら今の film.json のまま）
                                    images: 無い写真だけ gateway で作る → 1440×2160 に整える
                                    comp: 型テンプレート＋video-N.film.json → composition/
                                    render: 全編の書き出し（所要と履歴の増加量を記録）／finalize: faststart だけ／qa: video-N.qa.json
@@ -49,7 +54,7 @@ VIDEOS = ROOT / "output" / "videos"
 POSTS = ROOT / "site" / "src" / "content" / "posts"
 PIN_LEDGER = ROOT / "data" / "video-posted.md"
 BUFFER_LEDGER = ROOT / "data" / "video-buffer-posted.tsv"
-STAGES = ("voice", "images", "comp", "render", "finalize", "qa")
+STAGES = ("voice", "film", "images", "comp", "render", "finalize", "qa")
 LINE_CHARS, SCREEN_CHARS = 14, 30
 
 
@@ -210,8 +215,9 @@ def cmd_next(args):
 
 def script_gate(d, sc, need_film=False):
     """台本と film.json の検査（video/script_checks.py・D-0306）。INFO は出し、NG の一覧を返す。
-    need_film（build の最初）は、動画 NEW_CHECK_START 以降で film.json が無ければ NG にする。"""
-    from video import script_checks
+    need_film（build の最初）は、動画 NEW_CHECK_START 以降で film.json が無ければ NG にする。
+    parts.json がある動画は film.json を voice のあとの film の段で作るので、無くても NG にしない（film の段でこの検査をもう一度通す）。"""
+    from video import parts, script_checks
     n = number(d)
     films = sorted(d.glob("video-*.film.json"))
     film_data = json.loads(films[0].read_text(encoding="utf-8")) if films else None
@@ -219,8 +225,48 @@ def script_gate(d, sc, need_film=False):
     for line in info:
         print(line)
     if need_film and film_data is None and n >= script_checks.NEW_CHECK_START:
-        ng.append(f"video-{n}.film.json が無い（画面の字の同文率・戻し手順を検査できない）")
+        if parts.parts_path(d).exists():
+            print(f"INFO video-{n}.film.json は film の段で {parts.parts_path(d).name} から作り、その段で同文率・戻し手順を検査する")
+        else:
+            ng.append(f"video-{n}.film.json が無い（画面の字の同文率・戻し手順を検査できない）")
     return ng
+
+
+# ---- film（部品の定義から film.json）
+
+def compile_parts(d):
+    """parts.json と timeline.json から film.json のデータと部品の要約を作る（書かない）。返り値: (データ, 要約)"""
+    from video import parts
+    try:
+        return parts.compile_film(*parts.load(d))
+    except (parts.PartsError, KeyError) as e:
+        raise SystemExit(f"parts.json から film.json を作れない: {e}")
+
+
+def cmd_film(args):
+    from video import film, parts
+    d = video_dir(args.video)
+    if not parts.parts_path(d).exists():
+        print(f"{parts.parts_path(d).name} が無い（output/videos/{d.name}/）")
+        return 1
+    n = number(d)
+    if not args.out and n < parts.PARTS_FROM:
+        print(f"拒否: 動画{n}は案Aの作りのまま（parts.json から film.json を作り直さない・PARTS_FROM {parts.PARTS_FROM}）。見比べるときは --out DIR")
+        return 1
+    data, summary = compile_parts(d)
+    for ln in parts.summary_lines(summary):
+        print(ln)
+    if args.out:
+        out = Path(args.out)
+        out.mkdir(parents=True, exist_ok=True)
+        (out / f"video-{n}.film.json").write_text(parts.dump(data), encoding="utf-8")
+        (out / "film.html").write_text(film.render_film(data), encoding="utf-8", newline="\r\n")
+        print(f"WROTE {out / f'video-{n}.film.json'}・{out / 'film.html'}（{runtime_sha(out / 'film.html')}）")
+    else:
+        p = d / f"video-{n}.film.json"
+        p.write_text(parts.dump(data), encoding="utf-8")
+        print(f"WROTE {p.relative_to(ROOT)}（{runtime_sha(p)}）")
+    return 0
 
 
 def cmd_check_script(args):
@@ -280,6 +326,27 @@ def stage_voice(d, rt, args):
     return rec
 
 
+def stage_film(d, rt, args):
+    from video import parts
+    n = number(d)
+    if not parts.parts_path(d).exists() or n < parts.PARTS_FROM:
+        why = "parts.json が無い" if not parts.parts_path(d).exists() else f"動画{n}は案Aの作り（PARTS_FROM {parts.PARTS_FROM} 未満）"
+        print(f"film: {why}。今の video-{n}.film.json を使う")
+        return {"source": "film.json"}
+    data, summary = compile_parts(d)
+    p = d / f"video-{n}.film.json"
+    p.write_text(parts.dump(data), encoding="utf-8")
+    for ln in parts.summary_lines(summary):
+        print(f"film: {ln}")
+    print(f"film: {p.name} {runtime_sha(p)}（{parts.parts_path(d).name} から）")
+    ng = script_gate(d, json.loads((d / "script.json").read_text(encoding="utf-8")), need_film=True)
+    if ng:
+        for m in ng:
+            print("NG", m)
+        raise SystemExit(f"台本・film.json の検査に不合格（{len(ng)}件・check-script と同じ検査）")
+    return {"source": "parts.json", "film_json": runtime_sha(p)}
+
+
 def stage_images(d, rt, args):
     from video import film, images
     n = number(d)
@@ -334,7 +401,7 @@ def stage_qa(d, rt, args):
     return {"passed": res["passed"], "failed": bad, "mp4_sha256": res["mp4_sha256"]}
 
 
-STAGE_FN = {"voice": stage_voice, "images": stage_images, "comp": stage_comp, "render": stage_render,
+STAGE_FN = {"voice": stage_voice, "film": stage_film, "images": stage_images, "comp": stage_comp, "render": stage_render,
             "finalize": stage_finalize, "qa": stage_qa}
 
 
@@ -406,6 +473,10 @@ def cmd_status(args, rt):
     dur = json.loads(tl.read_text(encoding="utf-8"))["duration"] if tl.exists() else None
     line("voice", f"narration.wav {runtime_sha(d / 'work' / 'narration.wav') or '無し'}・長さ {dur}秒"
          + (f"・印 {last['voice'].get('tail_loud')}" if "voice" in last else ""))
+    from video import parts
+    fj = d / f"video-{n}.film.json"
+    src = f"{parts.parts_path(d).name} から作る" if parts.parts_path(d).exists() and n >= parts.PARTS_FROM else "案A（手で作った film.json）"
+    line("film", f"{fj.name} {runtime_sha(fj) or '無し'}・{src}")
     imgs = sorted(x.name for x in (d / "work" / "img").glob("*.jpg")) if (d / "work" / "img").exists() else []
     line("images", f"work/img {len(imgs)}枚 {imgs}")
     line("comp", f"film.html {runtime_sha(d / 'composition' / 'compositions' / 'film.html') or '無し'}・"
@@ -467,6 +538,9 @@ def main():
     a.add_argument("--date", metavar="YYYY-MM-DD")
     a = sub.add_parser("check-script")
     a.add_argument("video")
+    a = sub.add_parser("film")
+    a.add_argument("video")
+    a.add_argument("--out", metavar="DIR")
     a = sub.add_parser("build")
     a.add_argument("video")
     a.add_argument("--from", dest="from_", choices=STAGES)
@@ -488,6 +562,8 @@ def main():
         return cmd_next(args)
     if args.cmd == "check-script":
         return cmd_check_script(args)
+    if args.cmd == "film":
+        return cmd_film(args)
     if args.cmd == "build":
         return cmd_build(args, rt)
     if args.cmd == "status":

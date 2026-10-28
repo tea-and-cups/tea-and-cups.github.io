@@ -31,6 +31,7 @@ FILM_TEMPLATE = TEMPLATES / "film-planA.html"
 INDEX_TEMPLATE = TEMPLATES / "index.html"
 CAMS = ("b-mug", "b-col", "t-aft", "f-gift")
 SECTIONS = ("A", "B", "C", "D", "E", "F", "G")
+CONST_SECTIONS = ("E", "F", "G", "H")   # 区間の始まりを JS の定数（E0 など）に持つ区間。cues の秒は「E0 + 0.25」の式で書ける
 CREDIT = "画像・文・ナレーション　AIの紅茶案内人"   # AI表示の文言（型の定数。qa が画面の字と照合する）
 LOGO_D, LOGO_CX, LOGO_CY = 520, 540, 960       # エンドカードのロゴ（直径・中心）
 # 点（lead の circle）: 明るい中の半径と、その外に足す濃い縁取りの太さ（どちらも lead の r に対する比）。
@@ -261,7 +262,7 @@ def render_film(data, template=None):
         "credit": CREDIT,
         "timeline_label": data["timeline_label"],
         "sections": " / ".join(f"{k} {js_value(sec[k])}" for k in (*SECTIONS, "H")),
-        "consts": ", ".join(f"{k}0 = {js_value(sec[k])}" for k in ("E", "F", "G", "H")),
+        "consts": ", ".join(f"{k}0 = {js_value(sec[k])}" for k in CONST_SECTIONS),
         "H0": js_value(sec["H"]),
         "cover": indent([f'gsap.set("{c}", {js_vars(v)});' for c, v in data["cover"].items()]),
         "hidden": indent(["gsap.set([" + (",\n" + "    ").join(", ".join(json.dumps(x, ensure_ascii=False) for x in ln) for ln in data["hidden"])

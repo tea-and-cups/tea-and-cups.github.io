@@ -12,6 +12,9 @@ r"""make-video.py の部品（site/scripts/video/）のテスト。読むだけ�
    （合成したコマで、中も縁取りも背景に近いと不合格・濃い縁取りか明るい中のどちらかが背景と離れていれば合格・lead の書き漏れは不合格）。
    点は中の大きさを変えずに縁取りを外へ足す形で描かれる。
 7. 題材の候補（make-video.py next・D-0305）: 窓の内側・外側、投稿済み・制作中の除外、0件、並び順、--create の拒否と範囲外の注意（メモリ上のデータだけ）。
+8. 部品の形（D-0307）: 動画2を部品の形で書き直した video-2.parts.json から作った film.json が、qa の表と注釈を除いて今の video-2.film.json と同じで、
+   film.html が今の composition の film.html とバイト単位で同じ。部品から作った qa の3つの表が手書きの表と同じ（違いは名前・句の頭でない声の秒・
+   区間の 0.1秒以内・点を測る秒の 0.15秒以内だけで、gate の結果は同じ）。時刻の書き方・割り方とつなぎの検査・動画1・2の film.json を書き換えない守り。
 
 使い方: python site/scripts/test-make-video.py
 終了コード: 全件合格で0、1件でも不合格で1
@@ -395,9 +398,106 @@ def test_script_checks():
     check("film.json が無い間は台本の分（b・c）だけ検査し、(a)(d) は後で検査すると INFO で出す", len(ng_none) >= 4 and any("film.json がまだ無い" in m for m in info_none), (ng_none, info_none))
 
 
+def test_parts():
+    """部品の形（video/parts.py・D-0307）。動画2の定義から作った film.json・film.html・qa の表を今のものと比べる。ファイルには書かない。"""
+    from decimal import Decimal
+    from video import parts, qa, script_checks
+    if not (VIDEO2 / "video-2.parts.json").exists() or not (VIDEO2 / "work" / "timeline.json").exists():
+        print("SKIP 部品の形: video-2.parts.json か timeline.json が無い")
+        return
+    hand = json.loads((VIDEO2 / "video-2.film.json").read_text(encoding="utf-8"))
+    defn, tl, sc = parts.load(VIDEO2)
+    gen, summary = parts.compile_film(defn, tl, sc)
+    keys = [k for k in hand if not k.startswith("qa_") and k != "_comment"]
+    check("部品の形: 動画2の film.json は qa の表と注釈を除いて今と同じ（cues・字・写真の点・隠す字・区間の秒）",
+          list(gen) == list(hand) and all(gen[k] == hand[k] for k in keys), [k for k in keys if gen[k] != hand[k]])
+    comp = (VIDEO2 / "composition" / "compositions" / "film.html").read_bytes()
+    check("部品の形: 作った film.html が今の composition の film.html とバイト単位で同じ",
+          film.render_film(gen).replace("\n", "\r\n").encode("utf-8") == comp)
+    check("部品の形: 部品は8つ（A〜H）で、最後はエンドカード", [s["letter"] for s in summary] == list("ABCDEFGH") and summary[-1]["scene"] == "endcard")
+
+    # qa_text_sync: 予定秒と領域は同じ。声は句の頭で指したときの句（カードの2・3枚目は句の途中の語なので句の頭 11.8 になる）。名前は id で始まる
+    th, tg = hand["qa_text_sync"][1:], gen["qa_text_sync"][1:]
+    voice_diff = [g[0] for h, g in zip(th, tg) if h[2] != g[2]]
+    check("qa_text_sync: 行の数・予定秒・領域が手書きと同じ。名前は同じ id で始まる",
+          len(th) == len(tg) and all(h[1] == g[1] and h[3] == g[3] and g[0].split()[0] == h[0].split()[0].split("（")[0] for h, g in zip(th, tg)))
+    check("qa_text_sync: 声の句の頭が違うのはカードの2・3枚目だけ（句の頭 11.8）", voice_diff == ["card2 2軽さ", "card3 3種類"]
+          and all(g[2] == 11.8 for g in tg if g[0] in voice_diff), voice_diff)
+    # qa_subjects: カメラ・矩形・参考の印は同じ。区間は 0.1秒以内の差で、gate の結果と余白は同じ
+    ch = rules.constants(hand)
+    sh, sg = hand["qa_subjects"][1:], gen["qa_subjects"][1:]
+    window_ok = all(abs(rules.ev(h[3], ch) - g[3]) <= 0.1 + 1e-9 and abs(rules.ev(h[4], ch) - g[4]) <= 0.1 + 1e-9 for h, g in zip(sh, sg))
+    check("qa_subjects: カメラ・主役の矩形・参考の印が同じで、区間の差は 0.1秒以内",
+          len(sh) == len(sg) and window_ok and all(h[1:3] == g[1:3] and (len(h) > 5) == (len(g) > 5) for h, g in zip(sh, sg)))
+    traj = rules.simulate(hand, tl["duration"])
+    rh, rg = rules.subjects(hand, traj), rules.subjects(gen, traj)
+    check("qa_subjects: 主役が帯の中（r7_subject_in_band）・はみ出し 0px の結果が手書きと同じ",
+          [r["ok"] for r in rh] == [r["ok"] for r in rg] and qa.overflow_check(rh)[0] == qa.overflow_check(rg)[0] is True
+          and all(abs(a["band_worst"] - b["band_worst"]) <= 0.5 for a, b in zip(rh, rg)))
+    # qa_points: 名前とカメラは同じ。測る秒は点・線・光の範囲が出きった時（手書きとの差は 0.15秒以内）。端切れなし
+    ph = {r[0]: r for r in hand["qa_points"][1:]}
+    pg = gen["qa_points"][1:]
+    check("qa_points: 点の名前とカメラが手書きと同じで、測る秒の差は 0.15秒以内",
+          sorted(ph) == sorted(r[0] for r in pg) and all(ph[r[0]][1] == r[1] and abs(ph[r[0]][2] - r[2]) <= 0.15 for r in pg), str(pg))
+    check("qa_points: 部品から作った秒で点が端で切れていない",
+          not any(rules.point_geometry(gen, traj, r[0], r[1], r[2])["clipped"] for r in pg))
+    # 案Aの物差し（script_checks・rules）は部品の形でも同じ値
+    sj = json.loads((VIDEO2 / "script.json").read_text(encoding="utf-8"))
+    check("script_checks の screen_units・blur_events・同文率と rules の字数・見出しの字・カメラの再現が、部品の形でも同じ値",
+          script_checks.screen_units(gen, sj) == script_checks.screen_units(hand, sj) and script_checks.blur_events(gen) == script_checks.blur_events(hand)
+          and script_checks.same_text_ratio(gen, sj) == script_checks.same_text_ratio(hand, sj)
+          and rules.screens(gen, tl["duration"], film.CREDIT)[0] == rules.screens(hand, tl["duration"], film.CREDIT)[0]
+          and rules.head_text(gen) == rules.head_text(hand) and rules.simulate(gen, tl["duration"]) == traj)
+
+    # 時刻の書き方
+    e = parts.Ctx(tl, (Decimal("23.25"), Decimal("36.30")), "E", {"ES": Decimal("30.00")})
+    dd = parts.Ctx(tl, (Decimal("14.32"), Decimal("23.25")), "D", {"DS": Decimal("19.63")})
+    check("時刻: 句の頭±秒・文の終わり・区間の始まり（型の定数がある区間は式）・終わり・mark",
+          dd.t("S4.p3-0.26") == 17.35 and e.t("S7.end+0.45") == 48.73 and e.t("start+0.25") == "E0 + 0.25" and e.t("start-0.1") == "E0 - 0.1"
+          and dd.t("start+0.05") == 14.37 and dd.t("end-0.25") == 23.0 and dd.t("DS+0.8") == "DS + 0.8" and e.t("S5.p2") == 24.093
+          and e.ref("S4.p3+0.08").voice == Decimal("17.61"))
+    for bad in ("S9.p1", "S4.p9", "DX", "17.35", "S4.p3*2"):
+        try:
+            dd.t(bad)
+            ok = False
+        except parts.PartsError:
+            ok = True
+        check(f"時刻: 書けない形・無い句・決めていない mark は止まる: {bad}", ok)
+    # 割り方とつなぎ
+    def broken(edit):
+        d2 = json.loads(json.dumps(defn))
+        edit(d2)
+        try:
+            parts.compile_film(d2, tl, sc)
+            return None
+        except parts.PartsError as ex:
+            return str(ex)
+    msgs = {"部品の数": broken(lambda x: x["parts"].pop(2)),
+            "つなぎの向き": broken(lambda x: x["parts"][1]["beats"][0].update({"fx": "wipe", "top": {"cam": "#t-aft", "from": {}, "to": {}},
+                                                                               "bot": {"cam": "#b-mug", "from": {}, "to": {}}})),
+            "つなぎ無しで割り方が変わる": broken(lambda x: x["parts"][3]["beats"].pop(0)),
+            "見えないカメラ": broken(lambda x: x["parts"][2]["beats"].append({"cam": "#t-aft", "to": {"x": 0}, "d": 1, "ease": "none", "at": "start"})),
+            "カメラを tween で書く": broken(lambda x: x["parts"][2]["beats"].append({"tween": "#f-gift", "v": {"x": 0}, "at": "start"})),
+            "始まりが前の部品より前": broken(lambda x: x["parts"][4].update({"start": "S3.p1"}))}
+    check("部品の検査: 部品の数・つなぎの向き・つなぎ無しの割り方の変化・見えないカメラ・カメラの tween・始まりの順は止まる",
+          all(msgs.values()), {k: (v or "")[:40] for k, v in msgs.items()})
+    # 動画1・2は案Aの film.json のまま（film の段・film の操作は書かない）
+    import argparse
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("make_video", os.path.join(SCRIPT_DIR, "make-video.py"))
+    mv = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mv)
+    before = (VIDEO2 / "video-2.film.json").read_bytes()
+    rec = mv.stage_film(VIDEO2, None, None)
+    rc = mv.cmd_film(argparse.Namespace(video="video-2", out=None))
+    check("動画2: film の段は今の film.json を使い、film の操作も --out なしでは書かない（PARTS_FROM 3）",
+          parts.PARTS_FROM == 3 and rec == {"source": "film.json"} and rc == 1 and (VIDEO2 / "video-2.film.json").read_bytes() == before)
+
+
 def main():
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    test_parts()
     test_script_checks()
     test_next_candidates()
     test_candidates()
