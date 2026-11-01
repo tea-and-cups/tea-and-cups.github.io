@@ -26,7 +26,7 @@ category: tea-leaves
 |---|---|---|---|
 | [フォション アールグレイ](#1-フォション-special-earl-grey-tea缶入り125g-ベルガモットの華やかな香りを楽しみたい方に) | 缶入り茶葉 | ベルガモットを効かせた華やかな香り | 定番のアールグレイを本格的に楽しみたい方 |
 | [S&B フォション ダージリン](#2-sb-フォション-ダージリン-茶葉缶125g--すっきりした渋みを楽しみたい方に) | 缶入り茶葉 | すっきりした渋みと上品な香り | ストレートで紅茶らしい味わいを求める方 |
-| [ハーニー&サンズ ホット・シナモン・サンセット](#3-ハーニーサンズ-ホットシナモンサンセットタガロング-お試しサイズでスパイスの香りを試したい方に) | ティーバッグ（お試し5包） | シナモン・オレンジ・クローブの華やかな香り | まず少量で試したい方 |
+| [ハーニー&サンズ ホット・シナモン・スパイス](#3-ハーニーサンズ-ホットシナモンスパイスタガロング-お試しサイズでスパイスの香りを試したい方に) | ティーバッグ（お試し5包） | シナモン系のスパイシーな香り（シリーズの特徴） | まず少量で試したい方 |
 | [ハーニー&サンズ デカフェ・ホット・シナモン](#4-ハーニーサンズ-デカフェホットシナモン-ティーバッグ40g20個-カフェインを控えたい方に) | ティーバッグ（20包） | シナモン系フレーバーのデカフェ版 | 夜でもフレーバードティーを楽しみたい方 |
 
 ### 1. フォション Special Earl Grey Tea（缶入り125g）— ベルガモットの華やかな香りを楽しみたい方に
@@ -41,21 +41,21 @@ category: tea-leaves
 
 ### 2. S&B フォション ダージリン 茶葉缶125g — すっきりした渋みを楽しみたい方に
 
-同じくフォションのダージリンは、エスビー食品が国内向けに正規展開している商品です。フレーバーを効かせたアールグレイとは対照的に、ダージリンならではのすっきりした渋みと上品な香りを楽しめます。フレーバードティーが多いラインナップの中で、紅茶そのものの味わいを求める方に向いています。
+同じくフォションのダージリンは、エスビー食品の商品として国内向けに販売されています。フレーバーを効かせたアールグレイとは対照的に、ダージリンならではのすっきりした渋みと上品な香りを楽しめます。フレーバードティーが多いラインナップの中で、紅茶そのものの味わいを求める方に向いています。
 
 [![S&B フォション ダージリン 茶葉缶125g](/images/fauchon-harney-sons-kaigai-koucha-brand/products/2.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824dfb2.b82366ea.5824dfb3.30c7ecba/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fe-sbfoods%2F11536%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 ★4.60（5件） [S&B フォション ダージリン 茶葉缶125gはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824dfb2.b82366ea.5824dfb3.30c7ecba/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fe-sbfoods%2F11536%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-レビュー件数は5件と少なめですが、国内向けに正規展開されている商品なので、国内で入手しやすい点は選びやすさにつながっています。
+レビュー件数は5件と少なめですが、国内向けに販売されている商品なので、国内で入手しやすい点は選びやすさにつながっています。
 
-### 3. ハーニー&サンズ ホット・シナモン・サンセット（タガロング）— お試しサイズでスパイスの香りを試したい方に
+### 3. ハーニー&サンズ ホット・シナモン・スパイス（タガロング）— お試しサイズでスパイスの香りを試したい方に
 
-ハーニー&サンズは1983年、ジョン・ハーニーがアメリカ・コネチカット州で創業した紅茶ブランドです（参考: [Harney & Sons - Wikipedia](https://en.wikipedia.org/wiki/Harney_%26_Sons)）。看板商品の「ホット・シナモン・スパイス」シリーズは、シナモン・オレンジ・クローブを重ねた華やかな香りが特徴で、このタガロングは5包入りのお試しサイズです。本格サイズを試す前に香りの系統が好みに合うか確認したい方に向いています。
+ハーニー&サンズは1983年、ジョン・ハーニーがアメリカ・コネチカット州で創業した紅茶ブランドです（参考: [Harney & Sons - Wikipedia](https://en.wikipedia.org/wiki/Harney_%26_Sons)）。看板商品の「ホット・シナモン・スパイス」シリーズは、シナモン・オレンジ・クローブを重ねた華やかな香りが特徴で、このタガロングは5包入りのお試しサイズです。なお、掲載している商品画像のパッケージ表記は「Hot Cinnamon Sunset」ですが、販売ページの商品名は「ホット・シナモン・スパイス タガロング」です。本格サイズを試す前に香りの系統が好みに合うか確認したい方に向いています。
 
-[![ハーニー&サンズ ホット・シナモン・サンセット タガロング 5包](/images/fauchon-harney-sons-kaigai-koucha-brand/products/3.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824dfcc.a5b3e7b6.5824dfcd.236167e5/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fharney%2Fhar-003-0004%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
+[![ハーニー&サンズ ホット・シナモン・スパイス タガロング 5包](/images/fauchon-harney-sons-kaigai-koucha-brand/products/3.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824dfcc.a5b3e7b6.5824dfcd.236167e5/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fharney%2Fhar-003-0004%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.29（14件） [ハーニー&サンズ ホット・シナモン・サンセット タガロング 5包はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824dfcc.a5b3e7b6.5824dfcd.236167e5/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fharney%2Fhar-003-0004%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
+★4.29（14件） [ハーニー&サンズ ホット・シナモン・スパイス タガロング 5包はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824dfcc.a5b3e7b6.5824dfcd.236167e5/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fharney%2Fhar-003-0004%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 まずは少量でスパイスの香りの強さを確かめたい方は、このお試しサイズから始めてみてください。
 
@@ -71,7 +71,7 @@ category: tea-leaves
 
 ## 海外ブランドの紅茶を美味しく楽しむコツ
 
-- **缶入り茶葉は密閉して保管する** — フォションのような缶入り茶葉は、開封後は缶のふたをしっかり閉め、直射日光と湿気を避けた場所で保管すると香りが長持ちするといわれています。
+- **缶入り茶葉は密閉して保管する** — 開封後の保存について、リプトンは「高温多湿を避け、暗所で保存してください」「密閉した状態で、においの強いものを避けて保存してください」と案内しています（出典: [よくあるご質問／リプトン](https://www.lipton.jp/ja/FAQ/)）。フォションなど他社の缶入り茶葉は、パッケージの保存方法の表示を優先します。
 - **フレーバードティーは蒸らし時間を守る** — ハーニー&サンズのようなフレーバードティーバッグは、パッケージ記載の蒸らし時間を守ることで、香りと味わいのバランスが取りやすくなります。長く蒸らしすぎると香りが強く出すぎることがあります。
 - **ミルクとの相性も試す** — アールグレイやシナモン系のフレーバードティーは、ストレートだけでなくミルクティーにしても香りが引き立ちやすい組み合わせです。
 
