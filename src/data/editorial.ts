@@ -37,7 +37,7 @@ export const CATEGORY_EDITORIAL = {
   gift: {
     spokes: ['pair-cup-saucer-kekkonjoshii-tanjoubi-hikaku', 'twg-tea-gift-koucha-erabikata'],
     seasonal: [
-      { slug: 'zansho-mimai-koucha-gift', from: '06-17', to: '08-01' },
+      { slug: 'zansho-mimai-koucha-gift', from: '07-15', to: '08-31' },
       { slug: 'kisei-temiyage-koucha-gift', from: '06-29', to: '08-13' },
       { slug: 'keirounohi-koucha-gift', from: '08-01', to: '09-15' },
       { slug: 'shichigosan-uchiiwai-koucha-gift', from: '10-15', to: '11-30' },
@@ -51,14 +51,15 @@ export const CATEGORY_EDITORIAL = {
     featured: 'twg-tea-gift-koucha-erabikata',
   },
   seasons: {
-    spokes: ['koucha-no-hi-yurai'],
+    spokes: [],
     seasonal: [
       { slug: 'natsumatsuri-hanabi-suitou-icetea', from: '07-01', to: '08-31' },
       { slug: 'bousai-koucha-teabag-erabikata', from: '07-18', to: '09-01' },
-      { slug: 'otsukimi-wakoucha-tsukimi-dango', from: '07-24', to: '09-07' },
+      { slug: 'otsukimi-wakoucha-tsukimi-dango', from: '08-10', to: '09-30' },
+      { slug: 'koucha-no-hi-yurai', from: '09-17', to: '11-01' },
       { slug: 'halloween-ouchi-ochakai-noncaffeine', from: '09-16', to: '10-31' },
-      { slug: 'stollen-koucha-pairing', from: '10-15', to: '11-29' },
-      { slug: 'koucha-advent-calendar-erabikata', from: '10-17', to: '12-01' },
+      { slug: 'stollen-koucha-pairing', from: '10-15', to: '12-25' },
+      { slug: 'koucha-advent-calendar-erabikata', from: '10-17', to: '12-10' },
       { slug: 'toji-yuzu-koucha-oyatsu', from: '11-06', to: '12-21' },
       { slug: 'christmas-cake-ni-au-koucha-erabikata', from: '11-10', to: '12-25' },
       { slug: 'nonaru-hotwine-fu-koucha', from: '11-10', to: '12-25' },

@@ -261,7 +261,7 @@ def group_build():
         original = f.read()
     text = original.decode("utf-8")
     cases = [
-        ("期間の形の崩れ（06-17 → 6-17）", "from: '06-17'", "from: '6-17'"),
+        ("期間の形の崩れ（07-15 → 7-15）", "from: '07-15'", "from: '7-15'"),
         ("公開されていない slug", "slug: 'zansho-mimai-koucha-gift'", "slug: 'no-such-article'"),
         ("ほかのカテゴリの slug", "slug: 'zansho-mimai-koucha-gift'", "slug: 'assam-tea-nyumon'"),
         ("seasonal のないカテゴリの spokes が4本", "'assam-tea-nyumon', ", ""),
