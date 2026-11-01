@@ -377,8 +377,10 @@ def main():
         monthly = gw.REQUIRED_SUMMARY_SECTIONS_BY_MODE["monthly"]
         check("gateway: 週次まとめの必須節は 要約・実験の判定・新しい実験の提案・誠実さの重大な指摘・評価できなかったもの",
               weekly == ("## 要約", "## 実験の判定", "## 新しい実験の提案", "## 誠実さの重大な指摘", "## 評価できなかったもの"))
-        check("gateway: 月次まとめは週次の5節＋来月の作業キュー案・監査範囲",
-              monthly == weekly + ("## 来月の作業キュー案", "## 監査範囲"))
+        check("gateway: 月次まとめは週次の5節＋到達数の振り返り・来月のチャネル配分・前月の作業キューの結果・"
+              "来月の作業キュー案・サイト改善の提案・監査範囲（この順・2026-11-01）",
+              monthly == weekly + ("## 到達数の振り返り", "## 来月のチャネル配分", "## 前月の作業キューの結果",
+                                   "## 来月の作業キュー案", "## サイト改善の提案", "## 監査範囲"))
         check("gateway: 区切りの必須節は 所見・部分監査範囲 だけ（遵守確認（部分）は無い）",
               gw.REQUIRED_PART_SECTIONS_BY_MODE == {"weekly": ("## 所見", "## 部分監査範囲"),
                                                     "monthly": ("## 所見", "## 部分監査範囲")})
@@ -389,9 +391,16 @@ def main():
         check("gateway: 旧形式（改善指示・遵守確認）の週次ダミーは無効",
               section_check(("## 要約", "## 改善指示", "## 前回採用した指示の遵守確認", "## 評価できなかったもの",
                              "## 成長の判断に足りなかった情報"), weekly) == (False, "missing_sections"))
-        check("gateway: 月次の7節がそろったダミーは有効", section_check(monthly, monthly) == (True, "ok"))
-        check("gateway: 月次で 来月の作業キュー案 が無いダミーは無効",
-              section_check(monthly[:-2] + ("## 監査範囲",), monthly) == (False, "missing_sections"))
+        check("gateway: 月次の11節がそろったダミーは有効", section_check(monthly, monthly) == (True, "ok"))
+        for missing in monthly[len(weekly):]:
+            check("gateway: 月次で %s が無いダミーは無効" % missing,
+                  section_check([h for h in monthly if h != missing], monthly) == (False, "missing_sections"))
+        mprompt = (Path(gw.PROJECT_ROOT) / "growth" / "prompts" / "monthly-audit.md").read_text(encoding="utf-8")
+        check("gateway: 月次まとめのプロンプトは11節をこの順で指示し、作業キューのタグを CTR改修・新規記事執筆 に限る",
+              "要約・実験の判定・新しい実験の提案・誠実さの重大な指摘・評価できなかったもの・到達数の振り返り・" in mprompt
+              and "来月のチャネル配分・前月の作業キューの結果・来月の作業キュー案・サイト改善の提案・監査範囲" in mprompt
+              and "CTR改修 か 新規記事執筆 のどちらか" in mprompt and "誠実さの修正は、この表に入れない" in mprompt
+              and "Q番号\tタグ\tslug\tcategory\tGD番号\t内容\t対象指標\t根拠" in mprompt)
         check("gateway: 遵守確認の台帳を読む定数・関数が残っていない",
               not any(hasattr(gw, n) for n in ("GROWTH_LEDGER_PATH", "_ledger_adopted_rows", "_check_compliance",
                                                "_weekly_compliance_plan")))

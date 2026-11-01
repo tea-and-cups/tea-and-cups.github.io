@@ -9,12 +9,15 @@ r"""月次監査の「## 来月の作業キュー案」を読み、採用され�
 
 読み取る表（growth/prompts/monthly-audit.md が出力の形を指示する）:
   「## 来月の作業キュー案」節に、タブ区切りの表を1つ。1行目は列名の行。
-    Q番号 ／ タグ ／ slug ／ category ／ GD番号 ／ 内容 ／ 根拠
+    Q番号 ／ タグ ／ slug ／ category ／ GD番号 ／ 内容 ／ 対象指標 ／ 根拠
   - Q番号: Q-1 の形・重複なし
-  - タグ: 新規記事執筆・改修・改修+画像 のどれか
+  - タグ: 新規記事執筆・改修・改修+画像・CTR改修 のどれか（2026-11-01以降の月次監査が出すのは
+    CTR改修 と 新規記事執筆 だけ。CTR改修 は title・description だけの変更で、rotate-today-tasks.py の
+    REVISE_TAG_RE に当たらないため改修の月4本の上限に数えない・印も付けない）
   - slug・category: 半角英小文字・数字・ハイフン
   - GD番号: GD-NNNN か、無ければ -
   - 内容・根拠: 空でない1行（内容に「（上限外）」「[M-nn]」を書かない）
+  - 対象指標: TARGET_METRICS のどれか（前月の作業キューの結果を見る指標）
   コードブロックの囲み（```）と空行は読み飛ばす。それ以外の行はすべて表の行として検査する。
 
 書き込む行の形（rotate-today-tasks.py の解析に合わせる）:
@@ -34,6 +37,10 @@ r"""月次監査の「## 来月の作業キュー案」を読み、採用され�
   - 月マーカー（<!-- month: YYYY-MM -->）が実行月と違えば、何も書かずに終了コード1。
     （月の繰越しは rotate-today-tasks.py が開始時に行う。繰越し前の節へ書かないため）
   - 改修の月4本の上限はここでは制御しない（rotate-today-tasks.py が担う・D-0273）。
+  - 台帳: 書き込んだ行を data/monthly-queue.tsv（このスクリプトだけが書く・2026-11-01）へ1行ずつ
+    追記する。列は LEDGER_COLUMNS（M番号・採用日・監査パス・Q番号・タグ・slug・対象指標・基準値）。
+    完了日は書かない（翌月の月次で codex-gateway.py が site/ の git log・記事の date から導く）。
+    基準値は任意で、このスクリプトは「-」を書く。重複で飛ばした候補は書かない。
 
 出力:
   --list  : 候補を、書き込まれる行の形（M番号を除く）と根拠で1件1行に表示する。
@@ -44,9 +51,10 @@ r"""月次監査の「## 来月の作業キュー案」を読み、採用され�
 使い方:
   python site/scripts/add-monthly-tasks.py --list <監査出力のパス>
   python site/scripts/add-monthly-tasks.py --adopt Q-1,Q-3 --from <監査出力のパス>
-  検証用（省略時は docs/tasks.md・実行日）:
+  検証用（省略時は docs/tasks.md・data/monthly-queue.tsv・実行日）:
     --tasks <パス>      書き込み先を差し替える
-    --date YYYY-MM-DD   実行日を差し替える（月マーカーとの照合に使う）
+    --ledger <パス>     台帳を差し替える
+    --date YYYY-MM-DD   実行日を差し替える（月マーカーとの照合と、台帳の採用日に使う）
 """
 
 import argparse
@@ -60,6 +68,7 @@ import sys
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(SCRIPT_DIR))
 TASKS_MD = os.path.join(ROOT, "docs", "tasks.md")
+LEDGER_TSV = os.path.join(ROOT, "data", "monthly-queue.tsv")
 
 # 今月節の見出し・月マーカー・完了行の判定・「（上限外）」の印は rotate-today-tasks.py を
 # 唯一の定義元とする（ファイル名にハイフンを含むため importlib で読み込む）。
@@ -70,10 +79,15 @@ rotate = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(rotate)
 
 QUEUE_HEADING = "## 来月の作業キュー案"
-COLUMNS = ["Q番号", "タグ", "slug", "category", "GD番号", "内容", "根拠"]
+COLUMNS = ["Q番号", "タグ", "slug", "category", "GD番号", "内容", "対象指標", "根拠"]
 NEW_ARTICLE_TAG = "新規記事執筆"
-TAGS = (NEW_ARTICLE_TAG, "改修", "改修+画像")
+CTR_REVISE_TAG = "CTR改修"
+TAGS = (NEW_ARTICLE_TAG, "改修", "改修+画像", CTR_REVISE_TAG)
 NO_GD = "-"
+# 前月の作業キューの結果（codex-gateway.py の prev-queue-results.md）で見る GSC ページ指標。
+TARGET_METRICS = ("gsc-ctr-28d", "gsc-impr-28d", "gsc-clicks-28d")
+# 前月の作業キューの台帳（書き手はこのスクリプトだけ）の列。codex-gateway.py の MONTHLY_QUEUE_COLUMNS と同じ。
+LEDGER_COLUMNS = ["M番号", "採用日", "監査パス", "Q番号", "タグ", "slug", "対象指標", "基準値"]
 
 # 改修の月4本の上限に数えない行（D-0273）を決める GD番号。該当する行にだけ「（上限外）」を付ける。
 UNCAPPED_GD = {"GD-0033"}
@@ -127,8 +141,8 @@ def parse_queue(text):
 
     header_no, header = rows[0]
     if [cell.strip() for cell in header.split("\t")] != COLUMNS:
-        return [], ["行%d: 列名の行が違います（タブ区切りで「%s」の7列）"
-                    % (header_no, "／".join(COLUMNS))]
+        return [], ["行%d: 列名の行が違います（タブ区切りで「%s」の%d列）"
+                    % (header_no, "／".join(COLUMNS), len(COLUMNS))]
 
     candidates = []
     errors = []
@@ -138,7 +152,7 @@ def parse_queue(text):
         if len(cells) != len(COLUMNS):
             errors.append("行%d: 列数が%d（タブ区切りで%d列）" % (line_no, len(cells), len(COLUMNS)))
             continue
-        q, tag, slug, category, gd, content, basis = cells
+        q, tag, slug, category, gd, content, metric, basis = cells
         problems = []
         if not Q_RE.match(q):
             problems.append("Q番号「%s」が Q-1 の形でない" % q)
@@ -156,6 +170,8 @@ def parse_queue(text):
             problems.append("内容が空")
         elif rotate.REVISE_EXEMPT_SUFFIX in content or M_NUMBER_RE.search(content):
             problems.append("内容に「%s」または [M-nn] が書かれている" % rotate.REVISE_EXEMPT_SUFFIX)
+        if metric not in TARGET_METRICS:
+            problems.append("対象指標「%s」が %s のどれでもない" % (metric, "・".join(TARGET_METRICS)))
         if not basis:
             problems.append("根拠が空")
         if problems:
@@ -163,7 +179,7 @@ def parse_queue(text):
             continue
         seen[q] = line_no
         candidates.append({"q": q, "tag": tag, "slug": slug, "category": category, "gd": gd,
-                           "content": content, "basis": basis, "line_no": line_no})
+                           "content": content, "metric": metric, "basis": basis, "line_no": line_no})
     return candidates, errors
 
 
@@ -199,8 +215,20 @@ def run_list(path):
         return 1
     print("来月の作業キュー案 %d件（%s）" % (len(candidates), display_path(path)))
     for candidate in candidates:
-        print("%s %s ｜根拠: %s" % (candidate["q"], task_body(candidate), candidate["basis"]))
+        print("%s %s ｜対象指標: %s ｜根拠: %s" % (candidate["q"], task_body(candidate), candidate["metric"],
+                                               candidate["basis"]))
     return 0
+
+
+def append_ledger(ledger_path, rows):
+    """台帳へ行を追記する（無ければ列名の行から作る）。rows は LEDGER_COLUMNS の順の値のリスト。"""
+    os.makedirs(os.path.dirname(os.path.abspath(ledger_path)), exist_ok=True)
+    new_file = not os.path.isfile(ledger_path) or os.path.getsize(ledger_path) == 0
+    with io.open(ledger_path, "a", encoding="utf-8", newline="\n") as f:
+        if new_file:
+            f.write("\t".join(LEDGER_COLUMNS) + "\n")
+        for row in rows:
+            f.write("\t".join(row) + "\n")
 
 
 def month_rows(lines, start, end):
@@ -234,7 +262,7 @@ def find_duplicate(candidate, open_rows):
     return None
 
 
-def run_adopt(q_text, queue_path, tasks_path, run_date):
+def run_adopt(q_text, queue_path, tasks_path, run_date, ledger_path=LEDGER_TSV):
     candidates, errors = load_queue(queue_path)
     if errors:
         print_errors(queue_path, errors)
@@ -320,6 +348,17 @@ def run_adopt(q_text, queue_path, tasks_path, run_date):
         for candidate, line in uncapped_new + normal_new:
             where = "上限外の並びの末尾" if line.endswith(rotate.REVISE_EXEMPT_SUFFIX) else "今月節の末尾"
             print("追加 行%d（%s）← %s: %s" % (lines.index(line) + 1, where, candidate["q"], line))
+
+        audit_rel = display_path(queue_path)
+        ledger_rows = [[M_NUMBER_RE.search(line).group(0)[1:-1], run_date, audit_rel, candidate["q"],
+                        candidate["tag"], candidate["slug"], candidate["metric"], "-"]
+                       for candidate, line in uncapped_new + normal_new]
+        try:
+            append_ledger(ledger_path, ledger_rows)
+        except OSError as exc:
+            print("【エラー】台帳 %s へ書けませんでした（tasks.md は書き込み済み）: %s" % (display_path(ledger_path), exc))
+            return 1
+        print("台帳へ追記 %d行: %s" % (len(ledger_rows), display_path(ledger_path)))
     for candidate, duplicate in skipped:
         key = ("slug %s" % candidate["slug"] if candidate["tag"] == NEW_ARTICLE_TAG
                else "slug %s × GD番号 %s" % (candidate["slug"], candidate["gd"]))
@@ -342,6 +381,8 @@ def main(argv):
     parser.add_argument("--from", dest="from_path", metavar="AUDIT_MD", help="--adopt の読み取り元の監査出力")
     parser.add_argument("--tasks", dest="tasks_path", default=TASKS_MD, metavar="TASKS_MD",
                         help="書き込み先（検証用・省略時は docs/tasks.md）")
+    parser.add_argument("--ledger", dest="ledger_path", default=LEDGER_TSV, metavar="QUEUE_TSV",
+                        help="台帳（検証用・省略時は data/monthly-queue.tsv）")
     parser.add_argument("--date", dest="run_date", default=None, metavar="YYYY-MM-DD",
                         help="実行日（検証用・省略時は今日）")
     args = parser.parse_args(argv)
@@ -353,7 +394,7 @@ def main(argv):
         return 1
     run_date = args.run_date or datetime.date.today().isoformat()
     datetime.date.fromisoformat(run_date)  # 形式が不正なら例外で止める
-    return run_adopt(args.adopt, args.from_path, args.tasks_path, run_date)
+    return run_adopt(args.adopt, args.from_path, args.tasks_path, run_date, args.ledger_path)
 
 
 if __name__ == "__main__":

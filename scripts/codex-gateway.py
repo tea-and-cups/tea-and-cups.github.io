@@ -30,8 +30,10 @@
                起動する（windows.sandbox="elevated" は実体パスでないと失敗するため・診断済み）。
                1回のCodex呼び出しで全対象を読ませるのをやめ、対象を「区切り」（weekly=
                期間内に変更があった生成ルール等のR-1..R-n＋記事単位のO-1..O-n（変更の無い
-               生成ルールは区切りRに含めない）／monthly=生成ルール一式のG-1..G-n（変更の
-               有無に関わらず全文）＋恒久アセットのS-1..S-n＋代表サンプルのP-1..P-n）に分け、
+               生成ルールは区切りRに含めない）／monthly=当月の記事のA-1..A-n（新しい記事は全文・
+               更新した記事は当月の差分）＋当月に変更があった生成ルールのG-1..G-n＋当月に変更した
+               恒久アセットと検索表示の多いカテゴリページ1件のS-1..S-n＋見本3本までのP-1..P-n
+               ・2026-11-01）に分け、
                区切りごとに1回ずつ Codex を呼んで
                growth/outputs/<label>/parts/<区切り名>.md（所見のみ）へ保存し、最後に
                全区切りの出力・監査スキル・入力数値（実験の状態を含む）・docs/tasks.md・docs/decisions.md
@@ -71,7 +73,9 @@
   type が error の行が無い (3) 出力ファイルが実行開始後に書かれ・空でなく・必須の節が
   揃っている（区切り=## 所見・## 部分監査範囲／まとめ=## 要約・## 実験の判定・
   ## 新しい実験の提案・## 誠実さの重大な指摘・## 評価できなかったもの。月次のまとめは
-  ## 来月の作業キュー案・## 監査範囲 も必須。週次の ## 監査範囲 は gateway が書く・S-0027 ②）。
+  MONTHLY_ONLY_SECTIONS（## 到達数の振り返り・## 来月のチャネル配分・## 前月の作業キューの結果・
+  ## 来月の作業キュー案・## サイト改善の提案・## 監査範囲）も必須（2026-11-01）。週次の ## 監査範囲 は
+  gateway が書く・S-0027 ②）。
   いずれか1つでも欠けた区切り・まとめがあれば、その時点で全体を失敗とする
   （出力ファイルは削除しない・終了コードは成果物なしと同じ EXIT_ARTIFACT_MISSING）。
 
@@ -99,6 +103,16 @@
   結果（標準出力の行・RULE_REVERT_NEEDED の実験ID）を成功時 JSON の judge_due に載せる。judge-due が
   失敗しても監査の成否は変えない（【注意】を出し、judge_due.ok=false で返す）。
   まとめのプロンプトの {{SINCE}}／{{UNTIL}} には対象期間を入れる。
+
+月次の入力の自動生成（2026-11-01・--mode monthly のみ）:
+  区切りの計画を作る前に（--dry-run・--render-only でも）、_prepare_monthly_inputs が
+  growth/inputs/monthly-<対象月>/ へ次を置く。実験の3つの JSON・gsc-page-28d.json・ga4-page-traffic.json
+  （対象月・--limit 100。区切りPの見本選びが読む）・sns.md（直近の週次の複製）・article-diffs/<slug>.diff
+  （更新した記事の当月の差分。区切りAが読む）と、MONTHLY_INPUT_FILES の md（reach-channels.md・
+  reach-pages.md・ctr-candidates.md・query-gaps.md・prev-queue-results.md。1ファイル MONTHLY_INPUT_CHAR_CAP 字
+  以内・合計は表の前）。prev-queue-results.md は台帳 data/monthly-queue.tsv（書き手は
+  add-monthly-tasks.py --adopt だけ）の、前月の監査から採用した行を読む。字数は --dry-run と成功時 JSON の
+  monthly_inputs に出す。
 
 タイムアウトと救済について（L043・2026-09-08）:
   codex exec の本実行に EXEC_TIMEOUT_SEC（既定 300 秒・growth-audit は
@@ -259,10 +273,13 @@ PART_PROMPT_PATHS = {
 }
 REQUIRED_PART_SECTIONS = ("## 所見", "## 部分監査範囲")
 # まとめの必須節（S-0027 ②・実験中心の出力）。週次の「## 監査範囲」は gateway が実行ログから
-# 書くため Codex の必須節に含めない（D-0272）。月次は「## 来月の作業キュー案」と「## 監査範囲」を足す。
+# 書くため Codex の必須節に含めない（D-0272）。月次は週次の5節のあとに MONTHLY_ONLY_SECTIONS を
+# この順で足す（2026-11-01・月次の作り直し）。
 EXPERIMENT_SUMMARY_SECTIONS = ("## 要約", "## 実験の判定", "## 新しい実験の提案",
                                "## 誠実さの重大な指摘", "## 評価できなかったもの")
-REQUIRED_SUMMARY_SECTIONS = EXPERIMENT_SUMMARY_SECTIONS + ("## 来月の作業キュー案", "## 監査範囲")
+MONTHLY_ONLY_SECTIONS = ("## 到達数の振り返り", "## 来月のチャネル配分", "## 前月の作業キューの結果",
+                         "## 来月の作業キュー案", "## サイト改善の提案", "## 監査範囲")
+REQUIRED_SUMMARY_SECTIONS = EXPERIMENT_SUMMARY_SECTIONS + MONTHLY_ONLY_SECTIONS
 REQUIRED_PART_SECTIONS_BY_MODE = {
     "weekly": REQUIRED_PART_SECTIONS,
     "monthly": REQUIRED_PART_SECTIONS,
@@ -1117,7 +1134,8 @@ def _input_dir_for_output(target):
 
 
 # --- 週次の入力の自動生成・監査範囲の機械集計・SNSチェック（2026-10-11・D-0272）---------
-# すべて --mode weekly の中だけで動く。月次（--mode monthly）の区切り・出力には波及させない。
+# 週次の入力・監査範囲・SNSチェックは --mode weekly の中だけで動く。取得の下回り（_run_metrics・
+# _payload_problem・_cap_text 等）は月次の入力の自動生成（_prepare_monthly_inputs・2026-11-01）も使う。
 
 GROWTH_METRICS_SCRIPT = SITE_DIR / "scripts" / "growth-metrics.py"
 BUILD_SITE_SCRIPT = SITE_DIR / "scripts" / "build-site.sh"
@@ -1162,19 +1180,20 @@ def _payload_problem(payload, err):
     return None
 
 
-def _cap_text(text):
-    """text を WEEKLY_INPUT_CHAR_CAP 字以内にする。超えた分は行単位で切り、省略した行数を明記する。"""
-    if len(text) <= WEEKLY_INPUT_CHAR_CAP:
+def _cap_text(text, cap=WEEKLY_INPUT_CHAR_CAP):
+    """text を cap 字（週次は WEEKLY_INPUT_CHAR_CAP・月次は MONTHLY_INPUT_CHAR_CAP）以内にする。
+    超えた分は行単位で切り、省略した行数を明記する。"""
+    if len(text) <= cap:
         return text
     lines = text.splitlines()
     kept = []
     size = 0
     for line in lines:
-        if size + len(line) + 1 > WEEKLY_INPUT_CHAR_CAP - 100:
+        if size + len(line) + 1 > cap - 100:
             break
         kept.append(line)
         size += len(line) + 1
-    kept.append("（%d字の目安を超えたため、%d行を省略した）" % (WEEKLY_INPUT_CHAR_CAP, len(lines) - len(kept)))
+    kept.append("（%d字の目安を超えたため、%d行を省略した）" % (cap, len(lines) - len(kept)))
     return "\n".join(kept) + "\n"
 
 
@@ -1803,22 +1822,513 @@ def _month_end(year_month):
     return (first_next - timedelta(days=1)).strftime("%Y-%m-%d")
 
 
-def _prepare_monthly_experiment_inputs(input_dir, year_month):
-    """月次のまとめが読む実験の入力（S-0027 ②）を growth/inputs/monthly-<対象月>/ へ置く。
-    experiments.py measure の3つの JSON（週末日=対象月の末日）と、対象月の末日で終わる28日の
-    GSC 記事別（gsc-page-28d.json・契約JSONを加工せず保存）。月の途中に実行したときは末日の代わりに
-    前日までで切る（API が未来の日付を受け付けないため）。失敗しても続行する。"""
-    input_dir.mkdir(parents=True, exist_ok=True)
+# --- 月次の入力の自動生成（2026-11-01・月次の作り直し）-------------------------------------
+# Codex を呼ぶ前に gateway が取得し、md の要約（1ファイル MONTHLY_INPUT_CHAR_CAP 字以内・合計は表の前）に
+# して growth/inputs/monthly-<対象月>/ へ置く。--dry-run・--render-only でも作る（区切りの計画が
+# ga4-page-traffic.json・gsc-page-28d.json を読むため）。
+
+MONTHLY_INPUT_CHAR_CAP = 8000
+MONTHLY_QUEUE_LEDGER = PROJECT_ROOT / "data" / "monthly-queue.tsv"
+MONTHLY_QUEUE_COLUMNS = ("M番号", "採用日", "監査パス", "Q番号", "タグ", "slug", "対象指標", "基準値")
+TASKS_MD_PATH = PROJECT_ROOT / "docs" / "tasks.md"
+REACH_MONTHS = 3
+REACH_PAGES_TOP_N = 15
+REACH_SOURCES_TOP_N = 15
+PIN_DROP_TOP_N = 5
+# CTR改修の候補（D1）: 表示がしきい値以上・CTR がしきい値未満・平均順位がしきい値以内の記事ページ。
+CTR_MIN_IMPRESSIONS = 30
+CTR_MAX = 0.02
+CTR_MAX_POSITION = 20
+CTR_CANDIDATES_MAX = 10
+# 新しい題材の材料（D2）: 語×ページの表から、表示がしきい値以上の語を表示の多い順に。
+QUERY_GAPS_MIN_IMPRESSIONS = 2
+QUERY_GAPS_MAX_ROWS = 60
+# 前月の作業キューの結果（D5）: 完了日の前後で同じ日数の GSC ページ指標を比べる。
+PREV_QUEUE_WINDOW_DAYS = 28
+PREV_QUEUE_MIN_DAYS = 14
+GSC_LAG_DAYS = 3
+SITE_URL_PREFIX = "https://kohaku-jikan.com"
+WEEK_LABEL_RE = re.compile(r"^(\d{4})-W(\d{2})$")
+MONTH_ROW_SLUG_RE = re.compile(r"（([a-z0-9]+(?:-[a-z0-9]+)*)・(?:category:\s*)?[a-z0-9-]+）")
+RANGE_SLUG_RE = re.compile(r"slug=([a-z0-9,-]+)")
+
+
+def _monthly_period(year_month):
+    """対象月の (月初, 末日) を返す。月の途中に実行したときは末日の代わりに前日までで切る
+    （API が未来の日付を受け付けないため）。"""
     yesterday = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
-    month_end = min(_month_end(year_month), yesterday)
-    _prepare_experiment_inputs(input_dir, month_end)
-    start = (datetime.strptime(month_end, "%Y-%m-%d") - timedelta(days=27)).strftime("%Y-%m-%d")
+    return "%s-01" % year_month, min(_month_end(year_month), yesterday)
+
+
+def _channel_of(source_medium):
+    """GA4 の「参照元 / メディア」をチャネルへ寄せる（D7・チャネル単位）。"""
+    source, _, medium = (source_medium or "").lower().partition(" / ")
+    source, medium = source.strip(), medium.strip()
+    if medium == "organic":
+        return "検索"
+    if "pinterest" in source:
+        return "Pinterest"
+    if "threads" in source:
+        return "Threads"
+    if source in ("x", "t.co", "twitter.com", "x.com", "twitter"):
+        return "X"
+    if source == "(direct)":
+        return "直接"
+    return "その他"
+
+
+CHANNEL_ORDER = ("検索", "Pinterest", "Threads", "X", "直接", "その他")
+
+
+def _series(payload):
+    return ((payload or {}).get("data") or {}).get("series") or []
+
+
+def _lower_bound(payload):
+    return bool((((payload or {}).get("data") or {}).get("totals") or {}).get("is_lower_bound"))
+
+
+def _pct(value):
+    return "%.1f%%" % (value * 100) if isinstance(value, (int, float)) else "-"
+
+
+def _slug_from_url(url):
+    """GSC のページURL・GA4 のページパスから記事の slug を返す（記事ページでなければ None）。"""
+    path = (url or "")
+    if path.startswith(SITE_URL_PREFIX):
+        path = path[len(SITE_URL_PREFIX):]
+    return _slug_from_page_path(path)
+
+
+def _build_reach_channels(year_month):
+    """(a) reach-channels.md: チャネル×3か月の sessions と、Pinterest 口座全体の月別・週別・落ちた日。"""
+    months = [year_month]
+    while len(months) < REACH_MONTHS:
+        months.insert(0, _previous_month(months[0]))
+    lines = ["# 到達数のチャネル別推移（gateway が自動生成・%s〜%s）" % (months[0], months[-1]), ""]
+    by_channel = {}
+    sources = {}
+    totals = {}
+    notes = []
+    for ym in months:
+        start, end = _monthly_period(ym)
+        payload, _raw, err = _run_metrics(["ga4", "--operation", "ga4.source_medium", "--since", start,
+                                           "--until", end, "--limit", "100"])
+        problem = _payload_problem(payload, err)
+        if problem:
+            notes.append("- %s の ga4.source_medium を取得できなかった: %s" % (ym, problem))
+            continue
+        if _lower_bound(payload):
+            notes.append("- %s の ga4.source_medium は --limit に達しており下限値" % ym)
+        for rec in _series(payload):
+            sessions = rec.get("sessions") or 0
+            channel = _channel_of(rec.get("session_source_medium"))
+            by_channel.setdefault(channel, {})[ym] = by_channel.get(channel, {}).get(ym, 0) + sessions
+            totals[ym] = totals.get(ym, 0) + sessions
+            if ym == year_month:
+                sources[rec.get("session_source_medium") or "（不明）"] = sessions
+
+    lines.append("- 合計（GA4 sessions・全ページ）: %s" % " ／ ".join(
+        "%s %s" % (ym, _fmt_int(totals.get(ym))) for ym in months))
+    lines.append("- 取得: ga4.source_medium（月ごと・--limit 100）と pins.daily_totals（月ごと）。チャネルは"
+                 "検索=*/organic・Pinterest=参照元に pinterest・Threads=参照元に threads・X=x/t.co・直接=(direct)")
+    lines += notes
+    lines += ["", "## チャネル別 sessions（GA4）", "",
+              "| チャネル | %s | 前月比 |" % " | ".join(months), "|---|%s---|" % ("---|" * len(months))]
+    for channel in CHANNEL_ORDER:
+        values = by_channel.get(channel, {})
+        cur, prev = values.get(months[-1], 0), values.get(months[-2], 0)
+        lines.append("| %s | %s | %s |" % (channel, " | ".join("%d" % values.get(ym, 0) for ym in months),
+                                          _signed(cur - prev)))
+
+    lines += ["", "## Pinterest 口座全体（pins.daily_totals・未確定の日は値が一部のみ）", "",
+              "| 月 | インプレッション | 外部クリック | ピンクリック | 保存 | 未確定の日 |", "|---|---|---|---|---|---|"]
+    days = []
+    for ym in months:
+        start, end = _monthly_period(ym)
+        payload, _raw, err = _run_metrics(["pins", "--operation", "pins.daily_totals", "--since", start,
+                                           "--until", end])
+        problem = _payload_problem(payload, err)
+        if problem:
+            lines.append("| %s | 取得できなかった: %s | | | | |" % (ym, problem))
+            continue
+        series = _series(payload)
+        days += series
+        lines.append("| %s | %d | %d | %d | %d | %d |" % (
+            ym, sum(r.get("impressions") or 0 for r in series), sum(r.get("outbound_clicks") or 0 for r in series),
+            sum(r.get("pin_clicks") or 0 for r in series), sum(r.get("saves") or 0 for r in series),
+            sum(1 for r in series if r.get("missing_flag"))))
+
+    imp_by_day = {r.get("date"): r.get("impressions") or 0 for r in days if r.get("date")}
+    weeks = {}
+    for day, imp in imp_by_day.items():
+        monday = datetime.strptime(day, "%Y-%m-%d") - timedelta(days=datetime.strptime(day, "%Y-%m-%d").weekday())
+        weeks.setdefault(monday.strftime("%Y-%m-%d"), []).append(imp)
+    lines += ["", "## Pinterest 週別合計（月曜始まり・週の途中で期間が切れる週は日数が少ない）", "",
+              "| 週の月曜 | 日数 | インプレッション | 前週比 |", "|---|---|---|---|"]
+    prev_total = None
+    for monday in sorted(weeks):
+        total = sum(weeks[monday])
+        lines.append("| %s | %d | %d | %s |" % (monday, len(weeks[monday]), total,
+                                              "-" if prev_total is None else _signed(total - prev_total)))
+        prev_total = total
+    drops = []
+    for day, imp in imp_by_day.items():
+        week_ago = (datetime.strptime(day, "%Y-%m-%d") - timedelta(days=7)).strftime("%Y-%m-%d")
+        if week_ago in imp_by_day:
+            drops.append((imp - imp_by_day[week_ago], day, imp, imp_by_day[week_ago]))
+    lines += ["", "## 7日前の同じ曜日から最も落ちた日（上位%d件）" % PIN_DROP_TOP_N, "",
+              "| 日付 | インプレッション | 7日前 | 差 |", "|---|---|---|---|"]
+    for diff, day, imp, before in sorted(drops)[:PIN_DROP_TOP_N]:
+        lines.append("| %s | %d | %d | %s |" % (day, imp, before, _signed(diff)))
+
+    top_sources = sorted(sources.items(), key=lambda kv: -kv[1])
+    lines += ["", "## 対象月の参照元の内訳（sessions 上位%d）" % REACH_SOURCES_TOP_N, "",
+              "| 参照元 / メディア | チャネル | sessions |", "|---|---|---|"]
+    for name, sessions in top_sources[:REACH_SOURCES_TOP_N]:
+        lines.append("| %s | %s | %d |" % (name, _channel_of(name), sessions))
+    if len(top_sources) > REACH_SOURCES_TOP_N:
+        lines.append("- 残り%d行は省略した（合計には含む）" % (len(top_sources) - REACH_SOURCES_TOP_N))
+    return _cap_text("\n".join(lines) + "\n", MONTHLY_INPUT_CHAR_CAP)
+
+
+def _gsc_by_page(start, end):
+    """gsc.search_analytics_by_page（--limit 100）を呼び、(slug→行, 契約JSONそのまま, 問題 or None)。"""
     payload, raw, err = _run_metrics(["gsc", "--operation", "gsc.search_analytics_by_page", "--since", start,
-                                      "--until", month_end, "--limit", "100"])
+                                      "--until", end, "--limit", "100"])
+    problem = _payload_problem(payload, err)
+    rows = {}
+    if not problem:
+        for rec in _series(payload):
+            rows[rec.get("page") or ""] = rec
+    return rows, payload, raw, problem
+
+
+def _build_reach_pages(year_month, ga4_payload, gsc_rows, gsc_period):
+    """(a) reach-pages.md: 記事別の GA4 sessions（対象月と前月）と GSC 記事別（28日と、その前の28日）。"""
+    prev_month = _previous_month(year_month)
+    p_start, p_end = _monthly_period(prev_month)
+    lines = ["# 記事別の到達数（gateway が自動生成・GA4 は %s と %s、GSC は %s〜%s とその前の28日）"
+             % (year_month, prev_month, gsc_period[0], gsc_period[1]), ""]
+    prev_payload, _raw, err = _run_metrics(["ga4", "--operation", "ga4.page_traffic", "--since", p_start,
+                                            "--until", p_end, "--limit", "100"])
+    problems = [("当月", _payload_problem(ga4_payload, None)), ("前月", _payload_problem(prev_payload, err))]
+
+    def sessions_by_slug(payload):
+        result = {}
+        for rec in _series(payload):
+            slug = _slug_from_page_path(rec.get("page_path"))
+            if slug:
+                result[slug] = result.get(slug, 0) + (rec.get("sessions") or 0)
+        return result
+
+    cur = sessions_by_slug(ga4_payload) if not problems[0][1] else {}
+    prev = sessions_by_slug(prev_payload) if not problems[1][1] else {}
+    g_end = datetime.strptime(gsc_period[0], "%Y-%m-%d") - timedelta(days=1)
+    g_prev_period = ((g_end - timedelta(days=27)).strftime("%Y-%m-%d"), g_end.strftime("%Y-%m-%d"))
+    gsc_prev, _p, _r, gsc_prev_problem = _gsc_by_page(*g_prev_period)
+
+    def gsc_by_slug(rows):
+        return {_slug_from_url(page): rec for page, rec in rows.items() if _slug_from_url(page)}
+
+    g_cur, g_prev = gsc_by_slug(gsc_rows), gsc_by_slug(gsc_prev)
+    new_slugs = {slug for slug, _path, date_str in
+                 [t for posts in _posts_by_category().values() for t in posts]
+                 if date_str.startswith(year_month)}
+    for label, problem in problems:
+        if problem:
+            lines.append("- GA4 %s の ga4.page_traffic を取得できなかった: %s" % (label, problem))
+    if gsc_prev_problem:
+        lines.append("- GSC の前の28日（%s〜%s）を取得できなかった: %s" % (g_prev_period + (gsc_prev_problem,)))
+    lines.append("- 合計（GA4 /posts/ の sessions）: 当月 %d（%d記事）／前月 %d（%d記事）%s" % (
+        sum(cur.values()), len(cur), sum(prev.values()), len(prev),
+        "（--limit 100 に達しており下限値）" if _lower_bound(ga4_payload) or _lower_bound(prev_payload) else ""))
+    lines.append("- 前月の行が無い記事: %d件（うち当月公開 %d件）" % (
+        sum(1 for s in cur if s not in prev), sum(1 for s in cur if s not in prev and s in new_slugs)))
+    lines.append("- 合計（GSC 記事ページ・上位100ページの範囲）: 表示 %d→%d・クリック %d→%d（前の28日→28日）" % (
+        sum(r.get("impressions") or 0 for r in g_prev.values()), sum(r.get("impressions") or 0 for r in g_cur.values()),
+        sum(r.get("clicks") or 0 for r in g_prev.values()), sum(r.get("clicks") or 0 for r in g_cur.values())))
+
+    diffs = [(cur.get(s, 0) - prev.get(s, 0), s) for s in set(cur) | set(prev)]
+
+    def table(title, ranked):
+        out = ["", "## %s（GA4 sessions の前月比の差・上位%d）" % (title, REACH_PAGES_TOP_N), "",
+               "| slug | 当月 | 前月 | 差 | GSC表示 28日 | 前の28日 | 当月公開 |", "|---|---|---|---|---|---|---|"]
+        for diff, slug in ranked[:REACH_PAGES_TOP_N]:
+            out.append("| %s | %d | %d | %s | %s | %s | %s |" % (
+                slug, cur.get(slug, 0), prev.get(slug, 0), _signed(diff),
+                _fmt_int((g_cur.get(slug) or {}).get("impressions")), _fmt_int((g_prev.get(slug) or {}).get("impressions")),
+                "○" if slug in new_slugs else ""))
+        return out
+
+    lines += table("伸びた記事", sorted([d for d in diffs if d[0] > 0], key=lambda d: (-d[0], d[1])))
+    lines += table("落ちた記事", sorted([d for d in diffs if d[0] < 0], key=lambda d: (d[0], d[1])))
+    return _cap_text("\n".join(lines) + "\n", MONTHLY_INPUT_CHAR_CAP)
+
+
+def _busy_slugs(input_dir):
+    """実行中・実装待ちの実験の範囲にある slug（experiments-status.json の range の slug=）。"""
+    try:
+        status = json.loads((input_dir / "experiments-status.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return set()
+    slugs = set()
+    for key in ("experiments", "pending_rules"):
+        for exp in status.get(key) or []:
+            if isinstance(exp, dict):
+                for m in RANGE_SLUG_RE.finditer(exp.get("range") or ""):
+                    slugs.update(s for s in m.group(1).split(",") if s)
+    return slugs
+
+
+def _open_month_slugs(tasks_path=TASKS_MD_PATH):
+    """docs/tasks.md「## 今月」節の未完了行の slug（行末の「（slug・category）」）。"""
+    try:
+        lines = tasks_path.read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return set()
+    slugs, inside = set(), False
+    for line in lines:
+        if line.startswith("## "):
+            inside = line.strip() == "## 今月"
+            continue
+        if inside and line.strip().startswith("- [ ]"):
+            found = MONTH_ROW_SLUG_RE.findall(line)
+            if found:
+                slugs.add(found[-1])
+    return slugs
+
+
+def _post_title_desc(slug):
+    fm = _read_frontmatter(CONTENT_POSTS_DIR / ("%s.md" % slug))
+    return (fm.get("title") or "").strip("\"'"), (fm.get("description") or "").strip("\"'")
+
+
+def _build_ctr_candidates(gsc_rows, gsc_period, input_dir):
+    """(c) ctr-candidates.md: CTR改修の候補（D1）を機械で抽出する。"""
+    busy, open_slugs = _busy_slugs(input_dir), _open_month_slugs()
+    lines = ["# 検索CTR改修の候補（gateway が機械で抽出・gsc-page-28d.json %s〜%s）" % gsc_period, ""]
+    matched = []
+    for page, rec in gsc_rows.items():
+        slug = _slug_from_url(page)
+        ctr, pos, imp = rec.get("ctr"), rec.get("position"), rec.get("impressions") or 0
+        if (slug and imp >= CTR_MIN_IMPRESSIONS and isinstance(ctr, (int, float)) and ctr < CTR_MAX
+                and isinstance(pos, (int, float)) and pos <= CTR_MAX_POSITION):
+            matched.append((slug, rec))
+    kept = [(s, r) for s, r in matched if s not in busy and s not in open_slugs]
+    lines.append("- 条件: 表示 %d 以上・CTR %s 未満・平均順位 %d 以内の記事ページ。該当 %d件（除外前 %d件）"
+                 % (CTR_MIN_IMPRESSIONS, _pct(CTR_MAX), CTR_MAX_POSITION, len(kept), len(matched)))
+    lines.append("- 除外した slug: 実行中の実験の範囲 %s ／ docs/tasks.md「## 今月」節の未完了行 %s" % (
+        "・".join(sorted(busy & {s for s, _ in matched})) or "なし",
+        "・".join(sorted(open_slugs & {s for s, _ in matched})) or "なし"))
+    lines += ["", "| slug | 表示 | クリック | CTR | 順位 | 今の title ／ description |", "|---|---|---|---|---|---|"]
+    for slug, rec in sorted(kept, key=lambda t: -(t[1].get("impressions") or 0))[:CTR_CANDIDATES_MAX]:
+        title, desc = _post_title_desc(slug)
+        lines.append("| %s | %d | %d | %s | %.1f | %s ／ %s |" % (
+            slug, rec.get("impressions") or 0, rec.get("clicks") or 0, _pct(rec.get("ctr")),
+            rec.get("position") or 0, title.replace("|", "/"), desc.replace("|", "/")))
+    if len(kept) > CTR_CANDIDATES_MAX:
+        lines.append("- 残り%d件は省略した（表示の少ない順）" % (len(kept) - CTR_CANDIDATES_MAX))
+    return _cap_text("\n".join(lines) + "\n", MONTHLY_INPUT_CHAR_CAP)
+
+
+def _build_query_gaps(gsc_period, page_impressions_total):
+    """(c) query-gaps.md: 語ごとの最上位のページ・順位・表示（D2・新しい題材の材料）。"""
+    lines = ["# 検索語と最上位のページ（gateway が自動生成・gsc.search_analytics_by_query_page %s〜%s）"
+             % gsc_period, ""]
+    payload, _raw, err = _run_metrics(["gsc", "--operation", "gsc.search_analytics_by_query_page",
+                                       "--since", gsc_period[0], "--until", gsc_period[1], "--limit", "100"])
     problem = _payload_problem(payload, err)
     if problem:
-        eprint("【注意】gsc-page-28d.json（%s〜%s）の取得に問題があります: %s" % (start, month_end, problem))
+        lines.append("- 取得できなかった: %s" % problem)
+        return "\n".join(lines) + "\n"
+    series = _series(payload)
+    by_query = {}
+    for rec in series:
+        q = rec.get("query") or ""
+        agg = by_query.setdefault(q, {"impressions": 0, "clicks": 0, "top": None})
+        agg["impressions"] += rec.get("impressions") or 0
+        agg["clicks"] += rec.get("clicks") or 0
+        if agg["top"] is None or (rec.get("impressions") or 0) > (agg["top"].get("impressions") or 0):
+            agg["top"] = rec
+    shown = sum(a["impressions"] for a in by_query.values())
+    lines.append("- 合計: 取得 %d行・語 %d件・表示 %d（記事ページ別の表示合計 %d の %s。匿名化された語は API に出ない）%s" % (
+        len(series), len(by_query), shown, page_impressions_total,
+        _pct(shown / page_impressions_total) if page_impressions_total else "-",
+        "・--limit に達しており下限値" if _lower_bound(payload) else ""))
+    lines.append("- 表示 %d 以上の語を表示の多い順に最大%d語。最上位のページ＝その語で表示が最も多いページ。"
+                 "記事一覧（slug と title）は rg -n \"^title:\" site/src/content/posts で読む"
+                 % (QUERY_GAPS_MIN_IMPRESSIONS, QUERY_GAPS_MAX_ROWS))
+    lines += ["", "| 語 | 表示 | クリック | 最上位のページ | 順位 | 記事ページか |", "|---|---|---|---|---|---|"]
+    ranked = sorted(((q, a) for q, a in by_query.items() if a["impressions"] >= QUERY_GAPS_MIN_IMPRESSIONS),
+                    key=lambda t: (-t[1]["impressions"], t[0]))
+    for q, a in ranked[:QUERY_GAPS_MAX_ROWS]:
+        page = (a["top"].get("page") or "").replace(SITE_URL_PREFIX, "")
+        lines.append("| %s | %d | %d | %s | %.1f | %s |" % (
+            q.replace("|", "/"), a["impressions"], a["clicks"], page, a["top"].get("position") or 0,
+            "記事" if _slug_from_url(page) else "記事以外"))
+    if len(ranked) > QUERY_GAPS_MAX_ROWS:
+        lines.append("- 残り%d語は省略した" % (len(ranked) - QUERY_GAPS_MAX_ROWS))
+    return _cap_text("\n".join(lines) + "\n", MONTHLY_INPUT_CHAR_CAP)
+
+
+def _read_queue_ledger(path):
+    """data/monthly-queue.tsv（書き手は add-monthly-tasks.py --adopt だけ・D5）を行の辞書のリストで返す。
+    無ければ None。"""
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError:
+        return None
+    rows = [line.split("\t") for line in text.splitlines() if line.strip()]
+    if not rows:
+        return []
+    header = rows[0]
+    return [dict(zip(header, r)) for r in rows[1:] if len(r) == len(header)]
+
+
+def _queue_done_date(row):
+    """作業キューの行の完了日（D5・台帳には書かず導き出す）。新規記事執筆は記事の date（published のとき）、
+    それ以外は site/ の git log で、その記事を採用日以後に初めて変えたコミットの日。無ければ None。"""
+    slug, adopted = row.get("slug") or "", row.get("採用日") or ""
+    path = CONTENT_POSTS_DIR / ("%s.md" % slug)
+    if row.get("タグ") == "新規記事執筆":
+        fm = _read_frontmatter(path)
+        return fm.get("date") if fm.get("status") == "published" else None
+    try:
+        proc = subprocess.run(
+            ["git", "-C", str(SITE_DIR), "log", "--reverse", "--since=%s 00:00:00" % adopted,
+             "--format=%ad", "--date=short", "--", "src/content/posts/%s.md" % slug],
+            capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=60)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    dates = [l.strip() for l in proc.stdout.splitlines() if l.strip() >= adopted]
+    return dates[0] if dates else None
+
+
+def _fmt_page_metrics(rec):
+    if rec is None:
+        return "上位100ページ外"
+    return "表示%d・クリック%d・CTR %s・順位%.1f" % (rec.get("impressions") or 0, rec.get("clicks") or 0,
+                                               _pct(rec.get("ctr")), rec.get("position") or 0)
+
+
+def _build_prev_queue_results(year_month, ledger_path=None, today=None):
+    """(e) prev-queue-results.md: 前月の監査から採用した作業キューの、完了日と前後の GSC ページ指標（D5）。
+    対象は監査パスが growth/outputs/monthly-<対象月の前月>/audit.md の行。完了日の前後に同じ日数
+    （PREV_QUEUE_WINDOW_DAYS まで）をとり、完了後の日数が PREV_QUEUE_MIN_DAYS に満たなければ判定不能とする。"""
+    ledger_path = ledger_path or MONTHLY_QUEUE_LEDGER
+    prev_month = _previous_month(year_month)
+    audit_rel = "growth/outputs/monthly-%s/audit.md" % prev_month
+    lines = ["# 前月の作業キューの結果（gateway が自動生成・台帳 %s・対象は監査パス %s の行）"
+             % (_rel(ledger_path), audit_rel), ""]
+    rows = _read_queue_ledger(ledger_path)
+    if not rows:
+        lines.append("- 対象なし（台帳開始前）")
+        return "\n".join(lines) + "\n"
+    targets = [r for r in rows if r.get("監査パス") == audit_rel]
+    if not targets:
+        lines.append("- 対象なし（前月の採用なし・台帳 %d行）" % len(rows))
+        return "\n".join(lines) + "\n"
+    today_dt = datetime.strptime(today, "%Y-%m-%d") if today else datetime.now()
+    data_end = today_dt - timedelta(days=GSC_LAG_DAYS)
+    lines.append("- 指標は gsc.search_analytics_by_page（--limit 100）の、その記事ページの行。完了日の前後に同じ日数"
+                 "（最大%d日・GSC の遅れを見て %s まで）をとる。完了後が%d日に満たない・未完了なら判定不能"
+                 % (PREV_QUEUE_WINDOW_DAYS, data_end.strftime("%Y-%m-%d"), PREV_QUEUE_MIN_DAYS))
+    lines += ["", "| M番号 | タグ | slug | 対象指標 | 採用日 | 完了日 | 期間 | 前 | 後 | 判定の材料 |",
+              "|---|---|---|---|---|---|---|---|---|---|"]
+    for row in targets:
+        done = _queue_done_date(row)
+        head = "| %s | %s | %s | %s | %s | %s |" % (row.get("M番号"), row.get("タグ"), row.get("slug"),
+                                                  row.get("対象指標"), row.get("採用日"), done or "未完了")
+        if not done:
+            lines.append("%s - | - | - | 判定不能（未完了） |" % head)
+            continue
+        done_dt = datetime.strptime(done, "%Y-%m-%d")
+        span = min(PREV_QUEUE_WINDOW_DAYS, (data_end - done_dt).days)
+        if span < PREV_QUEUE_MIN_DAYS:
+            lines.append("%s 完了後%d日 | - | - | 判定不能（期間不足・%d日に満たない） |"
+                         % (head, max(span, 0), PREV_QUEUE_MIN_DAYS))
+            continue
+        before = ((done_dt - timedelta(days=span)).strftime("%Y-%m-%d"), (done_dt - timedelta(days=1)).strftime("%Y-%m-%d"))
+        after = ((done_dt + timedelta(days=1)).strftime("%Y-%m-%d"), (done_dt + timedelta(days=span)).strftime("%Y-%m-%d"))
+        page = "%s/posts/%s/" % (SITE_URL_PREFIX, row.get("slug"))
+        recs, problems = [], []
+        for start, end in (before, after):
+            got, _p, _r, problem = _gsc_by_page(start, end)
+            recs.append(got.get(page))
+            if problem:
+                problems.append("%s〜%s 取得失敗: %s" % (start, end, problem))
+        new_article = row.get("タグ") == "新規記事執筆"
+        note = "；".join(problems) or ("新規記事（前は公開前）" if new_article else "前後の差を対象指標で見る")
+        lines.append("%s 前後各%d日（前 %s〜%s／後 %s〜%s） | %s | %s | %s |" % (
+            head, span, before[0], before[1], after[0], after[1],
+            "-" if new_article else _fmt_page_metrics(recs[0]), _fmt_page_metrics(recs[1]), note))
+    return _cap_text("\n".join(lines) + "\n", MONTHLY_INPUT_CHAR_CAP)
+
+
+def _latest_weekly_sns(month_end):
+    """週の開始日が month_end 以前の週次入力のうち、sns.md がある最新の週のパス（D8）。無ければ None。"""
+    found = []
+    for d in GROWTH_INPUTS_DIR.iterdir() if GROWTH_INPUTS_DIR.is_dir() else []:
+        m = WEEK_LABEL_RE.match(d.name)
+        if not m or not (d / "sns.md").is_file():
+            continue
+        monday = datetime.strptime("%s-W%s-1" % (m.group(1), m.group(2)), "%G-W%V-%u").strftime("%Y-%m-%d")
+        if monday <= month_end:
+            found.append((monday, d / "sns.md"))
+    return max(found)[1] if found else None
+
+
+MONTHLY_INPUT_FILES = ("reach-channels.md", "reach-pages.md", "ctr-candidates.md", "query-gaps.md",
+                       "prev-queue-results.md")
+
+
+def _prepare_monthly_inputs(input_dir, year_month):
+    """月次の入力を growth/inputs/monthly-<対象月>/ へ置く（失敗しても続行する）。
+    - 実験の状態（S-0027 ②）: experiments.py measure の3つの JSON（週末日=対象月の末日）
+    - gsc-page-28d.json（対象月の末日で終わる28日・契約JSONを加工せず保存）
+    - ga4-page-traffic.json（対象月のページ別・--limit 100。区切りPのサンプル選びが読む・D8）
+    - sns.md（直近の週次の複製・D8。無ければ置かない）
+    - MONTHLY_INPUT_FILES の md（(a) 到達数・(c) CTR改修の候補と題材の材料・(e) 前月の作業キューの結果）
+    戻り値: [{"path", "chars"}]（新しい md の字数。--dry-run と成功時 JSON に載せる）"""
+    input_dir.mkdir(parents=True, exist_ok=True)
+    month_start, month_end = _monthly_period(year_month)
+    _prepare_experiment_inputs(input_dir, month_end)
+    gsc_start = (datetime.strptime(month_end, "%Y-%m-%d") - timedelta(days=27)).strftime("%Y-%m-%d")
+    gsc_rows, _payload, raw, problem = _gsc_by_page(gsc_start, month_end)
+    if problem:
+        eprint("【注意】gsc-page-28d.json（%s〜%s）の取得に問題があります: %s" % (gsc_start, month_end, problem))
     (input_dir / "gsc-page-28d.json").write_text(raw or "{}", encoding="utf-8")
+    ga4_payload, ga4_raw, ga4_err = _run_metrics(["ga4", "--operation", "ga4.page_traffic", "--since", month_start,
+                                                  "--until", month_end, "--limit", "100"])
+    if _payload_problem(ga4_payload, ga4_err):
+        eprint("【注意】ga4-page-traffic.json の取得に問題があります: %s" % _payload_problem(ga4_payload, ga4_err))
+    (input_dir / "ga4-page-traffic.json").write_text(ga4_raw or "{}", encoding="utf-8")
+    sns = _latest_weekly_sns(month_end)
+    if sns is not None:
+        shutil.copyfile(sns, input_dir / "sns.md")
+    elif (input_dir / "sns.md").is_file():
+        (input_dir / "sns.md").unlink()
+
+    _write_article_diffs(input_dir, year_month)
+
+    page_total = sum(r.get("impressions") or 0 for p, r in gsc_rows.items() if _slug_from_url(p))
+    texts = {
+        "reach-channels.md": _build_reach_channels(year_month),
+        "reach-pages.md": _build_reach_pages(year_month, ga4_payload if not ga4_err else None,
+                                             gsc_rows, (gsc_start, month_end)),
+        "ctr-candidates.md": _build_ctr_candidates(gsc_rows, (gsc_start, month_end), input_dir),
+        "query-gaps.md": _build_query_gaps((gsc_start, month_end), page_total),
+        "prev-queue-results.md": _build_prev_queue_results(year_month),
+    }
+    files = []
+    for name in MONTHLY_INPUT_FILES:
+        path = input_dir / name
+        path.write_text(texts[name], encoding="utf-8")
+        files.append({"path": _rel(path), "chars": len(texts[name])})
+    files.append({"path": _rel(input_dir / "sns.md"), "chars": _text_len(input_dir / "sns.md"),
+                  "note": "複製元 %s" % (_rel(sns) if sns else "なし（直近の週次に sns.md が無い）")})
+    return files
 
 
 def _run_judge_due(until_date, status_path):
@@ -2253,9 +2763,9 @@ def _posts_by_category():
     return result
 
 
-def _load_ga4_page_traffic_series(input_dir):
-    """<input_dir>/ga4-page-traffic.json（M-1で保存した契約JSON）を読む。無ければ None。"""
-    path = input_dir / "ga4-page-traffic.json"
+def _load_input_series(input_dir, name):
+    """<input_dir>/<name>（gateway が保存した契約JSON）の series を読む。無い・status が ok でなければ None。"""
+    path = input_dir / name
     if not path.is_file():
         return None
     try:
@@ -2267,99 +2777,173 @@ def _load_ga4_page_traffic_series(input_dir):
     return ((payload.get("data") or {}).get("series")) or []
 
 
+def _load_ga4_page_traffic_series(input_dir):
+    """<input_dir>/ga4-page-traffic.json（gateway が月次の入力として保存した契約JSON・D8）を読む。"""
+    return _load_input_series(input_dir, "ga4-page-traffic.json")
+
+
 def _slug_from_page_path(page_path):
     m = re.match(r"^/posts/([^/]+)/?$", page_path or "")
     return m.group(1) if m else None
 
 
-def _select_monthly_samples(posts_by_category, ga4_series):
-    """カテゴリごとに最大2本（PV最多＋最古、PV不明なら最古＋最新）を選ぶ。最大12本。"""
-    pv_by_slug = {}
-    for row in ga4_series or []:
-        slug = _slug_from_page_path(row.get("page_path"))
-        if slug:
-            pv_by_slug[slug] = pv_by_slug.get(slug, 0) + (row.get("screenPageViews") or 0)
-
-    samples = []
-    for category in sorted(posts_by_category):
-        posts = posts_by_category[category]
-        if not posts:
-            continue
-        category_pv = [(slug, pv_by_slug[slug]) for slug, _, _ in posts if slug in pv_by_slug]
-        chosen = []
-        if category_pv:
-            top_slug = max(category_pv, key=lambda x: x[1])[0]
-            oldest_slug = min(posts, key=lambda t: t[2] or "9999-99-99")[0]
-            chosen.append((top_slug, "PV最多"))
-            if oldest_slug != top_slug:
-                chosen.append((oldest_slug, "公開日最古"))
-        else:
-            oldest_slug = min(posts, key=lambda t: t[2] or "9999-99-99")[0]
-            newest_slug = max(posts, key=lambda t: t[2] or "0000-00-00")[0]
-            chosen.append((oldest_slug, "最古（PVデータなし）"))
-            if newest_slug != oldest_slug:
-                chosen.append((newest_slug, "最新（PVデータなし）"))
-        samples.append((category, chosen))
-    return samples
+# 月次の区切り（2026-11-01・D9）: A=当月の記事（新しい記事は全文・更新した記事は当月の差分）、
+# G=当月に変更があった生成ルール、S=当月に変更した恒久アセット＋検索表示の多いカテゴリページ1件、
+# P=見本 MONTHLY_SAMPLE_MAX 本。品質の確認はこの範囲に絞り、公開前チェックが見ていることは
+# 所見にしない（monthly-audit-part.md）。
+MONTHLY_SAMPLE_MAX = 3
+ARTICLE_DIFFS_DIRNAME = "article-diffs"
 
 
-def _monthly_g_items():
-    """月次の区切りG（生成ルール一式・変更の有無に関わらず全文）の材料を、
-    1ファイル＝1アイテムで返す（週次のR区切りが対象判定に使う一覧と同じ・2026-09-28）。
-    """
+def _git_rev_before(stamp):
+    try:
+        proc = subprocess.run(["git", "-C", str(SITE_DIR), "rev-list", "-1", "--before=%s" % stamp, "HEAD"],
+                              capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=60)
+    except (OSError, subprocess.SubprocessError):
+        return ""
+    return proc.stdout.strip()
+
+
+def _monthly_article_split(year_month):
+    """当月の記事（_posts_in_period）を (新しい記事, 更新した記事) の [(path, 理由)] に分ける。"""
+    month_start, month_end = _monthly_period(year_month)
+    new, updated = [], []
+    for p, reason in _posts_in_period(month_start, month_end):
+        (new if reason.startswith("date=") else updated).append((p, reason))
+    return new, updated
+
+
+def _write_article_diffs(input_dir, year_month):
+    """更新した記事の、当月の差分（月初直前のコミット→末日までの最後のコミット）を
+    <input_dir>/article-diffs/<slug>.diff へ書く。区切りAが読む。"""
+    month_start, month_end = _monthly_period(year_month)
+    out_dir = input_dir / ARTICLE_DIFFS_DIRNAME
+    out_dir.mkdir(parents=True, exist_ok=True)
+    for old in out_dir.glob("*.diff"):
+        old.unlink()
+    base = _git_rev_before("%s 00:00:00" % month_start)
+    last = _git_rev_before("%s 23:59:59" % month_end)
+    for p, _reason in _monthly_article_split(year_month)[1]:
+        text = ""
+        if base and last:
+            try:
+                proc = subprocess.run(
+                    ["git", "-C", str(SITE_DIR), "diff", "-U2", base, last, "--", "src/content/posts/%s" % p.name],
+                    capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=60)
+                text = proc.stdout
+            except (OSError, subprocess.SubprocessError):
+                text = ""
+        (out_dir / ("%s.diff" % p.stem)).write_text(text, encoding="utf-8")
+
+
+def _monthly_a_items(target, year_month):
+    """月次の区切りA（当月の記事）の材料を、記事1本＝1アイテムで返す。"""
+    diffs_dir = _input_dir_for_output(target) / ARTICLE_DIFFS_DIRNAME
+    new, updated = _monthly_article_split(year_month)
     items = []
-    for display in _all_generation_rule_files():
-        items.append({"chars": _text_len(_rule_file_path(display)), "images": 0,
-                      "lines": ["- %s" % display]})
+    for p, reason in new:
+        items.append({"chars": _text_len(p), "images": 0,
+                      "lines": ["- site/src/content/posts/%s（新しい記事・%s・全文を読む）" % (p.name, reason)]})
+    for p, reason in updated:
+        diff = diffs_dir / ("%s.diff" % p.stem)
+        chars = _text_len(diff)
+        note = "当月の差分を読む。差分の前後の文脈が要るときだけ本文 site/src/content/posts/%s を開く" % p.name
+        if not chars:
+            note = "当月の差分が取れなかった（コミットに変更なし）。本文 site/src/content/posts/%s を読む" % p.name
+            chars = _text_len(p)
+        items.append({"chars": chars, "images": 0,
+                      "lines": ["- %s（更新した記事・%s・%s）" % (_rel(diff), reason, note)]})
     return items
 
 
-def _monthly_s_items():
-    """月次の区切りS（恒久アセットの全体）の材料を、1ファイル＝1アイテムで返す（D-0255）。"""
+def _monthly_g_items(year_month):
+    """月次の区切りG（当月に変更があった生成ルール）の材料を、1ファイル＝1アイテムで返す。"""
+    month_start, month_end = _monthly_period(year_month)
     items = []
-    if SITE_DIST_DIR.is_dir():
-        for p in sorted(SITE_DIST_DIR.rglob("index.html")):
-            rel = p.relative_to(SITE_DIST_DIR).as_posix()
-            if rel.startswith("posts/"):
-                continue
-            items.append({"chars": _text_len(p), "images": 0, "lines": ["- site/dist/%s" % rel]})
-    cats = SITE_DIR / "src" / "data" / "categories.ts"
-    if cats.is_file():
-        items.append({"chars": _text_len(cats), "images": 0, "lines": ["- site/src/data/categories.ts"]})
-    editorial = SITE_DIR / "src" / "data" / "editorial.ts"
-    if editorial.is_file():
-        items.append({"chars": _text_len(editorial), "images": 0, "lines": ["- site/src/data/editorial.ts"]})
-    layouts_dir = SITE_DIR / "src" / "layouts"
-    if layouts_dir.is_dir():
-        for p in sorted(layouts_dir.glob("*")):
-            if p.is_file():
-                items.append({"chars": _text_len(p), "images": 0,
-                             "lines": ["- site/src/layouts/%s" % p.name]})
-    components_dir = SITE_DIR / "src" / "components"
-    if components_dir.is_dir():
-        for p in sorted(components_dir.rglob("*")):
-            if p.is_file():
-                rel = p.relative_to(components_dir).as_posix()
-                items.append({"chars": _text_len(p), "images": 0,
-                             "lines": ["- site/src/components/%s" % rel]})
+    for display, changed in _generation_rule_targets(month_start, month_end):
+        if changed:
+            items.append({"chars": _text_len(_rule_file_path(display)), "images": 0,
+                          "lines": ["- %s【当月に変更あり・全文を読む】" % display]})
     return items
 
 
-def _monthly_p_items(target):
-    """月次の区切りP（代表サンプル）の材料を、記事1本＝1アイテムで返す（D-0255）。"""
+def _top_category_page(input_dir):
+    """gsc-page-28d.json で表示が最も多いカテゴリページの dist のパス（site/ 起点）と、その理由。
+    カテゴリページの行が無ければ、表示が最も多い記事のカテゴリのページ。"""
+    series = _load_input_series(input_dir, "gsc-page-28d.json") or []
+    best = None
+    for rec in series:
+        path = (rec.get("page") or "").replace(SITE_URL_PREFIX, "")
+        m = re.match(r"^/category/([a-z0-9-]+)/(?:(\d+)/)?$", path)
+        if m and (best is None or (rec.get("impressions") or 0) > best[0]):
+            best = (rec.get("impressions") or 0, m.group(1), m.group(2))
+    if best:
+        sub = "%s/" % best[2] if best[2] else ""
+        return "dist/category/%s/%sindex.html" % (best[1], sub), "gsc-page-28d.json で表示が最多のカテゴリページ（表示%d）" % best[0]
+    for rec in sorted(series, key=lambda r: -(r.get("impressions") or 0)):
+        slug = _slug_from_url(rec.get("page"))
+        category = _read_frontmatter(CONTENT_POSTS_DIR / ("%s.md" % slug)).get("category") if slug else None
+        if category:
+            return "dist/category/%s/index.html" % category, "表示が最多の記事（%s）のカテゴリページ" % slug
+    return None, "gsc-page-28d.json に使える行が無い"
+
+
+def _monthly_s_items(target, year_month):
+    """月次の区切りS（当月に変更した恒久アセット＋検索表示の多いカテゴリページ1件）の材料。"""
+    month_start, month_end = _monthly_period(year_month)
+    items = []
+    for rel, dist_candidates in _permanent_asset_changes(month_start, month_end):
+        lines = ["- site/%s【当月に変更あり】" % rel]
+        for d in dist_candidates:
+            lines.append("  - 対応: site/%s" % d)
+        items.append({"chars": _text_len(SITE_DIR / rel), "images": 0, "lines": lines})
+    page, how = _top_category_page(_input_dir_for_output(target))
+    if page:
+        lines = ["- site/%s（%s）" % (page, how), "  - （注）site/dist のビルド日時 %s" % _dist_built_at()]
+        if not (SITE_DIR / page).is_file():
+            lines.append("  - （注）site/%s が dist に無い" % page)
+        items.append({"chars": _text_len(SITE_DIR / page), "images": 0, "lines": lines})
+    return items
+
+
+def _select_monthly_samples(posts_by_category, ga4_series, gsc_series=None, exclude=()):
+    """見本を最大 MONTHLY_SAMPLE_MAX 本選ぶ（PV最多・検索表示最多・公開日最古の順。区切りAの記事は除く）。
+    戻り値: [(category, slug, 理由)]"""
+    exclude = set(exclude)
+    category_of = {slug: category for category, posts in posts_by_category.items() for slug, _p, _d in posts}
+    dates = {slug: date_str for posts in posts_by_category.values() for slug, _p, date_str in posts}
+
+    def ranked(series, key, metric):
+        totals = {}
+        for row in series or []:
+            slug = _slug_from_url(row.get(key))
+            if slug in category_of:
+                totals[slug] = totals.get(slug, 0) + (row.get(metric) or 0)
+        return sorted(totals, key=lambda s: (-totals[s], s)), totals
+
+    pv_order, pv = ranked(ga4_series, "page_path", "screenPageViews")
+    imp_order, imp = ranked(gsc_series, "page", "impressions")
+    oldest = sorted(category_of, key=lambda s: (dates.get(s) or "9999-99-99", s))
+    picks = []
+    for order, reason in ((pv_order, lambda s: "PV最多（%d）" % pv[s]),
+                          (imp_order, lambda s: "検索表示最多（%d）" % imp[s]),
+                          (oldest, lambda s: "公開日最古（%s）" % dates.get(s))):
+        slug = next((s for s in order if s not in exclude and s not in {p[1] for p in picks}), None)
+        if slug and len(picks) < MONTHLY_SAMPLE_MAX:
+            picks.append((category_of[slug], slug, reason(slug)))
+    return picks
+
+
+def _monthly_p_items(target, year_month):
+    """月次の区切りP（見本）の材料を、記事1本＝1アイテムで返す。"""
     input_dir = _input_dir_for_output(target)
-    posts_by_category = _posts_by_category()
-    ga4_series = _load_ga4_page_traffic_series(input_dir)
-    samples = _select_monthly_samples(posts_by_category, ga4_series)
-    items = []
-    for category, chosen in samples:
-        for slug, reason in chosen:
-            p = CONTENT_POSTS_DIR / ("%s.md" % slug)
-            items.append({
-                "chars": _text_len(p), "images": 0,
-                "lines": ["- [%s] %s（%s）: site/src/content/posts/%s.md" % (category, slug, reason, slug)],
-            })
-    return items
+    new, updated = _monthly_article_split(year_month)
+    samples = _select_monthly_samples(_posts_by_category(), _load_ga4_page_traffic_series(input_dir),
+                                      _load_input_series(input_dir, "gsc-page-28d.json"),
+                                      exclude=[p.stem for p, _r in new + updated])
+    return [{"chars": _text_len(CONTENT_POSTS_DIR / ("%s.md" % slug)), "images": 0,
+             "lines": ["- [%s] %s（%s）: site/src/content/posts/%s.md" % (category, slug, reason, slug)]}
+            for category, slug, reason in samples]
 
 
 def _build_partitions(mode, since, until, month, target, weekly_inputs=None):
@@ -2369,9 +2953,10 @@ def _build_partitions(mode, since, until, month, target, weekly_inputs=None):
         return (_pack_items(_weekly_r_items(since, until, input_items), "R")
                 + _pack_items(_weekly_o_items(since, until), "O"))
     if mode == "monthly":
-        return (_pack_items(_monthly_g_items(), "G")
-                + _pack_items(_monthly_s_items(), "S")
-                + _pack_items(_monthly_p_items(target), "P"))
+        return (_pack_items(_monthly_a_items(target, month), "A")
+                + _pack_items(_monthly_g_items(month), "G")
+                + _pack_items(_monthly_s_items(target, month), "S")
+                + _pack_items(_monthly_p_items(target, month), "P"))
     return []
 
 
@@ -2409,7 +2994,7 @@ def _build_summary_prompt(prompt, parts_dir, partitions, since=None, until=None)
 
 
 def _emit_dry_run(purpose, method, target, parts_dir, partitions, mode="monthly",
-                  weekly_inputs=None, sns_unobserved=False):
+                  weekly_inputs=None, sns_unobserved=False, monthly_inputs=None):
     plan = []
     part_sections = REQUIRED_PART_SECTIONS_BY_MODE.get(mode, REQUIRED_PART_SECTIONS)
     for part in partitions:
@@ -2419,11 +3004,13 @@ def _emit_dry_run(purpose, method, target, parts_dir, partitions, mode="monthly"
             "chars": part["chars"], "images": part["images"],
             "skip": _valid_partial_output(part_path, part_sections),
         }
-        if mode == "weekly":
+        if mode in ("weekly", "monthly"):
             entry["targets"] = list(part["lines"])
         plan.append(entry)
     skip_names = [p["name"] for p in plan if p["skip"]]
     extra = {"partitions": plan, "skip": skip_names}
+    if mode == "monthly":
+        extra["monthly_inputs"] = monthly_inputs or []
     if mode == "weekly":
         # 週次は JSON の中身を tmp/ へ UTF-8 で保存し、画面には英数字だけを出す（D-0272）。
         extra["artifact"] = str(target)
@@ -2662,6 +3249,12 @@ def run_growth_audit(purpose, prompt_file, output_file, model_override=None,
                         "ピン日次の取得が終わっていないため Codex を呼ぶ前に停止しました。%s" % pin_stop)
         weekly_inputs = _prepare_weekly_inputs(input_dir, since, until, pin_notes)
 
+    monthly_inputs = None
+    if mode == "monthly":
+        # 月次の入力（実験の状態・GSC・GA4・sns.md・到達数などの md）を区切りの計画より先に作る。
+        # 区切りの計画が ga4-page-traffic.json・gsc-page-28d.json を読むため、--dry-run でも作る（2026-11-01）。
+        monthly_inputs = _prepare_monthly_inputs(_input_dir_for_output(target), effective_month)
+
     partitions = _build_partitions(mode, since, until, effective_month, target, weekly_inputs)
     parts_dir = target.parent / "parts"
     part_sections = REQUIRED_PART_SECTIONS_BY_MODE[mode]
@@ -2669,11 +3262,7 @@ def run_growth_audit(purpose, prompt_file, output_file, model_override=None,
 
     if dry_run:
         return _emit_dry_run(purpose, method, target, parts_dir, partitions, mode,
-                             weekly_inputs, sns_unobserved)
-
-    if mode == "monthly":
-        # 月次のまとめも実験の状態を読む（S-0027 ②）。区切りの材料には入れない。
-        _prepare_monthly_experiment_inputs(_input_dir_for_output(target), effective_month)
+                             weekly_inputs, sns_unobserved, monthly_inputs)
 
     if render_only:
         return _render_audit_prompts(purpose, method, prompt_file, mode, target, parts_dir,
@@ -2828,7 +3417,8 @@ def run_growth_audit(purpose, prompt_file, output_file, model_override=None,
                 "truncated_outputs": truncated_total, "view_image_calls": view_image_total,
                 "reasoning_effort": reasoning_effort,
                 "token_usage": {"total": token_totals, "parts": token_by_part},
-                "parts": part_reports, "judge_due": judge_due})
+                "parts": part_reports, "judge_due": judge_due,
+                **({"monthly_inputs": monthly_inputs} if mode == "monthly" else {})})
     return EXIT_OK
 
 

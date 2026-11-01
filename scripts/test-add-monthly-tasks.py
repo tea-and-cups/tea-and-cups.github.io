@@ -10,6 +10,10 @@ tasks.md（固定の内容・対象日は実日付と無関係な日付）に対
 変わっていないことを確かめる。4つ目の群は、採用済み指示の台帳 growth/ledger/adopted-directives.tsv が
 凍結されて記録として残り、codex-gateway.py がそれを読まないこと（S-0027 ②で遵守確認を廃止）を確かめる
 （Codex・外部APIは起動せず、何も書き込まない）。一時ディレクトリは終了時に必ず消す。
+--adopt は台帳も一時ディレクトリへ向け（--ledger）、本物の data/monthly-queue.tsv が変わらないことも確かめる。
+5つ目の群は、tmp/test-monthly-queue/ に置いたダミーの台帳1行から codex-gateway.py の
+prev-queue-results.md を作る（完了日は本物の site/ の git log、GSC は固定の値・2026-11-01）。
+この群の出力は検証の記録として tmp/test-monthly-queue/ に残す。
 
 使い方:
   python site/scripts/test-add-monthly-tasks.py
@@ -28,18 +32,23 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, "..", ".."))
 RUN_DATE = "2031-05-15"  # 実日付と無関係な対象日（ダミーの月マーカーは 2031-05）
 
-HEADER = "Q番号\tタグ\tslug\tcategory\tGD番号\t内容\t根拠"
+HEADER = "Q番号\tタグ\tslug\tcategory\tGD番号\t内容\t対象指標\t根拠"
 QUEUE_ROWS = [
-    "Q-1\t改修\tnew-safe\tteaware\tGD-0033\t保存の助言に出典か適用条件を付ける\t区切り P-1 の所見",
-    "Q-2\t改修+画像\tnew-image\tgift\t-\thero画像を差し替え本文の見出しを直す\t区切り S-2 の所見",
-    "Q-3\t改修\texist-survey\thow-to\tGD-0032\t調査方法の行を裏取りし直す\t区切り G-1 の所見",
-    "Q-4\t新規記事執筆\texist-survey-b\ttea-leaves\t-\t既にある行と同じslugの新規記事\t改善指示3",
-    "Q-5\t新規記事執筆\tnew-article\tgift\t-\t冬の贈り物の選び方\t改善指示5",
+    "Q-1\t改修\tnew-safe\tteaware\tGD-0033\t保存の助言に出典か適用条件を付ける\tgsc-clicks-28d\t区切り P-1 の所見",
+    "Q-2\t改修+画像\tnew-image\tgift\t-\thero画像を差し替え本文の見出しを直す\tgsc-clicks-28d\t区切り S-2 の所見",
+    "Q-3\t改修\texist-survey\thow-to\tGD-0032\t調査方法の行を裏取りし直す\tgsc-clicks-28d\t区切り G-1 の所見",
+    "Q-4\t新規記事執筆\texist-survey-b\ttea-leaves\t-\t既にある行と同じslugの新規記事\tgsc-impr-28d\t改善指示3",
+    "Q-5\t新規記事執筆\tnew-article\tgift\t-\t冬の贈り物の選び方\tgsc-impr-28d\t改善指示5",
 ]
 # 重複の照合の補足（同じslugでGD番号が違う改修は書く／GD番号の無い改修はGD番号の無い行と照合する）
 QUEUE_ROWS_EXTRA = [
-    "Q-1\t改修\texist-survey\thow-to\tGD-0033\t同じ記事の安全の助言を直す\t区切り P-3 の所見",
-    "Q-2\t改修\texist-new\tgift\t-\tGD番号の無い行と同じslugの改修\t区切り P-4 の所見",
+    "Q-1\t改修\texist-survey\thow-to\tGD-0033\t同じ記事の安全の助言を直す\tgsc-clicks-28d\t区切り P-3 の所見",
+    "Q-2\t改修\texist-new\tgift\t-\tGD番号の無い行と同じslugの改修\tgsc-clicks-28d\t区切り P-4 の所見",
+]
+# 2026-11-01以降の月次監査が出す形（CTR改修・新規記事執筆だけ）
+QUEUE_ROWS_CTR = [
+    "Q-1\tCTR改修\tctr-target\tteaware\t-\ttitle に比較の基準を先に出す\tgsc-ctr-28d\tctr-candidates.md 表示120・CTR 0.8%",
+    "Q-2\t新規記事執筆\tquery-gap-article\thow-to\t-\t検索語「ダミー」に答える記事\tgsc-impr-28d\tquery-gaps.md 表示14",
 ]
 
 TASKS_HEAD = (
@@ -126,8 +135,8 @@ def run_list_cases(module, root):
                     code == 0 and len(lines) == 6 and "5件" in lines[0]
                     and all(lines[i + 1].startswith("Q-%d " % (i + 1)) for i in range(5)),
                     "\n" + out.strip()))
-    results.append(("1-b. 表示は書き込む行の形（GD-0033 の行だけ末尾の印の後ろに根拠が続く）",
-                    "（new-safe・teaware）（上限外） ｜根拠:" in lines[1]
+    results.append(("1-b. 表示は書き込む行の形（GD-0033 の行だけ末尾の印の後ろに対象指標・根拠が続く）",
+                    "（new-safe・teaware）（上限外） ｜対象指標: gsc-clicks-28d ｜根拠:" in lines[1]
                     and sum("（上限外）" in line for line in lines) == 1, ""))
 
     _write(audit, _audit(QUEUE_ROWS, fenced=False))
@@ -135,16 +144,17 @@ def run_list_cases(module, root):
     results.append(("1-c. コードブロックの囲みが無くても読める", code == 0 and "5件" in out, out.strip().splitlines()[0]))
 
     broken = list(QUEUE_ROWS)
-    broken[2] = "Q-3\t改修\texist-survey\thow-to\tGD-0032\t根拠の列が無い行"   # 6列
-    broken[3] = "Q-4\t書き直し\tExist_B\ttea-leaves\tGD-32\t内容\t改善指示3"      # タグ・slug・GD番号
+    broken[2] = "Q-3\t改修\texist-survey\thow-to\tGD-0032\t根拠の列が無い行\tgsc-clicks-28d"   # 7列
+    broken[3] = "Q-4\t書き直し\tExist_B\ttea-leaves\tGD-32\t内容\tgsc-x\t改善指示3"      # タグ・slug・GD番号・対象指標
     _write(audit, _audit(broken))
     text_lines = _read(audit).split("\n")
-    line_6col = text_lines.index(broken[2]) + 1
+    line_7col = text_lines.index(broken[2]) + 1
     line_bad = text_lines.index(broken[3]) + 1
     code, out = _run(module, ["--list", audit])
-    results.append(("1-d. 形式違反の行（列数・タグ・slug・GD番号） → 終了コード1・行番号つきで全件",
-                    code == 1 and ("行%d: 列数が6" % line_6col) in out and ("行%d: タグ" % line_bad) in out
-                    and "slug「Exist_B」" in out and "GD番号「GD-32」" in out and "形式違反 2件" in out,
+    results.append(("1-d. 形式違反の行（列数・タグ・slug・GD番号・対象指標） → 終了コード1・行番号つきで全件",
+                    code == 1 and ("行%d: 列数が7" % line_7col) in out and ("行%d: タグ" % line_bad) in out
+                    and "slug「Exist_B」" in out and "GD番号「GD-32」" in out and "対象指標「gsc-x」" in out
+                    and "形式違反 2件" in out,
                     "\n" + out.strip()))
 
     _write(audit, _audit([row.replace("\t", "  ") for row in QUEUE_ROWS], header=HEADER.replace("\t", "  ")))
@@ -152,8 +162,8 @@ def run_list_cases(module, root):
     results.append(("1-e. タブでなく空白で区切った表 → 終了コード1（列名の行の行番号）",
                     code == 1 and "列名の行が違います" in out and "行" in out, out.strip()))
 
-    _write(audit, _audit(QUEUE_ROWS + ["Q-5\t改修\tdup-q\tgift\t-\tQ番号の重複\t所見",
-                                       "Q-6\t改修\tnote-row\tgift\t-\t印を書いた行（上限外）\t所見"]))
+    _write(audit, _audit(QUEUE_ROWS + ["Q-5\t改修\tdup-q\tgift\t-\tQ番号の重複\tgsc-clicks-28d\t所見",
+                                       "Q-6\t改修\tnote-row\tgift\t-\t印を書いた行（上限外）\tgsc-clicks-28d\t所見"]))
     code, out = _run(module, ["--list", audit])
     results.append(("1-f. Q番号の重複・内容に「（上限外）」 → 終了コード1",
                     code == 1 and "Q番号 Q-5 が行" in out and "内容に「（上限外）」" in out, out.strip()))
@@ -168,6 +178,18 @@ def run_list_cases(module, root):
 
     code, out = _run(module, ["--list", os.path.join(root, "no-such-audit.md")])
     results.append(("1-i. 監査出力のファイルが無い → 終了コード1", code == 1 and "見つかりません" in out, out.strip()))
+
+    _write(audit, _audit(QUEUE_ROWS_CTR))
+    code, out = _run(module, ["--list", audit])
+    lines = out.strip().splitlines()
+    results.append(("1-j. 新しい月次の形（CTR改修・新規記事執筆・8列） → 2件。CTR改修 に「（上限外）」は付かない",
+                    code == 0 and "2件" in lines[0] and lines[1].startswith("Q-1 [CTR改修] ")
+                    and "（ctr-target・teaware） ｜対象指標: gsc-ctr-28d" in lines[1] and "（上限外）" not in out,
+                    "\n" + out.strip()))
+    _write(audit, _audit(QUEUE_ROWS, header="Q番号\tタグ\tslug\tcategory\tGD番号\t内容\t根拠"))
+    code, out = _run(module, ["--list", audit])
+    results.append(("1-k. 旧形式（対象指標の列が無い7列の列名） → 終了コード1", code == 1 and "列名の行が違います" in out,
+                    out.strip()))
     return results
 
 
@@ -175,11 +197,12 @@ def run_adopt_cases(module, rotate, root):
     results = []
     audit = os.path.join(root, "audit.md")
     tasks = os.path.join(root, "tasks.md")
+    ledger = os.path.join(root, "monthly-queue.tsv")
     _write(audit, _audit(QUEUE_ROWS))
     _write(tasks, _tasks())
     before = _read(tasks)
 
-    code, out = _run(module, ["--adopt", "Q-1,Q-3,Q-5", "--from", audit, "--tasks", tasks, "--date", RUN_DATE])
+    code, out = _run(module, ["--adopt", "Q-1,Q-3,Q-5", "--from", audit, "--tasks", tasks, "--ledger", ledger, "--date", RUN_DATE])
     after = _read(tasks)
     rows = _month_section(rotate, after)
     results.append(("2-a. --adopt Q-1,Q-3,Q-5 → 終了コード0・追加2件・重複1件",
@@ -200,6 +223,15 @@ def run_adopt_cases(module, rotate, root):
     results.append(("2-f. 今月節以外（今日・今週・バックログ）と月マーカー・コメント行は変わらない",
                     outside_before == outside_after and "<!-- month: 2031-05 -->\n<!-- 行の形の説明（ダミー） -->\n- [x] [M-4]" in after
                     and after.count("\n\n## バックログ") == 1, ""))
+    ledger_lines = _read(ledger).rstrip("\n").split("\n")
+    audit_display = module.display_path(audit)
+    results.append(("2-f2. 台帳: 列名の行＋書き込んだ2行だけ（重複で飛ばした Q-3 は書かない）・列は M番号〜基準値",
+                    ledger_lines == ["\t".join(module.LEDGER_COLUMNS),
+                                     "M-10\t%s\t%s\tQ-1\t改修\tnew-safe\tgsc-clicks-28d\t-" % (RUN_DATE, audit_display),
+                                     "M-11\t%s\t%s\tQ-5\t新規記事執筆\tnew-article\tgsc-impr-28d\t-" % (RUN_DATE, audit_display)],
+                    "\n" + "\n".join(ledger_lines)))
+    results.append(("2-f3. 台帳の列は codex-gateway.py の MONTHLY_QUEUE_COLUMNS と同じ",
+                    tuple(module.LEDGER_COLUMNS) == _load("codex-gateway.py").MONTHLY_QUEUE_COLUMNS, ""))
 
     # 書き込んだ後の内容で、rotate-today-tasks.py の MONTHLY_NEXT の選び方を確かめる
     lines = after.split("\n")
@@ -220,7 +252,7 @@ def run_adopt_cases(module, rotate, root):
         "- [x] [M-%d] [改修] 完了済みの改修（GD-0032・判定X）（done-%d・how-to）\n" % (n, n) for n in (20, 21, 22, 23)
     ) + TASKS_MONTH_ROWS.split("\n", 2)[2]  # M-4・M-6 の行を除き、上限外の未完了行が無い状態にする
     _write(tasks, _tasks(rows=capped_rows))
-    code, out = _run(module, ["--adopt", "Q-1,Q-5", "--from", audit, "--tasks", tasks, "--date", RUN_DATE])
+    code, out = _run(module, ["--adopt", "Q-1,Q-5", "--from", audit, "--tasks", tasks, "--ledger", ledger, "--date", RUN_DATE])
     lines = _read(tasks).split("\n")
     rows = _month_section(rotate, "\n".join(lines))
     next_line = rotate.monthly_next_line(lines)
@@ -234,22 +266,45 @@ def run_adopt_cases(module, rotate, root):
                     next_line.startswith("MONTHLY_NEXT: - [ ] [M-9] ") and "（改修上限 4/4・保留2行）" in next_line,
                     next_line))
 
+    # CTR改修（2026-11-01）: 印が無くても上限に数えず、上限到達の月でも飛ばさない
+    ctr_audit = os.path.join(root, "audit-ctr.md")
+    _write(ctr_audit, _audit(QUEUE_ROWS_CTR))
+    _write(tasks, _tasks(rows=capped_rows))
+    code, out = _run(module, ["--adopt", "Q-1", "--from", ctr_audit, "--tasks", tasks, "--ledger", ledger,
+                              "--date", RUN_DATE])
+    lines = _read(tasks).split("\n")
+    rows = _month_section(rotate, "\n".join(lines))
+    next_line = rotate.monthly_next_line(lines)
+    results.append(("2-k2. 上限到達（4/4）の月に CTR改修（M-24）を採用 → 今月節の末尾に入り、保留の改修を飛ばして"
+                    "M-9 の次に選ばれる（上限に数える行ではない）",
+                    code == 0 and rows[-1] == "- [ ] [M-24] [CTR改修] title に比較の基準を先に出す（ctr-target・teaware）"
+                    and not rotate.is_capped_revise(rows[-1]) and next_line.startswith("MONTHLY_NEXT: - [ ] [M-9] "),
+                    next_line))
+    lines = [line.replace("- [ ] [M-9]", "- [x] [M-9]") if line.startswith("- [ ] [M-9]") else line for line in lines]
+    next_line = rotate.monthly_next_line(lines)
+    results.append(("2-k3. 新規記事の完了後は CTR改修（M-24）が選ばれる（上限 4/4 でも飛ばさない）",
+                    next_line.startswith("MONTHLY_NEXT: - [ ] [M-24] [CTR改修] ") and "（改修上限 4/4・保留2行）" in next_line,
+                    next_line))
+    lines = [line.replace("- [ ] [M-24]", "- [x] [M-24]") if line.startswith("- [ ] [M-24]") else line for line in lines]
+    results.append(("2-k4. CTR改修の完了は改修の上限に数えない（4/4 のまま）",
+                    "（改修上限 4/4・" in rotate.monthly_next_line(lines), rotate.monthly_next_line(lines)))
+
     # 重複の照合の補足
     _write(tasks, _tasks())
-    code, out = _run(module, ["--adopt", "Q-4,Q-2", "--from", audit, "--tasks", tasks, "--date", RUN_DATE])
+    code, out = _run(module, ["--adopt", "Q-4,Q-2", "--from", audit, "--tasks", tasks, "--ledger", ledger, "--date", RUN_DATE])
     rows = _month_section(rotate, _read(tasks))
     results.append(("2-l. 新規記事の候補（Q-4）は slug だけで照合して飛ばす（既存の行は GD-0032 の改修）・Q-2 は書く",
                     code == 0 and "重複のため飛ばしました ← Q-4（slug exist-survey-b）" in out
                     and rows[-1] == "- [ ] [M-10] [改修+画像] hero画像を差し替え本文の見出しを直す（new-image・gift）",
                     "\n" + out.strip()))
-    code, out = _run(module, ["--adopt", "Q-2", "--from", audit, "--tasks", tasks, "--date", RUN_DATE])
+    code, out = _run(module, ["--adopt", "Q-2", "--from", audit, "--tasks", tasks, "--ledger", ledger, "--date", RUN_DATE])
     results.append(("2-m. 同じQ番号をもう一度採用しても、書き込み済みの行と重複して飛ばされる（ファイルは変わらない）",
                     code == 0 and "追加0件・重複で飛ばした1件" in out
                     and _month_section(rotate, _read(tasks)) == rows, out.strip()))
     extra = os.path.join(root, "audit-extra.md")
     _write(extra, _audit(QUEUE_ROWS_EXTRA))
     _write(tasks, _tasks())
-    code, out = _run(module, ["--adopt", "Q-1,Q-2", "--from", extra, "--tasks", tasks, "--date", RUN_DATE])
+    code, out = _run(module, ["--adopt", "Q-1,Q-2", "--from", extra, "--tasks", tasks, "--ledger", ledger, "--date", RUN_DATE])
     rows = _month_section(rotate, _read(tasks))
     results.append(("2-n. 同じslugでもGD番号が違う改修は書く／GD番号の無い改修はGD番号の無い行と重複",
                     code == 0 and "- [ ] [M-10] [改修] 同じ記事の安全の助言を直す（GD-0033）（exist-survey・how-to）（上限外）" in rows
@@ -258,24 +313,24 @@ def run_adopt_cases(module, rotate, root):
     # 何も書かずに止まる場合
     _write(tasks, _tasks(month="2031-04"))
     digest = _sha(tasks)
-    code, out = _run(module, ["--adopt", "Q-1,Q-3,Q-5", "--from", audit, "--tasks", tasks, "--date", RUN_DATE])
+    code, out = _run(module, ["--adopt", "Q-1,Q-3,Q-5", "--from", audit, "--tasks", tasks, "--ledger", ledger, "--date", RUN_DATE])
     results.append(("3-a. 月マーカー（2031-04）が実行月（2031-05）と違う → 終了コード1・ファイルは変わらない",
                     code == 1 and "月マーカー（2031-04）が実行月（2031-05）と違う" in out and _sha(tasks) == digest,
                     out.strip()))
     _write(tasks, _tasks().replace("<!-- month: 2031-05 -->\n", ""))
     digest = _sha(tasks)
-    code, out = _run(module, ["--adopt", "Q-1", "--from", audit, "--tasks", tasks, "--date", RUN_DATE])
+    code, out = _run(module, ["--adopt", "Q-1", "--from", audit, "--tasks", tasks, "--ledger", ledger, "--date", RUN_DATE])
     results.append(("3-b. 月マーカーが無い → 終了コード1・ファイルは変わらない",
                     code == 1 and "読み取れない" in out and _sha(tasks) == digest, out.strip()))
     _write(tasks, _tasks())
     digest = _sha(tasks)
-    code, out = _run(module, ["--adopt", "Q-1,Q-9", "--from", audit, "--tasks", tasks, "--date", RUN_DATE])
+    code, out = _run(module, ["--adopt", "Q-1,Q-9", "--from", audit, "--tasks", tasks, "--ledger", ledger, "--date", RUN_DATE])
     results.append(("3-c. 表に無いQ番号が混ざる → 終了コード1・ファイルは変わらない",
                     code == 1 and "表に無いQ番号です: Q-9" in out and _sha(tasks) == digest, out.strip()))
     broken = list(QUEUE_ROWS)
     broken[4] = "Q-5\t新規記事執筆\tnew-article\tgift\t-\t根拠の列が無い行"
     _write(audit, _audit(broken))
-    code, out = _run(module, ["--adopt", "Q-1", "--from", audit, "--tasks", tasks, "--date", RUN_DATE])
+    code, out = _run(module, ["--adopt", "Q-1", "--from", audit, "--tasks", tasks, "--ledger", ledger, "--date", RUN_DATE])
     results.append(("3-d. 採用しない行でも表に形式違反があれば → 終了コード1・ファイルは変わらない",
                     code == 1 and "形式違反 1件" in out and _sha(tasks) == digest, out.strip()))
     return results
@@ -300,15 +355,18 @@ def run_real_copy_case(module, rotate, root):
     # Q-3 は、複製にある未完了行（slug と GD番号 を持つ最初の行）と同じ slug×GD番号 にする
     existing = next((row for row in open_rows if row["slug"] and row["gds"]), None)
     rows = list(QUEUE_ROWS)
-    rows[0] = "Q-1\t改修\tzz-test-new-safe\tteaware\tGD-0033\t検証用のダミー（上限外になる行）\t検証"
-    rows[4] = "Q-5\t新規記事執筆\tzz-test-new-article\tgift\t-\t検証用のダミー（新規記事）\t検証"
+    rows[0] = "Q-1\t改修\tzz-test-new-safe\tteaware\tGD-0033\t検証用のダミー（上限外になる行）\tgsc-clicks-28d\t検証"
+    rows[4] = "Q-5\t新規記事執筆\tzz-test-new-article\tgift\t-\t検証用のダミー（新規記事）\tgsc-impr-28d\t検証"
     if existing:
-        rows[2] = "Q-3\t改修\t%s\thow-to\t%s\t検証用のダミー（既存の行と重複）\t検証" % (
+        rows[2] = "Q-3\t改修\t%s\thow-to\t%s\t検証用のダミー（既存の行と重複）\tgsc-clicks-28d\t検証" % (
             existing["slug"], sorted(existing["gds"])[0])
     audit = os.path.join(root, "real-copy", "audit.md")
     _write(audit, _audit(rows))
 
+    real_ledger = module.LEDGER_TSV
+    ledger_digest = _sha(real_ledger) if os.path.isfile(real_ledger) else None
     code, out = _run(module, ["--adopt", "Q-1,Q-3,Q-5", "--from", audit, "--tasks", copy,
+                              "--ledger", os.path.join(root, "real-copy", "monthly-queue.tsv"),
                               "--date", "%s-15" % month])
     after = _read(copy).split("\n")
     month_rows = _month_section(rotate, "\n".join(after))
@@ -336,6 +394,9 @@ def run_real_copy_case(module, rotate, root):
                     next_after.startswith(expected), "前: %s\n      後: %s" % (next_before, next_after)))
     results.append(("4-f. 本物の docs/tasks.md は1バイトも変わっていない（sha256 一致）",
                     _sha(real) == digest, digest[:16]))
+    results.append(("4-f2. 本物の data/monthly-queue.tsv は変わっていない（無ければ作られていない）",
+                    (_sha(real_ledger) if os.path.isfile(real_ledger) else None) == ledger_digest,
+                    "存在する" if ledger_digest else "存在しない"))
     results.append(("4-g. 複製の今月節（書き込み後）の並び", True, " → ".join(_ids(month_rows))))
     return results
 
@@ -361,6 +422,61 @@ def run_growth_ledger_case():
     ]
 
 
+DUMMY_QUEUE_DIR = os.path.join(PROJECT_ROOT, "tmp", "test-monthly-queue")
+DUMMY_QUEUE_SLUG = "meissen-blue-onion-daigae-brand"  # 2026-10 に site/ のコミットで更新された実在の記事
+
+
+def run_prev_queue_case():
+    """前月の作業キューの結果（codex-gateway.py の _build_prev_queue_results）を、tmp/ に置いたダミーの
+    台帳1行で作る。完了日は本物の site/ の git log から導き、GSC は呼ばずに固定の値を返す。
+    本物の data/monthly-queue.tsv は読まない・書かない。出力は tmp/test-monthly-queue/ に残す。"""
+    gw = _load("codex-gateway.py")
+    os.makedirs(DUMMY_QUEUE_DIR, exist_ok=True)
+    ledger = os.path.join(DUMMY_QUEUE_DIR, "monthly-queue.tsv")
+    _write(ledger, "\t".join(gw.MONTHLY_QUEUE_COLUMNS) + "\n"
+           + "M-99\t2026-10-01\tgrowth/outputs/monthly-2026-09/audit.md\tQ-1\tCTR改修\t%s\tgsc-ctr-28d\t-\n"
+           % DUMMY_QUEUE_SLUG)
+    row = gw._read_queue_ledger(gw.Path(ledger))[0]
+    done = gw._queue_done_date(row)
+    page = "%s/posts/%s/" % (gw.SITE_URL_PREFIX, DUMMY_QUEUE_SLUG)
+    calls = []
+
+    def fake_metrics(args):
+        calls.append(list(args))
+        since = args[args.index("--since") + 1]
+        rec = ({"page": page, "impressions": 100, "clicks": 1, "ctr": 0.01, "position": 8.0} if since < (done or "")
+               else {"page": page, "impressions": 120, "clicks": 3, "ctr": 0.025, "position": 7.5})
+        payload = {"status": "ok", "data": {"series": [rec], "totals": {}}}
+        return payload, gw.json.dumps(payload), None
+
+    gw._run_metrics = fake_metrics
+    results = [("6-a. ダミーの台帳1行の記事の完了日を site/ の git log（採用日 2026-10-01 以後の最初のコミット）から導く",
+                bool(done) and done >= "2026-10-01", "完了日 %s" % done)]
+    if not done:
+        return results
+    done_dt = gw.datetime.strptime(done, "%Y-%m-%d")
+    long_today = (done_dt + gw.timedelta(days=40)).strftime("%Y-%m-%d")
+    text = gw._build_prev_queue_results("2026-10", gw.Path(ledger), today=long_today)
+    _write(os.path.join(DUMMY_QUEUE_DIR, "prev-queue-results.md"), text)
+    results.append(("6-b. 期間が足りる日（完了日+40日）: 完了日・前後各28日・前後の指標が出る（GSC の呼び出しは2回）",
+                    ("| M-99 | CTR改修 | %s | gsc-ctr-28d | 2026-10-01 | %s |" % (DUMMY_QUEUE_SLUG, done)) in text
+                    and "前後各28日" in text and "表示100・クリック1・CTR 1.0%・順位8.0" in text
+                    and "表示120・クリック3・CTR 2.5%・順位7.5" in text and len(calls) == 2,
+                    "tmp/test-monthly-queue/prev-queue-results.md"))
+    short_today = (done_dt + gw.timedelta(days=8)).strftime("%Y-%m-%d")
+    text = gw._build_prev_queue_results("2026-10", gw.Path(ledger), today=short_today)
+    _write(os.path.join(DUMMY_QUEUE_DIR, "prev-queue-results-short.md"), text)
+    results.append(("6-c. 期間が足りない日（完了日+8日・GSC の遅れ3日を引いて5日）: 判定不能（期間不足）・GSC は呼ばない",
+                    "判定不能（期間不足・14日に満たない）" in text and "完了後5日" in text and len(calls) == 2,
+                    "tmp/test-monthly-queue/prev-queue-results-short.md"))
+    text = gw._build_prev_queue_results("2026-11", gw.Path(ledger), today=long_today)
+    results.append(("6-d. 前月（2026-10）の監査の行が無い月: 対象なし（前月の採用なし）",
+                    "対象なし（前月の採用なし" in text, ""))
+    text = gw._build_prev_queue_results("2026-10", gw.Path(os.path.join(DUMMY_QUEUE_DIR, "no-such.tsv")))
+    results.append(("6-e. 台帳が無い: 対象なし（台帳開始前）", "対象なし（台帳開始前）" in text, ""))
+    return results
+
+
 def main():
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
@@ -380,6 +496,7 @@ def main():
                             not os.path.exists(root), "")]))
     groups.append(("採用済み指示の台帳は凍結し、codex-gateway.py は読まない（Codex・外部APIは起動しない）",
                    run_growth_ledger_case()))
+    groups.append(("前月の作業キューの結果（tmp/ のダミーの台帳1行・GSC は呼ばない）", run_prev_queue_case()))
 
     failures = []
     total = 0
