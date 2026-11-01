@@ -50,6 +50,13 @@
         「目止め・とぎ汁・研ぎ汁」「傷みやすい・傷みやすく・常温で長く」があり、同じブロックに出典URL
         （アフィリエイト除く）が無い。型9と同じく適用条件の語では免除しない。「煮る・煮て」は紅茶の
         レシピ（チャイ・ホットアップルティー）の誤検知になるため語に入れない
+    型11 保存・衛生・安全・手入れの助言（W44週次・2026-10月次の指摘）: 文単位で次のどれかに当たり、同じブロック
+        （箇条書きは1項目）に出典URL（アフィリエイト除く）が無い。型9・10と同じく適用条件の語では免除しない。
+        (a) 乳児・妊娠中等の語＋与えない・避ける等 (b) 違和感・異臭・「いつもと違う」・サイン等＋飲まない・処分等、
+        「一口含んで」 (c) 「早めに飲み切る」「飲み切る前提」、湿気・匂い移り・カビ・直射日光等＋避ける・防ぎきれず等
+        (d) 熱湯＋注がない・いきなり・急激な温度変化等。仕様の説明（耐えやすい等）・抽出の説明・「飲み切れる量」・
+        「医師に相談」の案内は拾わない。出典を置けない助言は削除する（言い換えて残さない）。
+        型5は「重曹」「漂白」の手入れ文に限り適用条件の語（「表示に従う」等）で免除しない。
     新規公開（引数 <slug> のみ）ではNG、--revise と --survey-xy（週次）では【警告】にとどめる
     （公開済みの記事に該当が多く、関係のない改修まで止まるため）。
   --survey-xy: 公開済み全記事にX・Yだけをかける読み取り専用モード。型4〜9は【警告】の行で件数と該当を出す。
@@ -211,7 +218,7 @@ RE_LIST_ITEM = re.compile(r"^\s*(?:[-*+]|\d+[.)])\s")
 # 判定Yの拡張（W42監査の採用指示・GD-0039）。型4〜7は文単位（型1〜3と同じ照合）、型8は節単位。
 # どれも同じブロックに出典URLか適用条件の語（SAFETY_CONDITION_WORDS）があればOK。
 # 新規公開ではNG、--revise と週次（--survey-xy）は【警告】にとどめる（NEW_SAFETY_TYPES）。
-NEW_SAFETY_TYPES = ("型4", "型5", "型6", "型7", "型8", "型9", "型10")
+NEW_SAFETY_TYPES = ("型4", "型5", "型6", "型7", "型8", "型9", "型10", "型11")
 # 型4〜7に限り、商品ごとの表示・注意書きに委ねる書き方も適用条件とみなす（型1〜3の条件語は変えない）
 NEW_TYPE_CONDITION_WORDS = ["商品ページ", "注意書き", "商品ごとに", "商品によって", "製品によって", "対応しているか", "対応した商品"]
 # 型4 火気: 火元の語と、注意・禁止の語
@@ -223,7 +230,10 @@ SAFETY_TYPE4_ADVICE = [
 # 「火」は花火・火曜・火傷・火加減など別の語に含まれるため、前後の文字で除く
 RE_TYPE4_FIRE = re.compile(r"(?<![花弱中強大点出発着])火(?![曜傷加力山])")
 # 型5 手入れ: 手入れの語と、推奨・禁止の語
-SAFETY_TYPE5_SUBJECT = ["手洗い", "つけ置き", "漬け置き", "研磨", "金彩", "金縁", "漂白"]
+SAFETY_TYPE5_SUBJECT = ["手洗い", "つけ置き", "漬け置き", "研磨", "金彩", "金縁", "漂白", "重曹", "煮沸"]
+# 洗浄薬剤の手入れは「製品の表示に従う」等の適用条件では免除しない（手順そのものに出典URLを要する。
+# tea-strainer-chakoshi-erabikata が「表示に従ってください」の一文で型5を通っていたため）
+SAFETY_TYPE5_STRICT = ["重曹", "漂白", "煮沸"]
 SAFETY_TYPE5_ADVICE = [
     "おすすめ", "お勧め", "推奨", "避け", "控え", "禁止", "NG", "ください", "しましょう",
     "ほうがよ", "ほうが安", "ほうが無難", "ほうがい", "方がよ", "方が安", "方が無難", "方がい",
@@ -274,6 +284,36 @@ RE_TYPE9_STORAGE = re.compile(
 # 免除しない（条件の語は手順や傷みやすさそのものの根拠にならず、実際の2文はこの語で型5に通っていたため）。
 # 「煮る・煮て」は紅茶のレシピ（チャイ・ホットアップルティー）に多く誤検知になるため語に入れない。
 SAFETY_TYPE10_WORDS = ["目止め", "とぎ汁", "研ぎ汁", "傷みやすい", "傷みやすく", "常温で長く"]
+# 型11 保存・衛生・安全・手入れの助言（W44週次・2026-10月次の指摘）: 文単位で照合し、同じブロック
+# （箇条書きは1項目）に出典URL（アフィリエイト除く）が無ければ違反。型9・10と同じく適用条件の語
+# （「製品の表示に従う」等）では免除しない。次の4つのどれかに当たる文を拾う。
+#   (a) 特定の人への注意: 乳児・妊娠中等の語＋与えない・避ける等
+#   (b) 傷みの見分け・判断: 違和感・異臭・「いつもと違う」・サイン等＋飲まない・処分等
+#   (c) 保存・飲み切りの判断: 「早めに飲み切る」「飲み切る前提」、保存環境（湿気・匂い移り・カビ等）を防ぐ・避ける助言
+#   (d) 器の熱衝撃: 熱湯＋注がない・避ける等（急激な温度変化に弱い）
+# 淹れ方の手順の「熱湯を注ぐ」、日付や期間だけの記述、読者への「医師に相談」の案内は拾わない。
+RE_T11_PERSON = re.compile(r"乳児|乳幼児|赤ちゃん|幼児|妊娠中|授乳中|妊婦|[1１一]歳未満")
+RE_T11_PERSON_ADVICE = re.compile(
+    r"与えない|与えず|与えて(?:は|も)?いけ|避け|控え|飲まない|飲ませない|摂取しない|させない|禁止|いけません|NG|おすすめしません")
+RE_T11_SIGN = re.compile(
+    r"違和感|異変|異臭|異常|いつもと(?:は)?違|おかしい|酸っぱい|発酵臭|変な(?:味|匂い|におい)|サイン|見分け")
+RE_T11_DISCARD = re.compile(
+    r"飲まない|飲まず|飲み込まず|口にしない|口にせず|口にしないで|処分|捨て(?:る|て|ま)|廃棄|やめ(?:る|て|ま)")
+RE_T11_TASTE_TEST = re.compile(r"一口含|少し口に含|味見.{0,10}(?:確認|判断)")
+# 「飲み切れる量」（容量の選び方）は飲み切りの判断ではないため、「飲み切れ」は拾わない
+RE_T11_KEEP_JUDGE = re.compile(
+    r"早め(?:に)?(?:は)?飲み(?:切|き)(?!れ)|飲み(?:切|き)る前提|その日のうちに飲み(?:切|き)(?!れ)|傷む前に")
+# 仕様の説明（「熱湯を注いでも急激な温度変化に耐えやすい」）と、抽出の置き場所の説明は助言ではないため除く
+RE_T11_NOT_ADVICE = re.compile(r"耐え|強い|対応仕様|抽出|水温")
+RE_T11_STORAGE_ENV = re.compile(
+    r"湿気|匂い移り|においうつり|香り移り|におい移り|酸化|劣化|カビ|湿った|直射日光|高温多湿|冷暗所")
+# 商品の仕様の説明（「湿気を防ぎ」「密閉できる」）は助言ではないため、「防ぐ」「密閉」単独では拾わない。
+# 「防ぎきれず」のように、保存の足りなさを断定する形と、避ける・乾かす・長く置かない等の手入れの助言を拾う。
+RE_T11_STORAGE_ADVICE = re.compile(
+    r"防ぎき|防ぎ切|防げ(?:ない|ず)|避け|乾かし|乾燥さ|置か(?:ない|ず)|生え|長く置|放置|入れ(?:ない|ず)")
+RE_T11_HOT_WATER = re.compile(r"熱湯|沸騰したて|沸かしたて")
+RE_T11_THERMAL_SHOCK = re.compile(
+    r"注が(?:ない|ず)|注ぐのは避け|避け|急激な温度|温度変化|いきなり")
 RE_MD_HEADING = re.compile(r"^(#{1,6})\s")
 RE_BOLD_ONLY_LINE = re.compile(r"^\s*\*\*[^*].*\*\*\s*$")
 
@@ -487,7 +527,7 @@ def safety_advice_hits(text):
         return []
     old_types_exempt = any(w in plain for w in SAFETY_CONDITION_WORDS)
     new_types_exempt = old_types_exempt or any(w in plain for w in NEW_TYPE_CONDITION_WORDS)
-    if old_types_exempt and new_types_exempt:
+    if old_types_exempt and new_types_exempt and not any(w in plain for w in SAFETY_TYPE5_STRICT):
         return []
     hits = []
     for line in plain.split("\n"):
@@ -499,7 +539,9 @@ def safety_advice_hits(text):
             if not sentence or sentence[-1] in "？?":
                 continue  # 疑問文は照合しない
             for typ, words in safety_sentence_types(sentence):
-                if typ in NEW_SAFETY_TYPES:
+                if typ == "型5" and any(w in sentence for w in SAFETY_TYPE5_STRICT):
+                    pass  # 洗浄薬剤の手入れは適用条件の語で免除しない
+                elif typ in NEW_SAFETY_TYPES:
                     if new_types_exempt:
                         continue
                 elif old_types_exempt:
@@ -547,6 +589,54 @@ def care_hygiene_hits(text):
     return [("型10", words, sentence)]
 
 
+def keeping_safety_sentence_words(sentence):
+    """型11: 1文が保存・衛生・安全・手入れの助言に当たれば、当たった語のリストを返す（当たらなければ空）。"""
+    person = RE_T11_PERSON.search(sentence)
+    if person and RE_T11_PERSON_ADVICE.search(sentence):
+        return [person.group(0), RE_T11_PERSON_ADVICE.search(sentence).group(0)]
+    taste = RE_T11_TASTE_TEST.search(sentence)
+    if taste:
+        return [taste.group(0)]
+    sign = RE_T11_SIGN.search(sentence)
+    if sign and RE_T11_DISCARD.search(sentence):
+        return [sign.group(0), RE_T11_DISCARD.search(sentence).group(0)]
+    keep = RE_T11_KEEP_JUDGE.search(sentence)
+    if keep:
+        return [keep.group(0)]
+    if RE_T11_NOT_ADVICE.search(sentence):
+        return []
+    env = RE_T11_STORAGE_ENV.search(sentence)
+    if env and RE_T11_STORAGE_ADVICE.search(sentence):
+        return [env.group(0), RE_T11_STORAGE_ADVICE.search(sentence).group(0)]
+    hot = RE_T11_HOT_WATER.search(sentence)
+    if hot and RE_T11_THERMAL_SHOCK.search(sentence):
+        return [hot.group(0), RE_T11_THERMAL_SHOCK.search(sentence).group(0)]
+    return []
+
+
+def keeping_safety_hits(text):
+    """型11: ブロックに保存・衛生・安全・手入れの助言の文があり、出典URLが無ければ [(型, 語リスト, 文)] を返す。
+
+    適用条件の語では免除しない。リンク文字・URLは照合しない。見出し行と疑問文は照合しない。
+    """
+    if has_valid_source(text):
+        return []
+    plain = RE_URL.sub(" ", text)
+    hits = []
+    for line in plain.split("\n"):
+        if line.lstrip().startswith("#"):
+            continue
+        line = RE_MD_LINK_FULL.sub(" ", line)
+        for sentence in RE_SENTENCE_PARTS.findall(line):
+            sentence = sentence.strip()
+            if not sentence or sentence[-1] in "？?":
+                continue
+            words = keeping_safety_sentence_words(sentence)
+            if words:
+                hits.append(("型11", words, sentence))
+    return hits
+
+
 def safety_sub_units(unit):
     """判定Y用に、箇条書きは1項目ずつ・それ以外はブロック全体を単位にする。"""
     if not any(RE_LIST_ITEM.match(line) for _, line in unit):
@@ -577,7 +667,7 @@ def check_xy(path, slug):
         for sub in safety_sub_units(unit):
             sub_text = unit_text(sub)
             for typ, words, sentence in (safety_advice_hits(sub_text) + food_storage_hits(sub_text)
-                                         + care_hygiene_hits(sub_text)):
+                                         + care_hygiene_hits(sub_text) + keeping_safety_hits(sub_text)):
                 out.append({"slug": slug, "line": sub[0][0], "categories": ["Y"],
                             "excerpt": excerpt(sentence), "hit": typ + ":" + "・".join(words),
                             "sentence": sentence, "in_product_block": False,
@@ -742,7 +832,11 @@ def run_single(slug, revise=False):
               + "。型9: 保存期間・衛生（「N日／N時間」と " + "・".join(SAFETY_TYPE9_KEEP) + " が同じブロック）には、同じブロックに出典URLが要ります"
               "（適用条件の語だけでは通りません。出典を置けない場合は日数の記述を削る）"
               + "。型10: 手入れ手順・傷みやすさ（" + "・".join(SAFETY_TYPE10_WORDS)
-              + "）には、同じブロックに出典URLが要ります（適用条件の語だけでは通りません。出典を置けない場合は文を削る）")
+              + "）には、同じブロックに出典URLが要ります（適用条件の語だけでは通りません。出典を置けない場合は文を削る）"
+              + "。型11: 保存・衛生・安全・手入れの助言（乳児など特定の人への注意／傷みの見分け・「いつもと違えば飲まない」／"
+              "「早めに飲み切る」／湿気・匂い移り・カビ・直射日光への注意／熱湯を注ぐ際の破損注意）には、同じブロックに"
+              "出典URLが要ります（適用条件の語だけでは通りません。出典を置けない場合は助言を削る。言い換えて残さない）"
+              + "。型5の重曹・漂白剤の手入れ文も、同じブロックに出典URLが要ります")
     return 1
 
 

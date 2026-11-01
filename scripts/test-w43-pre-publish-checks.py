@@ -5,6 +5,8 @@ r"""W43監査の採用指示で足した公開前チェックの再発防止テ�
   B publish-article.py の公開時期の確認（季節の山まで28日未満はNG・28〜41日は警告・通年は対象外）
   C check-pin-image-style.py の予告型の先頭（ピン370以降・画像の先頭文言と投稿文の1行目）
   A2 check-fact-source.py の型10（手入れ手順・傷みやすさ。W43検証監査の指摘）／
+  A3 check-fact-source.py の型11（保存・衛生・安全・手入れの助言。W44週次・2026-10月次の指摘）と
+     型5の重曹・漂白剤の特則（case_a の中で実行する）／
   D check-pin-image-style.py の断定語の先頭（P-1・ピン383以降）
 
 本物の記事・ピン・台帳には触れない。A・C は一時ディレクトリにダミーを作り、B は判定関数へ
@@ -93,6 +95,72 @@ def case_a(results, root):
     path = _article(root, "case-a-new", "冷蔵で2日以内に飲み切ります。")
     hits = [v for v in fs.check_xy(path, "dummy") if v["hit"].startswith("型9")]
     results.append(("型9は new_type（--revise・週次は警告）", bool(hits) and all(v["new_type"] for v in hits), str(hits)))
+    # 型11（W44週次・2026-10月次の指摘）: 保存・衛生・安全・手入れの助言は同じブロックに出典URLを要し、
+    # 適用条件の語では免除しない。重曹・漂白剤の手入れ（型5）も適用条件の語で免除しない
+    src = "（出典: [消費者庁](https://www.caa.go.jp/example)）"
+    cases11 = [
+        ("乳児への注意・出典なし → 型11", "はちみつを含むため、1歳未満の乳児には与えないでください。", ["型11"]),
+        ("乳児への注意・出典URLあり → なし", "はちみつを含むため、1歳未満の乳児には与えないでください" + src + "。", []),
+        ("妊娠中の方は医師に相談（助言語なし） → なし", "妊娠中の方は、気になる場合は医師に相談すると安心です。", []),
+        ("傷みの見分け（いつもと違えば飲まない）・出典なし → 型11", "酸っぱいにおいや味など、いつもと違うと感じたら飲まないでください。", ["型11"]),
+        ("傷みの見分け・出典URLあり → なし", "酸っぱいにおいなど、いつもと違うと感じたら飲まないでください" + src + "。", []),
+        ("一口含んで確かめる手順 → 型11", "- 味に違和感がある — 一口含んで確かめ、残りは処分する", ["型11"]),
+        ("早めに飲み切る前提 → 型11", "作り置きは早めに飲み切る前提で考えます。", ["型11"]),
+        ("飲み切れる量に合わせた容量選び → なし", "容量は、早めに飲み切れる量に合わせて選びます。", []),
+        ("湿気や匂い移りを防ぎきれず → 型11", "袋のまま留めるだけでは、湿気や匂い移りを防ぎきれません。", ["型11"]),
+        ("商品の仕様（湿気を防ぎ密封） → なし", "内蓋が付いているので、湿気を防ぎしっかり密封します。", []),
+        ("カビが生えるので避ける → 型11", "乾かさずに置くと、カビが生えることがあるので避けます。", ["型11"]),
+        ("冷たいグラスにいきなり熱湯 → 型11", "冷たいグラスにいきなり熱湯を注がないようにしましょう。", ["型11"]),
+        ("淹れ方の「熱湯を注ぐ」 → なし", "ポットに熱湯を注ぎ、3分蒸らします。", []),
+        ("熱湯を注いでも耐えやすい仕様 → なし", "強化ガラス製で、熱湯を注いでも急激な温度変化に耐えやすい仕様です。", []),
+        ("適用条件の語があっても免除しない（製品の表示に従う） → 型11",
+         "冷蔵庫の外では、製品の表示に従いつつ早めに飲み切る前提で考えます。", ["型11"]),
+        ("アフィリエイトURLだけ → 型11", "早めに飲み切る前提で。[商品](https://hb.afl.rakuten.co.jp/ichiba/x/y)", ["型11"]),
+    ]
+    for description, body, expected in cases11:
+        path = _article(root, "case-a11", body)
+        got = [t for t in _types(fs, path) if t == "型11"]
+        results.append((description, got == expected, "期待=%s 実際=%s" % (expected, got)))
+    path = _article(root, "case-a11-list",
+                    "- 乳児には与えない\n- 詳しくは[公的機関](https://www.mhlw.go.jp/example)を確認")
+    got = [t for t in _types(fs, path) if t == "型11"]
+    results.append(("箇条書きは1項目ずつ（URLが別項目なら型11）", got == ["型11"], "実際=%s" % got))
+    path = _article(root, "case-a11-new", "早めに飲み切る前提で考えます。")
+    hits = [v for v in fs.check_xy(path, "dummy") if v["hit"].startswith("型11")]
+    results.append(("型11は new_type（--revise・週次は警告）", bool(hits) and all(v["new_type"] for v in hits), str(hits)))
+    # 公開前チェックと同じ入口（run_single）: 出典なしのダミーは終了コード1（NG）・出典URL付きは0（--revise は警告で0）
+    import contextlib, io
+    old_drafts = fs.DRAFTS_DIR
+    fs.DRAFTS_DIR = root
+    try:
+        for description, body, revise, expected_code, expected_text in (
+            ("run_single: 出典なしの保存助言ダミー → 終了コード1・型11を表示",
+             "はちみつを含むため、1歳未満の乳児には与えないでください。", False, 1, "型11"),
+            ("run_single: 出典URLを付けたダミー → 終了コード0・FACT_SOURCE_OK",
+             "はちみつを含むため、1歳未満の乳児には与えないでください" + src + "。", False, 0, "FACT_SOURCE_OK"),
+            ("run_single --revise: 出典なしのダミー → 終了コード0・【警告】型11",
+             "はちみつを含むため、1歳未満の乳児には与えないでください。", True, 0, "【警告】"),
+        ):
+            _article(root, "case-cli", body)
+            buffer = io.StringIO()
+            with contextlib.redirect_stdout(buffer):
+                code = fs.run_single("case-cli", revise=revise)
+            text = buffer.getvalue()
+            results.append((description, code == expected_code and expected_text in text,
+                            "終了コード=%s 出力=%s" % (code, text[:200])))
+    finally:
+        fs.DRAFTS_DIR = old_drafts
+    # 型5の特則: 重曹・漂白剤の手入れは「表示に従ってください」の適用条件で免除しない。手洗い等は従来どおり免除
+    cases5 = [
+        ("重曹・漂白剤のつけ置き＋表示に従う → 型5", "重曹や漂白剤でつけ置きする場合は、製品の表示に従ってください。", ["型5"]),
+        ("重曹・漂白剤のつけ置き＋出典URL → なし",
+         "重曹や漂白剤でつけ置きする場合は、製品の表示に従ってください（[メーカー](https://example.com/care)）。", []),
+        ("手洗いのおすすめ＋表示に従う → なし（従来どおり免除）", "手洗いがおすすめです。製品の表示に従ってください。", []),
+    ]
+    for description, body, expected in cases5:
+        path = _article(root, "case-a5", body)
+        got = [t for t in _types(fs, path) if t == "型5"]
+        results.append((description, got == expected, "期待=%s 実際=%s" % (expected, got)))
 
 
 def case_b(results):
