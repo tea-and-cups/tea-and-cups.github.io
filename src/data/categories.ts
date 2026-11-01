@@ -15,6 +15,8 @@ export const SHOW_CATEGORY_COUNT = false;
 //   - 記事末の「次に読む」がカテゴリ一覧ではなくハブ記事へ向く
 //   - ハブ記事のページに、同じカテゴリの全記事の一覧が自動で出る
 // 新しいハブ記事を公開したら、そのカテゴリに hub を足す（未指定のカテゴリは従来どおりカテゴリ一覧へ向く）。
+// seoTitle・seoDescription: カテゴリページの title・meta description だけを差し替える（省略可）。
+//   h1・パンくず・画面の文・カード・JSON-LD は name・description のまま。
 export const CATEGORIES = [
   {
     slug: 'tea-leaves',
@@ -54,6 +56,9 @@ export const CATEGORIES = [
     en: 'Gift',
     description:
       '贈る相手やシーンに合わせて選ぶ、紅茶のギフト・手土産の選び方をご紹介します。',
+    seoTitle: '紅茶ギフト・手土産の選び方｜相手・場面別',
+    seoDescription:
+      '紅茶のギフト・手土産を、贈る相手や場面（お歳暮・クリスマス・お年賀・内祝いなど）から選ぶための記事をまとめました。',
     hub: 'koucha-gift-erabikata-aite-bamen-yosan',
   },
   {
@@ -61,7 +66,7 @@ export const CATEGORIES = [
     name: '行事・季節',
     en: 'Seasons',
     description:
-      'お月見・ハロウィン・夏祭りなど、行事や季節に合わせて楽しむ紅茶の過ごし方をまとめました。',
+      '季節の行事や移ろいに合わせて楽しむ、紅茶の過ごし方をまとめました。',
     hub: 'koucha-nenkan-calendar-gyoji-kisetsu',
   },
 ];

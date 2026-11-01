@@ -5,7 +5,7 @@ import BaseLayout from '../../../layouts/BaseLayout.astro';
 import PostCard from '../../../components/PostCard.astro';
 import Pagination from '../../../components/Pagination.astro';
 import { CATEGORIES } from '../../../data/categories';
-import { CATEGORY_EDITORIAL } from '../../../data/editorial';
+import { CATEGORY_EDITORIAL, categoryEntryErrors, categoryEntryToday, selectCategoryEntry } from '../../../data/editorial';
 import { POSTS_PER_PAGE, compareByDateDescThenSlugAsc } from '../../../data/pagination';
 
 export async function getStaticPaths({ paginate }) {
@@ -40,8 +40,9 @@ const findPost = (slug) => allPosts.find((p) => p.data.slug === slug);
 // ハブを指定したカテゴリは「ハブ記事＋主要5本」、未指定のカテゴリは（あれば）「最初は、この3本から」を冒頭に出す。
 // 記事が別のカテゴリへ移った等で指定が崩れたときは、壊れたページを公開せずビルドを止める。
 const hubPost = isFirst && category.hub ? findPost(category.hub) : null;
-const spokes = hubPost ? (editorial.spokes ?? []).map(findPost) : [];
-if (isFirst && category.hub && (!hubPost || hubPost.data.category !== category.slug || spokes.length !== 5 || spokes.some((p) => !p || p.data.category !== category.slug))) throw new Error(`[category] hub selection failed: ${category.slug}`);
+const entryErrors = isFirst && category.hub ? categoryEntryErrors(category.slug, editorial, findPost) : [];
+if (isFirst && category.hub && (!hubPost || hubPost.data.category !== category.slug || entryErrors.length > 0)) throw new Error(`[category] hub selection failed: ${category.slug} ${entryErrors.join(' / ')}`);
+const spokes = hubPost ? selectCategoryEntry(editorial, categoryEntryToday()).map(findPost) : [];
 const beginners = isFirst && !category.hub && editorial.beginners ? editorial.beginners.map(findPost) : [];
 if (beginners.length > 0 && (beginners.length !== 3 || beginners.some((p) => !p))) throw new Error(`[category] editorial selection failed: ${category.slug}`);
 
@@ -67,10 +68,10 @@ const jsonLd = [
 ];
 ---
 <BaseLayout
-  title={`${category.name}${pageSuffix}`}
+  title={`${category.seoTitle ?? category.name}${pageSuffix}`}
   description={isFirst
-    ? category.description
-    : `${category.description}（${page.currentPage}ページ目）`}
+    ? category.seoDescription ?? category.description
+    : `${category.seoDescription ?? category.description}（${page.currentPage}ページ目）`}
   breadcrumbs={breadcrumbs}
   jsonLd={jsonLd}
 >
