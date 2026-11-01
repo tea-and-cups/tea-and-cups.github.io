@@ -3,7 +3,7 @@ title: 作り置き水出し紅茶は何日もつ？保存期間と衛生の注�
 slug: mizudashi-koucha-hozon-eisei-qa
 date: 2026-08-13
 updated: 2026-11-01
-description: 作り置きした水出し紅茶は、冷蔵庫で保存して2日以内を目安に飲み切るのが基本ですが、温度・保存時間・容器の清潔さで傷みやすさは変わります。保存方法と衛生の注意点をQ&A形式で紹介します。
+description: 作り置きした水出し紅茶は、当サイトでは冷蔵庫で保存して2日以内の飲み切りを目安にしていますが、温度・保存時間・容器の清潔さで傷みやすさは変わります。保存方法と衛生の注意点をQ&A形式で紹介します。
 tags: [紅茶, 水出し, 保存, 夏]
 hero: /images/mizudashi-koucha-hozon-eisei-qa/hero.webp
 status: published
@@ -42,7 +42,7 @@ category: how-to
 
 [![麦茶ポット 冷水筒 3.5L 密封性 横置き](/images/mizudashi-koucha-hozon-eisei-qa/products/1.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824e728.ae1e9d07.5824e729.0098c3cb/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fsmile-net001%2Fpitcher-01%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.46（24件） [麦茶ポット 冷水筒 3.5L 密封性 横置きタイプはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824e728.ae1e9d07.5824e729.0098c3cb/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fsmile-net001%2Fpitcher-01%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D) — 密封性の高い蛇口付きタイプで、冷蔵庫内で横置きにも対応できるこの価格帯では手堅い選択肢
+★4.46（24件） [麦茶ポット 冷水筒 3.5L 密封性 横置きタイプはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824e728.ae1e9d07.5824e729.0098c3cb/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fsmile-net001%2Fpitcher-01%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D) — 密封性の高い蛇口付きタイプで、冷蔵庫内で横置きにも対応できる手堅い選択肢
 
 抽出そのものに使うピッチャー選びは、[水出し紅茶用ポット・ピッチャー比較](/posts/mizudashi-pitcher-hikaku/)も参考にしてみてください。
 
