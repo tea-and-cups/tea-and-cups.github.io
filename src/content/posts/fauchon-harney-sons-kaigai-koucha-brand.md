@@ -1,8 +1,8 @@
 ---
-title: フォション・ハーニー&サンズを飲み比べ｜海外紅茶ブランド4種の選び方
+title: フォションとハーニー&サンズを比較｜海外紅茶ブランド4種の選び方
 slug: fauchon-harney-sons-kaigai-koucha-brand
 date: 2026-08-18
-updated: 2026-08-18
+updated: 2026-11-01
 description: フランスの「フォション」とアメリカの「ハーニー&サンズ」、海外の人気紅茶ブランドをそれぞれ2種ずつ比較しました。缶入り茶葉とフレーバードティーバッグ、それぞれの選び方をご紹介します。
 tags: [紅茶, 海外ブランド, フレーバードティー]
 hero: /images/fauchon-harney-sons-kaigai-koucha-brand/hero.webp
@@ -17,7 +17,7 @@ category: tea-leaves
 ## 海外紅茶ブランドを選ぶときの3つの基準
 
 1. **茶葉かティーバッグかで選ぶ** — 缶入りの茶葉タイプはパッケージそのものの高級感があり贈り物にも向いていますが、ティーポットでの抽出が前提です。ティーバッグタイプは1杯分の分量が調整済みで、普段使いのハードルが低くなります。
-2. **香りの系統で選ぶ** — フォションはベルガモットや紅茶らしい香りづけが中心、ハーニー&サンズはシナモン・オレンジ・クローブなど複数のスパイスを重ねたフレーバードティーが看板商品です。どちらも紅茶そのものの渋みより香りづけを楽しむ設計になっています。
+2. **香りの系統で選ぶ** — フォションはベルガモットや紅茶らしい香りづけが中心、ハーニー&サンズはシナモン・オレンジ・クローブなど複数のスパイスを重ねたフレーバードティーが看板商品です。
 3. **お試しサイズがあるかを確認する** — 海外ブランドは本格サイズ（20〜50包）がメインの商品も多く、まず少量で試したい場合はお試しサイズの取り扱いがあるかを確認すると失敗が少なくなります。
 
 ## 比較：フォション・ハーニー&サンズの紅茶4種
@@ -45,9 +45,9 @@ category: tea-leaves
 
 [![S&B フォション ダージリン 茶葉缶125g](/images/fauchon-harney-sons-kaigai-koucha-brand/products/2.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824dfb2.b82366ea.5824dfb3.30c7ecba/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fe-sbfoods%2F11536%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.60（50件） [S&B フォション ダージリン 茶葉缶125gはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824dfb2.b82366ea.5824dfb3.30c7ecba/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fe-sbfoods%2F11536%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
+★4.60（5件） [S&B フォション ダージリン 茶葉缶125gはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824dfb2.b82366ea.5824dfb3.30c7ecba/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fe-sbfoods%2F11536%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-レビュー件数が50件と比較の中でも多く、国内で安定して入手しやすい点も選びやすさにつながっています。
+レビュー件数は5件と少なめですが、国内向けに正規展開されている商品なので、国内で入手しやすい点は選びやすさにつながっています。
 
 ### 3. ハーニー&サンズ ホット・シナモン・サンセット（タガロング）— お試しサイズでスパイスの香りを試したい方に
 
