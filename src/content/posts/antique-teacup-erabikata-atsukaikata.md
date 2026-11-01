@@ -2,7 +2,7 @@
 title: アンティークティーカップの選び方と扱い方：魅力と気をつけたい点
 slug: antique-teacup-erabikata-atsukaikata
 date: 2026-10-03
-updated: 2026-10-11
+updated: 2026-11-01
 description: アンティークティーカップの魅力と、貫入・金彩・鉛の安全性など購入前に確認したい点を、メーカーや公的機関の資料の範囲で整理しました。はじめの一歩に選びやすいアンティーク風の3点もご紹介します。
 tags: [ティーカップ, アンティーク, ヴィンテージ, ブランド食器, お手入れ]
 hero: /images/antique-teacup-erabikata-atsukaikata/hero.webp
@@ -56,7 +56,7 @@ category: teaware
 
 ### 金彩部分は電子レンジ・食洗機に注意
 
-金・銀などの金属の装飾がある食器は、電子レンジや食洗機の可否が製品ごとに異なります。可否は製品の表示や取扱説明書に従うのが基本で、表示のない古い品は、電子レンジや食洗機を避けて手洗いにするのが無難です。食洗機・電子レンジの一般的な可否は[ティーカップの食洗機・電子レンジQ&A](/posts/teacup-shokusenki-denshirenji-otenire-qa/)もあわせてご覧ください。
+ノリタケの案内では、金銀装飾の器は電子レンジ不可とされ、「MICROWAVE SAFE」の表示がある商品は例外です（出典: [ノリタケ「商品のお取り扱い」](https://tableware.noritake.co.jp/f/guide/toriatsukai.html)）。可否は製品の表示や取扱説明書に従うのが基本で、表示のない古い品は、電子レンジや食洗機を避けて手洗いにするのが無難です。食洗機・電子レンジの一般的な可否は[ティーカップの食洗機・電子レンジQ&A](/posts/teacup-shokusenki-denshirenji-otenire-qa/)もあわせてご覧ください。
 
 ### 古い絵付けの鉛に関する指摘
 
@@ -102,8 +102,8 @@ category: teaware
 
 ## 長く使うために
 
-- **貫入・シミが気になったら**：本物のアンティークで茶渋やシミが気になる場合は、[茶渋・黄ばみの落とし方](/posts/chashibu-kibami-otoshikata/)の方法を、目立たない部分で試してから使ってください。強くこすると絵付けを傷める場合があるので注意が必要です。
-- **収納**：1客ずつ重ねずに保管すると、カップの縁や金彩を傷めにくくなります。[ティーカップの収納・食器棚の整理](/posts/teacup-kyusu-shuunou-shokkidana-seiri/)も参考にしてください。
+- **貫入・シミが気になったら**：本物のアンティークで茶渋やシミが気になる場合は、一般的なカップの茶渋の落とし方は[茶渋・黄ばみの落とし方](/posts/chashibu-kibami-otoshikata/)で紹介していますが、アンティークへの使用可否は同記事の案内には記載がありません。
+- **収納**：[ティーカップの収納・食器棚の整理](/posts/teacup-kyusu-shuunou-shokkidana-seiri/)も参考にしてください。
 - **ほかのブランドと見比べたいとき**：ブランドで選びたい方は、[ティーカップの選び方（素材・形・ブランド）](/posts/teacup-erabikata-sozai-katachi-brand/)で全体像を、[スポードのブルーイタリアン](/posts/spode-blue-italian-nyumon/)や[ウェッジウッドのティーカップ比較](/posts/wedgwood-teacup-erabikata-hikaku/)で個別ブランドの雰囲気を確認できます。
 
 ## まとめ
