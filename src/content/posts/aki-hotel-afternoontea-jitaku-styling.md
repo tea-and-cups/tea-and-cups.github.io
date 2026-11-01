@@ -2,7 +2,7 @@
 title: 秋のホテルアフタヌーンティーを自宅で真似する｜スタイリングの3つのコツ
 slug: aki-hotel-afternoontea-jitaku-styling
 date: 2026-09-05
-updated: 2026-10-01
+updated: 2026-11-01
 description: 2026年秋のホテルアフタヌーンティーに共通する食材と色を手がかりに、自宅で秋らしさを出すスタイリングを3つのコツに整理しました。面の色、器の陰影、香りの三点だけで印象は変わります。
 tags: [紅茶, アフタヌーンティー, テーブルコーディネート, 秋]
 hero: /images/aki-hotel-afternoontea-jitaku-styling/hero.webp
@@ -47,11 +47,11 @@ category: seasons
 形については、四角より**半月形や丸**のほうが柔らかい印象になります。カップとポットと菓子皿を載せるなら、直径や辺で30cm台のものが、この記事の目安です。小さすぎると載せきれず、大きすぎると一人分には余ります。
 
 [![半月盆 木製 36cm トレイ](/images/aki-hotel-afternoontea-jitaku-styling/products/1.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824d4a3.e469d7ac.5824d4a4.6fa1f1e6/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fnaniwa-select%2Ftray7%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
-★4.71（140件） [半月盆 木製 36cm トレイはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824d4a3.e469d7ac.5824d4a4.6fa1f1e6/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fnaniwa-select%2Ftray7%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
+★4.71（143件） [半月盆 木製 36cm トレイはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824d4a3.e469d7ac.5824d4a4.6fa1f1e6/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fnaniwa-select%2Ftray7%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 天然木の半月盆です。販売ページによるとサイズは36×33×1.5cmで、ナチュラル（ウレタン塗装）とブラウン（漆塗り）の2色から選べます。秋のテーブルに寄せるなら後者です。販売ページでは、半月形は四角いテーブルにも丸いテーブルにも合うと説明されています。天然木のため色や木目には個体差があるとの断りがあり、収納は立てかけずに平置きするよう案内されています。
 
-販売ページの文面には、耐熱性やお手入れ方法の記載が見当たりませんでした（画像内の記載は未確認）。熱いポットやカップを直接置けるかどうかは分からないため、熱い器を載せるときは、コースターやポットマットを間に敷いてください。
+販売ページの文面には、耐熱性やお手入れ方法の記載が見当たりませんでした（画像内の記載は未確認）。熱いポットやカップを直接置けるかどうかは、この記事では確かめられていません。気になる場合は、購入前に販売ページで確認するか、販売店に問い合わせてください。
 
 トレーを一枚の定位置として使う考え方そのものは、[ひとり分のティースペースの作り方｜トレー1枚で紅茶の定位置を作る](/posts/aki-moyougae-hitoribun-tea-space/)でも扱っています。あちらは通年の置き場所づくり、こちらは季節の色替えという住み分けです。
 
@@ -69,7 +69,7 @@ category: seasons
 - **色が生成りに近いか** — 純白よりクリーム系のほうが、暖色の菓子となじみます
 - **普段使いできるか** — 秋の一か月だけ出す器は、出番が少ないまま終わりがちです
 
-★4.72（75件） [ウェッジウッド フェスティビティ ティーカップ＆ソーサーはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824d4d5.e1788149.5824d4d6.eb68f29f/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fle-noble%2F003267770338%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
+★4.72（76件） [ウェッジウッド フェスティビティ ティーカップ＆ソーサーはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824d4d5.e1788149.5824d4d6.eb68f29f/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fle-noble%2F003267770338%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 「フェスティビティ」は祝祭を意味する名前で、果実や花を縄でつないだ花綱をかたどった立体的な型押しが、シリーズの特徴とされています。実りをモチーフにしている点で、この季節のテーブルとは相性のよいシリーズです。販売ページでは商品名に160mlとある一方、仕様欄には口径10cm・高さ6.3cm、ソーサー直径14cm、満水容量250mlと記載されています。数字が2つある理由は販売ページに書かれていないため、容量は購入前にご確認ください。個数は1客です。クイーンズウェアという同ブランドの陶器のラインで、電子レンジと食器洗い乾燥機に対応していると明記されている一方、長時間のつけ置き洗いはしみやむらの原因になるため避けるよう案内があります（[販売ページ](https://item.rakuten.co.jp/le-noble/003267770338/)）。
 
@@ -89,7 +89,7 @@ category: seasons
 買い足さずに済ませたい場合は、手持ちの紅茶にシナモンスティックを一片添えるだけでも香りの方向は変わります。茶葉そのものを替えるより戻しやすいので、様子を見たいときの入口としても使えます。
 
 [![カレルチャペック デイリーシリーズ 20p](/images/aki-hotel-afternoontea-jitaku-styling/products/3.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824d4e5.f8d823d3.5824d4e6.9525a349/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fkarelcapek%2F01100920r%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
-★4.90（387件） [カレルチャペック デイリーシリーズ（種類が選べるティーバッグ）はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824d4e5.f8d823d3.5824d4e6.9525a349/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fkarelcapek%2F01100920r%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
+★4.90（406件） [カレルチャペック デイリーシリーズ（種類が選べるティーバッグ）はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824d4e5.f8d823d3.5824d4e6.9525a349/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fkarelcapek%2F01100920r%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 種類を選んで買えるカップ用ティーバッグの箱入りシリーズです。販売ページの画像では季節限定フレーバーとしてマロンティー、パンプキンキャラメルティー、グレープティーが案内されており、先ほどのホテルの素材リストとそのまま重なります（[販売ページ](https://item.rakuten.co.jp/karelcapek/01100920r/)）。定番のアールグレイやアッサム、ダージリンも同じ形で選べるので、まずは**季節限定を1箱**から試し、気に入ったら通年の定番も選ぶ、という買い方ができます。個包装のため、1袋ずつ取り出して使えます。
 
@@ -107,25 +107,13 @@ category: seasons
 
 3つ全部をそろえなくても構いません。テーブルで占める面積がいちばん大きいのは面なので、**見た目の変化が出やすいのもコツ1**です。面を替えるだけでも写真の印象は動きます。
 
-濃い色の布や木の板を敷くときも、熱いポットやカップは直接置かず、コースターやポットマットを間に敷いてください。
-
 3つは足し算ではなく、**濃さの配分**と考えたほうが扱いやすくなります。濃くするのは面か器のどちらか一方にとどめ、菓子の色は明るい側の要素として残すと、明るい要素がなくなりません。この考え方は、下のよくある質問にある「テーブルが暗く見える」への対処にもそのまま使えます。
 
 ## スタンドがなくても成立させる並べ方
 
-3段スタンドは持っていない、という場合の話もしておきます。段数の多いスタンドが効いているのは段数そのものというより、**高さの差**です。差さえあれば、道具は代用できます。ただし、高さを出すほど倒れやすくなります。代用するときは、次の条件を守ってください。
+3段スタンドは持っていない、という場合の話もしておきます。段数の多いスタンドが効いているのは段数そのものというより、**高さの差**です。差さえあれば、段数は問わないという整理です。具体的な積み方や台の選び方は、この記事では扱いません。
 
-- **皿を重ねる** — 欠けやひびのない大皿の上に、それより小さい径の皿を伏せ、その上にもう一枚重ねると簡易的な段差になります。トレーの表面がなめらかなときは皿が滑りやすいので、トレーの上に置いたまま、手で軽く押して動かないことを確かめてから菓子を載せます
-- **底が平らな台や器を使う** — 欠けやひびがなく、底が平らで水平に置ける小さな木の台や器の上に皿を載せます。ぐらつく場合は使いません。マグカップを伏せる方法は、細い縁で支えることになって安定しにくいため、この記事では勧めません
-- **ケーキ台を一段だけ使う** — 一段でも、平置きの皿と並べれば高低差ができます
-
-高さを出した皿には、次の決まりを守ります。
-
-- 載せるのは軽い菓子だけにし、熱い紅茶の入ったカップやポットは載せない
-- テーブルの端に置かない。小さな子どもやペットの手が届く場所では使わない
-- 動かすときは、上に載せたものを先に下ろす
-
-いずれの場合も、**トレーの内側に収める**ことは守ります。輪郭が決まっていると、道具がそろっていなくても散らかって見えません。
+段数を増やさなくても、高さのある皿と平置きの皿を組み合わせれば、高低差は作れます。いずれの場合も、**トレーの内側に収める**ことは守ります。輪郭が決まっていると、道具がそろっていなくても散らかって見えません。
 
 ## よくある質問
 
