@@ -2,7 +2,7 @@
 title: ひとり分のティースペースの作り方｜トレー1枚で紅茶の定位置を作る
 slug: aki-moyougae-hitoribun-tea-space
 date: 2026-09-04
-updated: 2026-09-04
+updated: 2026-11-01
 description: 衣替え・模様替えのついでに、紅茶の道具の「定位置」を作る手順をまとめました。トレー一枚で場所を区切る考え方、載せるもの／載せないものの線引き、狭い部屋での置き場所の選び方まで。
 tags: [紅茶, 暮らし, 収納]
 hero: /images/aki-moyougae-hitoribun-tea-space/hero.webp
@@ -85,7 +85,7 @@ category: how-to
 
 ★4.90（88件） [星燈社 茶筒（小）はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824d54d.4903fb62.5824d54e.20d72377/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fmercadomercado%2Fseic%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-評価・レビュー件数ともに高く、この価格帯ではイチ押しの選択肢です。柄の展開が多く、在庫のある柄から部屋の色に合わせて選べます（和紙の裁断位置によって柄の出方に個体差があり、ショップの案内では柄の指定はできないとされています。売り切れの柄もあります）。紙を貼ったブリキ缶なので、水に濡れたまま放置するとサビの原因になる点と、直射日光を避けたい点は押さえておいてください。茶葉の保存で気をつけたい点は[賞味期限が切れた紅茶の見極め方](/posts/koucha-shomikigen-kireta-fuumi-mikiwame/)でも触れています。
+評価・レビュー件数ともに高く、この価格帯ではイチ押しの選択肢です。柄の展開が多く、在庫のある柄から部屋の色に合わせて選べます（和紙の裁断位置によって柄の出方に個体差があり、ショップの案内では柄の指定はできないとされています。売り切れの柄もあります）。茶葉の保存で気をつけたい点は[賞味期限が切れた紅茶の見極め方](/posts/koucha-shomikigen-kireta-fuumi-mikiwame/)でも触れています。
 
 ### 2. 美濃焼 大きいマグカップ 370ml
 
@@ -105,7 +105,7 @@ category: how-to
 
 ★4.84（32件） [KINTO UNITEA ノンスリップトレイはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824d5ca.d70782de.5824d5cb.105ee5e7/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Ffavras%2Ffn00982%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-レビュー件数はまだ多くありませんが、評価は高めです。木製なので**食洗機・乾燥機は不可**とされ、水やお湯に浸すのも避けるようショップが案内しています。こぼしたら固く絞ったふきんで拭き、直射日光を避けて保管してください。買う前に、置き場所の奥行きが21.5cm以上あるかを一度メジャーで測っておくと寸法選びで迷いません。
+レビュー件数はまだ多くありませんが、評価は高めです。木製なので**食洗機・乾燥機は不可**とされ、水やお湯に浸すのも避けるようショップが案内しています。買う前に、置き場所の奥行きが21.5cm以上あるかを一度メジャーで測っておくと寸法選びで迷いません。
 
 ## 続けるための決めごと
 
