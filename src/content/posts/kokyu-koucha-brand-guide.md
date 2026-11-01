@@ -2,7 +2,7 @@
 title: 高級紅茶ブランドの選び方｜予算と目的から探す、はじめの一箱
 slug: kokyu-koucha-brand-guide
 date: 2026-08-29
-updated: 2026-08-29
+updated: 2026-11-01
 description: マリアージュフレール、フォション、ニナスなど「高級紅茶ブランド」で検索したときに迷わないための地図。予算と目的の2軸で、まず買う一箱の選び方を整理します。
 tags: [ブランド, ギフト, フレーバーティー, 選び方]
 hero: /images/kokyu-koucha-brand-guide/hero.webp
@@ -91,7 +91,7 @@ category: tea-leaves
 この記事で深く触れなかったブランドや別の切り口は、個別の記事で詳しく扱っています。
 
 - [TWG Teaはなぜギフトに選ばれるのか｜楽天で買える人気商品3選](/posts/twg-tea-gift-koucha-erabikata/)
-- [フォション・ハーニー&サンズを飲み比べ｜海外紅茶ブランド4種の選び方](/posts/fauchon-harney-sons-kaigai-koucha-brand/)
+- [フォションとハーニー&サンズを比較｜海外紅茶ブランド4種の選び方](/posts/fauchon-harney-sons-kaigai-koucha-brand/)
 - [ダージリン・オータムナルとは？セカンドフラッシュとの違いを楽しむ](/posts/darjeeling-autumnal-second-flush-hikaku/)
 - [敬老の日の紅茶ギフト3選｜国産フレーバー・フルーツ和紅茶・缶入りセットで選ぶ](/posts/keirounohi-koucha-gift/)
 
