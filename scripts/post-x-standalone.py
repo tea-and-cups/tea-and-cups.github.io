@@ -2,6 +2,8 @@
 r"""X の「記事なし投稿」（記事リンクもピン画像も付けない投稿）を作る・検査する・予約する（S-0027 ③・D-0294）。
 
 毎朝 8:00（日本時間）に1件ずつ、Buffer の createPost を時刻指定（mode=customScheduled）で予約する。
+予約は日次ルーチンの --post-upcoming で「今日〜翌日（日本時間）」の分だけ行う（D-0316。Buffer の無料プランは
+1チャネルの予約が10件までで、週次の7件一括予約と日次のピンの X 投稿で上限に達したため）。作成・検査・審査は週次。
 実験 x-standalone（data/experiments.tsv）として、ピン付き投稿の閲覧数が上がるかを前後比較で判定する。
 いいね・フォロー・返信は自動化しない。書き手は「AIの紅茶案内人」（D-0245）で、体験は書かない。
 
@@ -32,6 +34,13 @@ r"""X の「記事なし投稿」（記事リンクもピン画像も付けな�
       送らない件: 審査行が無い／台帳に予約済み／同じ予定日が予約済み／予定日時が過去。
       停止スイッチ（data/buffer-auto-post-off*・post-pins-to-buffer.py と共通）が有効なら何も送らない。
       1件でも createPost が拒否されたら、そこで止める（残りは送らない・代わりの方式は試さない）。
+      D-0316 以降は日次の --post-upcoming で予約する（週次の手順では使わない）。
+  python site/scripts/post-x-standalone.py --post-upcoming [--date YYYY-MM-DD[THH:MM]] [--dry-run]
+      日次ルーチン用（CLAUDE.md 5節4・post-pins-to-buffer.py の直後）。output/x-posts/ のすべてのファイルを
+      読み、予定日が「今日〜翌日（日本時間）」の件だけを --post と同じ判定（plan_items）にかけて予約する。
+      検査は範囲内の件と、その件が入っているファイルの問題だけを見る（範囲外の件の NG では止めない）。
+      範囲内に審査済みの件が1件も無ければ X_STANDALONE_UPCOMING_NONE の1行を出す（終了コード0）。
+      --date は基準の日時（日本時間）を差し替える検証用。日付だけなら時刻は実行時の日本時間の時刻。
   python site/scripts/post-x-standalone.py --status
       読み取りだけ。Buffer のキュー（status=scheduled）を引き、台帳の予約済みの postId ごとに
       キューでの status・dueAt・画像の有無を出す。続けて post-pins-to-buffer.py の画像の掃除と同じ判定
@@ -72,6 +81,7 @@ STATE_FAILED = "失敗"
 
 JST = dt.timezone(dt.timedelta(hours=9))
 POST_HOUR_JST = 8
+UPCOMING_DAYS = 2             # --post-upcoming の範囲（今日・翌日の2日。Buffer の予約上限10件に当てないため）
 MAX_ITEMS_PER_FILE = 7
 HASHTAG_LIMIT = 2
 MATERIAL_LOOKBACK_DAYS = 56   # 直近8週に材料に使った slug は候補から除く
@@ -408,7 +418,55 @@ def cmd_post(path, dry_run=False, out=print, graphql=None, now=None, ledger_path
             out("[NG] %s" % problem)
         out("検査に通らない件があるため、1件も予約しません（--check で確認してください）。")
         return 1
+    for item in items:
+        item["path"] = path
+    return reserve(items, dry_run, out, graphql, now, ledger_path, channels, today)
 
+
+def upcoming_range(now):
+    """--post-upcoming の範囲（日本時間の今日〜翌日）を (lo, hi) の date で返す。"""
+    lo = now.astimezone(JST).date()
+    return lo, lo + dt.timedelta(days=UPCOMING_DAYS - 1)
+
+
+def cmd_post_upcoming(dry_run=False, out=print, graphql=None, now=None, ledger_path=None, directory=None,
+                      channels=None, today=None):
+    """日次用。全ファイルから予定日が今日〜翌日の件を集め、--post と同じ判定で予約する（D-0316）。"""
+    switch = ppb().check_kill_switch()
+    if switch:
+        out("緊急停止スイッチが有効です: data/%s" % switch)
+        out("X単独投稿の予約は行いません。")
+        return 0
+
+    now = now or dt.datetime.now(dt.timezone.utc)
+    lo, hi = upcoming_range(now)
+    items, ng = [], []
+    for path in all_x_post_files(directory):
+        file_items = parse_x_posts(path)
+        in_range = [i for i in file_items if i["date"] and lo <= i["date"] <= hi]
+        if not in_range:
+            continue
+        result, file_problems = check_items(path, file_items, directory)
+        ng += ["%s: %s" % (os.path.basename(path), p) for p in file_problems]
+        for item in in_range:
+            if result.get(item["id"]):
+                ng.append("%s: %s" % (item["id"], "／".join(result[item["id"]])))
+            item["path"] = path
+            items.append(item)
+    if ng:
+        for problem in ng:
+            out("[NG] %s" % problem)
+        out("検査に通らない件があるため、1件も予約しません（--check で確認してください）。")
+        return 1
+    out("範囲: %s〜%s（日本時間）・該当 %d件" % (lo, hi, len(items)))
+    if not any(i["reviewed"] for i in items):
+        out("X_STANDALONE_UPCOMING_NONE %s〜%s に審査済みの X単独投稿がありません（予約なし）" % (lo, hi))
+    return reserve(items, dry_run, out, graphql, now, ledger_path, channels, today)
+
+
+def reserve(items, dry_run=False, out=print, graphql=None, now=None, ledger_path=None, channels=None,
+            today=None):
+    """検査済みの件（各件に "path"）を plan_items にかけ、送る件を予約する（--post・--post-upcoming 共通）。"""
     now = now or dt.datetime.now(dt.timezone.utc)
     rows = load_ledger(ledger_path)
     send, skipped = plan_items(items, rows, now)
@@ -421,7 +479,6 @@ def cmd_post(path, dry_run=False, out=print, graphql=None, now=None, ledger_path
         out("予約する件はありません。")
         return 0
 
-    rel = os.path.relpath(os.path.abspath(path), ROOT).replace("\\", "/")
     if dry_run:
         for item in send:
             payload = build_input("<twitter の channelId>", item["text"], due_at_utc(item["date"]))
@@ -460,6 +517,7 @@ def cmd_post(path, dry_run=False, out=print, graphql=None, now=None, ledger_path
             ok, post_id, returned_due, detail = create_post(graphql, payload)
         except (BufferApiError, BufferGuardError) as e:
             ok, post_id, returned_due, detail = False, None, None, "%s: %s" % (type(e).__name__, e)
+        rel = os.path.relpath(os.path.abspath(item["path"]), ROOT).replace("\\", "/")
         row = {"ID": item["id"], "予定日時": "%s %02d:00" % (item["date"], POST_HOUR_JST), "dueAt": due,
                "postId": post_id or "-", "本文ファイル": rel, "状態": STATE_RESERVED if ok else STATE_FAILED,
                "記録日": record_day}
@@ -676,6 +734,16 @@ def cmd_candidates(n, out=print, today=None, posts_dir=None, directory=None, led
 # --- main -----------------------------------------------------------------------
 
 
+def parse_base(value, clock=None):
+    """--date の値（日本時間）を UTC の datetime にする。日付だけなら時刻は clock（既定は今）の日本時間の時刻。"""
+    if "T" in value:
+        local = dt.datetime.fromisoformat(value).replace(tzinfo=JST)
+    else:
+        t = (clock or dt.datetime.now(dt.timezone.utc)).astimezone(JST).time()
+        local = dt.datetime.combine(dt.date.fromisoformat(value), t, tzinfo=JST)
+    return local.astimezone(dt.timezone.utc)
+
+
 def main(argv=None):
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
@@ -684,10 +752,16 @@ def main(argv=None):
     group.add_argument("--candidates", type=int, metavar="N")
     group.add_argument("--check", metavar="MD")
     group.add_argument("--post", metavar="MD")
+    group.add_argument("--post-upcoming", action="store_true")
     group.add_argument("--status", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--date", metavar="YYYY-MM-DD[THH:MM]", help="--post-upcoming の基準日時（日本時間・検証用）")
     args = parser.parse_args(argv)
+    if args.date and not args.post_upcoming:
+        parser.error("--date は --post-upcoming と一緒に使います")
     try:
+        if args.post_upcoming:
+            return cmd_post_upcoming(dry_run=args.dry_run, now=parse_base(args.date) if args.date else None)
         if args.status:
             return cmd_status()
         if args.candidates is not None:

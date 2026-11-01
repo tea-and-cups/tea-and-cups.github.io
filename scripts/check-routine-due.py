@@ -31,21 +31,27 @@ check-image-gen-needed-today.py（D-0078）と同じ方針で、あいまいな�
      基準日が当月1日以降（=常に真）で、前月分の reports/monthly-YYYY-MM.md が
      存在しなければ通知する。
   3. 月次実績の催促（D-0036をこのスクリプトへ移管・D-0267で2行に分割）
-     基準日が当月4日以降で、docs/kpi.md の表の前月（YYYY-MM形式）の行について、
-     次の2つを別々に通知する（行が無い場合は両方）。
+     基準日が「当月4日以降の最初の日曜」（月次の第2段を行う週次の日・D-0316）以降で、
+     docs/kpi.md の表の前月（YYYY-MM形式）の行について、次の2つを別々に通知する（行が無い場合は両方）。
+     第2段はその週次の手順の中で行い、週次で依頼するCSVに前月分を含める（rules/weekly-report.md 4-4節）。
        - PV列が空: GA4・Pinterestの月間値をAIがAPIで取得して記入する旨（オーナーの作業なし）
-       - 発生／確定の列のどちらかが空: ASP成果CSVをオーナーへ依頼する旨
+       - 発生／確定の列のどちらかが空: 週次で依頼するASP成果CSVに前月分を含める旨
   4. 月次監査（D-0276）
      基準日が当月1日以降（=常に真）で、前月分の Growth Agent 月次監査の出力
      growth/outputs/monthly-YYYY-MM/audit.md（YYYY-MM は対象月＝前月）が無ければ通知する。
      月次監査はオーナーの数値（ASP成果CSV）を待たずに実行するため、2・3 とは別に判定する
      （rules/weekly-report.md 4-4節。2・3 の判定と出力は変えない）。
 
-  5. X単独投稿の翌週分（D-0294）
-     data/x-standalone-posted.tsv（post-x-standalone.py が書く台帳）があり、予定日が基準日の翌日から
-     7日間に入る「予約済み」の行が1件も無ければ【警告】を出す。週次（日曜）で翌週の月〜日の7件を予約する
-     運用のため、日曜の週次より後はこの7日間が予約で埋まり、平日も当週の残りが入るので警告は出ない。
-     台帳が無い（記事なし投稿を始める前）ときは判定しない。
+  5. X単独投稿の予約の材料（D-0294・D-0316で判定を変更）
+     予約は日次の post-x-standalone.py --post-upcoming が「今日〜翌日」の分だけ行う。そのため、
+     これから予約される日付（基準日〜翌々日の3日）ごとに、output/x-posts/ に審査済みの件があるかを見て、
+     無い日があれば【警告】を出す（翌々日まで見るのは、翌日の予約に間に合うよう1日前に気づくため）。
+     本文ファイルは週次（日曜）が翌週の月曜の日付で作るため、基準日より後の週の日付は、その週の
+     ファイル（output/x-posts/<その週の月曜>.md）がまだ無ければ見ない（土曜・日曜の週次の前に
+     誤って警告しないため）。そのファイルがあれば、件の抜けや審査待ちは警告する。
+     基準日の週の日付はファイルが無くても見る（週次の抜けをその週の月曜に知らせるため）。
+     台帳（data/x-standalone-posted.tsv）が無い（記事なし投稿を始める前）ときは判定しない。
+     本文の読み取りは post-x-standalone.py の parse_x_posts（書式の正本）を使う。
 
 出力:
   該当項目があればその通知行を1行以上、1件も無ければ "ROUTINE_NONE" の1行のみ。
@@ -60,6 +66,7 @@ check-image-gen-needed-today.py（D-0078）と同じ方針で、あいまいな�
 """
 
 import datetime
+import importlib.util
 import io
 import os
 import sys
@@ -69,9 +76,10 @@ REPORTS_DIR = os.path.join(ROOT, "reports")
 KPI_MD = os.path.join(ROOT, "docs", "kpi.md")
 GROWTH_OUTPUTS_DIR = os.path.join(ROOT, "growth", "outputs")
 X_STANDALONE_LEDGER = os.path.join(ROOT, "data", "x-standalone-posted.tsv")
-X_STANDALONE_DAYS = 7
+X_POSTS_DIR = os.path.join(ROOT, "output", "x-posts")
+X_STANDALONE_DAYS = 3   # 基準日〜翌々日（日次の --post-upcoming は今日〜翌日を予約する・D-0316）
 
-# 月次実績の催促を始める日（当月のこの日以降）
+# 月次の第2段（月次実績の確定）は、当月のこの日以降の最初の日曜（週次）から催促する（D-0316）
 KPI_REMINDER_DAY = 4
 
 # 週次レポートの未生成チェックを遡る上限週数（D-0095・古すぎる週は遡って作る意味がないため固定）
@@ -144,6 +152,13 @@ def previous_month(base):
     return base.year, base.month - 1
 
 
+def monthly_stage2_day(base):
+    """月次の第2段（月次レポートの確定と kpi.md）を行う日＝基準日の月の KPI_REMINDER_DAY 日以降の最初の日曜。
+    例: 2026-11 → 11-04(水) 以降の最初の日曜 2026-11-08（D-0316）。"""
+    day = datetime.date(base.year, base.month, KPI_REMINDER_DAY)
+    return day + datetime.timedelta(days=(6 - day.weekday()) % 7)
+
+
 EMPTY_CELL_VALUES = ("", "-", "ー", "—", "未入力")
 
 
@@ -175,25 +190,36 @@ def kpi_row_gaps(month_key):
     return True, True
 
 
-def x_standalone_unreserved(base, path=None):
-    """5. 台帳があり、基準日の翌日から7日間に「予約済み」の行が1件も無ければ True。台帳が無ければ False。
-    予定日時の列（2列目）の先頭10文字を日付として読む（台帳の書式は post-x-standalone.py が正本）。"""
+def x_standalone_missing_days(base, path=None, directory=None):
+    """5. 基準日〜翌々日のうち、output/x-posts/ に審査済みの件が無い日のリスト（docstring 5）。
+    台帳が無ければ空（判定しない）。基準日より後の週の日付は、その週のファイルが無ければ見ない。"""
     path = path or X_STANDALONE_LEDGER
+    directory = directory or X_POSTS_DIR
     if not os.path.isfile(path):
-        return False
-    lo = base + datetime.timedelta(days=1)
-    hi = base + datetime.timedelta(days=X_STANDALONE_DAYS)
-    for line in read_text(path).split("\n")[1:]:
-        cells = line.rstrip("\r").split("\t")
-        if len(cells) < 6 or cells[5] != "予約済み":
+        return []
+    xs = _load_script("post-x-standalone.py")
+    reviewed = set()
+    for md in xs.all_x_post_files(directory):
+        reviewed.update(i["date"] for i in xs.parse_x_posts(md) if i["date"] and i["reviewed"])
+    this_monday = base - datetime.timedelta(days=base.weekday())
+    missing = []
+    for k in range(X_STANDALONE_DAYS):
+        day = base + datetime.timedelta(days=k)
+        monday = day - datetime.timedelta(days=day.weekday())
+        if monday > this_monday and not os.path.isfile(os.path.join(directory, "%s.md" % monday)):
             continue
-        try:
-            day = datetime.date.fromisoformat(cells[1][:10])
-        except ValueError:
-            continue
-        if lo <= day <= hi:
-            return False
-    return True
+        if day not in reviewed:
+            missing.append(day)
+    return missing
+
+
+def _load_script(file_name):
+    """ハイフンを含む同じフォルダのスクリプトをモジュールとして読み込む。"""
+    spec = importlib.util.spec_from_file_location(
+        file_name[:-3].replace("-", "_"), os.path.join(os.path.dirname(os.path.abspath(__file__)), file_name))
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 def main():
@@ -236,8 +262,8 @@ def main():
     if not os.path.isfile(os.path.join(REPORTS_DIR, monthly_name)):
         messages.append("前月分の月次レポート未生成（reports/%s がありません）" % monthly_name)
 
-    # 3. 月次実績の催促（当月4日以降・D-0036）
-    if base.day >= KPI_REMINDER_DAY:
+    # 3. 月次実績の催促（当月4日以降の最初の週次から・D-0036・D-0316）
+    if base >= monthly_stage2_day(base):
         pv_missing, asp_missing = kpi_row_gaps(month_key)
         if pv_missing:
             messages.append(
@@ -246,8 +272,8 @@ def main():
             )
         if asp_missing:
             messages.append(
-                "前月（%s）の ASP 成果CSV（もしもの日次・楽天のレポート）をオーナーへ依頼する"
-                % month_key
+                "前月（%s）の ASP 成果CSV（もしもの日次・楽天のレポート）を、週次で依頼するCSVに前月分を含めて"
+                "オーナーへ依頼し、月次レポートを確定する（rules/weekly-report.md 4-4節 第2段）" % month_key
             )
 
     # 4. 月次監査（当月1日以降=常に真・D-0276）。オーナーの数値を待たずに実行するため、
@@ -260,13 +286,13 @@ def main():
             "rules/weekly-report.md 4-4節）" % audit_rel
         )
 
-    # 5. X単独投稿の翌週分（D-0294）
-    if x_standalone_unreserved(base):
+    # 5. X単独投稿の予約の材料（D-0294・D-0316）
+    missing_days = x_standalone_missing_days(base)
+    if missing_days:
         messages.append(
-            "【警告】X単独投稿の翌週分が未予約（%s〜%s の予約が data/x-standalone-posted.tsv にありません。"
-            "rules/weekly-report.md 3-3節の手順で作成・審査・予約する）"
-            % ((base + datetime.timedelta(days=1)).isoformat(),
-               (base + datetime.timedelta(days=X_STANDALONE_DAYS)).isoformat())
+            "【警告】X単独投稿の審査済みの件が無い日があります（%s。output/x-posts/ に審査済みの件が無く、"
+            "日次の --post-upcoming で予約されません。rules/weekly-report.md 3-3節の手順で作成・審査する）"
+            % "・".join(d.isoformat() for d in missing_days)
         )
 
     if messages:

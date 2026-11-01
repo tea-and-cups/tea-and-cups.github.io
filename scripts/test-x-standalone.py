@@ -14,8 +14,12 @@ r"""X の記事なし投稿（post-x-standalone.py）と、それに合わせた
   6. post-pins-to-buffer.py の画像の掃除: 画像の無い投稿は保護の判定から外れ、画像はあるが
      /pin-images/pinN.jpg でない投稿があれば今どおり止まる
   7. experiments.py: 記事なし投稿を x-impr-7d の集計（前・後）から除き、sns-posts-7d には印つきで残す
-  8. check-routine-due.py: 翌日から7日間の予約が無ければ警告・あれば出さない・台帳が無ければ判定しない
+  8. check-routine-due.py: 基準日〜翌々日に審査済みの件が無い日を警告する。通常の週の回り方（週次は日曜・
+     ファイルは週の月曜の日付）では出さず、抜け・審査待ち・週次の抜けでは出す。台帳が無ければ判定しない。
+     月次の第2段の催促は当月4日以降の最初の日曜から（D-0316）
   9. --candidates: A〜G・体験・型Y・価格・商品リンクの単位と、直近8週に使った slug を除く
+  10. --post-upcoming: 全ファイルから今日〜翌日（日本時間）の件だけを予約する・予約済み／過去は選ばない・
+      範囲内に審査済みが無ければ1行・範囲外の NG では止めず範囲内の NG では止める・拒否で止まる（D-0316）
 
 使い方:
   python site/scripts/test-x-standalone.py
@@ -299,17 +303,163 @@ def test_measure_exclusion(tmp):
 
 
 def test_routine(tmp):
+    d = dt.date
+    week = os.path.join(tmp, "routine-x-posts")
+    os.makedirs(week)
     ledger = os.path.join(tmp, "routine-ledger.tsv")
-    check("routine: 台帳が無ければ判定しない", routine.x_standalone_unreserved(dt.date(2026, 11, 1), ledger) is False)
+
+    def missing(base):
+        return routine.x_standalone_missing_days(base, ledger, week)
+
+    check("routine: 台帳が無ければ判定しない", missing(d(2026, 11, 2)) == [])
+    Path(ledger).write_text("\t".join(xs.LEDGER_COLUMNS) + "\n", encoding="utf-8")
+
+    def full_week(monday, unreviewed=()):
+        days = [monday + dt.timedelta(days=k) for k in range(7)]
+        write_week(week, "%s.md" % monday, [("XS-%04d" % (monday.toordinal() % 10000 + k), day.isoformat(), GOOD[0],
+                                              day not in unreviewed) for k, day in enumerate(days)])
+
+    # 今週のファイルだけがある（週次が翌週分を作る前）: 金・土・日（週次の前）は警告しない
+    full_week(d(2026, 10, 26))
+    for base in (d(2026, 10, 30), d(2026, 10, 31), d(2026, 11, 1)):
+        check("routine: 翌週のファイルが無い間は翌週の日付を見ない（基準 %s）" % base, missing(base) == [],
+              missing(base))
+    check("routine: 週次が翌週分を作らなかったら月曜に警告（基準 11-02 → 11-02〜11-04）",
+          missing(d(2026, 11, 2)) == [d(2026, 11, 2), d(2026, 11, 3), d(2026, 11, 4)], missing(d(2026, 11, 2)))
+    # 日曜の週次が翌週分を作ったあと: 日曜〜翌週の日曜まで警告しない
+    full_week(d(2026, 11, 2))
+    quiet_days = [d(2026, 11, 1) + dt.timedelta(days=k) for k in range(8)]
+    check("routine: 通常の週の回り方では毎日警告しない（11-01〜11-08）",
+          all(missing(base) == [] for base in quiet_days), [(b, missing(b)) for b in quiet_days])
+    # 翌週のファイルがあり件が抜けている／審査待ち
+    full_week(d(2026, 11, 2), unreviewed=(d(2026, 11, 4),))
+    check("routine: 審査待ちの件は2日前から警告（基準 11-02 → 11-04）", missing(d(2026, 11, 2)) == [d(2026, 11, 4)],
+          missing(d(2026, 11, 2)))
+    check("routine: 審査待ちの件の3日前は警告しない（基準 11-01）", missing(d(2026, 11, 1)) == [], missing(d(2026, 11, 1)))
+    write_week(week, "2026-11-09.md", [("XS-0901", "2026-11-10", GOOD[0], True)])   # 11-09 の件が無い
+    check("routine: 翌週のファイルがあれば抜けを警告（基準 11-07 → 11-09）", missing(d(2026, 11, 7)) == [d(2026, 11, 9)],
+          missing(d(2026, 11, 7)))
+    # 台帳の予約済みでは数えない（入力ファイルを見る）
+    os.remove(os.path.join(week, "2026-11-02.md"))
     Path(ledger).write_text("\t".join(xs.LEDGER_COLUMNS) + "\n"
-                            + "XS-0001\t2026-10-28 08:00\tz\tp1\tx\t予約済み\t2026-10-27\n"
-                            + "XS-0005\t2026-11-01 08:00\tz\t-\tx\t失敗\t2026-10-27\n", encoding="utf-8")
-    check("routine: 翌日から7日間に予約済みがあれば警告なし（基準 10-27）",
-          routine.x_standalone_unreserved(dt.date(2026, 10, 27), ledger) is False)
-    check("routine: 翌日から7日間に予約済みが無ければ警告（基準 10-28・失敗は数えない）",
-          routine.x_standalone_unreserved(dt.date(2026, 10, 28), ledger) is True)
-    check("routine: 予約日の前日まで（基準 10-21 → 10-22〜10-28）は警告なし",
-          routine.x_standalone_unreserved(dt.date(2026, 10, 21), ledger) is False)
+                            + "XS-0006\t2026-11-02 08:00\tz\tp1\tx\t予約済み\t2026-11-01\n", encoding="utf-8")
+    check("routine: 台帳の予約済みは数えず、入力ファイルの審査済みの件を見る（基準 11-02）",
+          d(2026, 11, 2) in missing(d(2026, 11, 2)), missing(d(2026, 11, 2)))
+
+
+def test_routine_monthly():
+    d = dt.date
+    check("routine: 第2段の日は 11-04 以降の最初の日曜（2026-11 → 11-08）",
+          routine.monthly_stage2_day(d(2026, 11, 1)) == d(2026, 11, 8), routine.monthly_stage2_day(d(2026, 11, 1)))
+    check("routine: 4日が日曜ならその日（2026-10 → 10-04）",
+          routine.monthly_stage2_day(d(2026, 10, 20)) == d(2026, 10, 4), routine.monthly_stage2_day(d(2026, 10, 20)))
+    check("routine: 2026-12 → 12-06", routine.monthly_stage2_day(d(2026, 12, 1)) == d(2026, 12, 6))
+    for base, due in ((d(2026, 11, 4), False), (d(2026, 11, 7), False), (d(2026, 11, 8), True), (d(2026, 11, 20), True)):
+        check("routine: 第2段の催促 %s → %s" % (base, "出す" if due else "出さない"),
+              (base >= routine.monthly_stage2_day(base)) is due)
+
+
+def test_post_upcoming(tmp):
+    week = os.path.join(tmp, "x-posts-up")
+    os.makedirs(week)
+    ledger = os.path.join(tmp, "ledger-up.tsv")
+    channels = {"twitter": ("CH-X", "kohaku_jikan")}
+    jst = xs.parse_base
+    write_week(week, "2026-11-02.md", [
+        ("XS-0006", "2026-11-02", GOOD[0], True),
+        ("XS-0011", "2026-11-07", GOOD[1], True),
+        ("XS-0012", "2026-11-08", GOOD[2], True),
+    ])
+    write_week(week, "2026-11-09.md", [("XS-0013", "2026-11-09", GOOD[0], True)])
+    Path(ledger).write_text("\t".join(xs.LEDGER_COLUMNS) + "\n"
+                            + "XS-0011\t2026-11-07 08:00\t2026-11-06T23:00:00.000Z\tp11\tx\t予約済み\t2026-11-01\n"
+                            + "XS-0012\t2026-11-08 08:00\t-\t-\tx\t失敗\t2026-11-01\n", encoding="utf-8")
+    check("parse_base: 日付だけなら時刻は clock の日本時間の時刻",
+          xs.parse_base("2026-11-07", clock=dt.datetime(2026, 11, 1, 0, 30, tzinfo=dt.timezone.utc))
+          == dt.datetime(2026, 11, 7, 0, 30, tzinfo=dt.timezone.utc))
+    check("parse_base: 2026-11-07T07:00 → 2026-11-06T22:00Z",
+          jst("2026-11-07T07:00") == dt.datetime(2026, 11, 6, 22, 0, tzinfo=dt.timezone.utc))
+
+    fake = FakeBuffer()
+    rc, out = quiet(xs.cmd_post_upcoming, dry_run=True, graphql=fake, now=jst("2026-11-07T07:00"),
+                    ledger_path=ledger, directory=week, channels=channels)
+    check("upcoming dry-run: 基準 11-07 で XS-0012 だけを選ぶ（予約済みの XS-0011 は選ばない）",
+          rc == 0 and "DRY_RUN XS-0012 2026-11-08" in out and "SKIP XS-0011 2026-11-07 — 台帳に予約済み" in out
+          and "XS-0013" not in out and "XS-0006" not in out and fake.calls == [], out)
+    check("upcoming dry-run: 台帳を書かない", len(xs.load_ledger(ledger)) == 2)
+    rc, out = quiet(xs.cmd_post_upcoming, dry_run=True, now=jst("2026-11-08T09:00"), ledger_path=ledger,
+                    directory=week, channels=channels)
+    check("upcoming: 予定時刻を過ぎた件は選ばず、翌日の別ファイルの件を選ぶ（基準 11-08 09:00）",
+          rc == 0 and "SKIP XS-0012 2026-11-08 — 予定日時が過去" in out and "DRY_RUN XS-0013 2026-11-09" in out, out)
+    rc, out = quiet(xs.cmd_post_upcoming, dry_run=True, now=jst("2026-11-11T07:00"), ledger_path=ledger,
+                    directory=week, channels=channels)
+    check("upcoming: 範囲内に審査済みが無ければ1行（終了コード0）",
+          rc == 0 and out.count("X_STANDALONE_UPCOMING_NONE 2026-11-11〜2026-11-12") == 1, out)
+    unrev = os.path.join(tmp, "x-posts-unrev")
+    os.makedirs(unrev)
+    write_week(unrev, "2026-11-09.md", [("XS-0020", "2026-11-11", GOOD[0], False)])
+    rc, out = quiet(xs.cmd_post_upcoming, dry_run=True, now=jst("2026-11-11T07:00"), ledger_path=ledger,
+                    directory=unrev, channels=channels)
+    check("upcoming: 審査待ちだけのときも1行（HELD_UNREVIEWED つき）",
+          rc == 0 and "X_STANDALONE_UPCOMING_NONE" in out and "HELD_UNREVIEWED: XS-0020" in out, out)
+
+    # 本番（ダミーの Buffer）: 予約し、台帳の本文ファイルはその件のファイル
+    fake = FakeBuffer()
+    rc, out = quiet(xs.cmd_post_upcoming, graphql=fake, now=jst("2026-11-08T07:00"), ledger_path=ledger,
+                    directory=week, channels=channels, today=dt.date(2026, 11, 8))
+    rows = xs.load_ledger(ledger)
+    check("upcoming: 範囲内の2件（2ファイル）を予約し、本文ファイルを件ごとに記録",
+          rc == 0 and [c["dueAt"] for c in fake.calls] == ["2026-11-07T23:00:00.000Z", "2026-11-08T23:00:00.000Z"]
+          and [r["本文ファイル"].rsplit("/", 1)[-1] for r in rows[2:]] == ["2026-11-02.md", "2026-11-09.md"], (out, rows))
+    fake = FakeBuffer()
+    rc, out = quiet(xs.cmd_post_upcoming, graphql=fake, now=jst("2026-11-08T07:00"), ledger_path=ledger,
+                    directory=week, channels=channels)
+    check("upcoming: 2回目は送らない（二重予約の防止）", rc == 0 and fake.calls == [], out)
+
+    # 検査: 範囲外の NG では止めない・範囲内の NG では止める（型11 を含む今の検査）
+    ngdir = os.path.join(tmp, "x-posts-ng")
+    os.makedirs(ngdir)
+    write_week(ngdir, "2026-11-16.md", [
+        ("XS-0030", "2026-11-16", GOOD[0], True),
+        ("XS-0031", "2026-11-20", "はちみつを入れた紅茶は、1歳未満の乳児には与えないでください。", True),
+    ])
+    ngledger = os.path.join(tmp, "ledger-ng.tsv")
+    fake = FakeBuffer()
+    rc, out = quiet(xs.cmd_post_upcoming, graphql=fake, now=jst("2026-11-16T07:00"), ledger_path=ngledger,
+                    directory=ngdir, channels=channels)
+    check("upcoming: 範囲外の件の NG では止めない", rc == 0 and len(fake.calls) == 1, out)
+    fake = FakeBuffer()
+    rc, out = quiet(xs.cmd_post_upcoming, graphql=fake, now=jst("2026-11-19T07:00"), ledger_path=ngledger,
+                    directory=ngdir, channels=channels)
+    check("upcoming: 範囲内の件が型11で NG なら1件も送らない（終了コード1）",
+          rc == 1 and fake.calls == [] and "型Y 型11" in out, out)
+
+    # 拒否で止まる
+    rjdir = os.path.join(tmp, "x-posts-rj")
+    os.makedirs(rjdir)
+    write_week(rjdir, "2026-11-23.md", [("XS-0040", "2026-11-23", GOOD[0], True),
+                                        ("XS-0041", "2026-11-24", GOOD[1], True)])
+    rjledger = os.path.join(tmp, "ledger-rj.tsv")
+    fake = FakeBuffer(reject_at=1)
+    rc, out = quiet(xs.cmd_post_upcoming, graphql=fake, now=jst("2026-11-23T07:00"), ledger_path=rjledger,
+                    directory=rjdir, channels=channels)
+    check("upcoming: 拒否されたら止める（残りは送らない・台帳に「失敗」・終了コード1）",
+          rc == 1 and len(fake.calls) == 1 and "REJECTED XS-0040" in out
+          and [(r["ID"], r["状態"]) for r in xs.load_ledger(rjledger)] == [("XS-0040", "失敗")], out)
+
+    # 停止スイッチ
+    data_dir = os.path.join(tmp, "data-up")
+    os.makedirs(data_dir)
+    Path(os.path.join(data_dir, "buffer-auto-post-off.txt")).write_text("", encoding="utf-8")
+    saved = ppb.DATA_DIR
+    ppb.DATA_DIR = data_dir
+    try:
+        fake = FakeBuffer()
+        rc, out = quiet(xs.cmd_post_upcoming, graphql=fake, now=jst("2026-11-23T07:00"), ledger_path=rjledger,
+                        directory=rjdir, channels=channels)
+        check("upcoming: 停止スイッチで何も送らない", rc == 0 and fake.calls == [] and "緊急停止スイッチ" in out, out)
+    finally:
+        ppb.DATA_DIR = saved
 
 
 ARTICLE = """---
@@ -377,6 +527,8 @@ def main():
         test_prune_protection()
         test_measure_exclusion(tmp)
         test_routine(tmp)
+        test_routine_monthly()
+        test_post_upcoming(tmp)
         test_candidates(tmp)
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
