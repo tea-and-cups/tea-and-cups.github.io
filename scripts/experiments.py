@@ -37,6 +37,10 @@ measure: experiments-status.json・pin-14d.json・sns-posts-7d.json を --out �
   sns-posts-7d.json には残し、post_id と standalone: true を付ける（監査が参考に読む）。
   動画の投稿（data/video-buffer-posted.tsv の postId と一致するもの・D-0298）も同じく前・後から除き、
   sns-posts-7d.json には video: true を付けて残す。
+  EX-0004（対象 image-style）・EX-0005（対象 post-text）の行には、全体の値と並べて "narrowed"（絞り込んだ値と条件）を
+  出す（NARROW_EXPERIMENTS。実験IDと対象が合う行だけ）。image-style は「- 型:」が比較グリッドで文言3件のピン、post-text は本文のURLの utm_content が範囲の
+  pin>=N 以上の X 投稿。この2つの判定案（proposal）は絞り込んだ前後で決め（条件は下の判定案と同じ）、全体の値による案は
+  "whole_proposal"・judge-due の根拠の「；参考: 全体 中央値 前X 後Y」に残す。
   判定案: 判定日に達し、後が前より上なら継続、以下なら戻し。対象が0件（または比べる前が0件）なら、
   延長0で延長・延長1で戻し。件数が少ないことは保留の理由にしない。判定日前は「途中」。
 judge: 戻し=状態を戻しにする（設定値はその時点で無効）。継続=種別「設定」は標準にして設定値を残す／
@@ -412,12 +416,17 @@ def cmd_judge(ex_id, verdict, reason, d_number="", today=None):
 def _due_reason(entry, week_end):
     def fmt(value):
         return "-" if value is None else str(value)
-    before, after = entry.get("before") or {}, entry.get("after") or {}
+    whole_b, whole_a = entry.get("before") or {}, entry.get("after") or {}
+    narrowed = entry.get("narrowed")
+    # EX-0004・EX-0005: 判定案は絞り込んだ値で決まっているため、それを本体に書き、全体の値は参考として残す
+    before, after = ((narrowed.get("before") or {}, narrowed.get("after") or {}) if narrowed else (whole_b, whole_a))
     text = "judge-due（週末日 %s）: 中央値 前%s 後%s 件数%s/%s" % (
         week_end.isoformat(), fmt(before.get("median")), fmt(after.get("median")),
         before.get("count", 0), after.get("count", 0))
     if entry["proposal"] == "延長" or not before.get("count") or not after.get("count"):
         text += "（%s）" % entry.get("reason", "")
+    if narrowed:
+        text += "；参考: 全体 中央値 前%s 後%s" % (fmt(whole_b.get("median")), fmt(whole_a.get("median")))
     return text
 
 
@@ -820,17 +829,135 @@ def _measure_ctr(row, week_end, gsc_cache, warnings):
                       "window": [windows[1][0].isoformat(), windows[1][1].isoformat()], "pages": slugs}}, before, after
 
 
+# --- measure：絞り込んだ値（EX-0004・EX-0005・D-0317） -----------------------------------------
+# 範囲では「比較グリッドの3件のピン」「新型のX投稿」を絞れないため、全体の値と並べて "narrowed" に出す。
+# 判定案（proposal）は絞り込んだ前後で決める（条件は _proposal のまま）。全体の値による案は "whole_proposal" と
+# judge-due の根拠の「参考: 全体 …」に残す。
+PIN_STYLE_LINE_RE = re.compile(r"^-\s*型:\s*(.+?)\s*$", re.M)
+PIN_TEXT_COUNT_RE = re.compile(r"^-\s*テキストオーバーレイ:.*?（(\d+)件", re.M)
+UTM_PIN_RE = re.compile(r"utm_content=pin(\d+)")
+NARROW_PIN_STYLE = "比較グリッド"
+NARROW_PIN_TEXTS = 3
+
+
+def load_pin_md_info():
+    """output/pins のピン md から {ピン番号: (型, 文言件数 or None)}（「- 型:」行と「（N件」の注記）。"""
+    info = {}
+    try:
+        names = os.listdir(PINS_DIR)
+    except OSError:
+        return info
+    for name in names:
+        m = PIN_FILE_RE.match(name)
+        if not m:
+            continue
+        try:
+            with open(os.path.join(PINS_DIR, name), "r", encoding="utf-8") as handle:
+                text = handle.read()
+        except OSError:
+            continue
+        style = PIN_STYLE_LINE_RE.search(text)
+        count = PIN_TEXT_COUNT_RE.search(text)
+        info[int(m.group(2))] = (style.group(1) if style else "", int(count.group(1)) if count else None)
+    return info
+
+
+def _range_pin_min(row):
+    """範囲の pin>=N の N（無ければ 0）。"""
+    return max([t[2] for t in parse_range(row["範囲"]) if t[0] == "pin" and t[1] == ">="], default=0)
+
+
+# 絞り込みの条件は実験ごとに違うため、実験ID＋対象で決める（終了した実験が台帳から外れれば自然に働かなくなる）。
+NARROW_EXPERIMENTS = {"EX-0004": "image-style", "EX-0005": "post-text"}
+
+
+def _narrow_condition(row):
+    if NARROW_EXPERIMENTS.get(row["実験ID"]) != row["対象"]:
+        return None
+    if row["対象"] == "image-style":
+        return ("後=範囲内（pin>=%d）で作成日が開始日以降のうち、ピンmdの「- 型:」が%sでテキストオーバーレイが%d件のピン。"
+                "前=開始前の%sのピンの直近の同じ枚数（無ければ直近の全ピン）" % (
+                    _range_pin_min(row), NARROW_PIN_STYLE, NARROW_PIN_TEXTS, NARROW_PIN_STYLE))
+    if row["対象"] == "post-text":
+        return ("後=開始日以降に送信され7日たった X の投稿（記事なし・動画を除く）のうち、本文のURLの utm_content が pin%d 以上のもの。"
+                "前=全体の前と同じ" % _range_pin_min(row))
+    return None
+
+
+def _empty_narrowed(row, reason):
+    return {"condition": _narrow_condition(row), "before": {"median": None, "count": 0},
+            "after": {"median": None, "count": 0}, "proposal": "途中", "reason": reason}
+
+
+def _narrow_pin(row, pins, week_end, md):
+    start = _date(row["開始日"])
+    after, after_ids, candidates = [], [], set()
+    for number, pin in sorted(pins.items()):
+        if pin["created"] is None or pin["created"] < start:
+            continue
+        if not range_matches(row["範囲"], pin=number, slug=pin["slug"], ignore_missing=True):
+            continue
+        if md.get(number) != (NARROW_PIN_STYLE, NARROW_PIN_TEXTS):
+            continue
+        candidates.add(number)
+        value = pin_14d(pin, week_end)
+        if value is not None:
+            after.append(value)
+            after_ids.append(number)
+    pool = sorted(((pin["created"], number, pin_14d(pin, week_end)) for number, pin in pins.items()
+                   if number not in candidates and pin["created"] is not None and pin["created"] < start),
+                  reverse=True)
+    pool = [(c, n, v) for c, n, v in pool if v is not None]
+    same_style = [(c, n, v) for c, n, v in pool if md.get(n, ("", None))[0] == NARROW_PIN_STYLE]
+    basis = "比較グリッドのピン" if same_style else "直近の全ピン（開始前に比較グリッドのピンが無い）"
+    before_pool = (same_style or pool)[:len(after)]
+    before = [v for _c, _n, v in before_pool]
+    proposal, reason = _proposal(row, week_end, before, after)
+    return {"condition": _narrow_condition(row), "basis_before": basis,
+            "before": {"median": _median(before), "count": len(before), "pins": sorted(n for _c, n, _v in before_pool)},
+            "after": {"median": _median(after), "count": len(after), "pins": after_ids,
+                      "pending": len(candidates) - len(after)},
+            "proposal": proposal, "reason": reason}
+
+
+def _narrow_posts(row, posts, week_end, whole_before):
+    channel = METRIC_CHANNEL[row["主指標"]]
+    start = _date(row["開始日"])
+    mature_end = week_end - dt.timedelta(days=SNS_MATURE_DAYS)
+    pin_min = _range_pin_min(row)
+    after = []
+    for post in posts:
+        if post.get("service") != channel or post.get("standalone") or post.get("video"):
+            continue
+        day = _sent_date(post)
+        if day is None or not (start <= day <= mature_end):
+            continue
+        m = UTM_PIN_RE.search(post.get("text") or "")
+        if m and int(m.group(1)) >= pin_min:
+            after.append(_post_metrics(post)["views"])
+    proposal, reason = _proposal(row, week_end, whole_before, after)
+    return {"condition": _narrow_condition(row),
+            "before": {"median": _median(whole_before), "count": len(whole_before)},
+            "after": {"median": _median(after), "count": len(after),
+                      "window": [start.isoformat(), mature_end.isoformat()]},
+            "proposal": proposal, "reason": reason}
+
+
 def build_status(rows, week_end, pins, posts, warnings):
     experiments = []
     gsc_cache = {}
+    md_cache = []
     for row in rows:
         if row["状態"] != "実行中" or row["判定"].startswith("継続"):
             continue
         entry = {"id": row["実験ID"], "kind": row["種別"], "target": row["対象"], "content": row["内容"],
                  "key": row["設定キー"], "value": row["設定値"], "range": row["範囲"], "metric": row["主指標"],
                  "start": row["開始日"], "judge_date": row["判定日"], "extended": int(row["延長"] or 0)}
+        narrow = _narrow_condition(row) is not None
         if _date(row["開始日"]) > week_end:
             entry.update({"proposal": "途中", "reason": "開始日（%s）が週末日より後" % row["開始日"]})
+            if narrow:
+                entry["narrowed"] = _empty_narrowed(row, entry["reason"])
             experiments.append(entry)
             continue
         metric = row["主指標"]
@@ -843,6 +970,16 @@ def build_status(rows, week_end, pins, posts, warnings):
         proposal, reason = _proposal(row, week_end, before, after)
         entry.update(detail)
         entry.update({"proposal": proposal, "reason": reason})
+        if narrow:
+            if row["対象"] == "image-style":
+                if not md_cache:
+                    md_cache.append(load_pin_md_info())
+                entry["narrowed"] = _narrow_pin(row, pins, week_end, md_cache[0])
+            else:
+                entry["narrowed"] = _narrow_posts(row, posts, week_end, before)
+            # 判定案は絞り込んだ前後で決める（条件は _proposal のまま）。全体の値による案は whole_proposal に残す
+            entry["whole_proposal"] = {"proposal": proposal, "reason": reason}
+            entry["proposal"], entry["reason"] = entry["narrowed"]["proposal"], entry["narrowed"]["reason"]
         experiments.append(entry)
     pending_rules = [r["実験ID"] for r in rows if r["状態"] == "実装待ち"]
     return experiments, pending_rules

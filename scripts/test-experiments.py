@@ -162,6 +162,8 @@ def main():
         ex.PIN_DAILY_METRICS_TSV = os.path.join(tmp, "pins.tsv")
         ex.PINS_DIR = os.path.join(tmp, "no-pins")
         ex.KEYS = (KEY,)
+        real_narrow = ex.NARROW_EXPERIMENTS
+        ex.NARROW_EXPERIMENTS = {}   # 以下の台帳の EX-0004/0005 は試験用の行。本物の絞り込み対象と取り違えない
         ex.fetch_sent_posts = fake_fetch
         ex.save_ledger([])
         audit = os.path.join(tmp, "audit.md")
@@ -411,6 +413,122 @@ def main():
             result = gw._run_judge_due("2026-09-30", Path(tmp) / "no-status.json")
         check("gateway: judge-due が失敗しても例外にせず ok=false と【注意】を返す",
               not result["ok"] and result["returncode"] == 1 and "【注意】" in err.getvalue(), str(result))
+
+        # --- 絞り込んだ値（EX-0004 の image-style・EX-0005 の post-text・D-0317） ---
+        ex.NARROW_EXPERIMENTS = real_narrow
+        md_dir = Path(tmp) / "pins-md"
+        md_dir.mkdir()
+
+        def put_md(number, style, count):
+            text = "# ピン%d\n- 型: %s\n- テキストオーバーレイ: 「a」「b」（%s件）\n" % (number, style, count)
+            (md_dir / ("2026-09-01-pin-%d-s-x-01.md" % number)).write_text(text, encoding="utf-8")
+
+        for number, style, count in ((195, "比較グリッド", 2), (196, "比較グリッド", 3), (197, "写真ヒーロー", 1),
+                                     (200, "比較グリッド", 3), (201, "比較グリッド", 2), (202, "チェックリスト", 3),
+                                     (203, "比較グリッド", 3)):
+            put_md(number, style, count)
+        ex.PINS_DIR = str(md_dir)
+        md = ex.load_pin_md_info()
+        check("ピンmdの「- 型:」と「（N件」を読む", md.get(196) == ("比較グリッド", 3) and md.get(197) == ("写真ヒーロー", 1), str(md))
+        pins = ex.load_pins(ex.PIN_DAILY_METRICS_TSV)
+        row_pin = {"実験ID": "EX-0004", "対象": "image-style", "範囲": "pin>=200", "開始日": "2026-09-02", "判定日": "2026-09-23", "延長": "0"}
+        n = ex._narrow_pin(row_pin, pins, WEEK_END, md)
+        check("EX-0004: 後は比較グリッドかつ3件のピン（200・203）だけ・前は開始前の比較グリッドのピン",
+              (n["after"]["pins"], n["after"]["median"], n["before"]["pins"], n["before"]["median"], n["basis_before"])
+              == ([200, 203], 280, [195, 196], 140, "比較グリッドのピン"), str(n))
+        md_no_grid = {k: v for k, v in md.items() if k < 200}
+        md_no_grid = {k: ("写真ヒーロー", 1) for k in md_no_grid}
+        md_no_grid.update({200: ("比較グリッド", 3), 203: ("比較グリッド", 3)})
+        n2 = ex._narrow_pin(row_pin, pins, WEEK_END, md_no_grid)
+        check("EX-0004: 開始前に比較グリッドのピンが無ければ直近の全ピンを前にする",
+              (n2["before"]["pins"], n2["basis_before"].startswith("直近の全ピン")) == ([198, 199], True), str(n2))
+        check("EX-0004: 条件の文に pin>=200・比較グリッド・3件が出る",
+              all(w in n["condition"] for w in ("pin>=200", "比較グリッド", "3件")), n["condition"])
+        row_post = {"実験ID": "EX-0005", "対象": "post-text", "範囲": "channel=twitter＋pin>=398", "主指標": "x-impr-7d", "開始日": "2026-09-02",
+                    "判定日": "2026-09-16", "延長": "0"}
+        url = "\nhttps://k.example/posts/s/?utm_source=x&utm_content=pin%d"
+        sample = [_post("twitter", dt.date(2026, 9, 3), 40, "新型" + url % 398),
+                  _post("twitter", dt.date(2026, 9, 4), 99, "旧型" + url % 397),
+                  _post("twitter", dt.date(2026, 9, 5), 60, "新型" + url % 400),
+                  _post("twitter", dt.date(2026, 9, 6), 77, "リンクなし #タグ"),
+                  _post("threads", dt.date(2026, 9, 5), 88, "x" + url % 500)]
+        np = ex._narrow_posts(row_post, sample, WEEK_END, [10, 10])
+        check("EX-0005: 後は utm_content が pin398 以上の X 投稿だけ（40・60 → 中央値50）",
+              (np["after"]["count"], np["after"]["median"], np["before"]["median"]) == (2, 50, 10), str(np))
+        empty = ex._empty_narrowed(row_post, "開始日前")
+        check("開始前でも絞り込み条件が出る（後0件・pin398 を含む）",
+              empty["after"]["count"] == 0 and "pin398" in empty["condition"], str(empty))
+        entry = {"proposal": "継続", "reason": "r", "before": {"median": 10, "count": 2}, "after": {"median": 30, "count": 3},
+                 "narrowed": {"before": {"median": 10, "count": 2}, "after": {"median": 50, "count": 2}}}
+        text = ex._due_reason(entry, dt.date(2026, 9, 30))
+        check("judge-due の根拠は絞り込んだ値が本体・全体の値が「参考」",
+              "中央値 前10 後50 件数2/2" in text and text.endswith("；参考: 全体 中央値 前10 後30"), text)
+
+        # --- 判定案は絞り込んだ前後で決める（EX-0004・EX-0005）。EX-0001〜0003 型の行は全体の値のまま ---
+        def synth_pin(number, created, imp, style=None, count=3):
+            days = {created + dt.timedelta(days=i): ("READY", imp) for i in range(20)}
+            if style:
+                put_md(number, style, count)
+            return {"pin_id": "i%d" % number, "slug": "s-n", "created": created, "created_source": "created_at",
+                    "days": days, "deleted": False, "duplicate": False}
+
+        sp = {}
+        for k, number in enumerate((601, 602)):    # 開始前の比較グリッド（100）
+            sp[number] = synth_pin(number, dt.date(2026, 8, 20) + dt.timedelta(days=k), 100, "比較グリッド", 2)
+        for k, number in enumerate((603, 604, 605, 606)):    # 開始前のほかの型（200）
+            sp[number] = synth_pin(number, dt.date(2026, 8, 22) + dt.timedelta(days=k), 200, "チェックリスト")
+        for k, number in enumerate((610, 611)):    # 開始後の比較グリッド3件（300）
+            sp[number] = synth_pin(number, dt.date(2026, 9, 2) + dt.timedelta(days=k), 300, "比較グリッド", 3)
+        for k, number in enumerate((612, 613, 614, 615)):    # 開始後のほかの型（10）
+            sp[number] = synth_pin(number, dt.date(2026, 9, 2) + dt.timedelta(days=k), 10, "チェックリスト")
+
+        def led(ex_id, target, rng, metric):
+            r = {c: "" for c in ex.COLUMNS}
+            r.update({"実験ID": ex_id, "状態": "実行中", "種別": "ルール", "対象": target, "範囲": rng, "主指標": metric,
+                      "開始日": "2026-09-02", "判定日": "2026-09-16", "延長": "0"})
+            return r
+
+        sp_posts = ([_post("twitter", dt.date(2026, 8, 20) + dt.timedelta(days=i), 100, "旧") for i in range(3)]
+                    + [_post("twitter", dt.date(2026, 9, 3), 300, "新型" + url % 400),
+                       _post("twitter", dt.date(2026, 9, 4), 300, "新型" + url % 401)]
+                    + [_post("twitter", dt.date(2026, 9, 5) + dt.timedelta(days=i), 5, "旧型" + url % 397) for i in range(3)]
+                    + [_post("twitter", dt.date(2026, 9, 8) + dt.timedelta(days=i), 5, "リンクなし") for i in range(2)])
+        rows_n = [led("EX-0004", "image-style", "pin>=610", "pin-impr-14d"),
+                  led("EX-0005", "post-text", "channel=twitter＋pin>=398", "x-impr-7d"),
+                  led("EX-0007", "pin-hook", "pin>=610", "pin-impr-14d"),
+                  led("EX-0008", "x-standalone", "channel=twitter", "x-impr-7d")]
+        exps, _pending = ex.build_status(rows_n, WEEK_END, sp, sp_posts, [])
+        st_n = {e["id"]: e for e in exps}
+        a = st_n["EX-0004"]
+        check("全体が戻し・絞り込みが継続 → EX-0004 の判定案は継続（全体の案は whole_proposal に残る）",
+              (a["whole_proposal"]["proposal"], a["narrowed"]["proposal"], a["proposal"]) == ("戻し", "継続", "継続"), str(a))
+        check("EX-0004: 絞り込みの前後は 1400／4200（ピンの14日合計。全体は 2800／140）",
+              (a["narrowed"]["before"]["median"], a["narrowed"]["after"]["median"], a["before"]["median"], a["after"]["median"])
+              == (1400, 4200, 2800, 140), str(a))
+        b = st_n["EX-0005"]
+        check("全体が戻し・絞り込みが継続 → EX-0005 の判定案は継続",
+              (b["whole_proposal"]["proposal"], b["proposal"], b["narrowed"]["after"]["median"], b["after"]["median"])
+              == ("戻し", "継続", 300, 5), str(b))
+        row_zero = led("EX-0004", "image-style", "pin>=612", "pin-impr-14d")
+        exps_z, _p = ex.build_status([row_zero], WEEK_END, sp, sp_posts, [])
+        c = exps_z[0]
+        check("絞り込んだ「後」が0件（全体の後には4枚ある）→ 既存の0件の扱い（延長）",
+              (c["after"]["count"], c["narrowed"]["after"]["count"], c["whole_proposal"]["proposal"], c["proposal"])
+              == (4, 0, "戻し", "延長"), str(c))
+        row_zero2 = dict(row_zero, 延長="1")
+        c2 = ex.build_status([row_zero2], WEEK_END, sp, sp_posts, [])[0][0]
+        check("延長済みで絞り込んだ「後」が0件 → 既存の扱い（戻し）", c2["proposal"] == "戻し", str(c2))
+        d = st_n["EX-0007"]
+        check("EX-0001〜0003 型（pin-hook）の判定案は全体の値のまま・項目も増えない",
+              (d["proposal"], "narrowed" not in d, "whole_proposal" not in d) == ("戻し", True, True), str(d))
+        d2 = st_n["EX-0008"]
+        check("EX-0001〜0003 型（x-standalone）の判定案は全体の値のまま・項目も増えない",
+              (d2["proposal"], "narrowed" not in d2, "whole_proposal" not in d2) == ("戻し", True, True), str(d2))
+        check("実験IDと対象が合わない行（EX-0004 の対象が x-standalone）は絞り込まない",
+              ex._narrow_condition(dict(row_zero, 対象="x-standalone")) is None)
+        due = ex._due_reason(a, WEEK_END)
+        check("judge-due の根拠: 絞り込んだ値が本体・「；参考: 全体 中央値 前2800 後140」が残る",
+              "中央値 前1400 後4200 件数2/2" in due and due.endswith("；参考: 全体 中央値 前2800 後140"), due)
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 

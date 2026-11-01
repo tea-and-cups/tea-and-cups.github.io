@@ -98,6 +98,14 @@ hero画像に焼き込む見出し文言の必須指定（D-0173）:
   右下を空ける指示（D-0274）は4枚モードと同じ。条件の分岐（D-0152）とCTA帯は適用しない。
   4枚モードの引数・出力は変えていない。
 
+比較の二分割構図（実験 EX-0004・pin>=398・D-0317）:
+  型「比較グリッド」で文言がちょうど3件のPinは、フラグ無しで型の指示方針が左右二分割に置き換わる。
+  文言は1件目=見出し・2件目=左の対象・3件目=右の対象、CTA帯なし、配色は琥珀・生成り・深い茶。
+  文言が1〜2件のとき・ほかの型のときは従来どおり。比べていない記事の比較グリッドには3件を書かない。
+  --compare-split <スロット>（4枚モードは pin1〜pin3・先行ピンのモードは pin）は互換のために受け付ける
+  （付けても結果は同じ。型・件数が合わなければエラー）。戻すときは COMPARE_SPLIT_AUTO を False にする
+  （その場合は --compare-split を付けたPinだけが二分割になる）。
+
 使い方:
   python site/scripts/make-image-prompt.py <slug> --hero-text "見出し文言"
     --pin1-text "文言A｜文言B" --pin2-text "文言C" --pin3-text "文言D｜文言E｜文言F"
@@ -307,11 +315,13 @@ def hero_text_section(text_position, texts):
     return section(SEC_TEXT, lines)
 
 
-def pin_text_section(text_position, texts, ranking, has_cta):
-    """渡された文言をそのまま列挙する焼き込み指示を作る（D-0148・半角はそのまま渡す。D-0180）。"""
+def pin_text_section(text_position, texts, ranking, has_cta, compare_split=False):
+    """渡された文言をそのまま列挙する焼き込み指示を作る（D-0148・半角はそのまま渡す。D-0180）。
+    compare_split=True は文言ごとの置き場所を固定する（見出しは上部・対象名は左右の区画の上部。EX-0004）。"""
+    position = COMPARE_SPLIT_TEXT_POSITION if compare_split else text_position_line(text_position, ranking)
     lines = [
         text_whitelist_head(len(texts), has_cta),
-        text_position_line(text_position, ranking),
+        position,
     ]
     for i, t in enumerate(texts, 1):
         # 連番の漢数字は analyze-pin-metrics.py が解析する（D-0152の文言件数の分母）。算用数字にしない。
@@ -576,6 +586,26 @@ TYPE_GUIDANCE = {
 }
 
 
+# 比較の二分割構図（実験 EX-0004・D-0317）。型「比較グリッド」で文言がちょうど3件のPinは、指示方針を自動で置き換える。
+# --compare-split は互換のために受け付ける（付けても付けなくても同じ。付けて条件を満たさなければエラー）。
+# 固定する値は、ピン354以降44枚の実測の最頻値: 文言3件（2件と同数・見出し1＋左右の対象2）・CTA帯なし・配色は全画像共通の3色基調。
+COMPARE_SPLIT_AUTO = True   # 実験を戻すときは False（--compare-split を付けたPinだけが二分割になる）
+COMPARE_SPLIT_OPT = "--compare-split"
+COMPARE_SPLIT_STYLE = "比較グリッド"
+COMPARE_SPLIT_TEXT_COUNT = 3
+COMPARE_SPLIT_TEXT_POSITION = (
+    "文言その一は画像の上部に一行で、文言その二は左の区画の上部に、文言その三は右の区画の上部に、"
+    "白抜き等の読みやすい文字で配置する。"
+)
+COMPARE_SPLIT_GUIDANCE = (
+    "画像の中央に縦の細い線を一本だけ引き、左右二つの同じ大きさの区画に分ける。"
+    "左の区画には文言その二の対象、右の区画には文言その三の対象を、同じ構成で一つずつ置く。"
+    "文言その一は画像全体の見出しとして区画の外に一行で描き、文言その二・その三は各区画の対象の名前として描く。"
+    "左右の区画で色や背景を変えず、琥珀・生成り・深い茶の三色基調で統一する。"
+    "帯や矢印、三つ目の区画は作らない。"
+)
+
+
 # 台帳・pick-image-variation.py 側の型名は変更せず、依頼文へ埋め込む時だけ表記を差し替える
 # （型名を変えると check-pin-image-style.py の重複判定と台帳の既存値が壊れるため）。
 STYLE_DISPLAY_NAME = {"Q&A形式": "一問一答形式"}
@@ -609,10 +639,31 @@ def ranking_guidance(labels):
     return TYPE_GUIDANCE[RANKING_KEY].format(label1=labels[0], label2=labels[1], label3=labels[2])
 
 
-def build_pin_prompt(row, style, texts, cta_text=None):
-    """Pin一枚分の依頼文を組み立てる。cta_textがあればCTA帯の指示を足す（D-0152）。"""
+def check_compare_split(slot, style, texts):
+    """--compare-split の条件（型が比較グリッド・文言がちょうど3件）を満たさなければ exit 1。"""
+    if style != COMPARE_SPLIT_STYLE:
+        pin_text_error("%s の型は「%s」のため %s を付けられません（付けられるのは型「%s」だけ）。"
+                       % (slot, style, COMPARE_SPLIT_OPT, COMPARE_SPLIT_STYLE))
+    if len(texts) != COMPARE_SPLIT_TEXT_COUNT:
+        pin_text_error("%s は %s のため文言がちょうど%d件（見出し・左の対象・右の対象）必要ですが、%d件でした。"
+                       % (slot, COMPARE_SPLIT_OPT, COMPARE_SPLIT_TEXT_COUNT, len(texts)))
+
+
+def is_compare_split(style, texts):
+    """型が比較グリッドで文言がちょうど3件なら二分割構図になる（EX-0004・D-0317。--compare-split が無くても）。"""
+    return COMPARE_SPLIT_AUTO and style == COMPARE_SPLIT_STYLE and len(texts) == COMPARE_SPLIT_TEXT_COUNT
+
+
+def build_pin_prompt(row, style, texts, cta_text=None, compare_split=False):
+    """Pin一枚分の依頼文を組み立てる。cta_textがあればCTA帯の指示を足す（D-0152）。
+    比較グリッド＋文言3件（または compare_split=True）は型の指示方針を左右二分割に置き換え、CTA帯は付けない。"""
+    compare_split = compare_split or is_compare_split(style, texts)
+    if compare_split:
+        cta_text = None   # 二分割構図のPinはCTA帯なしに固定する（EX-0004）
     ranking = is_ranking(style)
-    if ranking:
+    if compare_split:
+        guidance = COMPARE_SPLIT_GUIDANCE
+    elif ranking:
         guidance = ranking_guidance(texts)
     else:
         guidance = TYPE_GUIDANCE.get(style)
@@ -631,7 +682,7 @@ def build_pin_prompt(row, style, texts, cta_text=None):
         section(SEC_RATIO, [pin_ratio_head()]),
         section(SEC_PURPOSE, [PIN_PURPOSE]),
         section(SEC_COMPOSITION, composition),
-        pin_text_section(row["text_position"], texts, ranking, bool(cta_text)),
+        pin_text_section(row["text_position"], texts, ranking, bool(cta_text), compare_split),
     ]
     if cta_text:
         parts.append(section(SEC_CTA, cta_instruction(cta_text)))
@@ -745,6 +796,11 @@ def advance_main(argv):
     style_raw = _pop_option(argv, ADVANCE_STYLE_OPT)
     raw_text = _pop_option(argv, pin_text_opt(ADVANCE_SLOT))
     prompt_only = _pop_option(argv, PROMPT_ONLY_OPT)
+    split_slot = _pop_option(argv, COMPARE_SPLIT_OPT)
+    if split_slot is not None and split_slot != ADVANCE_SLOT:
+        sys.stderr.write("先行ピンのモードでは %s に指定できるのは %s だけです（指定値: %s）。\n"
+                         % (COMPARE_SPLIT_OPT, ADVANCE_SLOT, split_slot))
+        sys.exit(1)
     if argv or not slug or slug.startswith("-"):
         sys.stderr.write(ADVANCE_USAGE + "\n")
         sys.exit(1)
@@ -771,8 +827,10 @@ def advance_main(argv):
     if raw_text is not None:
         reject_newline_text(pin_text_opt(ADVANCE_SLOT), raw_text)
     texts = parse_pin_texts(ADVANCE_SLOT, raw_text, style)
+    if split_slot is not None:
+        check_compare_split(ADVANCE_SLOT, style, texts)
 
-    body = build_pin_prompt(plan["row"], style, texts)
+    body = build_pin_prompt(plan["row"], style, texts, compare_split=split_slot is not None)
     if prompt_only is not None:
         print(body)
         return
@@ -812,6 +870,17 @@ def main():
                 % (PROMPT_ONLY_OPT, "／".join(piv.IMAGE_SLOTS), prompt_only)
             )
             sys.exit(1)
+
+    split_slot = None
+    if COMPARE_SPLIT_OPT in argv:
+        i = argv.index(COMPARE_SPLIT_OPT)
+        if i + 1 >= len(argv):
+            pin_text_error("%s の値（スロット名）が指定されていません。" % COMPARE_SPLIT_OPT)
+        split_slot = argv[i + 1]
+        del argv[i:i + 2]
+        if split_slot not in piv.PIN_SLOTS:
+            pin_text_error("%s に指定できるのは %s のいずれかです（指定値: %s）。"
+                           % (COMPARE_SPLIT_OPT, "／".join(piv.PIN_SLOTS), split_slot))
 
     raw_hero_text = None
     if HERO_TEXT_OPT in argv:
@@ -871,6 +940,9 @@ def main():
     for slot in piv.PIN_SLOTS:
         texts[slot] = parse_pin_texts(slot, raw_texts.get(slot), styles[slot])
 
+    if split_slot is not None:
+        check_compare_split(split_slot, styles[split_slot], texts[split_slot])
+
     # --- 条件による分岐（D-0152・余りの判定は piv 側の1関数に集約） ---
     conditions = piv.conditions_for_slug(slug, rows)
     info_condition = conditions[0] if conditions else None
@@ -886,10 +958,14 @@ def main():
         article_seq = piv.seq_for_slug(slug, rows)
         for pin_no, slot in enumerate(piv.PIN_SLOTS, start=1):
             cta_texts[slot] = piv.cta_text_for_seq(article_seq, pin_no)
+    for slot in piv.PIN_SLOTS:
+        if slot == split_slot or is_compare_split(styles[slot], texts[slot]):
+            cta_texts[slot] = None   # 二分割構図のPinはCTA帯なしに固定する（EX-0004）
 
     blocks = [("hero", build_hero_prompt(by_type["hero"], hero_texts))]
     for slot in piv.PIN_SLOTS:
-        blocks.append((slot, build_pin_prompt(by_type[slot], styles[slot], texts[slot], cta_texts[slot])))
+        blocks.append((slot, build_pin_prompt(by_type[slot], styles[slot], texts[slot], cta_texts[slot],
+                                                   compare_split=(slot == split_slot))))
 
     if prompt_only is not None:
         # 区切り行・条件メタ行・JS注入コード・操作手順は一切出さない（D-0199）。
@@ -900,7 +976,8 @@ def main():
         print("■ 条件: %s／%s（D-0152・この行はChatGPTへ貼らない）" % (info_condition, cta_condition))
         if cta_condition == piv.CTA_YES:
             listed = "／".join(
-                "%s=「%s」" % (slot, cta_texts[slot]) for slot in piv.PIN_SLOTS
+                "%s=%s" % (slot, "「%s」" % cta_texts[slot] if cta_texts[slot] else "なし（二分割）")
+                for slot in piv.PIN_SLOTS
             )
             print("■ CTA文言: %s（3枚とも別の文言・この行も貼らない）" % listed)
         print()
