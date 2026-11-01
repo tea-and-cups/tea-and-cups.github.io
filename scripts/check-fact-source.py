@@ -54,7 +54,8 @@
         （箇条書きは1項目）に出典URL（アフィリエイト除く）が無い。型9・10と同じく適用条件の語では免除しない。
         (a) 乳児・妊娠中等の語＋与えない・避ける等 (b) 違和感・異臭・「いつもと違う」・サイン等＋飲まない・処分等、
         「一口含んで」 (c) 「早めに飲み切る」「飲み切る前提」、湿気・匂い移り・カビ・直射日光等＋避ける・防ぎきれず等
-        (d) 熱湯＋注がない・いきなり・急激な温度変化等。仕様の説明（耐えやすい等）・抽出の説明・「飲み切れる量」・
+        (d) 熱湯＋注がない・いきなり・急激な温度変化等 (e) 熱い器＋コースター・ポットマット・直接置かない等
+        (f) 子ども・ペット＋手が届く・使わない等 (g) 倒れやすい・ぐらつく等＋使わない・確かめる等。仕様の説明（耐えやすい等）・抽出の説明・「飲み切れる量」・
         「医師に相談」の案内は拾わない。出典を置けない助言は削除する（言い換えて残さない）。
         型5は「重曹」「漂白」の手入れ文に限り適用条件の語（「表示に従う」等）で免除しない。
     新規公開（引数 <slug> のみ）ではNG、--revise と --survey-xy（週次）では【警告】にとどめる
@@ -291,6 +292,7 @@ SAFETY_TYPE10_WORDS = ["目止め", "とぎ汁", "研ぎ汁", "傷みやすい",
 #   (b) 傷みの見分け・判断: 違和感・異臭・「いつもと違う」・サイン等＋飲まない・処分等
 #   (c) 保存・飲み切りの判断: 「早めに飲み切る」「飲み切る前提」、保存環境（湿気・匂い移り・カビ等）を防ぐ・避ける助言
 #   (d) 器の熱衝撃: 熱湯＋注がない・避ける等（急激な温度変化に弱い）
+#   (e) 熱い器の置き方 (f) 子ども・ペットへの注意 (g) 器を重ねた安定性の助言（RE_T11_HOT_ITEM 以降の正規表現）
 # 淹れ方の手順の「熱湯を注ぐ」、日付や期間だけの記述、読者への「医師に相談」の案内は拾わない。
 # 年齢で対象を表す書き方（「1歳未満」「2歳未満」「一歳未満」）も人の語に数える（D-0315）。
 RE_T11_PERSON = re.compile(r"乳児|乳幼児|赤ちゃん|幼児|妊娠中|授乳中|妊婦|[0-9０-９一二三四五六七八九十]+歳未満")
@@ -316,6 +318,17 @@ RE_T11_STORAGE_ADVICE = re.compile(
 RE_T11_HOT_WATER = re.compile(r"熱湯|沸騰したて|沸かしたて")
 RE_T11_THERMAL_SHOCK = re.compile(
     r"注が(?:ない|ず)|注ぐのは避け|避け|急激な温度|温度変化|いきなり")
+# (e) 熱い器の置き方・耐熱の助言、(f) 子ども・ペットの手が届く場所への注意、(g) 器を重ねた安定性の助言
+#   （2026-10月次の指摘: aki-hotel-afternoontea-jitaku-styling の「熱い器を載せるときはコースターやポットマットを
+#   間に敷く」「子どもやペットの手が届く場所では使わない」「ぐらつく場合は使いません」が型11を通っていた）
+RE_T11_HOT_ITEM = re.compile(r"熱い|熱々|熱を持")
+RE_T11_HOT_PLACE_ADVICE = re.compile(
+    r"コースター|ポットマット|鍋敷き|鍋しき|間に敷|直接置か|直接載せ|直接のせ|載せない|のせない|置かない|置かず")
+RE_T11_CHILD_PET = re.compile(r"子ども|子供|お子さん|小さな子|ペット")
+RE_T11_REACH_ADVICE = re.compile(r"手が届|届かない|届く場所|離し|近づけ|使わない|置かない|目を離|いたずら")
+RE_T11_STABILITY = re.compile(r"倒れやすく|倒れやすい|ぐらつ|滑りやすい|すべりやすい|安定しにく|崩れやすい")
+RE_T11_STABILITY_ADVICE = re.compile(
+    r"使わない|使いません|確かめ|確認し|勧めません|おすすめしません|守って|守ります|避け|気をつけ|気を付け|注意")
 RE_MD_HEADING = re.compile(r"^(#{1,6})\s")
 RE_BOLD_ONLY_LINE = re.compile(r"^\s*\*\*[^*].*\*\*\s*$")
 
@@ -613,6 +626,15 @@ def keeping_safety_sentence_words(sentence):
     hot = RE_T11_HOT_WATER.search(sentence)
     if hot and RE_T11_THERMAL_SHOCK.search(sentence):
         return [hot.group(0), RE_T11_THERMAL_SHOCK.search(sentence).group(0)]
+    hot_item = RE_T11_HOT_ITEM.search(sentence)
+    if hot_item and RE_T11_HOT_PLACE_ADVICE.search(sentence):
+        return [hot_item.group(0), RE_T11_HOT_PLACE_ADVICE.search(sentence).group(0)]
+    child = RE_T11_CHILD_PET.search(sentence)
+    if child and RE_T11_REACH_ADVICE.search(sentence):
+        return [child.group(0), RE_T11_REACH_ADVICE.search(sentence).group(0)]
+    stable = RE_T11_STABILITY.search(sentence)
+    if stable and RE_T11_STABILITY_ADVICE.search(sentence):
+        return [stable.group(0), RE_T11_STABILITY_ADVICE.search(sentence).group(0)]
     return []
 
 
@@ -836,7 +858,7 @@ def run_single(slug, revise=False):
               + "。型10: 手入れ手順・傷みやすさ（" + "・".join(SAFETY_TYPE10_WORDS)
               + "）には、同じブロックに出典URLが要ります（適用条件の語だけでは通りません。出典を置けない場合は文を削る）"
               + "。型11: 保存・衛生・安全・手入れの助言（乳児など特定の人への注意／傷みの見分け・「いつもと違えば飲まない」／"
-              "「早めに飲み切る」／湿気・匂い移り・カビ・直射日光への注意／熱湯を注ぐ際の破損注意）には、同じブロックに"
+              "「早めに飲み切る」／湿気・匂い移り・カビ・直射日光への注意／熱湯を注ぐ際の破損注意／熱い器の置き方／子ども・ペットへの注意／倒れやすさの助言）には、同じブロックに"
               "出典URLが要ります（適用条件の語だけでは通りません。出典を置けない場合は助言を削る。言い換えて残さない）"
               + "。型5の重曹・漂白剤の手入れ文も、同じブロックに出典URLが要ります")
     return 1
