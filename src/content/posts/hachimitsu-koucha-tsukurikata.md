@@ -2,7 +2,7 @@
 title: はちみつ入り紅茶の作り方とおすすめの飲み方
 slug: hachimitsu-koucha-tsukurikata
 date: 2026-08-25
-updated: 2026-08-25
+updated: 2026-11-01
 description: 紅茶にはちみつを入れると、砂糖とは違う優しい甘さとコクが加わります。溶けやすい淹れ方のコツと相性のよい茶葉、便利グッズをご紹介します。
 tags: [紅茶, はちみつ, アレンジティー]
 hero: /images/hachimitsu-koucha-tsukurikata/hero.webp
@@ -46,7 +46,7 @@ category: how-to
 
 ★4.66（3,566件） [国産純粋はちみつはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824e041.803e7d1c.5824e042.b06fe152/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fmaruka-foods%2Fdomestic300%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-国産の花から採れた非加熱の純粋はちみつです。瓶入りで扱いやすい300gサイズのため、紅茶に日常的に使う量としてもちょうどよいでしょう。レビュー件数が非常に多く、幅広い層から長く支持されてきた実績のある一品です。
+国産の花から採れた非加熱の純粋はちみつです。瓶入りで扱いやすい300gサイズのため、紅茶に日常的に使う量としてもちょうどよいでしょう。レビュー件数が3,500件超と多い商品です。
 
 ## はちみつを扱いやすくする専用スプーン
 
@@ -54,7 +54,7 @@ category: how-to
 
 ★4.53（125件） [leyeくるりとハチミツスプーンはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824e05a.8d99dd0a.5824e05b.6823f297/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fauc-fine-dream%2F100003899%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-らせん状の溝にはちみつを絡ませてすくうタイプのステンレス製スプーンで、たらしても糸が切れやすく、テーブルを汚しにくいのが特徴です。日本製で、食洗機対応の商品も多く手入れがしやすいのも扱いやすいポイントです。
+らせん状の溝にはちみつを絡ませてすくうタイプのステンレス製スプーンで、たらしても糸が切れやすく、テーブルを汚しにくいのが特徴です。日本製です。
 
 ## よくある質問
 
@@ -65,7 +65,7 @@ category: how-to
 好みによりますが、カップ1杯（150〜200ml程度）に対して小さじ1杯程度から試し、味を見ながら調整するのがおすすめです。はちみつの種類によって甘さの感じ方が変わるため、決まった正解はありません。
 
 **Q. 1歳未満の子どもに与えてもよいですか？**
-はちみつは乳児ボツリヌス症のリスクがあるため、満1歳未満の子どもには与えないでください。これは紅茶に混ぜた場合も同様です。
+はちみつは乳児ボツリヌス症のリスクがあるため、満1歳未満の子どもには与えないでください（出典: [消費者庁「ハチミツによる乳児のボツリヌス症」](https://www.caa.go.jp/policies/policy/consumer_safety/food_safety/food_safety_portal/microorganism_virus/contents_001)）。これは紅茶に混ぜた場合も同様です。
 
 ## まとめ
 
