@@ -97,6 +97,7 @@ TARGET_FILES = [
     (os.path.join(PROJECT_ROOT, "rules", "video-production.md"), "Tea_TeaCut rules/video-production.md"),
     (os.path.join(PROJECT_ROOT, "docs", "script-index.md"), "Tea_TeaCut script-index.md"),
     (os.path.join(PROJECT_ROOT, "docs", "gsc-log.md"), "Tea_TeaCut gsc-log.md"),
+    (os.path.join(PROJECT_ROOT, "docs", "reach-monthly.md"), "Tea_TeaCut reach-monthly.md"),
     # data/ はGit管理外（D-0043）で版管理もバックアップも無い。教訓リストは
     # 破損・誤削除で蓄積カウントが全損し復旧手段が無いため同期対象に含める。
     (os.path.join(PROJECT_ROOT, "data", "lessons.tsv"), "Tea_TeaCut lessons.tsv"),

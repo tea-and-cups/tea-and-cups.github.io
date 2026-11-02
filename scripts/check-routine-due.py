@@ -53,6 +53,12 @@ check-image-gen-needed-today.py（D-0078）と同じ方針で、あいまいな�
      台帳（data/x-standalone-posted.tsv）が無い（記事なし投稿を始める前）ときは判定しない。
      本文の読み取りは post-x-standalone.py の parse_x_posts（書式の正本）を使う。
 
+  6. 到達数の表（D-0323）
+     docs/reach-monthly.md の「指標」の見出し行と「数値の状態」の行だけを読み、次の2つを通知する。
+       - 前月の列が無い（当月1日以降=常に真。rules/weekly-report.md 4-4節 第1段）
+       - その月の第2段の日（翌月4日以降の最初の日曜）を過ぎても、数値の状態が「確定」でない月がある（同 第2段）
+     判定はこのファイルだけで行い、3 の kpi.md の判定とは独立。
+
 出力:
   該当項目があればその通知行を1行以上、1件も無ければ "ROUTINE_NONE" の1行のみ。
   終了コードは常に0（情報提供のみ。ブロックや強制終了は行わない）。
@@ -69,11 +75,13 @@ import datetime
 import importlib.util
 import io
 import os
+import re
 import sys
 
-ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+ROOT =os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 REPORTS_DIR = os.path.join(ROOT, "reports")
 KPI_MD = os.path.join(ROOT, "docs", "kpi.md")
+REACH_MONTHLY_MD = os.path.join(ROOT, "docs", "reach-monthly.md")
 GROWTH_OUTPUTS_DIR = os.path.join(ROOT, "growth", "outputs")
 X_STANDALONE_LEDGER = os.path.join(ROOT, "data", "x-standalone-posted.tsv")
 X_POSTS_DIR = os.path.join(ROOT, "output", "x-posts")
@@ -190,6 +198,39 @@ def kpi_row_gaps(month_key):
     return True, True
 
 
+def reach_month_states(path=None):
+    """docs/reach-monthly.md の表から {月(YYYY-MM): 数値の状態} を返す（docstring 6）。
+    年ごとに表が分かれていても読めるよう、「指標」の見出し行が出るたびに列を読み直す。
+    「数値の状態」の行が無い・セルが空の月は、状態を空文字にする（確定とは扱わない）。"""
+    states = {}
+    months = []
+    for raw in read_text(path or REACH_MONTHLY_MD).split("\n"):
+        line = raw.strip()
+        if not line.startswith("|"):
+            continue
+        cells = [c.strip() for c in line.strip("|").split("|")]
+        if cells[0] == "指標":
+            months = cells[1:]
+            states.update((m, "") for m in months if re.fullmatch(r"\d{4}-\d{2}", m))
+        elif cells[0] == "数値の状態":
+            for month, state in zip(months, cells[1:]):
+                if month in states:
+                    states[month] = state
+    return states
+
+
+def reach_overdue_months(base, states):
+    """第2段の日を過ぎても「確定」でない月を (月, 第2段の日) のリストで返す（docstring 6）。"""
+    overdue = []
+    for month, state in sorted(states.items()):
+        year, num = int(month[:4]), int(month[5:])
+        next_month = datetime.date(year + 1, 1, 1) if num == 12 else datetime.date(year, num + 1, 1)
+        stage2 = monthly_stage2_day(next_month)
+        if base > stage2 and state != "確定":
+            overdue.append((month, stage2))
+    return overdue
+
+
 def x_standalone_missing_days(base, path=None, directory=None):
     """5. 基準日〜翌々日のうち、output/x-posts/ に審査済みの件が無い日のリスト（docstring 5）。
     台帳が無ければ空（判定しない）。基準日より後の週の日付は、その週のファイルが無ければ見ない。"""
@@ -293,6 +334,19 @@ def main():
             "【警告】X単独投稿の審査済みの件が無い日があります（%s。output/x-posts/ に審査済みの件が無く、"
             "日次の --post-upcoming で予約されません。rules/weekly-report.md 3-3節の手順で作成・審査する）"
             % "・".join(d.isoformat() for d in missing_days)
+        )
+
+    # 6. 到達数の表（D-0323）
+    reach_states = reach_month_states()
+    if month_key not in reach_states:
+        messages.append(
+            "前月（%s）の列が docs/reach-monthly.md にありません（流入の値と記事数を「暫定」で書く・"
+            "rules/weekly-report.md 4-4節 M-5）" % month_key
+        )
+    for month, stage2 in reach_overdue_months(base, reach_states):
+        messages.append(
+            "docs/reach-monthly.md の %s が「確定」になっていません（第2段の日 %s を過ぎています。GSC と Pinterest を"
+            "取り直し、ASP の件数を書いて「確定」にする・rules/weekly-report.md 4-4節 第2段）" % (month, stage2.isoformat())
         )
 
     if messages:
