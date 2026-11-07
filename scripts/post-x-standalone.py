@@ -25,7 +25,7 @@ r"""X の「記事なし投稿」（記事リンクもピン画像も付けな�
   python site/scripts/post-x-standalone.py --candidates 14
       材料の候補を出す。候補は公開済み記事の「よくある質問」の1問1答と、見出しに「選び方」「目安」を
       含む節の判定単位（check-fact-source.py の build_units）。check-fact-source.py の A〜G・体験表現
-      （RE_EXPERIENCE）・型Y（型1〜11）・価格（円）に当たる単位、商品リンク・表の単位は除く。
+      （RE_EXPERIENCE）・型Y（型1〜13・型8を除く）・価格（円）に当たる単位、商品リンク・表の単位は除く。
       予定日が直近8週以内の件で材料に使った slug は除き、カテゴリが偏らないように順に並べる。
   python site/scripts/post-x-standalone.py --check <md>
       各件を検査する（下記）。審査行が無い件は【警告】（--post では送らない）。NG があれば終了コード1。
@@ -49,7 +49,7 @@ r"""X の「記事なし投稿」（記事リンクもピン画像も付けな�
 検査（--check・--post の前提）:
   - 文字数: check-x-post-length.py の x_weight と raw_length がともに 280 以下
   - URL が無い。ハッシュタグは2件以内
-  - 体験表現（check-fact-source.py の RE_EXPERIENCE）・型Y（型1〜11）・A〜G（価格を含む）に当たらない
+  - 体験表現（check-fact-source.py の RE_EXPERIENCE）・型Y（型1〜13・型8を除く）・A〜G（価格を含む）に当たらない
   - 健康の断定語（HEALTH_WORDS。「〜といわれる」の文中でも NG）に当たらない
   - ID（XS-NNNN）が他の件・他のファイルと重複しない。予定日がファイルの週（月〜日）に入る
 
@@ -141,10 +141,11 @@ class XPostError(Exception):
 
 
 def y_hits(text):
-    """判定Y（型1〜11）の当たり。型8（gift記事の節単位）は文単位の投稿には当てはまらないため見ない。"""
+    """判定Y（型1〜7・9〜13）の当たり。型8（gift記事の節単位）は文単位の投稿には当てはまらないため見ない。
+    型12（体験を示す名詞修飾）・型13（将来の予告）は D-0325 で check-fact-source.py に足した検知（D-0326）。"""
     fs = fact()
     return (fs.safety_advice_hits(text) + fs.food_storage_hits(text) + fs.care_hygiene_hits(text)
-            + fs.keeping_safety_hits(text))
+            + fs.keeping_safety_hits(text) + fs.experience_noun_hits(text) + fs.future_promise_hits(text))
 
 
 def text_problems(text):
