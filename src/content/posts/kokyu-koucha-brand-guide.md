@@ -2,7 +2,7 @@
 title: 高級紅茶ブランドの選び方｜予算と目的から探す、はじめの一箱
 slug: kokyu-koucha-brand-guide
 date: 2026-08-29
-updated: 2026-11-01
+updated: 2026-11-07
 description: マリアージュフレール、フォション、ニナスなど「高級紅茶ブランド」で検索したときに迷わないための地図。予算と目的の2軸で、まず買う一箱の選び方を整理します。
 tags: [ブランド, ギフト, フレーバーティー, 選び方]
 hero: /images/kokyu-koucha-brand-guide/hero.webp
@@ -56,7 +56,7 @@ category: tea-leaves
 
 「アールグレイが好き」「ダージリンをよく飲む」というように、飲む種類がある程度決まっている人は、その1種を名門ブランドの缶で持つのがわかりやすい入り方です。同じアールグレイでも、ブランドによってベルガモットの効かせ方や茶葉の強さが違うので、飲み比べの起点として1缶置いておくと、ほかのブランドとの違いも見えてきます。
 
-パリの高級食料品店フォションのアールグレイも、その入り口になりやすい一缶です。缶入りのリーフなので、開けたときの香りの立ち方や、時間が経ったときの変化も含めて楽しめます。なお、フォションを他ブランドと横並びで飲み比べた話は別記事に譲り、ここでは「名門の定番を一缶だけ持つなら」という視点で取り上げています。
+パリの高級食料品店フォションのアールグレイも、その入り口になりやすい一缶です。缶入りのリーフなので、開けたときの香りの立ち方や、時間が経ったときの変化も含めて楽しめます。なお、フォションとハーニー&サンズの比較は[フォションとハーニー&サンズを比較｜海外紅茶ブランド4種の選び方](/posts/fauchon-harney-sons-kaigai-koucha-brand/)で扱っています。この記事では「名門の定番を一缶だけ持つなら」という視点で取り上げています。
 
 [![フォション アールグレイ 缶入 125g](/images/kokyu-koucha-brand-guide/products/2.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824dfae.7bb8596b.5824dfaf.0ee5f130/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fprofoods%2F10002849%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
