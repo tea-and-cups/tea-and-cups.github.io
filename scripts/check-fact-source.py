@@ -58,6 +58,11 @@
         (f) 子ども・ペット＋手が届く・使わない等 (g) 倒れやすい・ぐらつく等＋使わない・確かめる等。仕様の説明（耐えやすい等）・抽出の説明・「飲み切れる量」・
         「医師に相談」の案内は拾わない。出典を置けない助言は削除する（言い換えて残さない）。
         型5は「重曹」「漂白」の手入れ文に限り適用条件の語（「表示に従う」等）で免除しない。
+    型12 体験を示す名詞修飾（2026-11-07の指摘）: 書き手の行為を示す過去形が名詞を修飾する文
+        （飲み比べた話・淹れた結果・試した感想・使ってみた印象等）。出典URLでも免除しない。カテゴリHが拾う文は
+        二重に出さない。読者への呼びかけ・「〜は含みません」の注記・レビュー投稿者の話は拾わない
+    型13 将来の予告（同上）: 記事や紹介を将来に約束する文（〜紹介する予定です・別記事で改めて扱う・
+        あらためてご紹介・今後の記事で・近日公開・見つかり次第ご紹介）。出典URLでも免除しない
     新規公開（引数 <slug> のみ）ではNG、--revise と --survey-xy（週次）では【警告】にとどめる
     （公開済みの記事に該当が多く、関係のない改修まで止まるため）。
   --survey-xy: 公開済み全記事にX・Yだけをかける読み取り専用モード。型4〜9は【警告】の行で件数と該当を出す。
@@ -219,7 +224,7 @@ RE_LIST_ITEM = re.compile(r"^\s*(?:[-*+]|\d+[.)])\s")
 # 判定Yの拡張（W42監査の採用指示・GD-0039）。型4〜7は文単位（型1〜3と同じ照合）、型8は節単位。
 # どれも同じブロックに出典URLか適用条件の語（SAFETY_CONDITION_WORDS）があればOK。
 # 新規公開ではNG、--revise と週次（--survey-xy）は【警告】にとどめる（NEW_SAFETY_TYPES）。
-NEW_SAFETY_TYPES = ("型4", "型5", "型6", "型7", "型8", "型9", "型10", "型11")
+NEW_SAFETY_TYPES = ("型4", "型5", "型6", "型7", "型8", "型9", "型10", "型11", "型12", "型13")
 # 型4〜7に限り、商品ごとの表示・注意書きに委ねる書き方も適用条件とみなす（型1〜3の条件語は変えない）
 NEW_TYPE_CONDITION_WORDS = ["商品ページ", "注意書き", "商品ごとに", "商品によって", "製品によって", "対応しているか", "対応した商品"]
 # 型4 火気: 火元の語と、注意・禁止の語
@@ -329,6 +334,40 @@ RE_T11_REACH_ADVICE = re.compile(r"手が届|届かない|届く場所|離し|�
 RE_T11_STABILITY = re.compile(r"倒れやすく|倒れやすい|ぐらつ|滑りやすい|すべりやすい|安定しにく|崩れやすい")
 RE_T11_STABILITY_ADVICE = re.compile(
     r"使わない|使いません|確かめ|確認し|勧めません|おすすめしません|守って|守ります|避け|気をつけ|気を付け|注意")
+# 型12 体験を示す名詞修飾（2026-11-07の指摘）: 書き手の行為を示す過去形が名詞を修飾する形
+#   （「フォションを他ブランドと横並びで飲み比べた話」「淹れた結果」「試した感想」「使ってみた印象」）。
+#   琥珀時間は「AIの紅茶案内人」（D-0245）のため、書き手が実物を使ったと読める表現になる。
+#   カテゴリH（RE_EXPERIENCE・「〜たところ」型）が拾う文は二重に出さない。出典URLでは免除しない。
+#   読者への呼びかけ（「飲み比べてみたい方に」「試してみてください」）、体験が無いと断る注記
+#   （「実際に飲んだ感想は含みません」）、レビュー投稿者の話（「実際に使っている方の声」）、
+#   読者の行動の提案（「気に入れば別の機会に贈り物に」）は、行為の動詞の直後に名詞が続かないため拾わない。
+RE_T12_ACT = (
+    r"(?:飲み比べ|淹れ比べ|食べ比べ|使い比べ|見比べ|持ち比べ"
+    r"|試し|使っ|淹れ|いれ|作っ|食べ|測っ|量っ|計っ|触っ|並べ|味わっ|買っ|抽出し|蒸らし)"
+    r"(?:て)?(?:み)?た"
+    r"|飲ん(?:で(?:み)?た|だ)"
+)
+# 「読み比べた結果」はAIが実際に行った調査（資料の読み比べ・D-0245）の記述なので、行為の語に入れない。
+RE_T12_NOUN = r"(?:話|結果|感想|印象|経験|体験|記録|レポート|様子|所感|感触|エピソード|レビュー|メモ)"
+# 名詞の直後が「ではありません」「は含みません」等なら、体験が無いと断る注記なので拾わない。
+RE_T12 = re.compile(
+    "(?:" + RE_T12_ACT + ")" + r"(?:時|とき|際|あと|後)?(?:の)?" + RE_T12_NOUN
+    + r"(?!では(?:あり|ござい|な)|は(?:含|あり|ござい|書き|載せ|ない)|を含(?:み|ま)(?:ません|ない))"
+)
+
+# 型13 将来の予告: 記事や紹介を将来に約束する文。守られる仕組みが無いため書かない
+#   （「別記事で改めて扱う予定です」「見つかり次第あらためてご紹介する予定です」）。
+#   出典URLでは免除しない。「別記事で詳しく紹介しています」のような現在形の案内、
+#   読者の予定（「来客の予定がある日」）、メーカーの発売予定は拾わない。
+RE_T13 = re.compile(
+    r"(?:ご紹介|紹介|解説|公開|追加|更新|掲載|執筆|取り上げる|扱う|ご案内)(?:する|いたす|します|いたします|したい|したいと思います)?予定"
+    r"|(?:別記事|今後の記事|後日|のちほど|追って|あらためて|改めて)[^。]{0,10}"
+    r"(?:ご紹介(?:する|します|いたします|したい)|紹介(?:する|します|いたします|したい)"
+    r"|解説(?:する|します|いたします|したい)|取り上げ(?:る|ます|たい)|扱(?:う|います|いたい))"
+    r"|今後の記事|近日公開|近日中に(?:公開|追加|更新|ご紹介)"
+    r"|見つかり次第[^。]{0,15}(?:ご紹介|紹介|追加|更新)"
+)
+
 RE_MD_HEADING = re.compile(r"^(#{1,6})\s")
 RE_BOLD_ONLY_LINE = re.compile(r"^\s*\*\*[^*].*\*\*\s*$")
 
@@ -661,6 +700,42 @@ def keeping_safety_hits(text):
     return hits
 
 
+def _plain_sentences(text):
+    """リンク文字・URL・見出し行・疑問文を除いた文を返す（型12・13用）。"""
+    plain = RE_URL.sub(" ", text)
+    for line in plain.split("\n"):
+        if line.lstrip().startswith("#"):
+            continue
+        line = RE_MD_LINK_FULL.sub(" ", line)
+        for sentence in RE_SENTENCE_PARTS.findall(line):
+            sentence = sentence.strip()
+            if sentence and sentence[-1] not in "？?":
+                yield sentence
+
+
+def experience_noun_hits(text):
+    """型12: 書き手の行為を示す過去形が名詞を修飾する文を [(型, 語リスト, 文)] で返す。
+
+    出典URLでは免除しない（カテゴリHと同じ）。カテゴリH（RE_EXPERIENCE）が拾う文は二重に出さない。
+    """
+    hits = []
+    for sentence in _plain_sentences(text):
+        m = RE_T12.search(sentence)
+        if m and not RE_EXPERIENCE.search(sentence):
+            hits.append(("型12", [m.group(0)], sentence))
+    return hits
+
+
+def future_promise_hits(text):
+    """型13: 記事や紹介を将来に約束する文を [(型, 語リスト, 文)] で返す。出典URLでは免除しない。"""
+    hits = []
+    for sentence in _plain_sentences(text):
+        m = RE_T13.search(sentence)
+        if m:
+            hits.append(("型13", [m.group(0)], sentence))
+    return hits
+
+
 def safety_sub_units(unit):
     """判定Y用に、箇条書きは1項目ずつ・それ以外はブロック全体を単位にする。"""
     if not any(RE_LIST_ITEM.match(line) for _, line in unit):
@@ -691,7 +766,8 @@ def check_xy(path, slug):
         for sub in safety_sub_units(unit):
             sub_text = unit_text(sub)
             for typ, words, sentence in (safety_advice_hits(sub_text) + food_storage_hits(sub_text)
-                                         + care_hygiene_hits(sub_text) + keeping_safety_hits(sub_text)):
+                                         + care_hygiene_hits(sub_text) + keeping_safety_hits(sub_text)
+                                         + experience_noun_hits(sub_text) + future_promise_hits(sub_text)):
                 out.append({"slug": slug, "line": sub[0][0], "categories": ["Y"],
                             "excerpt": excerpt(sentence), "hit": typ + ":" + "・".join(words),
                             "sentence": sentence, "in_product_block": False,
@@ -840,13 +916,24 @@ def run_single(slug, revise=False):
               "（楽天データの集計・メーカー/公的資料の突き合わせ）どおりに書き直してください。"
               "検知語一覧: " + "・".join(RESEARCH_MATERIAL_WORDS)
               + "（許容する出どころ: " + "・".join(RESEARCH_ALLOWED_PREFIXES) + "）")
-    if any("Y" in v["categories"] for v in violations):
+    exp_types = ("型12", "型13")
+    sources_needed = [v for v in violations
+                      if "Y" in v["categories"] and v["hit"].split(":")[0] not in exp_types]
+    if any(v["hit"].startswith("型12") for v in violations):
+        print("[Y 型12] 書き手の行為（飲み比べた・淹れた・試した・使ってみた等）が名詞（話・結果・感想・印象等）を修飾する"
+              "表現は、書き手が実物を使ったと読めるため書けません（出典URLを付けても通りません・D-0245）。"
+              "AIが実際に行った調査（資料を読み比べて整理した等）か、読者への提案（試してみてください）に書き直すか、削除してください")
+    if any(v["hit"].startswith("型13") for v in violations):
+        print("[Y 型13] 記事や紹介を将来に約束する文（〜予定です・あらためてご紹介・今後の記事で・近日公開等）は、"
+              "守られる仕組みが無いため書けません（出典URLを付けても通りません）。"
+              "予告の文を削除するか、既存記事へのリンク（現在形の案内）に置き換えてください")
+    if sources_needed:
         print("[Y] 安全・保存の助言に出典URLも適用条件もありません。出典を付けるか、適用条件"
               "（未開封の場合・製品の表示に従う等）を付けるか、断定を削除してください。"
               "検知語一覧: " + "・".join(SAFETY_ADVICE_WORDS)
               + " ／ 条件語一覧: " + "・".join(SAFETY_CONDITION_WORDS))
-    if any(v.get("new_type") for v in violations):
-        print("[Y 型4〜10] 火気（型4）・手入れ（型5）・贈答の慣習（型6）・産地の因果（型7）の助言・断定も、"
+    if any(v.get("new_type") and v["hit"].split(":")[0] not in exp_types for v in violations):
+        print("[Y 型4〜11] 火気（型4）・手入れ（型5）・贈答の慣習（型6）・産地の因果（型7）の助言・断定も、"
               "同じ段落（箇条書きは1項目）に出典URLか適用条件が要ります。"
               "型4語: " + "・".join(SAFETY_TYPE4_SUBJECT) + " ／ 注意語: " + "・".join(SAFETY_TYPE4_ADVICE)
               + "。型5語: " + "・".join(SAFETY_TYPE5_SUBJECT) + " ／ 推奨・禁止語: " + "・".join(SAFETY_TYPE5_ADVICE)

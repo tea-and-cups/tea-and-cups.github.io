@@ -62,7 +62,7 @@ Edit/Writeによるpublished化は .claude/hooks/check-publish-gate.py で拒否
   週3本の確認の直後、公開前チェック群の前に行う。
 
 【--revise の判定Y】
-  check-fact-source.py には --revise を付ける。判定Yの新しい型（型4〜9）は【警告】にとどめ、
+  check-fact-source.py には --revise を付ける。判定Yの新しい型（型4〜13）は【警告】にとどめ、
   通ったチェックの【警告】行はそのまま表示する（公開済みの記事に該当が多く、関係のない改修を止めないため）。
 
 使い方:
@@ -746,7 +746,7 @@ def _revise_checks(published_path):
             else:
                 extra_args = ["--min", str(min(3, n))]
         elif name == "check-fact-source.py":
-            # 判定Yの新型（型4〜9）は公開済みの記事に該当が多いため、--revise では警告にとどめる
+            # 判定Yの新型（型4〜13）は公開済みの記事に該当が多いため、--revise では警告にとどめる
             extra_args = ["--revise"]
         checks.append((name, takes_slug, extra_args))
     return checks, n

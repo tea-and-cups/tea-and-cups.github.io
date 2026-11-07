@@ -7,6 +7,8 @@ r"""W43監査の採用指示で足した公開前チェックの再発防止テ�
   A2 check-fact-source.py の型10（手入れ手順・傷みやすさ。W43検証監査の指摘）／
   A3 check-fact-source.py の型11（保存・衛生・安全・手入れの助言。W44週次・2026-10月次の指摘）と
      型5の重曹・漂白剤の特則（case_a の中で実行する）／
+  A4 check-fact-source.py の型12（体験を示す名詞修飾）・型13（将来の予告）（2026-11-07の指摘。
+     case_a12_13 を case_a の中で実行する）／
   D check-pin-image-style.py の断定語の先頭（P-1・ピン383以降）
 
 本物の記事・ピン・台帳には触れない。A・C は一時ディレクトリにダミーを作り、B は判定関数へ
@@ -183,6 +185,93 @@ def case_a(results, root):
         path = _article(root, "case-a5", body)
         got = [t for t in _types(fs, path) if t == "型5"]
         results.append((description, got == expected, "期待=%s 実際=%s" % (expected, got)))
+    case_a12_13(results, root, fs)
+
+
+def case_a12_13(results, root, fs):
+    """型12（体験を示す名詞修飾）と型13（将来の予告）。2026-11-07の指摘の修正前の文は検出し、
+    読者への呼びかけ・体験が無いと断る注記・レビュー投稿者の話・読者の行動の提案は検出しない。"""
+    src = "（出典: [消費者庁](https://www.caa.go.jp/example)）"
+    cases = [
+        # 修正前の版の文（検出すべき）
+        ("型12: 飲み比べた話（kokyu-koucha-brand-guide 修正前）",
+         "なお、フォションを他ブランドと横並びで飲み比べた話は別記事に譲り、ここでは「名門の定番を一缶だけ持つなら」という視点で取り上げています。",
+         ["型12"]),
+        ("型12: 淹れた結果", "淹れた結果、渋みが強く出ました。", ["型12"]),
+        ("型12: 試した感想", "試した感想をまとめます。", ["型12"]),
+        ("型12: 使ってみた印象", "使ってみた印象は軽やかでした。", ["型12"]),
+        ("型12: 飲んだ感想", "飲んだ感想を書きます。", ["型12"]),
+        ("型12: 出典URLを付けても免除しない", "飲み比べた話は別記事に譲ります" + src + "。", ["型12"]),
+        ("型13: 別記事で改めて扱う予定（koime・hot-brew 修正前）",
+         "濃いめだからといって特別に早く傷むわけではありませんが、作り置きの保存期間については別記事で改めて扱う予定です。",
+         ["型13"]),
+        ("型13: 見つかり次第あらためてご紹介する予定（royal-albert 修正前）",
+         "今回は見送りました。見つかり次第あらためてご紹介する予定です。", ["型13"]),
+        ("型13: 近日公開", "ティーカップ編は近日公開です。", ["型13"]),
+        ("型13: 今後の記事で", "価格の比較は今後の記事で取り上げます。", ["型13"]),
+        ("型13: 出典URLを付けても免除しない", "別記事で改めて扱う予定です" + src + "。", ["型13"]),
+        # 検出してはいけない文
+        ("読者への呼びかけ（飲み比べてみたい方に）", "飲み比べてみたい方には、5大産地のセットが向いています。", []),
+        ("読者への提案（試してみてください）", "次回は茶葉の量だけを控えめにして、好みの濃さを探ってみてください。", []),
+        ("体験が無いと断る注記（含みません）", "実際に飲んだ感想は含みません。", []),
+        ("体験が無いと断る注記（ではありません）", "合わせ方は一般的な特徴から考えた整理であり、実際に合わせて食べた感想ではありません。", []),
+        ("レビュー投稿者の話", "実際に使っている方の声を確認しやすいのも安心材料のひとつです。", []),
+        ("読者の行動の提案", "自分用として試してみて、気に入れば別の機会に贈り物にするという使い方もあります。", []),
+        ("条件文（実際に飲んでみないと）", "どの方向が好みかは、実際に飲んでみないと分かりません。", []),
+        ("AIが行った調査（読み比べた結果）", "資料を読み比べた結果、目安は3分とされています。", []),
+        ("現在形の案内（別記事で詳しく紹介しています）", "保存期間は[別記事](/posts/x/)で詳しく紹介しています。", []),
+        ("読者の予定（来客予定の前日）", "来客予定の前日にまとめて作っておくと当日が楽になります。", []),
+        ("読者の予定（運転の予定がある日）", "運転の予定がある日にも選びやすい作り方です。", []),
+        ("「あらためて知りたい方」の案内", "基本的な特徴や淹れ方をあらためて知りたい方は、[入門](/posts/x/)もご覧ください。", []),
+    ]
+    for description, body, expected in cases:
+        path = _article(root, "case-a1213", body)
+        got = [t for t in _types(fs, path) if t in ("型12", "型13")]
+        results.append((description, got == expected, "期待=%s 実際=%s" % (expected, got)))
+    # 型12・13は new_type（新規公開はNG・--revise と週次は警告）
+    path = _article(root, "case-a1213-new", "飲み比べた話は別記事に譲ります。別記事で改めて扱う予定です。")
+    hits = [v for v in fs.check_xy(path, "dummy") if v["hit"].startswith(("型12", "型13"))]
+    results.append(("型12・13は new_type（--revise・週次は警告）",
+                    len(hits) == 2 and all(v["new_type"] for v in hits), str(hits)))
+    # カテゴリH（〜たところ）と二重に出さない
+    path = _article(root, "case-a1213-h", "試したところ、淹れた結果は良好でした。")
+    got = [t for t in _types(fs, path) if t == "型12"]
+    results.append(("カテゴリHが拾う文は型12で二重に出さない", got == [], "実際=%s" % got))
+    # 公開前チェックと同じ入口（run_single）と週次の入口（run_survey_xy）
+    import contextlib, io
+    old_drafts, old_posts = fs.DRAFTS_DIR, fs.POSTS_DIR
+    fs.DRAFTS_DIR = root
+    try:
+        for description, revise, expected_code, expected_texts in (
+            ("run_single: 型12・13のダミー → 終了コード1・[Y 型12]と[Y 型13]を表示（安全助言の案内は出さない）",
+             False, 1, ["[Y] 飲み比べた話", "[Y 型12]", "[Y 型13]"]),
+            ("run_single --revise: 型12・13のダミー → 終了コード0・【警告】",
+             True, 0, ["【警告】", "型12", "型13"]),
+        ):
+            _article(root, "case-cli1213", "飲み比べた話は別記事に譲ります。別記事で改めて扱う予定です。")
+            buffer = io.StringIO()
+            with contextlib.redirect_stdout(buffer):
+                code = fs.run_single("case-cli1213", revise=revise)
+            text = buffer.getvalue()
+            ok = code == expected_code and all(t in text for t in expected_texts)
+            if not revise:
+                ok = ok and "[Y] 安全・保存の助言" not in text
+            results.append((description, ok, "終了コード=%s 出力=%s" % (code, text[:300])))
+        # 週次（--survey-xy）: 公開済みとして置いたダミーに【警告】で件数が出る
+        posts_dir = os.path.join(root, "posts")
+        _write(os.path.join(posts_dir, "case-survey.md"),
+               "---\ntitle: ダミー\nslug: case-survey\ncategory: how-to\nstatus: published\n---\n\n"
+               "飲み比べた話は別記事に譲ります。別記事で改めて扱う予定です。\n")
+        fs.POSTS_DIR = posts_dir
+        buffer = io.StringIO()
+        with contextlib.redirect_stdout(buffer):
+            code = fs.run_survey_xy()
+        text = buffer.getvalue()
+        results.append(("run_survey_xy: 型12・13が【警告】で件数表示・終了コード0",
+                        code == 0 and "【警告】XY_SURVEY_WARN_型12: 1件" in text and "【警告】XY_SURVEY_WARN_型13: 1件" in text,
+                        text[-300:]))
+    finally:
+        fs.DRAFTS_DIR, fs.POSTS_DIR = old_drafts, old_posts
 
 
 def case_b(results):
