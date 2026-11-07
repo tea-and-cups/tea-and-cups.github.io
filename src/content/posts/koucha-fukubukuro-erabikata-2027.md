@@ -4,7 +4,7 @@ slug: koucha-fukubukuro-erabikata-2027
 date: 2026-11-08
 updated: 2026-11-08
 description: 紅茶の福袋を選ぶときの見方を、中身の決まり方（おまかせ・缶を選べる・味を選べる）で整理しました。賞味期限・内容変更の注意・飲み切れる量の考え方と、楽天市場の2027年福袋の商品例3つを紹介します。
-tags: [福袋, 2027, ティーバッグ, 詰め合わせ, 年末年始]
+tags: [福袋, "2027", ティーバッグ, 詰め合わせ, 年末年始]
 hero: /images/koucha-fukubukuro-erabikata-2027/hero.webp
 status: published
 category: seasons
