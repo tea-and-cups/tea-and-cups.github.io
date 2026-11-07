@@ -2,7 +2,7 @@
 title: 水出し紅茶におすすめの茶葉4選｜渋くならないアイスティーの選び方
 slug: mizudashi-tea-leaves
 date: 2026-07-21
-updated: 2026-10-24
+updated: 2026-11-07
 description: 水出しアイスティーは渋みが出にくく、香りが素直に出るのが魅力。ニルギリ・キャンディ・ダージリン・アールグレイの4タイプを比較し、渋くならない茶葉の選び方と基本レシピをご紹介します。
 tags: [紅茶, アイスティー, 水出し]
 hero: /images/mizudashi-tea-leaves/hero.webp
@@ -73,7 +73,7 @@ category: tea-leaves
 2. 常温の水1Lを注ぎ、冷蔵庫で6〜8時間おく
 3. 茶葉を取り出して完成
 
-雑菌の繁殖を避けるため、必ず冷蔵庫で抽出し、作った分は早めに飲み切ってください。ポットや手はよく洗ってから使いましょう。東京都の食品安全FAQでは、家庭でつくった飲料の保存期間は定められていないとされ、冷蔵庫に保存して短期間で飲み切るよう案内しています（出典: [東京都保健医療局 食品安全FAQ](https://www.hokeniryo.metro.tokyo.lg.jp/anzen/anzen/food_faq/sonota/sonota12)）。
+雑菌の繁殖を避けるため、必ず冷蔵庫で抽出し、[作った分は早めに飲み切って](/posts/mizudashi-koucha-hozon-eisei-qa/)ください。ポットや手はよく洗ってから使いましょう。東京都の食品安全FAQでは、家庭でつくった飲料の保存期間は定められていないとされ、冷蔵庫に保存して短期間で飲み切るよう案内しています（出典: [東京都保健医療局 食品安全FAQ](https://www.hokeniryo.metro.tokyo.lg.jp/anzen/anzen/food_faq/sonota/sonota12)）。
 
 ## ひと工夫のアレンジ
 
