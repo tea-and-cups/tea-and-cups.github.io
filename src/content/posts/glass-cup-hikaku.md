@@ -2,7 +2,7 @@
 title: アイスティーが映えるガラスのティーカップ・グラス特集｜涼しさを引き立てる選び方
 slug: glass-cup-hikaku
 date: 2026-07-24
-updated: 2026-11-01
+updated: 2026-11-08
 description: アイスティーをより美しく楽しむガラスの器を比較。タンブラー・脚付きグラス・二重構造グラスの特徴と、涼しさを引き立てる選び方をご紹介します。
 tags: [紅茶, ティーカップ, アイスティー, ガラス]
 hero: /images/glass-cup-hikaku/hero.webp
@@ -55,11 +55,6 @@ category: teaware
 [![KINTO KRONOS ダブルウォールグラス](/images/glass-cup-hikaku/products/3.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824e020.aa0b47a0.5824e021.f4f237dc/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fdmastore%2Fkintokn007%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 ★4.82（60件） [二重構造の耐熱グラスはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824e020.aa0b47a0.5824e021.f4f237dc/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fdmastore%2Fkintokn007%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
-
-## お手入れと保管のコツ
-
-- 重ねて収納すると割れやすいため、間に布を挟むか、重ねずに収納するのがおすすめです
-- 脚付きグラスは細い部分から欠けやすいため、洗うときは力を入れすぎないよう注意してください
 
 ## よくある質問
 
