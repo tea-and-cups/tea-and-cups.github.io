@@ -23,9 +23,15 @@ github-slugger の同一インスタンスで文書順に slug() を適用し、
   「早見表」を含む表（L049）は、各データ行の1列目に `](#…)` が無ければ不合格にする。
   リンク先の実在は上の一般判定が全リンクに対して行う。公開済み全記事の違反は0件
   （実測）のため --revise でも同じく不合格にする。
+  比較表の項目（L049・D-0329）: 「早見表」の語が直前に無い表でも、表の1列目の項目（リンク記法・強調を
+  除いた文字列。MIN_ITEM_LEN 字以上）が、同じ記事の H2・H3 見出しの文字列と一致するか、見出しに含まれるなら、
+  その項目にはその見出し（一致した見出しのどれか）への [項目](#見出しID) が要る。無ければ、新規公開は
+  不合格、--revise は【警告】だけで通す（既存記事の改修を関係のない表で止めないため）。
+  リンク先IDの実在は上の一般判定が行う。
 
 使い方:
   python site/scripts/check-anchor-consistency.py <slug>
+  python site/scripts/check-anchor-consistency.py <slug> --revise   比較表の項目の判定を警告にとどめる
 
 終了コード: 0=OK（不一致0件、またはページ内リンク0件） / 1=不一致あり、または実行不能
 """
@@ -44,6 +50,13 @@ SLUGGER_ENTRY = os.path.join(ROOT, "site", "node_modules", "github-slugger", "in
 ASTRO_CONFIG = os.path.join(ROOT, "site", "astro.config.mjs")
 
 NODE_TIMEOUT = 60
+
+# 比較表の項目の判定（L049・D-0329）で対象にする項目の最小文字数。1文字（「水」「氷」等）は
+# 多くの見出しに含まれ、見出しとの対応を意味しないため対象にしない。
+MIN_ITEM_LEN = 2
+RE_HEADING_H23 = re.compile(r"^(#{2,3}) +(.+?)\s*$")
+RE_MD_LINK_TEXT = re.compile(r"\[([^\]\[]*)\]\([^)]*\)")
+RE_TABLE_SEP = re.compile(r"^\s*\|?\s*:?-{2,}:?\s*(?:\|\s*:?-{2,}:?\s*)*\|?\s*$")
 
 RE_FRONTMATTER = re.compile(r"\A---\r?\n(.*?\r?\n)---[ \t]*\r?\n", re.S)
 RE_FENCE = re.compile(r"^\s{0,3}```")
@@ -158,6 +171,52 @@ def find_quick_table_violations(lines):
     return violations
 
 
+def plain_cell(cell):
+    """表のセルからリンク記法・強調・コードの記号を除いた文字列を返す。"""
+    s = RE_MD_LINK_TEXT.sub(r"\1", cell)
+    for mark in ("**", "__", "~~", "`", "*"):
+        s = s.replace(mark, "")
+    return s.strip()
+
+
+def find_heading_table_items(lines):
+    """表の1列目の項目が H2・H3 見出しと一致するか、見出しに含まれるものを返す（L049・D-0329）。
+
+    戻り値: [(行番号, 項目の文字列, [一致した見出しの行番号...], [1列目のリンク先ID...]), ...]
+    表は「見出し行・区切り行・データ行」の形のものだけを見る。
+    """
+    headings = []
+    for lineno, line in lines:
+        m = RE_HEADING_H23.match(line)
+        if m:
+            headings.append((lineno, heading_text(m.group(2))))
+    result = []
+    i = 0
+    n = len(lines)
+    while i < n:
+        if not lines[i][1].lstrip().startswith("|"):
+            i += 1
+            continue
+        block = []
+        while i < n and lines[i][1].lstrip().startswith("|"):
+            block.append(lines[i])
+            i += 1
+        if len(block) < 3 or not RE_TABLE_SEP.match(block[1][1]):
+            continue
+        for lineno, row in block[2:]:
+            cells = row.strip().strip("|").split("|")
+            first = cells[0] if cells else ""
+            item = plain_cell(first)
+            if len(item) < MIN_ITEM_LEN:
+                continue
+            matched = [hl for hl, text in headings if item == text or item in text]
+            if not matched:
+                continue
+            targets = [unquote(m.group(2)) for m in RE_ANCHOR_LINK.finditer(first)]
+            result.append((lineno, item, matched, targets))
+    return result
+
+
 def check_astro_config():
     """astro.config.mjs の見出しID設定を確認する。問題があれば理由（文字列）を返す。
 
@@ -262,11 +321,14 @@ def main():
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
 
-    if len(sys.argv) != 2:
-        out("使い方: python site/scripts/check-anchor-consistency.py <slug>")
+    args = sys.argv[1:]
+    revise = "--revise" in args
+    args = [a for a in args if a != "--revise"]
+    if len(args) != 1:
+        out("使い方: python site/scripts/check-anchor-consistency.py <slug> [--revise]")
         return 1
 
-    slug = sys.argv[1]
+    slug = args[0]
     path = resolve_path(slug)
     if path is None:
         out("見つかりません: output/articles/%s.md / site/src/content/posts/%s.md" % (slug, slug))
@@ -301,7 +363,8 @@ def main():
         return 1
 
     links = collect_anchor_links(lines)
-    if not links:
+    items = find_heading_table_items(lines)
+    if not links and not items:
         out("ページ内リンク: OK（本文にページ内リンクはありません）")
         return 0
 
@@ -311,20 +374,39 @@ def main():
         return env_error(reason)
 
     valid = set(ids)
+    id_of_line = {lineno: anchor_id for (lineno, _), anchor_id in zip(headings, ids)}
     bad = [(lineno, text, target) for lineno, text, target in links if target not in valid]
 
-    if not bad:
-        out("ページ内リンク: OK（%d件すべて見出しIDと一致）" % len(links))
-        return 0
+    if bad:
+        out("ページ内リンク: NG（%d件中 %d件が存在しない見出しIDを指しています）" % (len(links), len(bad)))
+        for lineno, text, target in bad:
+            out("  %d行目 / リンクテキスト: %s / 指しているID: #%s" % (lineno, text, target))
+        out("")
+        out("本文の全見出しID（正しいIDへ書き換える際の参照用）:")
+        for (lineno, text), anchor_id in zip(headings, ids):
+            out("  %d行目 #%s  ← %s" % (lineno, anchor_id, text))
+        return 1
 
-    out("ページ内リンク: NG（%d件中 %d件が存在しない見出しIDを指しています）" % (len(links), len(bad)))
-    for lineno, text, target in bad:
-        out("  %d行目 / リンクテキスト: %s / 指しているID: #%s" % (lineno, text, target))
-    out("")
-    out("本文の全見出しID（正しいIDへ書き換える際の参照用）:")
-    for (lineno, text), anchor_id in zip(headings, ids):
-        out("  %d行目 #%s  ← %s" % (lineno, anchor_id, text))
-    return 1
+    missing = []
+    for lineno, item, matched, targets in items:
+        wanted = [id_of_line[hl] for hl in matched if hl in id_of_line]
+        if not any(t in wanted for t in targets):
+            missing.append((lineno, item, wanted[0] if wanted else "", bool(targets)))
+    if missing:
+        prefix = "【警告】" if revise else ""
+        head = "比較表の項目と見出しのアンカー: %s（%d行の1列目に、同名の見出しへのリンクがありません）" % (
+            "警告（--revise のため通します）" if revise else "NG", len(missing))
+        out(prefix + head)
+        for lineno, item, anchor_id, has_other in missing:
+            out("%s  %d行目 / 1列目: %s → 付けるリンク: [%s](#%s)%s" % (
+                prefix, lineno, item, item, anchor_id, "（別の見出しを指すリンクはあります）" if has_other else ""))
+        out(prefix + "表の1列目の項目が H2・H3 見出しと同じ（または見出しに含まれる）ときは、項目に"
+            " [項目](#見出しID) を付けてください（L049）。見出しとは別の項目なら、項目名を見出しに含まれない語にします。")
+        if not revise:
+            return 1
+    out("ページ内リンク: OK（%d件すべて見出しIDと一致）" % len(links) if links else
+        "ページ内リンク: OK（本文にページ内リンクはありません）")
+    return 0
 
 
 if __name__ == "__main__":

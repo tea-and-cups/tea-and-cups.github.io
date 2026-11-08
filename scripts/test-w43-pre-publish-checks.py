@@ -10,6 +10,9 @@ r"""W43監査の採用指示で足した公開前チェックの再発防止テ�
   A4 check-fact-source.py の型12（体験を示す名詞修飾）・型13（将来の予告）（2026-11-07の指摘。
      case_a12_13 を case_a の中で実行する）／
   D check-pin-image-style.py の断定語の先頭（P-1・ピン383以降）
+  E check-fact-source.py の --advice（処置の台帳・出典URLのあるブロックは記録を求めない・D-0329）
+  F check-anchor-consistency.py の比較表の項目と見出しのアンカー（L049・D-0329）
+  G score-product.py の入力に別の記事の行が混ざれば採点を止める（L085・D-0329）
 
 本物の記事・ピン・台帳には触れない。A・C は一時ディレクトリにダミーを作り、B は判定関数へ
 ダミーの台帳と日付を渡す。一時ディレクトリは終了時に必ず消す。
@@ -396,7 +399,8 @@ def case_e(results, root):
             results.append((description, got == expected, "期待=%d 実際=%d" % (expected, got)))
         # 3. ゲート（新規公開・--revise とも同じ入口）: 処置が無ければNG、処置を記録すれば通る
         body = ("冷蔵で保存し、早めに飲みきってください（[消費者庁](https://www.caa.go.jp/example)）。\n\n"
-                "- 茶葉は密閉できる缶に入れると、香りが移りにくいとされています\n")
+                "- 茶葉は密閉できる缶に入れると、香りが移りにくいとされています\n"
+                "- 熱湯は避けてください\n")
         _article(root, "case-e-gate", body)
         cands = fs.advice_candidates(os.path.join(root, "case-e-gate.md"))
 
@@ -413,19 +417,20 @@ def case_e(results, root):
             return code, buffer.getvalue()
 
         code, text = gate()
-        results.append(("処置の無い候補が残るダミー → --advice は終了コード1・記録コマンドを表示",
-                        len(cands) == 2 and code == 1 and "--advice-record %s source" % cands[0]["hash"] in text
-                        and "--advice-record %s not_advice" % cands[1]["hash"] in text, text[:600]))
-        code, text = record(cands[0]["hash"], "source", "https://example.com/not-in-body")
+        results.append(("出典URLの無い候補が残るダミー → --advice は終了コード1・記録コマンドを表示（出典URLのある候補は出さない）",
+                        len(cands) == 3 and code == 1 and "--advice-record %s source" % cands[1]["hash"] in text
+                        and "--advice-record %s not_advice" % cands[2]["hash"] in text
+                        and cands[0]["hash"] not in text, text[:600]))
+        code, text = record(cands[1]["hash"], "source", "https://example.com/not-in-body")
         results.append(("source: 本文に無いURL → 記録しない", code == 1 and "本文にありません" in text, text))
         _article(root, "case-e-gate", body + "\n参考: https://www.mhlw.go.jp/not-fetched\n")
-        code, text = record(cands[0]["hash"], "source", "https://www.mhlw.go.jp/not-fetched")
+        code, text = record(cands[1]["hash"], "source", "https://www.mhlw.go.jp/not-fetched")
         results.append(("source: WebFetchの記録に無いURL → 記録しない", code == 1 and "webfetch-log" in text, text))
         _article(root, "case-e-gate", body)
         code, text = record("000000000000", "not_advice", "理由")
         results.append(("存在しないハッシュ → 記録しない", code == 1, text))
-        code, text = record(cands[0]["hash"], "source", "https://www.caa.go.jp/example")
-        code2, text2 = record(cands[1]["hash"], "not_advice", "商品の仕様の説明で、保存の助言ではない")
+        code, text = record(cands[1]["hash"], "source", "https://www.caa.go.jp/example")
+        code2, text2 = record(cands[2]["hash"], "not_advice", "商品の仕様の説明で、保存の助言ではない")
         results.append(("source（本文にあり・WebFetch記録あり）と not_advice を記録", code == 0 and code2 == 0, text + text2))
         code, text = gate()
         results.append(("処置を記録すると --advice は終了コード0", code == 0 and "ADVICE_OK" in text, text))
@@ -433,13 +438,39 @@ def case_e(results, root):
                  + "\n参考: [消費者庁](https://www.caa.go.jp/example)\n")
         code, text = gate()
         results.append(("本文が変わってハッシュが合わない行は無視（その候補は再びNG）", code == 1, text[:300]))
-        _article(root, "case-e-gate", "- 茶葉は密閉できる缶に入れると、香りが移りにくいとされています\n")
+        _article(root, "case-e-gate", "- 熱湯は避けてください\n")
         code, text = gate()
         results.append(("source のURLが本文から消えた・候補を削除した → 残りは処置済みで通る", code == 0, text))
         with open(fs.ADVICE_DISPOSITIONS_PATH, encoding="utf-8") as f:
             lines = f.read().splitlines()
         results.append(("台帳は見出し＋記録した2行（ハッシュが合わない行も消さない）",
                         len(lines) == 3 and lines[0].split("\t") == fs.ADVICE_HEADER, "\n".join(lines)))
+        # 3-2. 出典URLのあるブロックは、台帳に記録が無くても未処置に数えない（D-0329）。台帳は書き換えない
+        with open(fs.ADVICE_DISPOSITIONS_PATH, "rb") as f:
+            ledger_before = f.read()
+
+        def gate_for(slug):
+            buffer = io.StringIO()
+            with contextlib.redirect_stdout(buffer):
+                code = fs.run_advice_gate(slug)
+            return code, buffer.getvalue()
+        _article(root, "case-e-src", "冷蔵で保存してください（[消費者庁](https://www.caa.go.jp/example)）。\n\n"
+                 "- 熱湯は避けてください（[メーカー](https://www.example.com/care)）\n")
+        code, text = gate_for("case-e-src")
+        results.append(("出典URLのあるブロックだけ → 台帳に記録が無くても --advice は終了コード0・件数を表示",
+                        code == 0 and "うち出典URLあり 2件" in text, text))
+        _article(root, "case-e-src", "冷蔵で保存してください。[商品](https://hb.afl.rakuten.co.jp/ichiba/x/y)\n")
+        code, text = gate_for("case-e-src")
+        results.append(("アフィリエイトURLだけのブロック → 出典に数えず、処置の無い候補として止める", code == 1 and "1件" in text, text[:300]))
+        _article(root, "case-e-src", "| 場面 | 目安 |\n|---|---|\n"
+                 "| 保存 | 冷暗所に置いてください（[消費者庁](https://www.caa.go.jp/example)） |\n"
+                 "| 洗い方 | 手洗いがおすすめです |\n")
+        code, text = gate_for("case-e-src")
+        results.append(("表は1行ずつ（URLのある行は通り、URLの無い行は止める）",
+                        code == 1 and "処置の無い保存・衛生・安全・手入れの助言の候補: 1件" in text, text[:300]))
+        with open(fs.ADVICE_DISPOSITIONS_PATH, "rb") as f:
+            ledger_after = f.read()
+        results.append(("台帳の行は書き換えない（判定の前後で同一）", ledger_before == ledger_after, ""))
         # 4. 新規公開・--revise の両方の公開前チェックに --advice が入り、同じ引数で呼ばれる
         pa = _load("publish-article.py")
         draft = _article(root, "case-e-pub", "冷蔵で保存してください。", category="how-to")
@@ -680,6 +711,114 @@ def case_d(results):
         shutil.rmtree(root, ignore_errors=True)
 
 
+def case_f(results, root):
+    """L049（D-0329）: 比較表の1列目の項目が H2・H3 見出しと一致する／見出しに含まれるなら、その見出しへのアンカーを要する。
+    新規公開はNG・--revise は警告。一時ディレクトリのダミー記事だけを使う（node の github-slugger は本物）。"""
+    import contextlib, io
+    ac = _load("check-anchor-consistency.py")
+    old_dir = ac.DRAFTS_DIR
+    ac.DRAFTS_DIR = root
+
+    def run(slug, body, revise=False):
+        _article(root, slug, body)
+        buffer = io.StringIO()
+        original = sys.argv
+        try:
+            sys.argv = ["check-anchor-consistency.py", slug] + (["--revise"] if revise else [])
+            with contextlib.redirect_stdout(buffer):
+                code = ac.main()
+        finally:
+            sys.argv = original
+        return code, buffer.getvalue()
+
+    def tmpl(cell1, cell2, heading="ストレート型", level="##"):
+        return ("%s 比較\n\n| 種類 | 特徴 |\n|---|---|\n| %s | 軽い |\n| %s | 濃い |\n\n"
+                "%s %s\n\n本文。\n\n%s ミルク型\n\n本文。\n" % (level, cell1, cell2, level, heading, level))
+    try:
+        # 見出しは H2（「## 比較」「## ストレート型」「## ミルク型」）
+        body = tmpl("ストレート型", "ミルク型")
+        code, text = run("case-f-nolink", body)
+        results.append(("項目と同名の見出しがあり、項目にリンクが無い → NG・付けるリンクを表示",
+                        code == 1 and "NG（2行" in text and "[ストレート型](#ストレート型)" in text
+                        and "[ミルク型](#ミルク型)" in text, text))
+        code, text = run("case-f-link", tmpl("[ストレート型](#ストレート型)", "[ミルク型](#ミルク型)"))
+        results.append(("項目にその見出しへのリンクを付けると通る", code == 0, text))
+        code, text = run("case-f-badid", tmpl("[ストレート型](#ストレート型)", "[ミルク型](#存在しない)"))
+        results.append(("リンク先の見出しIDが実在しない → NG", code == 1 and "存在しない見出しID" in text, text))
+        code, text = run("case-f-other", tmpl("[ストレート型](#ミルク型)", "[ミルク型](#ミルク型)"))
+        results.append(("項目が別の見出しを指すリンクだけ → NG（その見出しへのリンクが無い）",
+                        code == 1 and "NG（1行" in text and "別の見出しを指すリンクはあります" in text, text))
+        code, text = run("case-f-revise", body, revise=True)
+        results.append(("--revise ではリンクが無くても警告だけで通す（終了コード0・【警告】の行を出す）",
+                        code == 0 and "【警告】" in text and "[ストレート型](#ストレート型)" in text, text))
+        code, text = run("case-f-revise-badid", tmpl("[ストレート型](#存在しない)", "[ミルク型](#ミルク型)"), revise=True)
+        results.append(("--revise でも存在しないIDは NG のまま", code == 1 and "存在しない見出しID" in text, text))
+        code, text = run("case-f-contain", tmpl("ストレート", "ミルク", heading="ストレートティーの淹れ方"))
+        results.append(("項目が見出しに含まれる（ストレート ⊂ ストレートティーの淹れ方）でリンク無し → NG",
+                        code == 1 and "[ストレート](#ストレートティーの淹れ方)" in text, text))
+        code, text = run("case-f-nomatch", tmpl("アッサム", "ウバ"))
+        results.append(("項目に一致する見出しが無い → 対象外で通す", code == 0, text))
+        code, text = run("case-f-one", tmpl("水", "氷", heading="水出しの手順"))
+        results.append(("1文字の項目（水）は見出しに含まれても対象外", code == 0, text))
+        code, text = run("case-f-h4", tmpl("ストレート型", "ミルク型", level="####"))
+        results.append(("H4 以下の見出しは照合しない", code == 0, text))
+        code, text = run("case-f-quick", "早見表です。\n\n| 項目 | 特徴 |\n|---|---|\n| 無関係 | 軽い |\n", revise=True)
+        results.append(("既存の「早見表」直前の表は --revise でも NG のまま", code == 1 and "早見表のアンカーリンク: NG" in text, text))
+        # publish-article.py: 新規公開は引数なし・--revise は --revise を付けて同じチェックを呼ぶ
+        pa = _load("publish-article.py")
+        draft = _article(root, "case-f-pub", "本文。")
+        new_checks = pa.publish_checks(draft)
+        revise_checks, _n = pa._revise_checks(draft)
+        results.append(("新規公開は引数なし・--revise は --revise 付きで check-anchor-consistency.py を呼ぶ",
+                        ("check-anchor-consistency.py", True, []) in new_checks
+                        and ("check-anchor-consistency.py", True, ["--revise"]) in revise_checks,
+                        "新規=%s / 改修=%s" % (new_checks, revise_checks)))
+    finally:
+        ac.DRAFTS_DIR = old_dir
+
+
+def case_g(results, root):
+    """L085（D-0329）: scoring-input.tsv に別の記事（slug）の行が混ざっていれば score-product.py は採点を止める。
+    一時ファイルだけを使い、本物の data/scoring-input.tsv には触れない。"""
+    import contextlib, io
+    sp = _load("score-product.py")
+    path = os.path.join(root, "scoring-input.tsv")
+    old_path = sp.INPUT_PATH
+    sp.INPUT_PATH = path
+    row_a = "商品A\t4.5\t30\trakuten\tmajor\t3000\n"
+    row_b = "商品B\t4.2\t12\trakuten\tunknown\t2000\n"
+    row_c = "商品C\t4.8\t55\trakuten\tmid\t2500\n"
+
+    def run(text):
+        _write(path, text)
+        out, err = io.StringIO(), io.StringIO()
+        stopped = False
+        try:
+            with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+                sp.main()
+        except SystemExit as e:
+            stopped = bool(e.code)
+            err.write(str(e.code))
+        return stopped, out.getvalue(), err.getvalue()
+    try:
+        stopped, text, err = run("# 2026-11-08 article-one\n" + row_a + row_b + row_c)
+        results.append(("1つの slug だけ → 採点する・対象記事を表示", (not stopped) and "対象記事: article-one" in text, text + err))
+        stopped, text, err = run("# 2026-11-07 article-old\n" + row_a + "# 2026-11-08 article-one\n" + row_b + row_c)
+        results.append(("別の slug の行が混ざったダミー → 採点が止まる・両方の slug を表示",
+                        stopped and "article-old" in err and "article-one" in err and "順位" not in text, text + err))
+        stopped, text, err = run(row_a + row_b)
+        results.append(("slug の見出しが無い → 採点が止まる", stopped and "見出し" in err and "順位" not in text, text + err))
+        stopped, text, err = run(row_a + "# 2026-11-08 article-one\n" + row_b + row_c)
+        results.append(("見出しより前に行がある → 採点が止まる", stopped and "1行目" in err, text + err))
+        stopped, text, err = run("# 2026-11-08 article-one\n" + row_a + "# 2026-11-08 article-one\n" + row_b + row_c)
+        results.append(("同じ slug の見出しが2回 → 採点する", not stopped, text + err))
+        stopped, text, err = run("# 2026-11-03 spode-blue-italian-nyumon（M-5・商品1差し替え）\n# 通常のメモ\n" + row_a + row_b)
+        results.append(("slug の後ろの注記・通常のコメント行は無視して採点する",
+                        (not stopped) and "対象記事: spode-blue-italian-nyumon" in text, text + err))
+    finally:
+        sp.INPUT_PATH = old_path
+
+
 def main():
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
@@ -692,6 +831,8 @@ def main():
         case_c(results)
         case_d(results)
         case_e(results, root)
+        case_f(results, root)
+        case_g(results, root)
     finally:
         shutil.rmtree(root, ignore_errors=True)
     failed = 0

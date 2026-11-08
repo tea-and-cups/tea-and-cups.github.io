@@ -154,7 +154,7 @@ def main():
 
     print(f"検索キーワード: {keyword} / 取得件数: {len(items)}")
     print()
-    print("--- scoring-input.tsv 用（ブランド区分は unknown 仮置き・要手動確認） ---")
+    print("--- scoring-input.tsv 用（ブランド区分は unknown 仮置き・要手動確認。ファイルは記事ごとに丸ごと作り直し、先頭に「# YYYY-MM-DD <slug>」を置く・L085） ---")
     for item in items:
         name, rating, reviews, price, shop, url = to_tsv_row(item)
         print(f"{name}\t{rating}\t{reviews}\trakuten\tunknown\t{price}")

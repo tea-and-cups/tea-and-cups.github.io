@@ -28,13 +28,16 @@
 
 使い方:
   data/scoring-input.tsv に候補を書いてから、引数なしで実行する。
+  ファイルは記事ごとに丸ごと作り直す（追記しない）。先頭に「# YYYY-MM-DD <slug>」の1行を置き、その下に
+  その記事の候補だけを並べる。前の記事の行が残っていたり、行が別の slug の見出しの下にあったり、見出しの
+  無い行があったりすると、読む側（parse の後の check_single_slug）が採点を止める（L085・D-0329）。
 
       python site/scripts/score-product.py
 
   引数に動的な値（商品名・評価値）を載せるとそのたびに一発限りの権限エントリが
   増えるため、入力はファイル経由に固定している（rules/command-execution.md 3）。
 
-入力ファイルの書式（タブ区切り・`#` で始まる行はコメント）:
+入力ファイルの書式（タブ区切り・`#` で始まる行はコメント。slug の見出しは「# YYYY-MM-DD <slug>」）:
   商品名<TAB>評価<TAB>レビュー件数<TAB>販売元<TAB>ブランド<TAB>価格
     評価・レビュー件数: ページに表示がなければ空欄にする（0ではなく空欄）
     販売元: rakuten / amazon / asp
@@ -44,6 +47,7 @@
 
 import math
 import os
+import re
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -64,6 +68,10 @@ WEIGHTS = {"rating": 0.50, "volume": 0.20, "price": 0.15, "brand": 0.15}
 SOURCE_ADJUST = {"rakuten": 0.0, "amazon": 0.0, "asp": 0.0}
 
 BRAND_SCORE = {"major": 100.0, "mid": 50.0, "unknown": 0.0}
+
+# 候補の行が属する記事を示す見出し（コメント行）。「# 2026-11-08 koucha-fukubukuro-erabikata」の形。
+# slug の後ろに続く注記（「（M-5・商品1差し替え）」等）は読まない。
+RE_SLUG_HEADER = re.compile(r"^\s*#\s*(\d\d\d\d-\d\d-\d\d)\s+([a-z0-9][a-z0-9-]*)")
 
 FLOOR_RATING = 3.0  # 生の評価がこれ未満なら何点でも不採用
 
@@ -126,10 +134,16 @@ def score(product, median):
 
 def parse(path):
     products = []
+    slug = None
     with open(path, encoding="utf-8") as f:
         for lineno, raw in enumerate(f, 1):
             line = raw.rstrip("\n")
-            if not line.strip() or line.lstrip().startswith("#"):
+            if not line.strip():
+                continue
+            if line.lstrip().startswith("#"):
+                m = RE_SLUG_HEADER.match(line)
+                if m:
+                    slug = m.group(2)
                 continue
             cols = [c.strip() for c in line.split("\t")]
             if len(cols) < 5:
@@ -140,6 +154,8 @@ def parse(path):
                 sys.exit(f"{lineno}行目: ブランドは major/mid/unknown のいずれか: {brand}")
             products.append({
                 "name": name,
+                "slug": slug,
+                "lineno": lineno,
                 "rating": float(rating) if rating else None,
                 "reviews": float(reviews.replace(",", "")) if reviews else None,
                 "source": source,
@@ -149,9 +165,32 @@ def parse(path):
     return products
 
 
+def check_single_slug(products):
+    """全部の行が同じ1つの記事（slug）に属するかを確かめる。違えば採点を止める（L085・D-0329）。
+
+    書き手がどの経路でも、前の記事の候補が残ったまま採点されて順位と価格中央値が混ざるのを防ぐ。
+    戻り値: 採点する記事の slug。
+    """
+    orphans = [p for p in products if p["slug"] is None]
+    if orphans:
+        lines = "・".join("%d行目" % p["lineno"] for p in orphans[:5])
+        sys.exit("slug の見出し（「# YYYY-MM-DD <slug>」）より前にある候補の行があります（%s）。"
+                 "採点を止めました。ファイルを作り直し、先頭に見出しを置いてください（L085）。" % lines)
+    counts = {}
+    for p in products:
+        counts[p["slug"]] = counts.get(p["slug"], 0) + 1
+    if len(counts) > 1:
+        detail = " / ".join("%s %d件" % (s, n) for s, n in counts.items())
+        sys.exit("scoring-input.tsv に別の記事の候補が混ざっています（%s）。採点を止めました。"
+                 "今の記事の分だけを残して、ファイルを丸ごと作り直してください（L085）。" % detail)
+    return next(iter(counts))
+
+
 def main():
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
+    if hasattr(sys.stderr, "reconfigure"):
+        sys.stderr.reconfigure(encoding="utf-8")  # sys.exit の止めメッセージを文字化けさせない
 
     if not os.path.exists(INPUT_PATH):
         sys.exit(f"入力ファイルがありません: {INPUT_PATH}")
@@ -159,6 +198,7 @@ def main():
     products = parse(INPUT_PATH)
     if not products:
         sys.exit("候補が1件も書かれていません")
+    slug = check_single_slug(products)
 
     prices = sorted(p["price"] for p in products if p["price"])
     median = None
@@ -170,6 +210,7 @@ def main():
     adopted = sorted([r for r in results if r[1]["ok"]], key=lambda r: r[1]["final"], reverse=True)
     rejected = [r for r in results if not r[1]["ok"]]
 
+    print(f"対象記事: {slug}")
     print(f"候補 {len(products)} 件 / 価格中央値: {f'{median:,.0f}円' if median else '算出せず（価格2件未満）'}")
     print()
     print("順位  スコア  トーン  商品名")

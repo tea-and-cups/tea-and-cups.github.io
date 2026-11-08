@@ -479,8 +479,8 @@ def run_checks(slug, attempt=None, checks=None):
 
     attempt は呼び出し元が渡す記録用の辞書で、落ちたチェック名を書き戻す
     （D-0235）。標準出力・終了コードはこの引数の有無で変わらない。
-    checks を省略すると PRE_PUBLISH_CHECKS（10本）を使う。--revise は
-    REVISE_PUBLISH_CHECKS（6本）を明示的に渡す。
+    checks を省略すると PRE_PUBLISH_CHECKS を使う。--revise は
+    REVISE_PUBLISH_CHECKS 由来の _revise_checks() の結果を明示的に渡す。
     """
     if checks is None:
         checks = PRE_PUBLISH_CHECKS
@@ -783,6 +783,10 @@ def _revise_checks(published_path):
                 extra_args = ["--pr-line-only"]
             else:
                 extra_args = ["--min", str(min(3, n))]
+        elif name == "check-anchor-consistency.py":
+            # 比較表の項目と見出しのアンカー（L049・D-0329）は、--revise では警告にとどめる
+            # （既存記事の改修を、関係のない表で止めないため。新規公開はNG）
+            extra_args = ["--revise"]
         elif name == "check-fact-source.py" and (name, takes_slug, extra_args) != ADVICE_CHECK:
             # 判定Yの新型（型4〜13）は公開済みの記事に該当が多いため、--revise では警告にとどめる
             # （助言の候補の処置 --advice は --revise でもNGのまま。引数を書き換えない・D-0328）

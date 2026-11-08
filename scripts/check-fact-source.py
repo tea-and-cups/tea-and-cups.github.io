@@ -106,7 +106,8 @@
   型11の語彙に頼らず、ブロック（段落・箇条書きの1項目・表の1行）単位で、話題の語（ADVICE_TOPIC: 保存・冷蔵・
   湿気・洗う・電子レンジ・耐熱・乳児・熱湯・注意等）と助言の述語（ADVICE_PREDICATE: ください・避け・ません・
   目安・使える等）が揃うものを候補にする。話題の語と述語は同じブロックの別の文でもよい。リンク文字・URL・
-  見出し行は照合しない。出典URLのあるブロックも自動では処置済みにしない。
+  見出し行は照合しない。同じブロックに出典URL（has_valid_source＝アフィリエイト除く。型11と同じ判定）が
+  あるブロックは、処置の記録を求めない（未処置に数えない。古い記事の改修のたびに出典を取り直さないため・D-0329）。
   処置は data/advice-dispositions.tsv（slug・ブロック本文のハッシュ・先頭40字・処置・出典URLまたは理由・記録日）に
   --advice-record で1行足す。台帳を直接編集しない。source は、URLが記事の本文にあり、data/webfetch-log.md に
   記録があるときだけ記録できる（check-source-fetched.py と同じ照合）。判定のときも、source のURLが本文から
@@ -844,7 +845,8 @@ def excerpt(text):
 # data/advice-dispositions.tsv に記録させる。台帳を読み書きするのはこのスクリプトのサブコマンドだけ。
 # 候補: ブロック（段落・箇条書きの1項目・表の1行）に、話題の語（ADVICE_TOPIC）があり、かつ疑問文でない
 #   文のどれかに助言の述語（ADVICE_PREDICATE）がある（話題の語と述語は別の文でもよい）。
-#   リンク文字・URL・見出し行は照合しない。出典URLがあっても自動で処置済みにしない。
+#   リンク文字・URL・見出し行は照合しない。候補としては拾うが、同じブロックに出典URL（has_valid_source）が
+#   あれば undisposed_advice が未処置に数えない（D-0329。台帳の行は書き換えない）。
 ADVICE_DISPOSITIONS_PATH = os.path.join(ROOT, "data", "advice-dispositions.tsv")
 ADVICE_HEADER = ["slug", "hash", "head40", "disposition", "source_or_reason", "recorded"]
 ADVICE_KINDS = ("source", "not_advice")
@@ -956,7 +958,8 @@ def load_advice_dispositions(path=None):
 
 def undisposed_advice(path, slug, dispositions=None):
     """処置の無い候補を返す。source の処置は、その出典URLが今も記事の本文にあるときだけ数える。
-    本文が変わってハッシュが合わなくなった台帳の行は無視する（消さない）。"""
+    本文が変わってハッシュが合わなくなった台帳の行は無視する（消さない）。
+    同じブロックに出典URL（has_valid_source。アフィリエイトは数えない）があれば処置の記録を求めない（D-0329）。"""
     if dispositions is None:
         dispositions = load_advice_dispositions()
     sf = None
@@ -965,6 +968,8 @@ def undisposed_advice(path, slug, dispositions=None):
     for cand in advice_candidates(path):
         row = dispositions.get((slug, cand["hash"]))
         if row and row["disposition"] == "not_advice":
+            continue
+        if has_valid_source(cand["text"]):
             continue
         if row and row["disposition"] == "source":
             if sf is None:
@@ -984,9 +989,11 @@ def run_advice_gate(slug):
         print(f"見つかりません: output/articles/{slug}.md / site/src/content/posts/{slug}.md")
         return 1
     remaining = undisposed_advice(path, slug)
-    total = len(advice_candidates(path))
+    cands = advice_candidates(path)
+    total = len(cands)
+    with_source = sum(1 for c in cands if has_valid_source(c["text"]))
     if not remaining:
-        print("ADVICE_OK（候補 %d件・すべて処置済み）" % total)
+        print("ADVICE_OK（候補 %d件・うち出典URLあり %d件・すべて処置済みまたは出典URLあり）" % (total, with_source))
         return 0
     print("処置の無い保存・衛生・安全・手入れの助言の候補: %d件 / 候補 %d件（L097）" % (len(remaining), total))
     for cand in remaining:
