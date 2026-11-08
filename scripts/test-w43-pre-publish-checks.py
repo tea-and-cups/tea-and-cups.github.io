@@ -746,8 +746,17 @@ def case_f(results, root):
         code, text = run("case-f-badid", tmpl("[ストレート型](#ストレート型)", "[ミルク型](#存在しない)"))
         results.append(("リンク先の見出しIDが実在しない → NG", code == 1 and "存在しない見出しID" in text, text))
         code, text = run("case-f-other", tmpl("[ストレート型](#ミルク型)", "[ミルク型](#ミルク型)"))
-        results.append(("項目が別の見出しを指すリンクだけ → NG（その見出しへのリンクが無い）",
-                        code == 1 and "NG（1行" in text and "別の見出しを指すリンクはあります" in text, text))
+        results.append(("項目が記事内に実在する別の見出しを指すリンクを持つ → 通る（どの見出しでもよい）", code == 0, text))
+        code, text = run("case-f-exact2", tmpl("紅茶", "[ミルク型](#ミルク型)", heading="紅茶"))
+        results.append(("2文字の項目が見出しと完全に一致し、リンクが無い → NG",
+                        code == 1 and "NG（1行" in text and "[紅茶](#紅茶)" in text, text))
+        code, text = run("case-f-exact2-link", tmpl("[紅茶](#紅茶)", "[ミルク型](#ミルク型)", heading="紅茶"))
+        results.append(("2文字の項目が見出しと完全に一致し、リンクがある → 通る", code == 0, text))
+        code, text = run("case-f-part2", tmpl("1月", "[ミルク型](#ミルク型)", heading="秋（9〜11月）"))
+        results.append(("2文字の項目（1月）が見出しの一部（秋（9〜11月））に含まれるだけ → 通る", code == 0, text))
+        code, text = run("case-f-part3", tmpl("CTC", "[ミルク型](#ミルク型)", heading="CTCとリーフの違い"))
+        results.append(("3文字の項目が見出しに含まれ、リンクが無い → NG",
+                        code == 1 and "[CTC](#ctcとリーフの違い)" in text, text))
         code, text = run("case-f-revise", body, revise=True)
         results.append(("--revise ではリンクが無くても警告だけで通す（終了コード0・【警告】の行を出す）",
                         code == 0 and "【警告】" in text and "[ストレート型](#ストレート型)" in text, text))

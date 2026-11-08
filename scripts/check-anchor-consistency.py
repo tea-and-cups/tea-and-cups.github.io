@@ -24,10 +24,11 @@ github-slugger の同一インスタンスで文書順に slug() を適用し、
   リンク先の実在は上の一般判定が全リンクに対して行う。公開済み全記事の違反は0件
   （実測）のため --revise でも同じく不合格にする。
   比較表の項目（L049・D-0329）: 「早見表」の語が直前に無い表でも、表の1列目の項目（リンク記法・強調を
-  除いた文字列。MIN_ITEM_LEN 字以上）が、同じ記事の H2・H3 見出しの文字列と一致するか、見出しに含まれるなら、
-  その項目にはその見出し（一致した見出しのどれか）への [項目](#見出しID) が要る。無ければ、新規公開は
-  不合格、--revise は【警告】だけで通す（既存記事の改修を関係のない表で止めないため）。
-  リンク先IDの実在は上の一般判定が行う。
+  除いた文字列）が、同じ記事の H2・H3 見出しの文字列と一致する（MIN_ITEM_LEN 字以上）か、見出しに含まれる
+  （MIN_PARTIAL_ITEM_LEN 字以上。「1月」が「秋（9〜11月）」に当たる型を除く）なら、項目に
+  [項目](#見出しID) が要る。ただし項目のセルに、同じ記事に実在する見出し（どの見出しでもよい）への
+  アンカーリンクが1つでもあれば通す。無ければ、新規公開は不合格、--revise は【警告】だけで通す
+  （既存記事の改修を関係のない表で止めないため）。リンク先IDの実在は上の一般判定が行う。
 
 使い方:
   python site/scripts/check-anchor-consistency.py <slug>
@@ -53,7 +54,10 @@ NODE_TIMEOUT = 60
 
 # 比較表の項目の判定（L049・D-0329）で対象にする項目の最小文字数。1文字（「水」「氷」等）は
 # 多くの見出しに含まれ、見出しとの対応を意味しないため対象にしない。
+# 見出しと完全に一致する項目は MIN_ITEM_LEN 字以上、見出しの一部に含まれるだけの項目は
+# MIN_PARTIAL_ITEM_LEN 字以上で対象にする（短い語は別の語の一部として含まれやすいため）。
 MIN_ITEM_LEN = 2
+MIN_PARTIAL_ITEM_LEN = 3
 RE_HEADING_H23 = re.compile(r"^(#{2,3}) +(.+?)\s*$")
 RE_MD_LINK_TEXT = re.compile(r"\[([^\]\[]*)\]\([^)]*\)")
 RE_TABLE_SEP = re.compile(r"^\s*\|?\s*:?-{2,}:?\s*(?:\|\s*:?-{2,}:?\s*)*\|?\s*$")
@@ -183,6 +187,8 @@ def find_heading_table_items(lines):
     """表の1列目の項目が H2・H3 見出しと一致するか、見出しに含まれるものを返す（L049・D-0329）。
 
     戻り値: [(行番号, 項目の文字列, [一致した見出しの行番号...], [1列目のリンク先ID...]), ...]
+    完全一致の見出しがあればそれだけを、無ければ（項目が MIN_PARTIAL_ITEM_LEN 字以上のとき）
+    項目を含む見出しを返す。
     表は「見出し行・区切り行・データ行」の形のものだけを見る。
     """
     headings = []
@@ -209,7 +215,9 @@ def find_heading_table_items(lines):
             item = plain_cell(first)
             if len(item) < MIN_ITEM_LEN:
                 continue
-            matched = [hl for hl, text in headings if item == text or item in text]
+            matched = [hl for hl, text in headings if item == text]
+            if not matched and len(item) >= MIN_PARTIAL_ITEM_LEN:
+                matched = [hl for hl, text in headings if item in text]
             if not matched:
                 continue
             targets = [unquote(m.group(2)) for m in RE_ANCHOR_LINK.finditer(first)]
@@ -390,17 +398,16 @@ def main():
     missing = []
     for lineno, item, matched, targets in items:
         wanted = [id_of_line[hl] for hl in matched if hl in id_of_line]
-        if not any(t in wanted for t in targets):
-            missing.append((lineno, item, wanted[0] if wanted else "", bool(targets)))
+        if not any(t in valid for t in targets):  # 記事内に実在する見出しへのリンクがあれば、どの見出しでも通す
+            missing.append((lineno, item, wanted[0] if wanted else ""))
     if missing:
         prefix = "【警告】" if revise else ""
-        head = "比較表の項目と見出しのアンカー: %s（%d行の1列目に、同名の見出しへのリンクがありません）" % (
+        head = "比較表の項目と見出しのアンカー: %s（%d行の1列目に、見出しへのリンクがありません）" % (
             "警告（--revise のため通します）" if revise else "NG", len(missing))
         out(prefix + head)
-        for lineno, item, anchor_id, has_other in missing:
-            out("%s  %d行目 / 1列目: %s → 付けるリンク: [%s](#%s)%s" % (
-                prefix, lineno, item, item, anchor_id, "（別の見出しを指すリンクはあります）" if has_other else ""))
-        out(prefix + "表の1列目の項目が H2・H3 見出しと同じ（または見出しに含まれる）ときは、項目に"
+        for lineno, item, anchor_id in missing:
+            out("%s  %d行目 / 1列目: %s → 付けるリンク: [%s](#%s)" % (prefix, lineno, item, item, anchor_id))
+        out(prefix + "表の1列目の項目が H2・H3 見出しと同じ（または3字以上で見出しに含まれる）ときは、項目に"
             " [項目](#見出しID) を付けてください（L049）。見出しとは別の項目なら、項目名を見出しに含まれない語にします。")
         if not revise:
             return 1
