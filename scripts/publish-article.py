@@ -20,6 +20,8 @@ Edit/Writeによるpublished化は .claude/hooks/check-publish-gate.py で拒否
            categoryを読めなければ3点。D-0248。--new は初回公開だけに付け、
            af.moshimo.com のリンクを含む記事を不合格にする。D-0260）
        check-fact-source.py <slug>
+       check-fact-source.py <slug> --advice
+         （保存・衛生・安全・手入れの助言の候補に処置が記録されているか。--revise でもNG。L097・D-0328）
        check-source-fetched.py <slug>
        check-pin-image-naming.py
        check-pin-image-style.py <slug>
@@ -87,7 +89,7 @@ Edit/Writeによるpublished化は .claude/hooks/check-publish-gate.py で拒否
        既にあれば posts側と一致するか確認するだけで上書きはしない）。
     2. Editツールで output/articles/<slug>.md を直接修正する。
     3. python site/scripts/publish-article.py --revise <slug> --dry-run
-       公開前チェック（Pin・SNS投稿文関連を除いた5本）と変更差分を確認する。
+       公開前チェック（Pin・SNS投稿文関連を除いた6本）と変更差分を確認する。
     4. quality-reviewer サブエージェントに変更箇所と前後の整合性を確認させる。
     5. python site/scripts/publish-article.py --revise <slug>
        本番反映（コピー→git add→commit「revise: <slug>」→push）する。
@@ -101,9 +103,11 @@ Edit/Writeによるpublished化は .claude/hooks/check-publish-gate.py で拒否
   --revise <slug> [--dry-run]:
     posts側に記事が無い場合・下書きが無い場合・下書きの status が published
     でない場合・下書きが posts側と差分なしの場合は、いずれも中断する。
-    公開前チェックは9本から check-pin-image-naming・check-pin-image-style・
+    posts側の対象記事が git の HEAD と違えば、--prepare-revise・--revise とも入口で止める
+    （posts側を直接編集した改修を通さない。posts側を戻して --prepare-revise からやり直す・L096・D-0328）。
+    公開前チェックは10本から check-pin-image-naming・check-pin-image-style・
     check-x-post-length（Pin・SNS投稿文は再公開で変わらないため）と
-    check-advance-pin-today --require-row（新規公開だけにかけるため・D-0275）を除いた5本。
+    check-advance-pin-today --require-row（新規公開だけにかけるため・D-0275）を除いた6本。
     商品リンクの基準は「公開中（posts側）の点数以上・上限3」（--min min(3, N)）。
     公開中が0点の記事は商品リンクのチェックを省く（減らしようが無いため）。
     本番実行時は下書きの updated を再公開日（日本時間）へ書き換えたうえで、
@@ -199,6 +203,8 @@ SCRIPTS_DIR = os.path.join(ROOT, "site", "scripts")
 DRAFTS_DIR = os.path.join(ROOT, "output", "articles")
 POSTS_DIR = os.path.join(ROOT, "site", "src", "content", "posts")
 
+ADVICE_CHECK = ("check-fact-source.py", True, ["--advice"])
+
 # (スクリプト名, slugを引数に取るか, 追加の固定引数)
 PRE_PUBLISH_CHECKS = [
     # seasons・gift の新規記事は、先行ピンの季節の山の台帳（data/advance-pin-calendar.tsv）に
@@ -210,6 +216,10 @@ PRE_PUBLISH_CHECKS = [
     # 週次の健全性チェックは引数なし（1点以上）で実行する。
     ("check-product-link-presence.py", True, ["--min", "3"]),
     ("check-fact-source.py", True, []),
+    # 保存・衛生・安全・手入れの助言の候補に、1件ずつ処置（source／not_advice）が記録されているか（L097・D-0328）。
+    # 新規公開・--revise のどちらでもNG（--revise でも警告にしない）。_revise_checks は引数を書き換えない。
+    # generate-script-index.py が文字列リテラルとして読むため、ADVICE_CHECK と同じ値を直書きする。
+    ("check-fact-source.py", True, ["--advice"]),
     ("check-source-fetched.py", True, []),
     ("check-pin-image-naming.py", False, []),
     ("check-pin-image-style.py", True, []),
@@ -469,8 +479,8 @@ def run_checks(slug, attempt=None, checks=None):
 
     attempt は呼び出し元が渡す記録用の辞書で、落ちたチェック名を書き戻す
     （D-0235）。標準出力・終了コードはこの引数の有無で変わらない。
-    checks を省略すると PRE_PUBLISH_CHECKS（9本）を使う。--revise は
-    REVISE_PUBLISH_CHECKS（5本）を明示的に渡す。
+    checks を省略すると PRE_PUBLISH_CHECKS（10本）を使う。--revise は
+    REVISE_PUBLISH_CHECKS（6本）を明示的に渡す。
     """
     if checks is None:
         checks = PRE_PUBLISH_CHECKS
@@ -665,6 +675,31 @@ def mark_daily_session():
         pass
 
 
+def posts_head_problem(slug):
+    """posts側の対象記事が git の HEAD と違えば、止める理由の文を返す（同じなら None・L096・D-0328）。
+
+    改修の正規経路は output/articles/ 側の下書きを直すことで、posts側を直接編集すると
+    公開前チェックを通らない変更が --revise のコピーで紛れ込む・上書きされるため、
+    --prepare-revise と --revise の入口で止める。git の判定に失敗したときも止める（黙って通さない）。
+    """
+    rel = "src/content/posts/%s.md" % slug
+    try:
+        result = git("status", "--porcelain", "--untracked-files=all", "--", rel)
+    except Exception as e:  # noqa: BLE001
+        return "site/%s が git の HEAD と同じか確かめられません（%s）" % (rel, e)
+    if result.returncode != 0:
+        return "site/%s が git の HEAD と同じか確かめられません（%s）" % (rel, (result.stderr or result.stdout).strip())
+    status = result.stdout.strip()
+    if not status:
+        return None
+    return (
+        "site/%s が git の HEAD と違います（git status: %s・L096）。posts側を直接編集しないでください。"
+        "posts側の変更を戻して（git -C site checkout -- %s）、"
+        "python site/scripts/publish-article.py --prepare-revise %s からやり直してください"
+        "（記事の修正は output/articles/%s.md で行います）" % (rel, status, rel, slug, slug)
+    )
+
+
 def _run_prepare_revise(rest_args):
     """--prepare-revise <slug>: posts側の内容を下書きとして用意する。"""
     if hasattr(sys.stdout, "reconfigure"):
@@ -690,7 +725,10 @@ def _run_prepare_revise(rest_args):
             "site/src/content/posts/%s.md が見つかりません。この記事はまだ公開されていません"
             % slug
         )
-    out("  OK")
+    head_problem = posts_head_problem(slug)
+    if head_problem:
+        return abort(head_problem)
+    out("  OK（git の HEAD と同じ）")
 
     published_text = read_text(published_path)
 
@@ -745,8 +783,9 @@ def _revise_checks(published_path):
                 extra_args = ["--pr-line-only"]
             else:
                 extra_args = ["--min", str(min(3, n))]
-        elif name == "check-fact-source.py":
+        elif name == "check-fact-source.py" and (name, takes_slug, extra_args) != ADVICE_CHECK:
             # 判定Yの新型（型4〜13）は公開済みの記事に該当が多いため、--revise では警告にとどめる
+            # （助言の候補の処置 --advice は --revise でもNGのまま。引数を書き換えない・D-0328）
             extra_args = ["--revise"]
         checks.append((name, takes_slug, extra_args))
     return checks, n
@@ -779,7 +818,10 @@ def _run_revise(rest_args):
             "site/src/content/posts/%s.md が見つかりません。この記事はまだ公開されていません。"
             "新規公開は python site/scripts/publish-article.py %s で行ってください" % (slug, slug)
         )
-    out("  OK")
+    head_problem = posts_head_problem(slug)
+    if head_problem:
+        return abort(head_problem + "。以降の処理（コピー・commit・push）は一切実行していません")
+    out("  OK（git の HEAD と同じ）")
 
     if not os.path.isfile(draft_path):
         return abort(
@@ -824,7 +866,7 @@ def _run_revise(rest_args):
         "output/articles/%s.md" % slug,
     )
 
-    out("2. 公開前チェック群（Pin・SNS投稿文関連の3本と季節の山の台帳の行チェックを除いた5本）")
+    out("2. 公開前チェック群（Pin・SNS投稿文関連の3本と季節の山の台帳の行チェックを除いた6本）")
     revise_checks, published_products = _revise_checks(published_path)
     out("  商品リンク基準: 公開中の点数（%d点）以上（上限3）" % published_products)
     if not run_checks(slug, checks=revise_checks):

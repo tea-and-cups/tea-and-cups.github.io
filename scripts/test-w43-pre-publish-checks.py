@@ -274,6 +274,256 @@ def case_a12_13(results, root, fs):
         fs.DRAFTS_DIR, fs.POSTS_DIR = old_drafts, old_posts
 
 
+# 既知の指摘26件（直前の設計調査と同じ分母）: (群, 修正前のcommit, slug, 該当文に含まれる語)
+ADVICE_KNOWN = [
+    ("D-0312", "3037fe9", "toji-yuzu-koucha-oyatsu", "歳未満"),
+    ("D-0312", "3037fe9", "chailatte-masala-chai-chigai", "飲み切る前提"),
+    ("D-0312", "3037fe9", "creamdown-boushi", "いつもと違う"),
+    ("D-0312", "3037fe9", "mizudashi-koucha-hozon-eisei-qa", "一口含ん"),
+    ("D-0312", "3037fe9", "mizudashi-koucha-hozon-eisei-qa", "2日以内"),
+    ("D-0312", "3037fe9", "chakan-canister-erabikata", "防ぎきれず"),
+    ("D-0312", "3037fe9", "koucha-nisenme-degarashi-tanoshimikata", "乾かさず"),
+    ("D-0312", "3037fe9", "tea-strainer-chakoshi-erabikata", "つけ置き"),
+    ("D-0312", "3037fe9", "tea-strainer-chakoshi-erabikata", "煮沸"),
+    ("D-0312", "3037fe9", "glass-cup-hikaku", "いきなり熱湯"),
+    ("D-0312", "3037fe9", "glass-cup-hikaku", "重ねず"),
+    ("D-0315", "72d34bf", "hot-apple-tea-tsukurikata", "はちみつを使わない"),
+    ("D-0319", "4fcdd86", "aki-hotel-afternoontea-jitaku-styling", "コースター"),
+    ("D-0319", "4fcdd86", "aki-hotel-afternoontea-jitaku-styling", "ペット"),
+    ("D-0319", "4fcdd86", "aki-hotel-afternoontea-jitaku-styling", "ぐらつ"),
+    ("W45", "33e1ab4", "aki-moyougae-hitoribun-tea-space", "常温に置きません"),
+    ("W45", "33e1ab4", "aki-moyougae-hitoribun-tea-space", "耐熱性のある台"),
+    ("W45", "33e1ab4", "bone-china-jiki-touki-chigai", "電子レンジで使えません"),
+    ("W45", "33e1ab4", "bone-china-jiki-touki-chigai", "表記がない場合は使わない"),
+    ("W45", "33e1ab4", "glass-cup-hikaku", "割れやすいため"),
+    ("W45", "33e1ab4", "hot-apple-tea-tsukurikata", "こすり洗い"),
+    ("W45", "33e1ab4", "koucha-shomikigen-kireta-fuumi-mikiwame", "少量だけ淹れ"),
+    ("W45", "33e1ab4", "outdoor-camp-mizudashi-koucha", "1時間ごと"),
+    ("W45", "33e1ab4", "shukaku-no-aki-koucha-fruit-pairing", "流水で"),
+    ("W45", "33e1ab4", "teacup-shokusenki-denshirenji-otenire-qa", "発火"),
+    ("W45", "33e1ab4", "teacup-shokusenki-denshirenji-otenire-qa", "浸け置き"),
+]
+ADVICE_RECALL_MIN = 23
+
+
+def advice_recall(fs, root):
+    """既知の26件の修正前の版に、新しい判定（候補）と現行の型1〜11をかける。
+    戻り値: [(群, slug, 語, 判定)]。判定は "new"（候補）・"current"（型1〜11だけ）・"both"・"miss"・"no_file"・"not_found"。"""
+    import subprocess
+    site = os.path.dirname(SCRIPT_DIR)
+    rows = []
+    for group, commit, slug, anchor in ADVICE_KNOWN:
+        r = subprocess.run(["git", "-C", site, "show", "%s:src/content/posts/%s.md" % (commit, slug)],
+                           capture_output=True)
+        if r.returncode != 0:
+            rows.append((group, slug, anchor, "no_file"))
+            continue
+        path = _write_tmp(root, "recall-%s" % slug, r.stdout.decode("utf-8"))
+        cand_texts = [c["text"] for c in fs.advice_candidates(path)]
+        front, body = fs.split_frontmatter(fs.io_read(path))
+        start = len(front.splitlines()) + 3 if front else 1
+        found, new, current = False, False, False
+        for unit in fs.build_units(body, start):
+            for block in fs.advice_blocks(unit):
+                text = fs.advice_block_text(block)
+                if anchor not in text:
+                    continue
+                found = True
+                new = new or text in cand_texts
+            for sub in fs.safety_sub_units(unit):
+                sub_text = fs.unit_text(sub)
+                if anchor not in sub_text:
+                    continue
+                hits = (fs.safety_advice_hits(sub_text) + fs.food_storage_hits(sub_text)
+                        + fs.care_hygiene_hits(sub_text) + fs.keeping_safety_hits(sub_text))
+                current = current or any(anchor in h[2] or h[0] in ("型9", "型10") for h in hits)
+        verdict = "not_found" if not found else ("both" if new and current else "new" if new
+                                                  else "current" if current else "miss")
+        rows.append((group, slug, anchor, verdict))
+    return rows
+
+
+def _write_tmp(root, name, text):
+    path = os.path.join(root, name + ".md")
+    _write(path, text.replace("\r\n", "\n"))
+    return path
+
+
+def case_e(results, root):
+    """L097・L096（D-0328）: 助言の候補と処置の台帳、公開前チェックへの組み込み、posts側の直接編集の停止。"""
+    import contextlib, io
+    fs = _load("check-fact-source.py")
+    # 1. 既知の26件の拾い率（新しい判定＋現行の型1〜11で23件以上）
+    rows = advice_recall(fs, root)
+    picked = [r for r in rows if r[3] in ("new", "current", "both")]
+    counts = {k: sum(1 for r in rows if r[3] == k) for k in ("both", "new", "current")}
+    missed = "・".join("%s %s（%s）" % (r[1], r[2], r[3]) for r in rows if r not in picked) or "なし"
+    results.append(("既知の指摘26件のうち %d件以上を拾う（実際 %d件。両方%d・新しい判定だけ%d・型1〜11だけ%d。拾えなかった: %s）"
+                    % (ADVICE_RECALL_MIN, len(picked), counts["both"], counts["new"], counts["current"], missed),
+                    len(rows) == 26 and len(picked) >= ADVICE_RECALL_MIN,
+                    "\n".join("%s %s %s → %s" % r for r in rows)))
+    # 2. 候補の単位と台帳
+    old = (fs.DRAFTS_DIR, fs.POSTS_DIR, fs.ADVICE_DISPOSITIONS_PATH)
+    sf = fs._source_fetched_module()
+    old_log = sf.LOG_PATH
+    log_path = os.path.join(root, "webfetch-log.md")
+    _write(log_path, "記録開始日: 2026-01-01\n\n- 2026-11-08 | https://www.caa.go.jp/example | 200\n")
+    fs.DRAFTS_DIR = root
+    fs.ADVICE_DISPOSITIONS_PATH = os.path.join(root, "advice-dispositions.tsv")
+    real_loader = fs._source_fetched_module
+
+    def patched_loader():
+        module = real_loader()
+        module.LOG_PATH = log_path
+        return module
+    fs._source_fetched_module = patched_loader
+    try:
+        unit_cases = [
+            ("話題の語が前の文にある（電子レンジ…。表記がない場合は使わないのが無難） → 候補",
+             "電子レンジ対応の表記を確認します。表記がない場合は使わないのが無難です。", 1),
+            ("箇条書きは1項目ずつ（2項目とも助言） → 候補2件", "- 冷蔵で保存してください\n- 熱湯は避けてください", 2),
+            ("表の1行ずつ（区切り行は除く） → 候補2件",
+             "| 場面 | 目安 |\n|---|---|\n| 保存 | 冷暗所に置いてください |\n| 洗い方 | 手洗いがおすすめです |", 2),
+            ("出典URLがあっても自動では処置済みにしない → 候補",
+             "冷蔵で保存してください（[消費者庁](https://www.caa.go.jp/example)）。", 1),
+            ("話題の語なし（淹れ方の手順） → なし", "ポットにお湯を注ぎ、3分蒸らしてください。", 0),
+            ("見出し行だけに話題の語 → なし", "## 保存のコツ\n\n香りを楽しんでください。", 0),
+            ("リンク文字だけに話題の語 → なし", "詳しくは[保存の記事](/posts/x/)をご覧ください。", 0),
+        ]
+        for description, body, expected in unit_cases:
+            path = _article(root, "case-e-unit", body)
+            got = len(fs.advice_candidates(path))
+            results.append((description, got == expected, "期待=%d 実際=%d" % (expected, got)))
+        # 3. ゲート（新規公開・--revise とも同じ入口）: 処置が無ければNG、処置を記録すれば通る
+        body = ("冷蔵で保存し、早めに飲みきってください（[消費者庁](https://www.caa.go.jp/example)）。\n\n"
+                "- 茶葉は密閉できる缶に入れると、香りが移りにくいとされています\n")
+        _article(root, "case-e-gate", body)
+        cands = fs.advice_candidates(os.path.join(root, "case-e-gate.md"))
+
+        def gate():
+            buffer = io.StringIO()
+            with contextlib.redirect_stdout(buffer):
+                code = fs.run_advice_gate("case-e-gate")
+            return code, buffer.getvalue()
+
+        def record(*args):
+            buffer = io.StringIO()
+            with contextlib.redirect_stdout(buffer):
+                code = fs.run_advice_record("case-e-gate", *args)
+            return code, buffer.getvalue()
+
+        code, text = gate()
+        results.append(("処置の無い候補が残るダミー → --advice は終了コード1・記録コマンドを表示",
+                        len(cands) == 2 and code == 1 and "--advice-record %s source" % cands[0]["hash"] in text
+                        and "--advice-record %s not_advice" % cands[1]["hash"] in text, text[:600]))
+        code, text = record(cands[0]["hash"], "source", "https://example.com/not-in-body")
+        results.append(("source: 本文に無いURL → 記録しない", code == 1 and "本文にありません" in text, text))
+        _article(root, "case-e-gate", body + "\n参考: https://www.mhlw.go.jp/not-fetched\n")
+        code, text = record(cands[0]["hash"], "source", "https://www.mhlw.go.jp/not-fetched")
+        results.append(("source: WebFetchの記録に無いURL → 記録しない", code == 1 and "webfetch-log" in text, text))
+        _article(root, "case-e-gate", body)
+        code, text = record("000000000000", "not_advice", "理由")
+        results.append(("存在しないハッシュ → 記録しない", code == 1, text))
+        code, text = record(cands[0]["hash"], "source", "https://www.caa.go.jp/example")
+        code2, text2 = record(cands[1]["hash"], "not_advice", "商品の仕様の説明で、保存の助言ではない")
+        results.append(("source（本文にあり・WebFetch記録あり）と not_advice を記録", code == 0 and code2 == 0, text + text2))
+        code, text = gate()
+        results.append(("処置を記録すると --advice は終了コード0", code == 0 and "ADVICE_OK" in text, text))
+        _article(root, "case-e-gate", body.replace("（[消費者庁](https://www.caa.go.jp/example)）", "")
+                 + "\n参考: [消費者庁](https://www.caa.go.jp/example)\n")
+        code, text = gate()
+        results.append(("本文が変わってハッシュが合わない行は無視（その候補は再びNG）", code == 1, text[:300]))
+        _article(root, "case-e-gate", "- 茶葉は密閉できる缶に入れると、香りが移りにくいとされています\n")
+        code, text = gate()
+        results.append(("source のURLが本文から消えた・候補を削除した → 残りは処置済みで通る", code == 0, text))
+        with open(fs.ADVICE_DISPOSITIONS_PATH, encoding="utf-8") as f:
+            lines = f.read().splitlines()
+        results.append(("台帳は見出し＋記録した2行（ハッシュが合わない行も消さない）",
+                        len(lines) == 3 and lines[0].split("\t") == fs.ADVICE_HEADER, "\n".join(lines)))
+        # 4. 新規公開・--revise の両方の公開前チェックに --advice が入り、同じ引数で呼ばれる
+        pa = _load("publish-article.py")
+        draft = _article(root, "case-e-pub", "冷蔵で保存してください。", category="how-to")
+        new_checks = pa.publish_checks(draft)
+        revise_checks, _n = pa._revise_checks(draft)
+        entry = ("check-fact-source.py", True, ["--advice"])
+        results.append(("--advice は新規公開と --revise の両方の公開前チェックにある",
+                        entry in new_checks and entry in revise_checks
+                        and ("check-fact-source.py", True, ["--revise"]) in revise_checks,
+                        "新規=%s / 改修=%s" % (new_checks, revise_checks)))
+        for label, checks in (("新規公開", new_checks), ("--revise", revise_checks)):
+            args = next(c[2] for c in checks if c == entry)
+            original = sys.argv
+            buffer = io.StringIO()
+            try:
+                sys.argv = ["check-fact-source.py", "case-e-pub"] + args
+                with contextlib.redirect_stdout(buffer):
+                    code = fs.main()
+            finally:
+                sys.argv = original
+            results.append(("%s のチェックの引数で、処置の無い候補のダミー → 終了コード1" % label,
+                            code == 1 and "L097" in buffer.getvalue(), buffer.getvalue()[:300]))
+        h = fs.advice_candidates(draft)[0]["hash"]
+        buffer = io.StringIO()
+        with contextlib.redirect_stdout(buffer):
+            record_code = fs.run_advice_record("case-e-pub", h, "not_advice", "テスト用のダミー")
+            code = fs.run_advice_gate("case-e-pub")
+        results.append(("処置を記録すると同じダミーが通る", record_code == 0 and code == 0, buffer.getvalue()))
+    finally:
+        fs.DRAFTS_DIR, fs.POSTS_DIR, fs.ADVICE_DISPOSITIONS_PATH = old
+        fs._source_fetched_module = real_loader
+        sf.LOG_PATH = old_log
+    case_e_head(results, root)
+
+
+def case_e_head(results, root):
+    """L096（D-0328）: posts側の対象記事が git の HEAD と違えば --prepare-revise と --revise がどちらも止まる。
+    一時ディレクトリに git リポジトリを作って試す（本物の posts は変更しない）。"""
+    import contextlib, io, subprocess
+    pa = _load("publish-article.py")
+    pa.mark_daily_session = lambda: None
+    site = os.path.join(root, "head-site")
+    posts = os.path.join(site, "src", "content", "posts")
+    drafts = os.path.join(root, "head-drafts")
+    os.makedirs(drafts, exist_ok=True)
+    slug = "case-head"
+    article = ("---\ntitle: ダミー\nslug: %s\ncategory: how-to\nstatus: published\nupdated: 2026-01-01\n---\n\n本文です。\n"
+               % slug)
+    _write(os.path.join(posts, slug + ".md"), article)
+
+    def g(*args):
+        return subprocess.run(["git", "-C", site] + list(args), capture_output=True)
+    g("init", "-q")
+    g("add", "--", "src/content/posts/%s.md" % slug)
+    g("-c", "user.name=test", "-c", "user.email=test@example.invalid", "commit", "-q", "-m", "init")
+    old = (pa.SITE, pa.POSTS_DIR, pa.DRAFTS_DIR)
+    pa.SITE, pa.POSTS_DIR, pa.DRAFTS_DIR = site, posts, drafts
+
+    def run(fn, args):
+        buffer = io.StringIO()
+        with contextlib.redirect_stdout(buffer):
+            code = fn(args)
+        return code, buffer.getvalue()
+    try:
+        code, text = run(pa._run_prepare_revise, [slug])
+        results.append(("posts が HEAD と同じ → --prepare-revise は止めない", code == 0 and "L096" not in text, text[-300:]))
+        _write(os.path.join(posts, slug + ".md"), article.replace("本文です。", "posts側を直接書き換えた本文です。"))
+        _write(os.path.join(drafts, slug + ".md"), article.replace("本文です。", "下書きで直した本文です。"))
+        code, text = run(pa._run_prepare_revise, [slug])
+        results.append(("posts が HEAD と違う → --prepare-revise は止まる・戻し方を表示",
+                        code == 1 and "L096" in text and "--prepare-revise %s からやり直" % slug in text, text[-400:]))
+        code, text = run(pa._run_revise, [slug, "--dry-run"])
+        results.append(("posts が HEAD と違う → --revise（--dry-run）も止まる",
+                        code == 1 and "L096" in text and "公開前チェック群" not in text, text[-400:]))
+        code, text = run(pa._run_revise, [slug])
+        with open(os.path.join(posts, slug + ".md"), encoding="utf-8") as f:
+            still = "posts側を直接書き換えた" in f.read()
+        log = g("log", "--oneline").stdout.decode("utf-8", "replace").strip().splitlines()
+        results.append(("posts が HEAD と違う → --revise（本番）も止まり、コピー・commit をしない",
+                        code == 1 and "L096" in text and still and len(log) == 1, text[-300:]))
+    finally:
+        pa.SITE, pa.POSTS_DIR, pa.DRAFTS_DIR = old
+
+
 def case_b(results):
     pa = _load("publish-article.py")
     today = date(2031, 10, 25)
@@ -441,6 +691,7 @@ def main():
         case_b_dry_run(results)
         case_c(results)
         case_d(results)
+        case_e(results, root)
     finally:
         shutil.rmtree(root, ignore_errors=True)
     failed = 0

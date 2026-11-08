@@ -97,8 +97,24 @@
   python site/scripts/check-fact-source.py <slug> --revise   改修用（型4〜9は【警告】で通す）
   python site/scripts/check-fact-source.py --calibrate 較正モード（公開済み全件）
   python site/scripts/check-fact-source.py --survey-xy / --survey-new [N]（上記）
+  python site/scripts/check-fact-source.py <slug> --advice   保存・衛生・安全・手入れの助言の候補（下記）
+  python site/scripts/check-fact-source.py <slug> --advice-record <hash> source <URL>
+  python site/scripts/check-fact-source.py <slug> --advice-record <hash> not_advice <理由>
+  python site/scripts/check-fact-source.py --survey-advice   公開済み全記事の処置の無い候補の件数（読み取りのみ）
 
-終了コード: 通常モード OK=0 / 違反あり=1、較正モードは常に0
+助言の候補と処置（L097・D-0328。新規公開・--revise の両方でNG。publish-article.py が --advice を公開前チェックの1本として呼ぶ）:
+  型11の語彙に頼らず、ブロック（段落・箇条書きの1項目・表の1行）単位で、話題の語（ADVICE_TOPIC: 保存・冷蔵・
+  湿気・洗う・電子レンジ・耐熱・乳児・熱湯・注意等）と助言の述語（ADVICE_PREDICATE: ください・避け・ません・
+  目安・使える等）が揃うものを候補にする。話題の語と述語は同じブロックの別の文でもよい。リンク文字・URL・
+  見出し行は照合しない。出典URLのあるブロックも自動では処置済みにしない。
+  処置は data/advice-dispositions.tsv（slug・ブロック本文のハッシュ・先頭40字・処置・出典URLまたは理由・記録日）に
+  --advice-record で1行足す。台帳を直接編集しない。source は、URLが記事の本文にあり、data/webfetch-log.md に
+  記録があるときだけ記録できる（check-source-fetched.py と同じ照合）。判定のときも、source のURLが本文から
+  消えていれば処置の無い候補に戻す。本文が変わってハッシュが合わなくなった行は無視する（消さない）。
+  削除した候補はブロックごと無くなるため記録は要らない。型1〜13の判定・終了コードは変えない。
+
+終了コード: 通常モード OK=0 / 違反あり=1、較正モードは常に0。--advice は OK=0 / 処置の無い候補あり=1、
+  --advice-record は 記録=0 / 記録できない=1
 """
 
 import glob
@@ -823,6 +839,235 @@ def excerpt(text):
     return flat[:EXCERPT_CHARS]
 
 
+# --- 保存・衛生・安全・手入れの助言の候補と処置（L097・D-0328） --------------------------
+# 型11の語彙に頼らず、助言らしいブロックを広く拾い、ブロックごとに処置（source／not_advice）を
+# data/advice-dispositions.tsv に記録させる。台帳を読み書きするのはこのスクリプトのサブコマンドだけ。
+# 候補: ブロック（段落・箇条書きの1項目・表の1行）に、話題の語（ADVICE_TOPIC）があり、かつ疑問文でない
+#   文のどれかに助言の述語（ADVICE_PREDICATE）がある（話題の語と述語は別の文でもよい）。
+#   リンク文字・URL・見出し行は照合しない。出典URLがあっても自動で処置済みにしない。
+ADVICE_DISPOSITIONS_PATH = os.path.join(ROOT, "data", "advice-dispositions.tsv")
+ADVICE_HEADER = ["slug", "hash", "head40", "disposition", "source_or_reason", "recorded"]
+ADVICE_KINDS = ("source", "not_advice")
+# 話題の語（指示の語＋一般的な名詞）。直前の設計調査の「案A-一般」の語彙
+ADVICE_TOPIC = re.compile(
+    r"保存|常温|冷蔵|湿気|洗[うっいえわ]|すす[ぐいが]|浸け置|つけ置|漬け置|漂白|重曹|電子レンジ|食洗機|金彩|耐熱|割れ"
+    r"|やけど|期限|子ども|子供"
+    r"|冷凍|直射日光|高温多湿|カビ|衛生|雑菌|菌|傷[みむまん]|腐|乳児|乳幼児|赤ちゃん|妊娠|授乳|熱湯|煮沸|賞味|劣化"
+    r"|匂い移り|においうつり|収納|変色|ひび|欠け|密閉|開封|ペット|直火|オーブン|加熱|火傷|手洗い|スポンジ|研磨|日持ち"
+    r"|作り置き|安全|危険|注意")
+# 助言の述語（勧め・禁止・可否・判断・条件）
+ADVICE_PREDICATE = re.compile(
+    r"ください|ましょう|しょう|ません|ない[でよ]?|ず[、。に]|ずに|避け|控え|おすすめ|お勧め|推奨|安心|大丈夫|無難|目安|おそれ|恐れ"
+    r"|注意|必要|できます|使えます|使える|向いて|適して|ように|ほうが|方が|守|防|以内|前に|てから|べき|基本|確認|確かめ"
+    r"|しやす|にく[いく]|やすい|強い|弱い|NG|OK|可能|不可|します|ます$")
+RE_TABLE_ROW = re.compile(r"^\s*\|")
+RE_TABLE_SEPARATOR = re.compile(r"^\s*\|?\s*:?-{2,}:?\s*(?:\|\s*:?-{2,}:?\s*)*\|?\s*$")
+
+
+def advice_blocks(unit):
+    """判定単位を、段落・箇条書きの1項目・表の1行のブロックに分ける（表の区切り行は除く）。"""
+    out = []
+    for sub in safety_sub_units(unit):
+        current = []
+        for item in sub:
+            line = item[1]
+            if RE_TABLE_ROW.match(line):
+                if current:
+                    out.append(current)
+                    current = []
+                if not RE_TABLE_SEPARATOR.match(line):
+                    out.append([item])
+                continue
+            current.append(item)
+        if current:
+            out.append(current)
+    return out
+
+
+def advice_block_text(block):
+    """ハッシュと照合に使うブロック本文（見出し行を除き、各行の前後の空白を落として改行でつなぐ）。"""
+    return "\n".join(line.strip() for _, line in block
+                     if line.strip() and not line.lstrip().startswith("#"))
+
+
+def advice_hash(text):
+    import hashlib
+    return hashlib.sha1(text.encode("utf-8")).hexdigest()[:12]
+
+
+def is_advice_candidate(text):
+    """ブロック本文が助言らしい（話題の語＋助言の述語）か。"""
+    lines = [RE_MD_LINK_FULL.sub(" ", line) for line in RE_URL.sub(" ", text).split("\n")]
+    plain = "\n".join(lines)
+    if not ADVICE_TOPIC.search(plain):
+        return False
+    for line in lines:
+        for sentence in RE_SENTENCE_PARTS.findall(line):
+            sentence = sentence.strip()
+            if sentence and sentence[-1] not in "？?" and ADVICE_PREDICATE.search(sentence):
+                return True
+    return False
+
+
+def advice_candidates(path):
+    """記事全体の候補を [{line, hash, head, text}] で返す（同じ本文のブロックは1件にまとめる）。"""
+    front, body = split_frontmatter(io_read(path))
+    body_start_line = len(front.splitlines()) + 3 if front else 1
+    out, seen = [], set()
+    for unit in build_units(body, body_start_line):
+        for block in advice_blocks(unit):
+            text = advice_block_text(block)
+            if not text or not is_advice_candidate(text):
+                continue
+            h = advice_hash(text)
+            if h in seen:
+                continue
+            seen.add(h)
+            line = next((n for n, l in block if l.strip() and not l.lstrip().startswith("#")), block[0][0])
+            out.append({"line": line, "hash": h, "head": excerpt(text), "text": text})
+    return out
+
+
+def _source_fetched_module():
+    """check-source-fetched.py の照合（normalize・load_log・article_urls）を再利用する。"""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(
+        "check_source_fetched", os.path.join(os.path.dirname(os.path.abspath(__file__)), "check-source-fetched.py"))
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def load_advice_dispositions(path=None):
+    """台帳を {(slug, hash): 行の辞書} で返す（同じ組は後の行が勝つ）。台帳が無ければ空。"""
+    path = path or ADVICE_DISPOSITIONS_PATH
+    rows = {}
+    if not os.path.isfile(path):
+        return rows
+    with open(path, encoding="utf-8") as f:
+        for raw in f.read().splitlines():
+            cols = raw.split("\t")
+            if len(cols) < len(ADVICE_HEADER) or cols[0] == ADVICE_HEADER[0] or raw.startswith("#"):
+                continue
+            row = dict(zip(ADVICE_HEADER, cols))
+            rows[(row["slug"], row["hash"])] = row
+    return rows
+
+
+def undisposed_advice(path, slug, dispositions=None):
+    """処置の無い候補を返す。source の処置は、その出典URLが今も記事の本文にあるときだけ数える。
+    本文が変わってハッシュが合わなくなった台帳の行は無視する（消さない）。"""
+    if dispositions is None:
+        dispositions = load_advice_dispositions()
+    sf = None
+    body_urls = None
+    out = []
+    for cand in advice_candidates(path):
+        row = dispositions.get((slug, cand["hash"]))
+        if row and row["disposition"] == "not_advice":
+            continue
+        if row and row["disposition"] == "source":
+            if sf is None:
+                sf = _source_fetched_module()
+                body_urls = {sf.normalize(u) for u in sf.article_urls(split_frontmatter(io_read(path))[1])}
+            if sf.normalize(row["source_or_reason"]) in body_urls:
+                continue
+            cand = dict(cand, note="記録した出典URLが本文にありません")
+        out.append(cand)
+    return out
+
+
+def run_advice_gate(slug):
+    """<slug> --advice: 処置の無い候補が1件でもあれば NG（終了コード1）。公開前チェック（新規・--revise）の1本。"""
+    path = resolve_path(slug)
+    if path is None:
+        print(f"見つかりません: output/articles/{slug}.md / site/src/content/posts/{slug}.md")
+        return 1
+    remaining = undisposed_advice(path, slug)
+    total = len(advice_candidates(path))
+    if not remaining:
+        print("ADVICE_OK（候補 %d件・すべて処置済み）" % total)
+        return 0
+    print("処置の無い保存・衛生・安全・手入れの助言の候補: %d件 / 候補 %d件（L097）" % (len(remaining), total))
+    for cand in remaining:
+        note = "〔%s〕" % cand["note"] if cand.get("note") else ""
+        print("  L%d [%s] %s%s" % (cand["line"], cand["hash"], cand["head"], note))
+    print("各候補に処置を1つ記録してください（<>の中を埋めて、そのまま実行できます）:")
+    for cand in remaining:
+        print("  # L%d %s" % (cand["line"], cand["head"]))
+        print("  python site/scripts/check-fact-source.py %s --advice-record %s source <本文にあるWebFetch済みの出典URL>"
+              % (slug, cand["hash"]))
+        print("  python site/scripts/check-fact-source.py %s --advice-record %s not_advice <助言ではない理由>"
+              % (slug, cand["hash"]))
+    print("source: 公的機関・メーカーの出典URL（記事の本文にあり、data/webfetch-log.md に記録があるもの）。"
+          "not_advice: 保存・衛生・安全・手入れの助言ではない（商品の仕様の説明・淹れ方の手順等）。"
+          "助言なのに出典を置けない場合は、ブロックごと削除する（削除した候補は記録が要らない）")
+    return 1
+
+
+def run_advice_record(slug, digest, kind, value):
+    """<slug> --advice-record <hash> <source|not_advice> <URLまたは理由>: 台帳に1行足す。"""
+    path = resolve_path(slug)
+    if path is None:
+        print(f"見つかりません: output/articles/{slug}.md / site/src/content/posts/{slug}.md")
+        return 1
+    if kind not in ADVICE_KINDS:
+        print("処置は source か not_advice のどちらかです: %s" % kind)
+        return 1
+    value = re.sub(r"[\t\r\n]+", " ", value).strip()
+    if not value:
+        print("出典URLまたは理由が空です")
+        return 1
+    cand = next((c for c in advice_candidates(path) if c["hash"] == digest), None)
+    if cand is None:
+        print("このハッシュの候補は %s にありません: %s（本文が変わった場合は --advice で取り直す）" % (slug, digest))
+        return 1
+    if kind == "source":
+        sf = _source_fetched_module()
+        url = value
+        if not re.match(r"\Ahttps?://\S+\Z", url) or RE_AFFILIATE.match(url):
+            print("出典はアフィリエイトでない http(s) のURLを1つだけ書いてください: %s" % url)
+            return 1
+        body_urls = {sf.normalize(u) for u in sf.article_urls(split_frontmatter(io_read(path))[1])}
+        if sf.normalize(url) not in body_urls:
+            print("このURLは記事の本文にありません: %s（本文に出典として書いてから記録する）" % url)
+            return 1
+        _start, fetched = sf.load_log()
+        if fetched is None:
+            print("data/webfetch-log.md が無いため、WebFetchの記録を確かめられません")
+            return 1
+        if sf.normalize(url) not in fetched:
+            print("このURLは data/webfetch-log.md に記録がありません: %s（WebFetch で取得してから記録する）" % url)
+            return 1
+    from datetime import datetime, timedelta, timezone
+    recorded = datetime.now(timezone(timedelta(hours=9))).strftime("%Y-%m-%d")
+    new_file = not os.path.isfile(ADVICE_DISPOSITIONS_PATH)
+    with open(ADVICE_DISPOSITIONS_PATH, "a", encoding="utf-8", newline="\n") as f:
+        if new_file:
+            f.write("\t".join(ADVICE_HEADER) + "\n")
+        f.write("\t".join([slug, digest, cand["head"].replace("\t", " "), kind, value, recorded]) + "\n")
+    print("ADVICE_RECORDED %s %s %s" % (slug, digest, kind))
+    return 0
+
+
+def run_survey_advice():
+    """--survey-advice: 公開済み全記事の、処置の無い候補の件数（合計・中央値・最大・上位5記事）を出す（読み取りのみ）。"""
+    dispositions = load_advice_dispositions()
+    per = []
+    for path in sorted(glob.glob(os.path.join(POSTS_DIR, "*.md"))):
+        if not is_published(path):
+            continue
+        slug = os.path.splitext(os.path.basename(path))[0]
+        per.append((slug, len(undisposed_advice(path, slug, dispositions))))
+    counts = [n for _, n in per]
+    print("ADVICE_SURVEY 記事 %d本 / 処置の無い候補 合計 %d件 / 中央値 %s / 最大 %d / 0件の記事 %d本" % (
+        len(per), sum(counts), statistics.median(counts) if counts else 0, max(counts) if counts else 0,
+        sum(1 for n in counts if n == 0)))
+    for slug, n in sorted(per, key=lambda x: (-x[1], x[0]))[:TOP_ARTICLES]:
+        print("  %d件  %s" % (n, slug))
+    return 0
+
+
 def check_article(path, slug, with_xy=False):
     """1記事を検査し、(違反リスト, 例外適用前のB該当単位数) を返す。"""
     text = io_read(path)
@@ -1108,6 +1353,12 @@ def main():
     args = sys.argv[1:]
     if len(args) == 2 and args[1] == "--revise" and not args[0].startswith("-"):
         return run_single(args[0], revise=True)
+    if len(args) == 2 and args[1] == "--advice" and not args[0].startswith("-"):
+        return run_advice_gate(args[0])
+    if len(args) >= 5 and args[1] == "--advice-record" and not args[0].startswith("-"):
+        return run_advice_record(args[0], args[2], args[3], " ".join(args[4:]))
+    if args == ["--survey-advice"]:
+        return run_survey_advice()
     if args[:1] == ["--survey-new"] and len(args) in (1, 2):
         return run_survey_new(int(args[1]) if len(args) == 2 else 10)
     if len(args) != 1:
