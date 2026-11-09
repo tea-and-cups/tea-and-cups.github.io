@@ -1,9 +1,9 @@
 ---
-title: 茶葉のグレードの読み方｜OP・BOP・CTC・ファニングスの意味と抽出時間の目安
+title: OP・BOP・CTCの意味は？紅茶の茶葉の大きさと形状の読み方
 slug: chaba-grade-op-bop-ctc-yomikata
 date: 2026-09-02
-updated: 2026-09-02
-description: 紅茶のパッケージにある「OP」「BOP」「CTC」「ファニングス」は品質の格付けではなく、茶葉の大きさや形状を表す等級（グレード）です。それぞれの略号の意味、リーフとブロークンの違い、CTCが製法の名前であること、グレード別の抽出時間の目安までをまとめて解説します。
+updated: 2026-11-10
+description: 紅茶のパッケージにある「OP」「BOP」「CTC」「ファニングス」は品質の格付けではなく、茶葉の大きさや形状を表す表示です。略号の意味、リーフとブロークンの違い、CTCが製法名であること、抽出時間の目安を整理しました。
 tags: [紅茶, 茶葉, 入門]
 hero: /images/chaba-grade-op-bop-ctc-yomikata/hero.webp
 status: published
@@ -32,7 +32,7 @@ category: tea-leaves
 
 ## ブロークングレード：砕いた茶葉（BOP）
 
-リーフグレードの茶葉を細かくカットしたグループが「ブロークングレード」です。代表格の **BOP（ブロークン・オレンジ・ペコー）** は2〜3mm程度で、日本で「セイロン紅茶」として袋売りされている茶葉の多くがこのグレードにあたります。
+リーフグレードの茶葉を細かくカットしたグループが「ブロークングレード」です。代表格の **BOP（ブロークン・オレンジ・ペコー）** は2〜3mm程度で、「セイロン紅茶」として袋売りされている茶葉にも、このグレードのものがあります。
 
 砕いてあるぶん湯に触れる面積が大きく、2〜3分で濃い水色と強めのコクが出ます。ミルクティーやアイスティーのように味をしっかり出したいときに扱いやすいグレードです。さらに細かいものは **BOPF（ブロークン・オレンジ・ペコー・ファニングス）** と表記されます。ミルクティー向けの茶葉選びは[ミルクティーに合う茶葉の選び方](/posts/milktea-chaba-milk-hikaku/)も参考にしてください。
 
@@ -54,20 +54,20 @@ category: tea-leaves
 |---|---|---|---|
 | リーフ（OP・FOPなど） | 大きめ・よれた形 | 3〜5分 | ストレートでゆっくり |
 | ブロークン（BOP・BOPF） | 2〜3mmに砕いた形 | 2〜3分 | ミルクティー・アイスティー |
-| ファニングス・ダスト | 1mm以下の細かい粒 | 1〜2分 | 手早く一杯・ティーバッグ |
+| ファニングス・ダスト | 1mm前後以下の細かい粒 | 1〜2分 | 手早く一杯・ティーバッグ |
 | CTC（製法名） | 均一な粒状 | 2〜3分 | チャイ・ラテ・濃いミルクティー |
 
 同じ産地の茶葉でも、パッケージのグレード表示を見れば「長めに蒸らすタイプか、短時間で濃く出るタイプか」の見当がつきます。
 
 ## グレードを意識して茶葉を選ぶ
 
-同じ湯温で淹れた場合、グレードの違いは抽出中の様子に表れます。リーフグレードは成分がゆっくり出るため3〜5分かけて抽出し、ブロークンやCTCは2〜3分の短時間で濃い水色とコクが出ます。以下ではリーフ・ブロークン・CTCそれぞれの代表的な茶葉を挙げます（紹介トーンはスコアリング結果に基づいています）。
+一般に、グレードの違いは抽出の進み方に表れるといわれます。リーフグレードは成分がゆっくり出るため3〜5分かけて抽出し、ブロークンやCTCは2〜3分の短時間で濃い水色とコクが出る傾向があります。以下ではリーフ・ブロークン・CTCそれぞれの代表的な茶葉を挙げます。
 
 **リーフグレードを試すなら**
 
 [![セイロンティー 有機JAS 高地栽培 ヌワラエリヤ リーフ 100g](/images/chaba-grade-op-bop-ctc-yomikata/products/2.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824d785.9fe8c8b2.5824d786.c43de289/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Ftomoshop-honten%2Fsp-888043%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.85（27件） [セイロンティー 有機JAS ヌワラエリヤ リーフ 100gはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824d785.9fe8c8b2.5824d786.c43de289/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Ftomoshop-honten%2Fsp-888043%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
+★4.86（28件） [セイロンティー 有機JAS ヌワラエリヤ リーフ 100gはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824d785.9fe8c8b2.5824d786.c43de289/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Ftomoshop-honten%2Fsp-888043%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 高地栽培のセイロン茶葉を大きめのリーフの状態で味わえます。ストレートで3〜5分ほどかけて抽出し、香りの立ち方を確かめてみてください。
 
@@ -81,7 +81,7 @@ BOP表記の代表的な2産地をまとめて試せるセットです。2〜3�
 
 **CTCを試すなら**
 
-★4.63（981件） [サンタローサ 有機JAS アッサム CTC 100gはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824d6ad.80b48201.5824d6ae.97ea73a9/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fsantarosa%2Fsr_assam%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
+★4.63（993件） [サンタローサ 有機JAS アッサム CTC 100gはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824d6ad.80b48201.5824d6ae.97ea73a9/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fsantarosa%2Fsr_assam%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 粒状に加工したアッサムのCTCです。少なめの湯で濃く出してミルクを多めに合わせると、CTCらしいコクが分かりやすくなります。
 
@@ -94,7 +94,7 @@ BOP表記の代表的な2産地をまとめて試せるセットです。2〜3�
 チップを多く含むグレードや大きい茶葉を選別するには手間がかかるため、価格に差が出ることがあります。飲みやすさとは別の基準だと考えてください。
 
 **Q. ティーバッグは茶葉が悪いから細かいのですか？**
-細かいのは短時間で抽出するための形状で、品質が低いからではありません。近年は大きめの茶葉を三角のティーバッグに詰めた製品も増えています。
+細かいのは短時間で抽出するための形状で、品質が低いからではありません。大きめの茶葉を三角のティーバッグに詰めた製品もあります。
 
 **Q. リーフとブロークンで淹れ方はどう変えればいいですか？**
 基本の湯量と茶葉の量は同じで、蒸らし時間だけを調整します。大きい茶葉ほど長め、細かいほど短めが基本で、具体的な目安は上の早見表を参考にしてください。
