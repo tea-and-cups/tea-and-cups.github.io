@@ -1,9 +1,9 @@
 ---
-title: 紅茶の基本の淹れ方｜茶葉の量・湯温・蒸らし時間の目安（ゴールデンルール）
+title: 紅茶の基本の淹れ方｜茶葉1杯・熱湯150ml・蒸らし3分の目安
 slug: koucha-kihon-no-irekata
 date: 2026-09-08
-updated: 2026-11-01
-description: 紅茶をおいしく淹れる基本を、茶葉の量・お湯の温度と水・蒸らし時間の3点にしぼって整理しました。「ゴールデンルール」と呼ばれる目安をもとに、リーフティーとティーバッグそれぞれの手順、そろえると失敗しにくい道具まで、はじめての方向けにまとめています。
+updated: 2026-11-11
+description: 茶葉はティースプーン1杯（約2〜3g）、お湯は沸かしたての熱湯を1杯150〜160ml、蒸らしは茶葉の大きさで2分半〜4分が基本の目安です。リーフティーとティーバッグの手順、ゴールデンルール、そろえると失敗しにくい道具まで、はじめての方向けにまとめました。
 tags: [紅茶, 淹れ方, 入門]
 hero: /images/koucha-kihon-no-irekata/hero.webp
 status: published
@@ -18,7 +18,7 @@ category: how-to
 
 ## 紅茶の「ゴールデンルール」とは
 
-紅茶をおいしく淹れるための基本の心得は、一般に「ゴールデンルール」と呼ばれ、日本紅茶協会などが次のような要点で紹介しています。細かい数字は諸説あり、茶葉やお好みで前後しますが、はじめの目安として押さえておくと役立ちます。
+紅茶をおいしく淹れるための基本の心得は、一般に「ゴールデンルール」と呼ばれ、次のような要点で紹介されることが多いです。細かい数字は諸説あり、茶葉やお好みで前後しますが、はじめの目安として押さえておくと役立ちます。
 
 - **質のよい茶葉を使う** — 開封後の保存について、リプトンは「高温多湿を避け、暗所で保存」するよう案内しています（出典: [よくあるご質問／リプトン](https://www.lipton.jp/ja/FAQ/)）。保存の見極めは[紅茶の賞味期限と風味の見極め方](/posts/koucha-shomikigen-kireta-fuumi-mikiwame/)を参考にしてください。
 - **ポットとカップを温めておく** — 器が冷たいと湯温が下がり、抽出が浅くなりがちです。
@@ -64,6 +64,8 @@ category: how-to
 
 ## リーフティーの淹れ方（手順）
 
+熱湯を扱うので、やけどに注意してください。小さなお子さんのいるご家庭では、電気ケトルやポットを手の届かない場所で使うよう消費者庁が案内しています（出典: [消費者庁 子ども安全メール](https://www.caa.go.jp/policies/policy/consumer_safety/child/project_001/mail/20210917/)）。
+
 1. **ポットとカップに熱湯を入れて温め**、直前に湯を捨てる。
 2. 人数分の茶葉（1人分ティースプーン1杯）をポットに入れる。
 3. 沸かしたての熱湯を、1杯あたり150〜160mlの割合で**勢いよく注ぐ**。
@@ -103,9 +105,9 @@ category: how-to
 
 [![レデッカー ティータイマー 砂時計 3分計](/images/koucha-kihon-no-irekata/products/3.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824e479.9a2d1f4e.5824e47a.13a6f97a/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fchloros%2F190809038%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.83（6件） [レデッカー ティータイマー 3分計はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824e479.9a2d1f4e.5824e47a.13a6f97a/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fchloros%2F190809038%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
+★4.5（8件） [レデッカー ティータイマー 3分計はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824e479.9a2d1f4e.5824e47a.13a6f97a/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fchloros%2F190809038%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-ドイツのブラシメーカーとして知られるレデッカーの木製ティータイマーです。評価は安定していて、この価格帯では手堅い選択肢です。3分を基準に、茶葉の大きさで前後を調整してください。
+ドイツのブラシメーカーとして知られるレデッカーの木製ティータイマーです。評価は高めですが、レビュー件数は多くありません。3分を基準に、茶葉の大きさで前後を調整してください。
 
 ### 基本の練習に向く定番のリーフティー — まず1缶をきちんと淹れてみたい方に
 
