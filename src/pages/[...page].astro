@@ -58,7 +58,7 @@ const description = isFirst ? '紅茶を「なんとなく」から「自分で�
 
     <section class="section"><div class="container pinterest-grid"><div><p class="eyebrow">Pinterest</p><h2 class="section-title">毎日の一杯を、Pinterestでも。</h2><p class="section-lead">季節のティータイムや器の選び方を、写真でも紹介しています。</p><a class="btn btn--ghost" href="https://jp.pinterest.com/kohakujikan/" target="_blank" rel="noopener">Pinterestを見る ↗<span class="visually-hidden">（新しいタブで開きます）</span></a></div><div class="pin-strip">{pinImages.map((src) => <img src={src} alt="" loading="lazy" />)}</div></div></section>
 
-    <section class="final-cta"><img src={`/images/${firstSteps[0].post.data.slug}/hero.webp`} alt="紅茶を淹れる手元" width="1200" height="630" loading="lazy" /><div class="final-cta__copy"><p class="eyebrow">最初の一杯</p><h2>さあ、最初の一杯を。</h2><p>どこから始めればいいか迷ったら、淹れ方の基本から。</p><a class="btn btn--primary" href={`/posts/${firstSteps[0].post.data.slug}/`}>淹れ方の基本から読む →</a></div></section>
+    <section class="final-cta"><div class="container final-cta__inner"><img src={`/images/${firstSteps[0].post.data.slug}/hero.webp`} alt="紅茶を淹れる手元" width="1200" height="630" loading="lazy" /><div class="final-cta__copy"><p class="eyebrow">最初の一杯</p><h2>さあ、最初の一杯を。</h2><p>どこから始めればいいか迷ったら、淹れ方の基本から。</p><a class="btn btn--primary" href={`/posts/${firstSteps[0].post.data.slug}/`}>淹れ方の基本から読む →</a></div></div></section>
   </Fragment> : <section class="archive-page"><div class="container"><p class="eyebrow">記事一覧 <em>Stories</em></p><h1>記事一覧（{page.currentPage}ページ目）</h1><ul class="post-list">{recent.map((post) => <PostCard post={post} />)}</ul><Pagination page={pagination} /></div></section>}
 
   {isFirst && <script is:inline>
@@ -66,17 +66,31 @@ const description = isFirst ? '紅茶を「なんとなく」から「自分で�
       const hero=document.querySelector('.hero'),canvas=hero?.querySelector('.hero__canvas'),img=hero?.querySelector('.hero__img'); if(!hero||!canvas||!img||!canvas.getContext)return;
       const reduced=matchMedia('(prefers-reduced-motion:reduce)').matches,navigatorConnection=navigator.connection||{}; if(reduced||navigatorConnection.saveData)return;
       const portrait=matchMedia('(max-width:767px)'),dir=portrait.matches?'portrait':'landscape',ctx=canvas.getContext('2d');
-      const total=150,frameMs=1000/24,lookAhead=6,pending=new Map(); let last=null,stopped=false;
+      if(!window.createImageBitmap||!window.fetch)return;
+      /* 先読み: ahead枚先までをImageBitmap(展開済み)にして並列取得。再生はrAF＋経過時間でフレーム番号を決める */
+      const total=150,frameMs=1000/24,ahead=12,conc=4,startBuffer=6,bitmaps=new Map(); let last=null,stopped=false,failed=false,nextFetch=1,inflight=0,cur=0,t0=null,prevTick=0;
       const src=(n)=>`/hero/full/${dir}/frame_${String(n).padStart(4,'0')}.webp`;
-      const load=(n)=>{if(!pending.has(n)){pending.set(n,new Promise((ok,no)=>{const x=new Image();x.decoding='async';x.onload=()=>ok(x);x.onerror=no;x.src=src(n)}))}return pending.get(n)};
+      const drop=(upTo)=>{for(const [n,b] of bitmaps){if(n<upTo){b.close();bitmaps.delete(n)}}};
+      const pump=()=>{while(!stopped&&!failed&&inflight<conc&&nextFetch<=total&&nextFetch<cur+ahead){const n=nextFetch++;inflight++;fetch(src(n)).then((r)=>{if(!r.ok)throw new Error(r.status);return r.blob()}).then((b)=>createImageBitmap(b)).then((b)=>{if(stopped||n<=cur){b.close()}else{bitmaps.set(n,b)}},()=>{failed=true}).finally(()=>{inflight--;pump()})}};
       const resize=()=>{const d=Math.min(devicePixelRatio||1,2),w=Math.round(canvas.clientWidth*d),h=Math.round(canvas.clientHeight*d);if(w===canvas.width&&h===canvas.height)return;canvas.width=w;canvas.height=h};
-      const paint=(x)=>{resize();const s=Math.max(canvas.width/x.naturalWidth,canvas.height/x.naturalHeight),w=x.naturalWidth*s,h=x.naturalHeight*s;ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(x,(canvas.width-w)/2,(canvas.height-h)/2,w,h);last=x};
-      const wait=(ms)=>new Promise((ok)=>setTimeout(ok,ms));
-      const play=async()=>{for(let n=1;n<=total&&!stopped;n++){for(let i=n;i<=Math.min(total,n+lookAhead-1);i++)load(i);const started=performance.now(),frame=await load(n);if(stopped)return;paint(frame);hero.classList.add('is-poured');pending.delete(n);await wait(Math.max(0,frameMs-(performance.now()-started)))}pending.clear()};
-      const start=()=>{if(document.hidden||scrollY>hero.offsetHeight)return;const idle=window.requestIdleCallback||((cb)=>setTimeout(cb,250));idle(()=>play().catch(()=>{hero.classList.remove('is-poured');pending.clear()}),{timeout:1200})};
+      const paint=(x)=>{resize();const s=Math.max(canvas.width/x.width,canvas.height/x.height),w=x.width*s,h=x.height*s;ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(x,(canvas.width-w)/2,(canvas.height-h)/2,w,h);last=x};
+      const tick=(now)=>{
+        if(stopped)return;
+        if(failed){if(!last)hero.classList.remove('is-poured');return}
+        if(t0===null){let ready=true;for(let n=1;n<=Math.min(total,startBuffer);n++)if(!bitmaps.has(n))ready=false;if(ready){t0=now}else{requestAnimationFrame(tick);return}}
+        const dt=now-prevTick;prevTick=now;
+        if(dt>250)t0+=dt; /* タブ非表示などで長く止まった分は進めない */
+        const want=Math.min(total,Math.floor((now-t0)/frameMs)+1);
+        let k=cur;while(k<want&&bitmaps.has(k+1))k++;
+        if(k<want&&!bitmaps.has(k+1))t0+=dt; /* 次のコマが未取得の間は時計を止める（コマ飛びではなく待つ） */
+        if(k>cur){paint(bitmaps.get(k));hero.classList.add('is-poured');drop(k);cur=k;pump()}
+        if(cur>=total){drop(total);return}
+        requestAnimationFrame(tick);
+      };
+      const start=()=>{if(document.hidden||scrollY>hero.offsetHeight)return;const idle=window.requestIdleCallback||((cb)=>setTimeout(cb,250));idle(()=>{pump();prevTick=performance.now();requestAnimationFrame(tick)},{timeout:1200})};
       if(document.readyState==='complete')start();else addEventListener('load',start,{once:true});
-      addEventListener('pagehide',()=>{stopped=true;pending.clear()},{once:true});
-      addEventListener('resize',()=>requestAnimationFrame(()=>{if(portrait.matches!==(dir==='portrait')){stopped=true;hero.classList.remove('is-poured');pending.clear();return}if(last)paint(last)}));
+      addEventListener('pagehide',()=>{stopped=true;bitmaps.clear()},{once:true});
+      addEventListener('resize',()=>requestAnimationFrame(()=>{if(portrait.matches!==(dir==='portrait')){stopped=true;hero.classList.remove('is-poured');bitmaps.clear();return}if(last)paint(last)}));
     })();
   </script>}
 </BaseLayout>
