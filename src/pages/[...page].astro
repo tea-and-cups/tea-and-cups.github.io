@@ -39,7 +39,7 @@ const description = isFirst ? '紅茶を「なんとなく」から「自分で�
 <BaseLayout title={title} description={description} showRecentPosts={false} pageClass={isFirst ? 'home-page' : 'archive-page-body'}>
   {isFirst ? <Fragment>
     <section class="home-hero hero" aria-labelledby="hero-title">
-      <div class="hero__media"><picture><source media="(max-width:767px)" srcset="/hero/portrait/frame_01.webp" /><img class="hero__img" src="/hero/landscape/frame_01.webp" width="1600" height="900" alt="白磁のカップに、ポットから琥珀色の紅茶が注がれている" fetchpriority="high" /></picture><canvas class="hero__canvas" aria-hidden="true"></canvas></div><div class="hero__scrim" aria-hidden="true"></div>
+      <div class="hero__media"><picture><source media="(max-width:767px)" srcset="/hero/portrait/frame_01.webp" /><img class="hero__img" src="/hero/landscape/frame_01.webp" width="1600" height="900" alt="白磁のカップに、ポットから琥珀色の紅茶が注がれている" fetchpriority="high" /></picture><video class="hero__video" autoplay muted playsinline preload="auto" aria-hidden="true" tabindex="-1"></video></div><div class="hero__scrim" aria-hidden="true"></div>
       <div class="hero__inner"><div class="hero__titleblock"><h1 class="hero__title" id="hero-title">琥珀時間<span class="visually-hidden"> 紅茶とティーカップの読みもの</span></h1><p class="hero__eyebrow" aria-hidden="true">紅茶とティーカップの読みもの</p></div><div class="hero__copy"><p class="hero__kicker">なんとなく、で飲んでいた紅茶に。<br />産地と、淹れ方と、器のはなしを。</p><p class="hero__lead">自分の一杯を、<br />自分で選べるように。</p><div class="hero__cta"><a class="btn btn--primary" href="#first-steps">はじめての一杯を選ぶ →</a><a class="text-arrow" href="#recent">最近の記事を読む</a></div></div></div>
     </section>
     <div class="container"><p class="hero-note">イメージ画像</p></div>
@@ -63,34 +63,17 @@ const description = isFirst ? '紅茶を「なんとなく」から「自分で�
 
   {isFirst && <script is:inline>
     (() => {
-      const hero=document.querySelector('.hero'),canvas=hero?.querySelector('.hero__canvas'),img=hero?.querySelector('.hero__img'); if(!hero||!canvas||!img||!canvas.getContext)return;
-      const reduced=matchMedia('(prefers-reduced-motion:reduce)').matches,navigatorConnection=navigator.connection||{}; if(reduced||navigatorConnection.saveData)return;
-      const portrait=matchMedia('(max-width:767px)'),dir=portrait.matches?'portrait':'landscape',ctx=canvas.getContext('2d');
-      if(!window.createImageBitmap||!window.fetch)return;
-      /* 先読み: ahead枚先までをImageBitmap(展開済み)にして並列取得。再生はrAF＋経過時間でフレーム番号を決める */
-      const total=150,frameMs=1000/24,ahead=12,conc=4,startBuffer=6,bitmaps=new Map(); let last=null,stopped=false,failed=false,nextFetch=1,inflight=0,cur=0,t0=null,prevTick=0;
-      const src=(n)=>`/hero/full/${dir}/frame_${String(n).padStart(4,'0')}.webp`;
-      const drop=(upTo)=>{for(const [n,b] of bitmaps){if(n<upTo){b.close();bitmaps.delete(n)}}};
-      const pump=()=>{while(!stopped&&!failed&&inflight<conc&&nextFetch<=total&&nextFetch<cur+ahead){const n=nextFetch++;inflight++;fetch(src(n)).then((r)=>{if(!r.ok)throw new Error(r.status);return r.blob()}).then((b)=>createImageBitmap(b)).then((b)=>{if(stopped||n<=cur){b.close()}else{bitmaps.set(n,b)}},()=>{failed=true}).finally(()=>{inflight--;pump()})}};
-      const resize=()=>{const d=Math.min(devicePixelRatio||1,2),w=Math.round(canvas.clientWidth*d),h=Math.round(canvas.clientHeight*d);if(w===canvas.width&&h===canvas.height)return;canvas.width=w;canvas.height=h};
-      const paint=(x)=>{resize();const s=Math.max(canvas.width/x.width,canvas.height/x.height),w=x.width*s,h=x.height*s;ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(x,(canvas.width-w)/2,(canvas.height-h)/2,w,h);last=x};
-      const tick=(now)=>{
-        if(stopped)return;
-        if(failed){if(!last)hero.classList.remove('is-poured');return}
-        if(t0===null){let ready=true;for(let n=1;n<=Math.min(total,startBuffer);n++)if(!bitmaps.has(n))ready=false;if(ready){t0=now}else{requestAnimationFrame(tick);return}}
-        const dt=now-prevTick;prevTick=now;
-        if(dt>250)t0+=dt; /* タブ非表示などで長く止まった分は進めない */
-        const want=Math.min(total,Math.floor((now-t0)/frameMs)+1);
-        let k=cur;while(k<want&&bitmaps.has(k+1))k++;
-        if(k<want&&!bitmaps.has(k+1))t0+=dt; /* 次のコマが未取得の間は時計を止める（コマ飛びではなく待つ） */
-        if(k>cur){paint(bitmaps.get(k));hero.classList.add('is-poured');drop(k);cur=k;pump()}
-        if(cur>=total){drop(total);return}
-        requestAnimationFrame(tick);
-      };
-      const start=()=>{if(document.hidden||scrollY>hero.offsetHeight)return;const idle=window.requestIdleCallback||((cb)=>setTimeout(cb,250));idle(()=>{pump();prevTick=performance.now();requestAnimationFrame(tick)},{timeout:1200})};
+      const hero=document.querySelector('.hero'),video=hero?.querySelector('.hero__video'); if(!hero||!video)return;
+      const reduced=matchMedia('(prefers-reduced-motion:reduce)').matches,navigatorConnection=navigator.connection||{}; if(reduced||navigatorConnection.saveData){video.remove();return}
+      /* 動画(mp4)をそのまま再生。横長/縦長は既存の切替条件(767px)。自動再生できない場合はposter(=下のimg)のまま */
+      const portrait=matchMedia('(max-width:767px)'),dir=portrait.matches?'portrait':'landscape'; let stopped=false;
+      video.muted=true;
+      video.addEventListener('playing',()=>{if(!stopped)hero.classList.add('is-poured')},{once:true});
+      video.addEventListener('error',()=>{hero.classList.remove('is-poured')});
+      const start=()=>{if(document.hidden||scrollY>hero.offsetHeight)return;video.poster=`/hero/${dir}/frame_01.webp`;video.src=`/hero/hero-${dir}.mp4`;const p=video.play();if(p&&p.catch)p.catch(()=>{})};
       if(document.readyState==='complete')start();else addEventListener('load',start,{once:true});
-      addEventListener('pagehide',()=>{stopped=true;bitmaps.clear()},{once:true});
-      addEventListener('resize',()=>requestAnimationFrame(()=>{if(portrait.matches!==(dir==='portrait')){stopped=true;hero.classList.remove('is-poured');bitmaps.clear();return}if(last)paint(last)}));
+      addEventListener('pagehide',()=>{stopped=true;video.pause()},{once:true});
+      addEventListener('resize',()=>requestAnimationFrame(()=>{if(!stopped&&portrait.matches!==(dir==='portrait')){stopped=true;video.pause();hero.classList.remove('is-poured')}}));
     })();
   </script>}
 </BaseLayout>
