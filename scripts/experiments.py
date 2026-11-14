@@ -22,6 +22,9 @@ r"""Growth Agent の「元に戻せる実験」の台帳 data/experiments.tsv �
 
 adopt: 監査の「## 新しい実験の提案」節の ```tsv ブロックから、指定した提案番号の行だけを台帳へ足す。
   同じ「対象」に状態が実装待ち・実行中（継続判定済みを除く）の行があれば拒否する（S-0027 ②）。
+  search-ctr だけは記事単位（D-0332）: 範囲の slug= で 1〜2本を名指しし、同じ記事に実装待ち・実行中の行があれば拒否、
+  同じ週（月〜日・JST。根拠の採用日で判定・不採用の行は数えない）に採用した slug の合計が2本を超えれば拒否、
+  EX-IL1 の7本（FROZEN_SLUGS）は 2026-12-09 まで拒否する。
   ブロックの列（この順）: 提案番号(P-N)／種別／対象／内容／設定キー／設定値／範囲／主指標／判定までの日数
   （設定キー・設定値の「-」は空欄として読む）
   開始日=採用日の翌日、判定日=開始日＋日数。種別「設定」は実行中で入る（設定キーが KEYS に無ければ拒否）。
@@ -86,6 +89,19 @@ PROPOSAL_SECTION = "## 新しい実験の提案"
 STATES = ("実装待ち", "実行中", "標準", "戻し", "不採用")
 KINDS = ("設定", "ルール")
 TARGETS = ("pin-hook", "image-style", "post-text", "x-standalone", "search-ctr")
+# search-ctr だけは記事単位で同時に回せる（同じ記事は1つ）。週2本 = 1提案 2本まで・同じ週（月〜日・JST。
+# 週は根拠の「（YYYY-MM-DD採用）」の採用日で決める）に採用した slug の合計 2本まで（D-0332）。
+SEARCH_CTR = "search-ctr"
+SEARCH_CTR_PROPOSAL_MAX = 2
+SEARCH_CTR_WEEK_MAX = 2
+ADOPTED_ON_RE = re.compile(r"^採用: .*?（(\d{4}-\d{2}-\d{2})採用）")
+# EX-IL1（内部リンク実験・D-0324）の対象2本と比較用5本（reports/2026-11-07-2.md）。判定日 S-0032 の 2026-12-09
+# （その日を含む）まで search-ctr の対象にしない。title・description を変えると EX-IL1 の比較が崩れるため（D-0332）。
+_EX_IL1_UNTIL = dt.date(2026, 12, 9)
+FROZEN_SLUGS = {slug: _EX_IL1_UNTIL for slug in (
+    "mizudashi-koucha-hozon-eisei-qa", "koucha-shomikigen-kireta-fuumi-mikiwame",      # 対象
+    "koucha-mizu-nansui-kousui", "kimun-koucha-tanoshimikata", "monburan-kuri-sweets-koucha-erabikata",
+    "seiron-koucha-santi-kubun", "nilgiri-koucha-nyumon")}                              # 比較用
 # 主指標ごとの「判定までの日数」の下限（成果が出そろうまでの日数＋比べる期間）
 MIN_DAYS = {"pin-impr-14d": 21, "x-impr-7d": 14, "threads-views-7d": 14, "gsc-ctr-28d": 28}
 # 設定値を持てるキーの一覧。実験の採用時に足す（S-0027 ①では空）。
@@ -310,21 +326,99 @@ def _validate_proposal(p):
         raise ExperimentError("%s: 設定キー「%s」は KEYS に未登録です（実験の採用時に experiments.py の KEYS へ足す）"
                               % (pid, p["設定キー"]))
     parse_range(p["範囲"])
+    if p["対象"] == SEARCH_CTR:   # 記事単位・週2本まで（D-0332）。1提案は slug= で 1〜2本を名指しする
+        slugs = range_slugs(p["範囲"])
+        if not slugs:
+            raise ExperimentError("%s: search-ctr は範囲に slug= で記事を名指しする（1提案 %d 本まで）"
+                                  % (pid, SEARCH_CTR_PROPOSAL_MAX))
+        if len(slugs) > SEARCH_CTR_PROPOSAL_MAX:
+            raise ExperimentError("%s: search-ctr の1提案の記事は %d 本まで（%d 本: %s）"
+                                  % (pid, SEARCH_CTR_PROPOSAL_MAX, len(slugs), "・".join(slugs)))
     return days
 
 
+def range_slugs(text):
+    """範囲の slug= の値（出てきた順・重複なし）。slug の条件が無ければ []。"""
+    slugs = []
+    for dim, _op, values in parse_range(text):
+        if dim == "slug":
+            slugs += [v for v in values if v not in slugs]
+    return slugs
+
+
+def _busy_keys(target, range_text):
+    """busy_targets のキー。search-ctr は記事単位（「search-ctr:<slug>」・D-0332）。slug の無い search-ctr は
+    「search-ctr」（全記事）。ほかの対象は対象名そのもの。"""
+    if target != SEARCH_CTR:
+        return [target]
+    slugs = range_slugs(range_text)
+    return ["%s:%s" % (SEARCH_CTR, s) for s in slugs] or [SEARCH_CTR]
+
+
 def busy_targets(rows):
-    """状態が実装待ち・実行中の行がある対象 {対象: [実験ID]}（同じ対象の新しい実験は採用しない・S-0027 ②）。
+    """状態が実装待ち・実行中の行がある対象 {キー: [実験ID]}（同じ対象の新しい実験は採用しない・S-0027 ②）。
+    search-ctr だけは記事単位で数え、キーを「search-ctr:<slug>」にする（D-0332）。
     ルールの継続判定済み（標準化待ち）の行は実験が終わっているため数えない。"""
     busy = {}
     for row in rows:
         if row["状態"] == "実装待ち" or (row["状態"] == "実行中" and not row["判定"].startswith("継続")):
-            busy.setdefault(row["対象"], []).append(row["実験ID"])
+            for key in _busy_keys(row["対象"], row["範囲"]):
+                busy.setdefault(key, []).append(row["実験ID"])
     return busy
 
 
+def _adopted_on(row):
+    """台帳の行の採用日（根拠の先頭「採用: …（YYYY-MM-DD採用）」）。取れなければ None。"""
+    m = ADOPTED_ON_RE.match(row.get("根拠") or "")
+    if not m:
+        return None
+    try:
+        return _date(m.group(1))
+    except ValueError:
+        return None
+
+
+def _week_monday(day):
+    return day - dt.timedelta(days=day.weekday())
+
+
+def _check_search_ctr(p, rows, new_rows, today):
+    """search-ctr の提案の機械チェック（D-0332）: 凍結中の slug／同じ記事の実験／同じ週（月〜日）の合計 slug 数。
+    1提案の slug 数（1〜2本）は _validate_proposal が先に確かめる。"""
+    pid = p["提案番号"]
+    slugs = range_slugs(p["範囲"])
+    frozen = [s for s in slugs if s in FROZEN_SLUGS and today <= FROZEN_SLUGS[s]]
+    if frozen:
+        raise ExperimentError("%s: EX-IL1 の凍結中の記事です（%s まで search-ctr の対象にしない・D-0324）: %s"
+                              % (pid, max(FROZEN_SLUGS[s] for s in frozen).isoformat(), "・".join(frozen)))
+    busy = busy_targets(rows + new_rows)
+    for slug in slugs:
+        # 台帳に slug の無い search-ctr の行（全記事）があれば、どの記事とも重なる
+        hits = busy.get("%s:%s" % (SEARCH_CTR, slug), []) + busy.get(SEARCH_CTR, [])
+        if hits:
+            raise ExperimentError("%s: 同じ記事の search-ctr の実験が実行中・実装待ちです（%s）: %s"
+                                  % (pid, "・".join(dict.fromkeys(hits)), slug))
+    monday = _week_monday(today)
+    week = []
+    for row in rows + new_rows:
+        if row["対象"] != SEARCH_CTR or row["状態"] == "不採用":
+            continue
+        adopted = _adopted_on(row)
+        if adopted is None:
+            raise ExperimentError("%s: %s の採用日が根拠から読めないため、週の合計を確かめられません"
+                                  % (pid, row["実験ID"]))
+        if _week_monday(adopted) == monday:
+            week += range_slugs(row["範囲"])
+    if len(week) + len(slugs) > SEARCH_CTR_WEEK_MAX:
+        raise ExperimentError("%s: 同じ週（%s〜%s）に採用する search-ctr の記事の合計が %d 本を超えます"
+                              "（採用済み %d 本: %s ／ 今回 %d 本: %s）"
+                              % (pid, monday.isoformat(), (monday + dt.timedelta(days=6)).isoformat(),
+                                 SEARCH_CTR_WEEK_MAX, len(week), "・".join(week) or "なし", len(slugs), "・".join(slugs)))
+
+
 def cmd_adopt(audit_path, numbers, dry_run=False, d_number="", today=None):
-    today = today or dt.date.today()
+    """today は採用日であり、週の合計・EX-IL1 の凍結の基準日でもある（テストで差し替える）。"""
+    today = today or dt.datetime.now(JST).date()
     with open(audit_path, "r", encoding="utf-8") as handle:
         proposals = parse_proposals(handle.read())
     rows = load_ledger()
@@ -337,11 +431,15 @@ def cmd_adopt(audit_path, numbers, dry_run=False, d_number="", today=None):
         tag = "採用: %s %s" % (source, number)
         if any(r["根拠"].startswith(tag + "（") or r["根拠"] == tag for r in rows):
             raise ExperimentError("%s は採用済みです" % tag)
-        busy = busy_targets(rows + new_rows)
-        if p["対象"] in busy:
-            raise ExperimentError("%s: 対象 %s には実行中・実装待ちの実験があります（%s）"
-                                  % (number, p["対象"], "・".join(busy[p["対象"]])))
-        days = _validate_proposal(p)
+        if p["対象"] == SEARCH_CTR:   # 記事単位（同じ adopt で先に処理した new_rows も含める・D-0332）
+            days = _validate_proposal(p)
+            _check_search_ctr(p, rows, new_rows, today)
+        else:
+            busy = busy_targets(rows + new_rows)
+            if p["対象"] in busy:
+                raise ExperimentError("%s: 対象 %s には実行中・実装待ちの実験があります（%s）"
+                                      % (number, p["対象"], "・".join(busy[p["対象"]])))
+            days = _validate_proposal(p)
         start = today + dt.timedelta(days=1)
         row = {c: "" for c in COLUMNS}
         row.update({

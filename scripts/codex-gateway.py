@@ -1775,6 +1775,7 @@ def _prepare_weekly_inputs(input_dir, since_date, until_date, pin_notes=None):
 
 
 EXPERIMENTS_SCRIPT = SITE_DIR / "scripts" / "experiments.py"
+EXPERIMENTS_LEDGER = PROJECT_ROOT / "data" / "experiments.tsv"
 EXPERIMENT_INPUTS = (
     ("experiments-status.json", "今週の入力・実験の状態（実行中の実験の前後の中央値・判定案。experiments.py measure）",
      {"experiments": [], "pending_rules": []}),
@@ -2066,18 +2067,47 @@ def _build_reach_pages(year_month, ga4_payload, gsc_rows, gsc_period):
     return _cap_text("\n".join(lines) + "\n", MONTHLY_INPUT_CHAR_CAP)
 
 
-def _busy_slugs(input_dir):
-    """実行中・実装待ちの実験の範囲にある slug（experiments-status.json の range の slug=）。"""
+def _ledger_ranges(ledger_path):
+    """実験の台帳（data/experiments.tsv）の {実験ID: 範囲}。読めなければ {}。"""
+    try:
+        lines = ledger_path.read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return {}
+    if not lines:
+        return {}
+    header = lines[0].split("\t")
+    if "実験ID" not in header or "範囲" not in header:
+        return {}
+    i_id, i_range = header.index("実験ID"), header.index("範囲")
+    ranges = {}
+    for line in lines[1:]:
+        cells = line.split("\t")
+        if len(cells) > max(i_id, i_range):
+            ranges[cells[i_id]] = cells[i_range]
+    return ranges
+
+
+def _busy_slugs(input_dir, ledger_path=None):
+    """実行中・実装待ちの実験の範囲にある slug（range の slug=）。experiments は experiments-status.json の
+    range から、pending_rules は実験IDの文字列のリストなので台帳から該当の行の範囲を引いて拾う（D-0332）。"""
     try:
         status = json.loads((input_dir / "experiments-status.json").read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return set()
-    slugs = set()
+    ledger = None
+    ranges = []
     for key in ("experiments", "pending_rules"):
         for exp in status.get(key) or []:
             if isinstance(exp, dict):
-                for m in RANGE_SLUG_RE.finditer(exp.get("range") or ""):
-                    slugs.update(s for s in m.group(1).split(",") if s)
+                ranges.append(exp.get("range") or "")
+            elif isinstance(exp, str):
+                if ledger is None:
+                    ledger = _ledger_ranges(ledger_path or EXPERIMENTS_LEDGER)
+                ranges.append(ledger.get(exp, ""))
+    slugs = set()
+    for text in ranges:
+        for m in RANGE_SLUG_RE.finditer(text):
+            slugs.update(s for s in m.group(1).split(",") if s)
     return slugs
 
 

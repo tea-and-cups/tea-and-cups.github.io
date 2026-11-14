@@ -17,6 +17,8 @@ experiments.py の関数をそのまま呼ぶ（テスト側で判定を再実�
   8. judge-due: 判定日が来た実験に判定案を記録する（設定の戻しで active_setting が既定に戻る・ルールの戻しは
      RULE_REVERT_NEEDED・同じ週末日の再実行で記録し直さない）／adopt の同じ対象の重複拒否（S-0027 ②）
   9. codex-gateway.py: 新しい必須節（足りない節があれば無効）・遵守確認の除去・judge-due の結果の受け取り
+ 10. search-ctr は記事単位（同じ記事は1つ）・1提案2本まで・同じ週の合計2本まで・EX-IL1 の7本は 2026-12-09 まで
+     拒否（D-0332）／ほかの対象は今のまま／gateway の _busy_slugs が pending_rules（実験ID）の slug を台帳から拾う
 
 使い方:
   python site/scripts/test-experiments.py
@@ -151,6 +153,116 @@ def measure(out):
     rc = run(ex.cmd_measure, WEEK_END, out)
     status = json.loads((Path(out) / "experiments-status.json").read_text(encoding="utf-8"))
     return rc, {e["id"]: e for e in status["experiments"]}, status
+
+
+SC_PROPOSALS = [
+    ("P-21", "ルール", "search-ctr", "記事Aのtitle", "-", "-", "slug=dummy-a", "gsc-ctr-28d", "28"),
+    ("P-22", "ルール", "search-ctr", "記事Bのtitle", "-", "-", "slug=dummy-b", "gsc-ctr-28d", "28"),
+    ("P-23", "ルール", "search-ctr", "3本まとめて", "-", "-", "slug=dummy-a,dummy-b,dummy-c", "gsc-ctr-28d", "28"),
+    ("P-24", "ルール", "search-ctr", "記事Cのtitle", "-", "-", "slug=dummy-c", "gsc-ctr-28d", "28"),
+    ("P-25", "ルール", "search-ctr", "EX-IL1の対象", "-", "-", "slug=mizudashi-koucha-hozon-eisei-qa", "gsc-ctr-28d", "28"),
+    ("P-26", "ルール", "search-ctr", "茶こし記事", "-", "-", "slug=tea-strainer-chakoshi-erabikata", "gsc-ctr-28d", "28"),
+    ("P-27", "ルール", "pin-hook", "ピンの別案", "-", "-", "pin>=500", "pin-impr-14d", "21"),
+    ("P-28", "ルール", "search-ctr", "slugなし", "-", "-", "全体", "gsc-ctr-28d", "28"),
+    ("P-29", "ルール", "search-ctr", "2本", "-", "-", "slug=dummy-d,dummy-e", "gsc-ctr-28d", "28"),
+]
+
+
+def _sc_row(ex_id, state, target, rng, adopted, metric="gsc-ctr-28d"):
+    row = {c: "" for c in ex.COLUMNS}
+    row.update({"実験ID": ex_id, "状態": state, "種別": "ルール", "対象": target, "内容": "x", "範囲": rng,
+                "主指標": metric, "開始日": (adopted + dt.timedelta(days=1)).isoformat(),
+                "判定日": (adopted + dt.timedelta(days=29)).isoformat(), "延長": "0",
+                "根拠": "採用: growth/outputs/x/audit.md P-9（%s採用）" % adopted.isoformat()})
+    return row
+
+
+def _adopt_msg(audit, numbers, today):
+    """dry-run の adopt。(終了コード, 拒否のメッセージ) を返す。"""
+    with contextlib.redirect_stdout(io.StringIO()):
+        try:
+            return ex.cmd_adopt(audit, numbers, dry_run=True, today=today), ""
+        except ex.ExperimentError as exc:
+            return 1, str(exc)
+
+
+def search_ctr_cases(tmp):
+    audit = os.path.join(tmp, "audit-sc.md")
+    lines = ["# 監査", "", "## 新しい実験の提案", "", "```tsv", "\t".join(ex.PROPOSAL_COLUMNS)]
+    lines += ["\t".join(p) for p in SC_PROPOSALS] + ["```", ""]
+    Path(audit).write_text("\n".join(lines), encoding="utf-8")
+    sun = dt.date(2026, 11, 15)          # 日曜。同じ週は 11-09（月）〜11-15（日）
+    after_freeze = dt.date(2026, 12, 16)
+    # 実台帳と同じ形（EX-0001 pin-hook・EX-0002 search-ctr 茶こし記事）
+    base = [_sc_row("EX-0001", "実行中", "pin-hook", "pin>=361", dt.date(2026, 10, 27), "pin-impr-14d"),
+            _sc_row("EX-0002", "実行中", "search-ctr", "slug=tea-strainer-chakoshi-erabikata", dt.date(2026, 10, 27))]
+    ex.save_ledger(base)
+    before = Path(ex.LEDGER).read_bytes()
+    check("[A] 実台帳型 + P(slug=dummy-a) は採用できる（EX-0002 とは別の記事）",
+          _adopt_msg(audit, ["P-21"], sun)[0] == 0)
+    rc, msg = _adopt_msg(audit, ["P-26"], sun)
+    check("[A2] 実台帳型 + P(slug=tea-strainer-chakoshi-erabikata) は拒否（同じ記事・理由と slug を出す）",
+          rc == 1 and "同じ記事" in msg and "EX-0002" in msg and "tea-strainer-chakoshi-erabikata" in msg, msg)
+    rc, msg = _adopt_msg(audit, ["P-27"], sun)
+    check("[F] pin-hook の新しい提案は今のまま拒否（対象 pin-hook に実行中の EX-0001）",
+          rc == 1 and "対象 pin-hook" in msg and "EX-0001" in msg, msg)
+    check("busy_targets: search-ctr は「search-ctr:<slug>」・ほかは対象名",
+          ex.busy_targets(base) == {"pin-hook": ["EX-0001"],
+                                    "search-ctr:tea-strainer-chakoshi-erabikata": ["EX-0002"]}, str(ex.busy_targets(base)))
+    check("dry-run の拒否・採用で台帳は変わらない", Path(ex.LEDGER).read_bytes() == before)
+
+    ex.save_ledger([])
+    check("[B] 空の台帳 + 1回の adopt で P-21（dummy-a）・P-22（dummy-b）→ 両方採用できる",
+          _adopt_msg(audit, ["P-21", "P-22"], sun)[0] == 0)
+    rc, msg = _adopt_msg(audit, ["P-21", "P-21"], sun)
+    check("同じ adopt で同じ記事を2回 → 2件目は拒否（new_rows も照合）", rc == 1 and "同じ記事" in msg and "dummy-a" in msg, msg)
+    rc, msg = _adopt_msg(audit, ["P-21", "P-22", "P-24"], sun)
+    check("同じ adopt で3本目（dummy-c）→ 週の合計オーバーで拒否", rc == 1 and "週" in msg and "dummy-c" in msg, msg)
+    rc, msg = _adopt_msg(audit, ["P-23"], sun)
+    check("[C] 空の台帳 + P(slug 3本) → 拒否（1提案で3本以上）", rc == 1 and "1提案" in msg and "dummy-c" in msg, msg)
+    rc, msg = _adopt_msg(audit, ["P-28"], sun)
+    check("search-ctr で slug の無い提案は拒否", rc == 1 and "slug=" in msg, msg)
+    check("P(slug 2本) は1提案で採用できる", _adopt_msg(audit, ["P-29"], sun)[0] == 0)
+
+    week = [_sc_row("EX-0001", "実装待ち", "search-ctr", "slug=w-a", dt.date(2026, 11, 9)),     # 月曜（同じ週の初日）
+            _sc_row("EX-0002", "戻し", "search-ctr", "slug=w-b", dt.date(2026, 11, 12))]
+    ex.save_ledger(week)
+    rc, msg = _adopt_msg(audit, ["P-24"], sun)
+    check("[D1] 今週（月曜・戻し含む）採用の search-ctr が2本 + P(slug 1本) → 拒否（週の合計オーバー）",
+          rc == 1 and "週" in msg and "2026-11-09〜2026-11-15" in msg and "w-a" in msg and "dummy-c" in msg, msg)
+    ex.save_ledger([dict(week[0], 状態="不採用"), week[1]])
+    check("不採用の行は週の合計に数えない", _adopt_msg(audit, ["P-24"], sun)[0] == 0)
+    ex.save_ledger([_sc_row("EX-0001", "実行中", "search-ctr", "slug=w-a,w-b", dt.date(2026, 11, 8))])  # 前の週の日曜
+    check("[D2] 先週採用の search-ctr が2本 + P(slug 1本) → 採用できる", _adopt_msg(audit, ["P-24"], sun)[0] == 0)
+    bad = _sc_row("EX-0001", "実行中", "search-ctr", "slug=w-a", dt.date(2026, 11, 8))
+    bad["根拠"] = "手書きの根拠"
+    ex.save_ledger([bad])
+    rc, msg = _adopt_msg(audit, ["P-24"], sun)
+    check("採用日の読めない search-ctr の行があれば拒否（週の合計を確かめられない）", rc == 1 and "採用日" in msg, msg)
+
+    ex.save_ledger([])
+    rc, msg = _adopt_msg(audit, ["P-25"], sun)
+    check("[E1] 基準日 2026-11-15 + P(slug=mizudashi-koucha-hozon-eisei-qa) → 拒否（EX-IL1 の凍結）",
+          rc == 1 and "EX-IL1" in msg and "mizudashi-koucha-hozon-eisei-qa" in msg and "2026-12-09" in msg, msg)
+    check("基準日 2026-12-09（期限の当日）も拒否", _adopt_msg(audit, ["P-25"], dt.date(2026, 12, 9))[0] == 1)
+    check("[E2] 基準日 2026-12-10 + 同じ提案 → 採用できる", _adopt_msg(audit, ["P-25"], dt.date(2026, 12, 10))[0] == 0)
+    check("FROZEN_SLUGS は EX-IL1 の7本・期限 2026-12-09",
+          len(ex.FROZEN_SLUGS) == 7 and set(ex.FROZEN_SLUGS.values()) == {dt.date(2026, 12, 9)})
+    check("凍結が明けたあとも週の合計は効く（after_freeze で 3本 → 拒否）",
+          _adopt_msg(audit, ["P-21", "P-22", "P-24"], after_freeze)[0] == 1)
+
+    # [G] gateway: pending_rules（実験IDの文字列）から台帳の範囲を引いて slug を拾う
+    g_dir = Path(tmp) / "gw-busy"
+    g_dir.mkdir()
+    g_ledger = Path(tmp) / "gw-ledger.tsv"
+    ex.save_ledger([_sc_row("EX-0003", "実装待ち", "search-ctr", "slug=p-a,p-b", dt.date(2026, 11, 10)),
+                    _sc_row("EX-0004", "実行中", "pin-hook", "pin>=1", dt.date(2026, 11, 10))], str(g_ledger))
+    (g_dir / "experiments-status.json").write_text(json.dumps(
+        {"experiments": [{"id": "EX-0002", "range": "slug=r-a"}], "pending_rules": ["EX-0003", "EX-9999"]},
+        ensure_ascii=False), encoding="utf-8")
+    got = gw._busy_slugs(g_dir, g_ledger)
+    check("[G] gateway: _busy_slugs が実装待ちの search-ctr の slug（台帳から）と実行中の range の slug を拾う",
+          got == {"p-a", "p-b", "r-a"}, str(got))
 
 
 def main():
@@ -328,9 +440,9 @@ def main():
         out_due = os.path.join(tmp, "out-due")
         _rc, _st, status = measure(out_due)
         status_path = os.path.join(out_due, "experiments-status.json")
-        check("experiments-status.json に busy_targets（提案できない対象）が載る",
+        check("experiments-status.json に busy_targets（提案できない対象）が載る（search-ctr は記事単位のキー・D-0332）",
               sorted(status.get("busy_targets", {})) == sorted(["pin-hook", "image-style", "x-standalone",
-                                                               "search-ctr", "post-text"]), str(status.get("busy_targets")))
+                                                               "search-ctr:s-a", "post-text"]), str(status.get("busy_targets")))
         before = ledger_bytes()
         check("judge-due: status の週末日と --week-end が違えば拒否（台帳は変わらない）",
               run(ex.cmd_judge_due, dt.date(2026, 10, 1), status_path, today=WEEK_END) == 1 and ledger_bytes() == before)
@@ -538,6 +650,9 @@ def main():
         due = ex._due_reason(a, WEEK_END)
         check("judge-due の根拠: 絞り込んだ値が本体・「；参考: 全体 中央値 前2800 後140」が残る",
               "中央値 前1400 後4200 件数2/2" in due and due.endswith("；参考: 全体 中央値 前2800 後140"), due)
+
+        # --- 10. search-ctr は記事単位・週2本・EX-IL1 の凍結（D-0332） ---
+        search_ctr_cases(tmp)
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 
