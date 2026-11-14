@@ -2,7 +2,7 @@
 title: 作り置き水出し紅茶は何日もつ？冷蔵の保存期間と衛生Q&A
 slug: mizudashi-koucha-hozon-eisei-qa
 date: 2026-08-13
-updated: 2026-11-05
+updated: 2026-11-15
 description: 作り置きの水出し紅茶は、当サイトでは冷蔵庫で保存し2日以内の飲み切りを目安にしています。常温保存の注意、保存容器の選び方、茶葉の引き上げ、衛生面の工夫までをQ&A形式で整理しました。
 tags: [紅茶, 水出し, 保存, 夏]
 hero: /images/mizudashi-koucha-hozon-eisei-qa/hero.webp
@@ -22,7 +22,7 @@ category: how-to
 
 ## Q2. 常温に置いたままでも大丈夫？
 
-常温保存は避けたほうが無難です。特に夏場は室温が高くなりやすく、風味が落ちやすくなるだけでなく、温度が高いほど菌が増えやすいため衛生面でもリスクが高まります（Q1で紹介した東京都の検査でも、37℃では10℃より菌が大きく増えています）。抽出が終わったら茶葉を引き上げ、できるだけ早めに冷蔵庫へ移すことをおすすめします。
+東京都保健医療局の食品安全FAQ（水出し茶・煮出し茶が対象）は、飲料を作ったあとは必ず冷蔵庫で保存するよう案内しています（出典: [東京都保健医療局 食品安全FAQ](https://www.hokeniryo.metro.tokyo.lg.jp/anzen/anzen/food_faq/sonota/sonota12)）。Q1で紹介した検査でも、37℃では10℃より菌が大きく増えていました。常温に置いたままにせず、冷蔵庫で保存しましょう。
 
 ## Q3. 保存中に気をつけることは？
 
@@ -38,7 +38,7 @@ category: how-to
 - **冷蔵庫に収まるサイズ・形** — ドアポケットや棚に立てて置けるサイズがあります
 - **注ぎ口が使いやすいもの** — 毎回フタを全開にせず注げるタイプがあります
 
-容量は、早めに飲み切れる量に合わせて選ぶのがポイントです。家族分をまとめて作るなら3.5Lの大容量タイプも候補になり、冷蔵庫内で横に倒して収納できるモデルは置き場所の面でも扱いやすくなります。
+容量は、早めに飲み切れる量に合わせて選ぶのがポイントです。飲み切れる量が多い家庭なら3.5Lの大容量タイプも候補になり、冷蔵庫内で横に倒して収納できるモデルは置き場所の面でも扱いやすくなります。
 
 [![麦茶ポット 冷水筒 3.5L 密封性 横置き](/images/mizudashi-koucha-hozon-eisei-qa/products/1.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824e728.ae1e9d07.5824e729.0098c3cb/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fsmile-net001%2Fpitcher-01%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
@@ -52,10 +52,8 @@ category: how-to
 
 ## Q6. 作り置きを衛生的に保つための工夫は？
 
-- **清潔な容器を使う** — 使用後は毎回きちんと洗ってから、次の抽出に使いましょう
-- **手と容器を清潔にして、すぐ冷蔵庫へ** — 浄水器を使う場合は、カートリッジの交換時期など取扱説明書の記載に従ってください。一度沸騰させた水を使う場合は、十分に冷ましてから注いでください（熱いまま容器に注ぐと、耐熱でない容器は割れるおそれがあります）。大切なのは、作る前に手と容器を洗い、作ったらすぐ冷蔵庫に入れることです（東京都保健医療局の食品安全FAQも、手や容器を清潔にし、作ったらすぐ冷蔵庫で保存して短期間で飲み切るよう案内しています: [出典](https://www.hokeniryo.metro.tokyo.lg.jp/anzen/anzen/food_faq/sonota/sonota12)）
-- **清潔な道具で注ぎ分ける** — 直接口をつけたコップを容器に近づけたり、洗っていない道具で継ぎ足したりしないようにしましょう
-- **作り置きの量を飲み切れる分に調整する** — 多めに仕込みすぎると飲み切れず長く置くことになるため、飲み切れる量を目安に作るのも一つの工夫です
+- **手や容器をよく洗う** — 東京都保健医療局の食品安全FAQは、手や容器をよく洗い、ティーバッグや水を衛生的に取り扱うよう案内しています（出典: [東京都保健医療局 食品安全FAQ](https://www.hokeniryo.metro.tokyo.lg.jp/anzen/anzen/food_faq/sonota/sonota12)）
+- **容器に口をつけない** — 同FAQは、保存容器には口をつけず、コップなどに入れて飲むよう案内しています（出典: [東京都保健医療局 食品安全FAQ](https://www.hokeniryo.metro.tokyo.lg.jp/anzen/anzen/food_faq/sonota/sonota12)）
 
 ## まとめ：作り置きは早めに飲み切る、冷蔵保存が基本
 
