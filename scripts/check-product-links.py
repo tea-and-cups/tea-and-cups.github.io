@@ -33,6 +33,13 @@
 使い方:
   python site/scripts/check-product-links.py            # 全件照会して台帳を更新（約5〜8分）
   python site/scripts/check-product-links.py --limit 5  # 先頭5件だけ照会して表示（台帳は書かない）
+  python site/scripts/check-product-links.py --targets-only  # 照会せず、既存台帳から「確認対象」だけを表示（書き込みなし）
+
+確認対象（D-0331）:
+  OK以外の行のうち、使用記事の直近7日のPVが REVIEW_MIN_PV（20）以上のものだけを「確認対象」として出す
+  （上限なし。複数の記事で使われている商品は最大のPVで判定する）。
+  PVは growth/inputs/ にある最新の週（YYYY-Www）の ga4-page-traffic.json から読む。ファイルが無い場合や、
+  記事が上位100行に無い場合は対象外とし、その旨を1行出す。対象が0件なら「確認対象 0件」と出す。
 
 終了コード: 0=正常終了（OK以外の行があっても0）／1=準備段階の失敗（認証情報・記事を読めない等）
 """
@@ -52,6 +59,7 @@ import urllib.request
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 POSTS_DIR = os.path.join(ROOT, "site", "src", "content", "posts")
 STATUS_PATH = os.path.join(ROOT, "data", "product-link-status.tsv")
+GROWTH_INPUTS_DIR = os.path.join(ROOT, "growth", "inputs")
 LINK_HEALTH_PATH = os.path.join(ROOT, "data", "link-health.md")
 
 # 認証情報の読み方・エンドポイントの正本は fetch-rakuten-products.py（ファイル名にハイフンを含むため importlib で読み込む）
@@ -69,6 +77,10 @@ HEADER = ["商品URL", "店舗ID", "URL末尾のID", "内部の商品コード",
           "評価", "件数", "使用記事", "最終照会日", "特定方法"]
 
 STATUS_ORDER = ["OK", "在庫なし", "消失疑い", "未特定", "照会失敗"]
+
+REVIEW_MIN_PV = 20  # 確認対象にする記事の直近7日PVの下限（D-0331）
+WEEK_DIR_RE = re.compile(r"^\d{4}-W\d{2}$")
+POST_PATH_RE = re.compile(r"^/posts/([^/]+)/?$")
 
 PUBLISHED_RE = re.compile(r"^status:\s*published\s*$", re.MULTILINE)
 # [![alt](img)](url) と [テキスト](url) の両方を拾う
@@ -145,6 +157,73 @@ def collect_products():
                 if name not in entry["names"]:
                     entry["names"].append(name)
     return products
+
+
+def load_recent_pageviews(growth_dir=None):
+    """最新の週の ga4-page-traffic.json から {slug: 直近7日のPV} を返す。
+
+    戻り値: (PVのdict or None, 出典の説明)。週のファイルが無い・読めないときは (None, 理由)。
+    """
+    growth_dir = growth_dir or GROWTH_INPUTS_DIR
+    weeks = []
+    if os.path.isdir(growth_dir):
+        weeks = sorted(d for d in os.listdir(growth_dir)
+                       if WEEK_DIR_RE.match(d) and os.path.isfile(os.path.join(growth_dir, d, "ga4-page-traffic.json")))
+    if not weeks:
+        return None, "growth/inputs/ に週（YYYY-Www）の ga4-page-traffic.json が無い"
+    week = weeks[-1]
+    path = os.path.join(growth_dir, week, "ga4-page-traffic.json")
+    try:
+        with open(path, encoding="utf-8") as f:
+            data = json.load(f)
+        series = data["data"]["series"]
+    except (OSError, ValueError, KeyError, TypeError) as e:
+        return None, "growth/inputs/%s/ga4-page-traffic.json を読めない（%s）" % (week, e)
+    period = (data.get("params") or {}).get("period") or {}
+    views = {}
+    for entry in series:
+        m = POST_PATH_RE.match(str(entry.get("page_path", "")))
+        if m:
+            views[m.group(1)] = views.get(m.group(1), 0) + int(entry.get("screenPageViews") or 0)
+    source = "growth/inputs/%s/ga4-page-traffic.json（%s〜%s）" % (
+        week, period.get("start_date", "?"), period.get("end_date", "?"))
+    return views, source
+
+
+def select_review_targets(not_ok, views):
+    """OK以外の行から、使用記事の最大PVが REVIEW_MIN_PV 以上のものを返す。
+
+    戻り値: ([(行, 最大PV, 最大PVの記事), ...] をPVの大きい順, PVを引けず対象外にした行数)。
+    """
+    targets = []
+    unknown = 0
+    for row in not_ok:
+        slugs = [s for s in row.get("使用記事", "").split(",") if s]
+        known = [(views[s], s) for s in slugs if s in views]
+        if not known:
+            unknown += 1
+            continue
+        pv, slug = max(known)
+        if pv >= REVIEW_MIN_PV:
+            targets.append((row, pv, slug))
+    targets.sort(key=lambda x: -x[1])
+    return targets, unknown
+
+
+def print_review_targets(not_ok, growth_dir=None):
+    """「確認対象」（OK以外かつ直近7日PVが REVIEW_MIN_PV 以上の記事）を表示する（D-0331）。件数を返す。"""
+    views, source = load_recent_pageviews(growth_dir)
+    if views is None:
+        print("確認対象 0件（PVを読めないため全件対象外: %s）" % source)
+        return 0
+    targets, unknown = select_review_targets(not_ok, views)
+    print("確認対象 %d件（OK以外 %d件のうち、使用記事の直近7日PVが%d以上。PV出典: %s）" % (
+        len(targets), len(not_ok), REVIEW_MIN_PV, source))
+    for row, pv, slug in targets:
+        print("  %s	%s	%s（PV %d）" % (row["状態"], row["商品URL"], slug, pv))
+    if unknown:
+        print("対象外 %d件: 使用記事が上位100行に無い（PV不明）" % unknown)
+    return len(targets)
 
 
 def link_health_name(shop, item, lines):
@@ -323,11 +402,22 @@ def main():
 
     limit = None
     args = sys.argv[1:]
+    if args == ["--targets-only"]:
+        # 照会も台帳の書き込みもせず、既存台帳から確認対象だけを表示する（D-0331）
+        saved = load_status()
+        if not saved:
+            print("【エラー】台帳 data/product-link-status.tsv が無い。先に引数なしで実行する")
+            sys.exit(1)
+        not_ok = [r for r in saved.values() if r.get("状態") != "OK"]
+        print("台帳の最終照会日: %s／OK以外 %d件" % (
+            max((r.get("最終照会日", "") for r in saved.values()), default="?"), len(not_ok)))
+        print_review_targets(not_ok)
+        sys.exit(0)
     if args:
         if len(args) == 2 and args[0] == "--limit" and args[1].isdigit():
             limit = int(args[1])
         else:
-            print("使い方: python site/scripts/check-product-links.py [--limit N]")
+            print("使い方: python site/scripts/check-product-links.py [--limit N | --targets-only]")
             sys.exit(1)
 
     try:
@@ -380,6 +470,7 @@ def main():
         print("OK以外 %d件（先頭20件）:" % len(not_ok))
         for r in not_ok[:20]:
             print("  %s\t%s\t%s" % (r["状態"], r["商品URL"], r["使用記事"]))
+    print_review_targets(not_ok)
     sys.exit(0)
 
 

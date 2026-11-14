@@ -33,6 +33,11 @@ github-slugger の同一インスタンスで文書順に slug() を適用し、
 使い方:
   python site/scripts/check-anchor-consistency.py <slug>
   python site/scripts/check-anchor-consistency.py <slug> --revise   比較表の項目の判定を警告にとどめる
+  python site/scripts/check-anchor-consistency.py <slug> --fix      下書きの表の1列目へアンカーを自動で付ける（L049）
+    対象は下書き（output/articles/<slug>.md）だけ。上のチェックが不合格にする行のうち、1列目にリンクが無く、
+    対応する H2・H3 見出しが1つに決まる行だけ [項目](#見出しID) にする。見出しが無い・2つ以上の行は触らず、
+    チェックが従来どおりNGにする。publish-article.py が新規公開（--dry-run を含む）のチェック前に呼ぶ。
+    --revise の改修では呼ばない（公開済みの記事を頼まれずに変えないため）。付けた行は1行ずつ出力する。
 
 終了コード: 0=OK（不一致0件、またはページ内リンク0件） / 1=不一致あり、または実行不能
 """
@@ -225,6 +230,114 @@ def find_heading_table_items(lines):
     return result
 
 
+def pick_unique_heading(item, headings, quick):
+    """項目に対応する見出しを1つに決める。決まらなければ None（一致なし・2つ以上）。
+
+    完全一致を優先し、無ければ（3字以上の項目に限り）項目を含む見出しを見る。
+    早見表の行（quick=True）は1文字の項目でも完全一致を対象にする。
+    """
+    exact = [hl for hl, text in headings if item == text]
+    if exact and (quick or len(item) >= MIN_ITEM_LEN):
+        return exact[0] if len(exact) == 1 else None
+    if len(item) >= MIN_PARTIAL_ITEM_LEN:
+        partial = [hl for hl, text in headings if item in text]
+        if len(partial) == 1:
+            return partial[0]
+    return None
+
+
+def find_anchor_fixes(lines):
+    """自動で直せる表の行を返す（L049）。
+
+    対象: 「早見表」を直前の非空行に持つ表の行、または表の1列目の項目が H2・H3 見出しと一致
+    （MIN_ITEM_LEN 字以上）か含まれる（MIN_PARTIAL_ITEM_LEN 字以上）行のうち、
+    1列目に `](#` のリンクが無く、リンクやかぎ括弧を含まず、対応する見出しが1つに決まるもの。
+    戻り値: [(行番号, 1列目の原文（前後の空白を除く）, 項目, 見出しの行番号), ...]
+    """
+    headings = []
+    for lineno, line in lines:
+        m = RE_HEADING_H23.match(line)
+        if m:
+            headings.append((lineno, heading_text(m.group(2))))
+    fixes = []
+    prev_text = ""
+    i = 0
+    n = len(lines)
+    while i < n:
+        line = lines[i][1]
+        if not line.lstrip().startswith("|"):
+            if line.strip():
+                prev_text = line
+            i += 1
+            continue
+        block = []
+        while i < n and lines[i][1].lstrip().startswith("|"):
+            block.append(lines[i])
+            i += 1
+        quick = "早見表" in prev_text
+        prev_text = ""
+        if len(block) < 3 or not (quick or RE_TABLE_SEP.match(block[1][1])):
+            continue
+        for lineno, row in block[2:]:
+            cells = row.strip().strip("|").split("|")
+            first = cells[0].strip() if cells else ""
+            if not first or "[" in first or "](" in first:
+                continue  # 空・既存のリンク（アンカー有無を問わず）は触らない
+            item = plain_cell(first)
+            if not item:
+                continue
+            target = pick_unique_heading(item, headings, quick)
+            if target is not None:
+                fixes.append((lineno, first, item, target))
+    return fixes
+
+
+def fix_anchors(slug):
+    """下書き output/articles/<slug>.md の表の1列目へ [項目](#見出しID) を付ける（L049）。
+
+    付けたのは1行ずつ出力する。付けられない行（一致する見出しが無い・2つ以上）は触らず、
+    後段のチェックが従来どおりNGにする。戻り値: 終了コード（0=正常・1=実行不能）。
+    """
+    path = os.path.join(DRAFTS_DIR, "%s.md" % slug)
+    if not os.path.isfile(path):
+        out("アンカー自動付与: 下書きが見つかりません（output/articles/%s.md）" % slug)
+        return 1
+    with open(path, encoding="utf-8", newline="") as f:
+        text = f.read()
+    lines = strip_fences(body_lines(text))
+    if find_markup_headings(lines):
+        out("アンカー自動付与: スキップ（見出しにインライン記法があり、IDを予測できないため）")
+        return 0
+    fixes = find_anchor_fixes(lines)
+    if not fixes:
+        out("アンカー自動付与: 対象なし")
+        return 0
+    headings = collect_headings(lines)
+    ids, reason = slugify_all([t for _, t in headings])
+    if ids is None:
+        return env_error(reason)
+    id_of_line = {ln: anchor_id for (ln, _), anchor_id in zip(headings, ids)}
+    raw_lines = text.split("\n")
+    done = 0
+    for lineno, first, item, target in fixes:
+        anchor_id = id_of_line.get(target)
+        if not anchor_id:
+            continue
+        raw = raw_lines[lineno - 1]
+        m = re.match(r"^(\s*\|\s*)(.*?)(\s*\|.*)$", raw, re.S)
+        if not m or m.group(2) != first:
+            continue
+        raw_lines[lineno - 1] = "%s[%s](#%s)%s" % (m.group(1), first, anchor_id, m.group(3))
+        out("アンカー自動付与: %d行目 / 1列目: %s → [%s](#%s)" % (lineno, item, first, anchor_id))
+        done += 1
+    if done:
+        with open(path, "w", encoding="utf-8", newline="") as f:
+            f.write("\n".join(raw_lines))
+    else:
+        out("アンカー自動付与: 対象なし")
+    return 0
+
+
 def check_astro_config():
     """astro.config.mjs の見出しID設定を確認する。問題があれば理由（文字列）を返す。
 
@@ -331,10 +444,13 @@ def main():
 
     args = sys.argv[1:]
     revise = "--revise" in args
-    args = [a for a in args if a != "--revise"]
-    if len(args) != 1:
-        out("使い方: python site/scripts/check-anchor-consistency.py <slug> [--revise]")
+    fix = "--fix" in args
+    args = [a for a in args if a not in ("--revise", "--fix")]
+    if len(args) != 1 or (fix and revise):
+        out("使い方: python site/scripts/check-anchor-consistency.py <slug> [--revise | --fix]")
         return 1
+    if fix:
+        return fix_anchors(args[0])
 
     slug = args[0]
     path = resolve_path(slug)

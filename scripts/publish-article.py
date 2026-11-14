@@ -474,6 +474,27 @@ def record_production_step(kind, **fields):
         pass
 
 
+def fix_quick_table_anchors(slug):
+    """新規公開のチェック前に、下書きの表の1列目へアンカーを自動で付ける（L049）。
+
+    check-anchor-consistency.py <slug> --fix を呼び、付けた行を1行ずつ出す。--revise では呼ばない
+    （公開済みの記事を頼まれずに変えないため）。失敗しても止めない（後段のチェックが判定する）。
+    """
+    try:
+        result = subprocess.run(
+            [sys.executable, os.path.join(SCRIPTS_DIR, "check-anchor-consistency.py"), slug, "--fix"],
+            cwd=ROOT,
+            capture_output=True,
+            timeout=CHECK_TIMEOUT,
+        )
+    except Exception as e:
+        out("  アンカー自動付与: 実行に失敗（%s）。後段のチェックで判定します" % e)
+        return
+    text = result.stdout.decode("utf-8", errors="replace") if result.stdout else ""
+    for line in text.splitlines():
+        out("  " + line)
+
+
 def run_checks(slug, attempt=None, checks=None):
     """公開前チェックを順に実行する。1本でも落ちたらFalseを返す。
 
@@ -1774,6 +1795,7 @@ def _run(attempt):
     if not timing_ok:
         attempt["failed_check"] = "publish-timing"
         return abort("公開時期の確認に失敗したため、以降の処理（status書き換え・コピー・commit・push）は一切実行していません")
+    fix_quick_table_anchors(slug)
     if not run_checks(slug, attempt, checks=new_checks):
         return abort("公開前チェックに失敗したため、以降の処理（status書き換え・コピー・commit・push）は一切実行していません")
 

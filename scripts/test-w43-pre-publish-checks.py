@@ -13,6 +13,9 @@ r"""W43監査の採用指示で足した公開前チェックの再発防止テ�
   E check-fact-source.py の --advice（処置の台帳・出典URLのあるブロックは記録を求めない・D-0329）
   F check-anchor-consistency.py の比較表の項目と見出しのアンカー（L049・D-0329）
   G score-product.py の入力に別の記事の行が混ざれば採点を止める（L085・D-0329）
+  H check-fact-source.py のカテゴリE「初の」が「最初の」「当初の」に当たらない（L090）／
+    check-anchor-consistency.py --fix の早見表アンカー自動付与（L049）
+  I check-product-links.py の確認対象（OK以外かつ直近7日PV20以上・D-0331）
 
 本物の記事・ピン・台帳には触れない。A・C は一時ディレクトリにダミーを作り、B は判定関数へ
 ダミーの台帳と日付を渡す。一時ディレクトリは終了時に必ず消す。
@@ -828,6 +831,106 @@ def case_g(results, root):
         sp.INPUT_PATH = old_path
 
 
+def case_h(results, root):
+    """L090: カテゴリEの「初の」は「最初の」「当初の」に当たらず、「日本初」「初の国産」には当たる。
+    L049: check-anchor-consistency.py --fix は、見出しが1つに決まる行だけ1列目へアンカーを付ける。
+    一時ディレクトリのダミー記事だけを使う（node の github-slugger は本物）。"""
+    import contextlib, io
+    fs = _load("check-fact-source.py")
+    for text, expected in [("最初の一杯", False), ("最初の一袋", False), ("当初の予定", False),
+                           ("日本初のブランド", True), ("初の国産", True), ("世界初", True)]:
+        results.append(("カテゴリE: 「%s」→ %s" % (text, "検知" if expected else "検知しない"),
+                        ("E" in fs.match_categories(text)) == expected, str(fs.match_categories(text))))
+
+    ac = _load("check-anchor-consistency.py")
+    old_dir = ac.DRAFTS_DIR
+    ac.DRAFTS_DIR = root
+
+    def call(slug, flag=None):
+        buffer = io.StringIO()
+        original = sys.argv
+        try:
+            sys.argv = ["check-anchor-consistency.py", slug] + ([flag] if flag else [])
+            with contextlib.redirect_stdout(buffer):
+                code = ac.main()
+        finally:
+            sys.argv = original
+        with open(os.path.join(root, slug + ".md"), encoding="utf-8", newline="") as f:
+            return code, buffer.getvalue(), f.read()
+
+    nl = "\n"
+    quick = nl.join([
+        "## 早見表", "", "早見表です。", "",
+        "| 種類 | 特徴 |", "|---|---|", "| ストレート型 | 軽い |", "| ミルク型 | 濃い |", "| 該当なし | 不明 |", "",
+        "## ストレート型", "", "本文。", "", "## ミルク型", "", "本文。", ""])
+    try:
+        _article(root, "case-h-fix", quick)
+        code, text, after = call("case-h-fix", "--fix")
+        results.append(("--fix: 見出しと一致する行にアンカーを付け、付けた行を1行ずつ出す",
+                        code == 0 and "| [ストレート型](#ストレート型) | 軽い |" in after
+                        and "| [ミルク型](#ミルク型) | 濃い |" in after
+                        and text.count("アンカー自動付与: ") == 2, text))
+        results.append(("--fix: 一致する見出しが無い行（該当なし）は触らない", "| 該当なし | 不明 |" in after, after))
+        code, text, _ = call("case-h-fix")
+        results.append(("--fix 後も、見出しが無い行は従来どおりNG（1行）",
+                        code == 1 and "NG（1行" in text and "該当なし" in text, text))
+        _article(root, "case-h-ok", quick.replace("| 該当なし | 不明 |" + nl, ""))
+        call("case-h-ok", "--fix")
+        code, text, after = call("case-h-ok")
+        results.append(("--fix 後、全行に見出しがある早見表はチェックが通る", code == 0, text))
+        code, text, after2 = call("case-h-ok", "--fix")
+        results.append(("--fix は2回目に何も変えない（冪等）", after2 == after and "対象なし" in text, text))
+        _article(root, "case-h-dup", quick.replace("## ミルク型", "## ストレート型"))
+        code, text, after = call("case-h-dup", "--fix")
+        results.append(("--fix: 同名の見出しが2つある行は直さない",
+                        "| ストレート型 | 軽い |" in after and "[ストレート型](#" not in after, after))
+    finally:
+        ac.DRAFTS_DIR = old_dir
+
+
+def case_i(results, root):
+    """D-0331: check-product-links.py の「確認対象」（OK以外かつ直近7日PV20以上）。
+    一時ディレクトリのダミーのPVファイルと行だけを使い、台帳・楽天APIには触れない。"""
+    import contextlib, io, json
+    cpl = _load("check-product-links.py")
+    growth = os.path.join(root, "growth-inputs")
+
+    def week_file(week, series, period=("2031-01-01", "2031-01-07")):
+        data = {"params": {"period": {"start_date": period[0], "end_date": period[1]}},
+                "data": {"series": [{"page_path": p, "screenPageViews": v} for p, v in series]}}
+        _write(os.path.join(growth, week, "ga4-page-traffic.json"), json.dumps(data, ensure_ascii=False))
+
+    def row(status, url, slugs):
+        return {"状態": status, "商品URL": url, "使用記事": slugs}
+
+    def run(not_ok):
+        buffer = io.StringIO()
+        with contextlib.redirect_stdout(buffer):
+            n = cpl.print_review_targets(not_ok, growth)
+        return n, buffer.getvalue()
+
+    n, text = run([row("在庫なし", "https://item.rakuten.co.jp/s/a/", "art-a")])
+    results.append(("確認対象: 週のPVファイルが無い → 0件で全件対象外の旨を1行出す",
+                    n == 0 and text.startswith("確認対象 0件") and "対象外" in text and text.count("\n") == 1, text))
+    week_file("2031-W01", [("/posts/old-art/", 999)])
+    week_file("2031-W02", [("/", 50), ("/posts/art-a/", 20), ("/posts/art-b/", 19), ("/posts/art-c/", 120)])
+    not_ok = [row("在庫なし", "https://item.rakuten.co.jp/s/a/", "art-a"),
+              row("消失疑い", "https://item.rakuten.co.jp/s/b/", "art-b"),
+              row("未特定", "https://item.rakuten.co.jp/s/c/", "art-b,art-c"),
+              row("在庫なし", "https://item.rakuten.co.jp/s/d/", "art-missing")]
+    n, text = run(not_ok)
+    results.append(("確認対象: 最新の週（W02）のPVを使い、PV20以上（20ちょうどを含む）だけを出す",
+                    n == 2 and "確認対象 2件" in text and "2031-W02" in text and "2031-W01" not in text
+                    and "/s/a/" in text and "/s/c/" in text and "/s/b/" not in text and "/s/d/" not in text, text))
+    results.append(("確認対象: 複数記事の商品は最大PVの記事で判定し、PVの大きい順に並べる",
+                    text.index("/s/c/") < text.index("/s/a/") and "art-c（PV 120）" in text, text))
+    results.append(("確認対象: 記事が上位100行に無い（PV不明）行は対象外の件数を出す", "対象外 1件" in text, text))
+    n, text = run([row("在庫なし", "https://item.rakuten.co.jp/s/b/", "art-b")])
+    results.append(("確認対象: 条件に当たる行が無ければ「確認対象 0件」", n == 0 and text.startswith("確認対象 0件"), text))
+    n, text = run([])
+    results.append(("確認対象: OK以外が0件でも「確認対象 0件」", n == 0 and text.startswith("確認対象 0件"), text))
+
+
 def main():
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
@@ -842,6 +945,8 @@ def main():
         case_e(results, root)
         case_f(results, root)
         case_g(results, root)
+        case_h(results, root)
+        case_i(results, root)
     finally:
         shutil.rmtree(root, ignore_errors=True)
     failed = 0
