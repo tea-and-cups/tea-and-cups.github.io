@@ -2,7 +2,7 @@
 title: 来客をもてなす「映える」アイスティーの出し方｜トレイ・グラス・添え物の見せ方
 slug: raikyaku-motenashi-icetea
 date: 2026-07-27
-updated: 2026-11-07
+updated: 2026-11-15
 description: 同じアイスティーでも、出し方ひとつで印象は大きく変わります。トレイでまとめる、グラスで涼感を演出する、添え物で彩るという3つのポイントで、来客をもてなすアイスティーの見せ方をご紹介します。
 tags: [紅茶, アイスティー, おもてなし, 夏]
 hero: /images/raikyaku-motenashi-icetea/hero.webp
@@ -32,7 +32,7 @@ category: how-to
 
 木製やメラミン製の落ち着いた色合いのトレイは、和洋どちらのテーブルにもなじみやすく、来客用に一枚あると重宝します。和菓子を添えるなら同じトレイに小皿ごと乗せてしまうと、グラスと器がばらばらにならず、テーブルに置いたときの収まりが良くなります。
 
-★4.34（670件） [食洗機対応・滑り止め加工のトレイはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824ea21.33737b0e.5824ea22.dfab2bf2/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fauc-risecreation%2Fr0588%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
+★4.38（888件） [食洗機対応・滑り止め加工のトレイはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824ea21.33737b0e.5824ea22.dfab2bf2/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fauc-risecreation%2Fr0588%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 ## 2. グラスで涼感を演出する
 
@@ -52,7 +52,6 @@ category: how-to
 
 ## 出す直前のひと手間
 
-- **グラスは冷凍庫で軽く冷やしておく** — 使う30分前程度、冷凍庫にグラスを入れておくと、注いだ瞬間から冷たさが長持ちします
 - **氷を入れてから注ぐ** — 氷を先に入れ、紅茶は最後に注ぐと、氷とお茶の境目がくっきりして見た目が美しくなります
 - **トレイの上でグラスの向きをそろえる** — 取っ手や柄がある場合は向きをそろえるだけで、並べたときの見た目が整います
 - **添え物は注ぐ直前に乗せる** — レモンやミントは早めに入れると色や香りが抜けやすいため、出す直前に乗せると彩りと香りの両方が長持ちします
@@ -70,4 +69,4 @@ category: how-to
 
 ## まとめ：まずはトレイを一枚そろえることから
 
-来客時のアイスティーを「映える」一杯にする一番簡単な方法は、トレイを一枚そろえて、いつもより少しだけ丁寧に運ぶことです。慣れてきたら、グラスや添え物にもこだわって、季節ごとのおもてなしを楽しんでみてください。[アイスティーが映えるガラスのティーカップ・グラス特集](/posts/glass-cup-hikaku/)、[水出し紅茶用ポット・ピッチャー比較](/posts/mizudashi-pitcher-hikaku/)もあわせて、この夏のおもてなしの参考にしていただけたら幸いです。
+来客時のアイスティーを「映える」一杯にする一番簡単な方法は、トレイを一枚そろえて、いつもより少しだけ丁寧に運ぶことです。慣れてきたら、グラスや添え物にもこだわって、季節ごとのおもてなしを楽しんでみてください。[アイスティーが映えるガラスのティーカップ・グラス特集](/posts/glass-cup-hikaku/)、[水出し紅茶用ポット・ピッチャー比較](/posts/mizudashi-pitcher-hikaku/)もあわせて、季節ごとのおもてなしの参考にしていただけたら幸いです。
