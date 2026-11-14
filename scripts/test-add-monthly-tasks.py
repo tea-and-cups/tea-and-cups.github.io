@@ -31,6 +31,7 @@ import tempfile
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, "..", ".."))
 RUN_DATE = "2031-05-15"  # 実日付と無関係な対象日（ダミーの月マーカーは 2031-05）
+DUMMY_OPEN_SLUG = "zz-test-existing-open"  # 4群: 複製へ足す重複用ダミー行の slug
 
 HEADER = "Q番号\tタグ\tslug\tcategory\tGD番号\t内容\t対象指標\t根拠"
 QUEUE_ROWS = [
@@ -345,6 +346,14 @@ def run_real_copy_case(module, rotate, root):
     shutil.copyfile(real, copy)
     lines = _read(copy).split("\n")
     start, end = rotate.find_month_section(lines)
+    # 本物の中身に左右されないよう、複製の今月節の末尾に「slug と GD番号 を持つ未完了の行」を必ず1行足す（重複用のダミー）
+    last_task = max(i for i in range(start + 1, end) if lines[i].startswith("- ["))
+    dummy_top = max([int(n) for i in range(start + 1, end) for n in module.M_NUMBER_RE.findall(lines[i])] or [0])
+    lines.insert(last_task + 1, "- [ ] [M-%d] [改修] 検証用のダミー（重複の照合用）（GD-0032・判定X）（%s・how-to）"
+                 % (dummy_top + 1, DUMMY_OPEN_SLUG))
+    _write(copy, "\n".join(lines))
+    lines = _read(copy).split("\n")
+    start, end = rotate.find_month_section(lines)
     month = next((rotate.MONTH_MARKER_RE.match(lines[i].strip()).group(1)
                   for i in range(start + 1, end) if rotate.MONTH_MARKER_RE.match(lines[i].strip())), None)
     open_rows = [row for row in module.month_rows(lines, start, end) if row["open"]]
@@ -353,7 +362,7 @@ def run_real_copy_case(module, rotate, root):
     next_before = rotate.monthly_next_line(lines)
 
     # Q-3 は、複製にある未完了行（slug と GD番号 を持つ最初の行）と同じ slug×GD番号 にする
-    existing = next((row for row in open_rows if row["slug"] and row["gds"]), None)
+    existing = next((row for row in open_rows if row["slug"] == DUMMY_OPEN_SLUG and row["gds"]), None)
     rows = list(QUEUE_ROWS)
     rows[0] = "Q-1\t改修\tzz-test-new-safe\tteaware\tGD-0033\t検証用のダミー（上限外になる行）\tgsc-clicks-28d\t検証"
     rows[4] = "Q-5\t新規記事執筆\tzz-test-new-article\tgift\t-\t検証用のダミー（新規記事）\tgsc-impr-28d\t検証"
