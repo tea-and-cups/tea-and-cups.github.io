@@ -49,7 +49,7 @@ category: seasons
 | アイテム | タイプ | 向いている場面 | ここがポイント |
 |---|---|---|---|
 | [ルイボスティー 101包](#1-ティーライフ-ルイボスティー-101包--ノンカフェインで家族みんなに) | ノンカフェインのルイボス | 家族全員で飲む・夜遅くまで起きている | 商品名に「ノンカフェイン」の表記あり |
-| [アーマッドティー デカフェ 30包](#2-アーマッドティー-デカフェ-紅茶-30包--紅茶の風味を残したい人に) | デカフェの紅茶 | ミルクティーにしたい・フルーツティーも試したい | 紅茶はアールグレイ10包、ほかにフルーツティー4種×5包（計30包） |
+| [アーマッドティー デカフェ 30包](#2-アーマッドティー-デカフェ-紅茶-30包--紅茶の風味を残したい人に) | デカフェの紅茶 | ミルクティーにしたい・フルーツティーも試したい | アールグレイ10包と、乾燥果実と香料を合わせた紅茶4種×5包（計30包、すべてデカフェ） |
 | [日東紅茶 カフェインレス アールグレイ 20袋](#3-日東紅茶-カフェインレス-アールグレイ-20袋--香りで気分を切り替える) | カフェインレスのアールグレイ | 香りを楽しみたい・少人数で | 商品名に「カフェインレス」の表記あり |
 
 ### 1. ティーライフ ルイボスティー 101包 — ノンカフェインで家族みんなに
@@ -64,13 +64,13 @@ category: seasons
 
 ### 2. アーマッドティー デカフェ 紅茶 30包 — 紅茶の風味を残したい人に
 
-ブランドのアーマッドティー（AHMAD TEA）のデカフェの詰め合わせです。商品画像には、デカフェのアールグレイ10包と、フルーツティーデカフェ4種×5包を合わせた「お徳セット 計30包」と表記されています。
+ブランドのアーマッドティー（AHMAD TEA）のデカフェの詰め合わせです。商品ページには、デカフェのアールグレイ10包と、フルーツティーデカフェ4種×5包を合わせた「お徳セット 計30包」と表記されています。
 
 [![アーマッドティー デカフェ 紅茶 30包](/images/toshikoshi-koucha-oomisoka-caffeine-less/products/2.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824d5f2.401c77db.5824d5f3.a71c3dc2/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fnenrin%2Fdecafe-tb30p-msm%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 ★4.66（128件） [アーマッドティー デカフェ 紅茶 30包はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824d5f2.401c77db.5824d5f3.a71c3dc2/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fnenrin%2Fdecafe-tb30p-msm%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-紅茶の茶葉を使ったデカフェのアールグレイはミルクティーにしたいときに向きますが、紅茶は10包で、残り20包はフルーツティーです。年越しの夜にミルクティーを何杯も飲みたい場合は、紅茶の包数が足りるか確認してください。カフェインがどの程度残るかも、商品ページの説明で確認してください。
+30包すべてがデカフェの紅茶で、うち10包はアールグレイ、残り20包は紅茶に乾燥果実と香料を合わせたフルーツティー（4種×5包）です。デカフェのアールグレイはミルクティーにしたいときに向きますが、ミルクティー向きのアールグレイは10包です。年越しの夜にミルクティーを何杯も飲みたい場合は、アールグレイの包数が足りるか確認してください。カフェインがどの程度残るかも、商品ページの説明で確認してください。
 
 ### 3. 日東紅茶 カフェインレス アールグレイ 20袋 — 香りで気分を切り替える
 
