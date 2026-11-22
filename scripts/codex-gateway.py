@@ -1434,6 +1434,78 @@ def _build_ga4_source_summary(since_date, until_date):
 
 
 SOURCE_LANDING_TOP_N = 30
+# 記事着地の経路の群（_channel_of のチャネルを寄せる）。SNS＝Pinterest・Threads・X、その他＝直接・上記以外
+ARTICLE_LANDING_GROUPS = (("検索", ("検索",)), ("SNS", ("Pinterest", "Threads", "X")), ("その他", ("直接", "その他")))
+
+
+def _article_landing_sessions(series):
+    """ga4.source_landing の行から、着地ページが /posts/<slug> のセッション数を群別に数える。
+    返り値は ({群: sessions}, 記事着地の合計, 全着地の合計)。"""
+    by_group = {name: 0 for name, _ in ARTICLE_LANDING_GROUPS}
+    total_all = 0
+    for rec in series:
+        sessions = rec.get("sessions") or 0
+        total_all += sessions
+        if not _slug_from_page_path(rec.get("landing_page")):
+            continue
+        channel = _channel_of(rec.get("session_source_medium"))
+        for name, channels in ARTICLE_LANDING_GROUPS:
+            if channel in channels:
+                by_group[name] += sessions
+                break
+    return by_group, sum(by_group.values()), total_all
+
+
+def _build_article_landing_section(since_date, until_date, current_payload):
+    """記事ページ（/posts/）に着地したセッションの週計を、経路の群別に、対象週・前週・直前4週の週平均で出す。
+    対象週は呼び出し側が取得済みの payload を使い、直前4週は --limit の上限（100）に当たりにくいよう
+    1週ずつ4回（ga4.source_landing）取って平均する（前週はその最新の1週）。
+    各週とも sessions 上位100行（PV順）の合計で、--limit に達した週があれば下限値と書く。"""
+    since = datetime.strptime(since_date, "%Y-%m-%d")
+    weeks = []  # 0=対象週, 1〜4=直前の4週（1が前週）
+    for k in range(5):
+        start = (since - timedelta(days=7 * k)).strftime("%Y-%m-%d")
+        end = until_date if k == 0 else (since - timedelta(days=7 * (k - 1) + 1)).strftime("%Y-%m-%d")
+        weeks.append((start, end))
+    lines = ["## 記事ページ（/posts/）に着地したセッション（経路の群別）", ""]
+    results = []
+    notes = []
+    for idx, (start, end) in enumerate(weeks):
+        if idx == 0:
+            payload, err = current_payload, None
+        else:
+            payload, _raw, err = _run_metrics(["ga4", "--operation", "ga4.source_landing", "--since", start,
+                                               "--until", end, "--limit", "100"])
+        problem = _payload_problem(payload, err)
+        if problem:
+            results.append(None)
+            notes.append("- %s〜%s を取得できなかった: %s" % (start, end, problem))
+            continue
+        results.append(_article_landing_sessions(payload["data"]["series"]))
+        if _lower_bound(payload):
+            notes.append("- %s〜%s は --limit に達しており下限値" % (start, end))
+
+    def cell(indexes, getter):
+        """indexes の週の値の平均（1週なら整数）。取得できなかった週が含まれれば「-」。"""
+        if any(results[i] is None for i in indexes):
+            return "-"
+        total = sum(getter(results[i]) for i in indexes)
+        return "%.1f" % (total / len(indexes)) if len(indexes) > 1 else "%d" % total
+
+    spans = (("対象週", [0], weeks[0][0], weeks[0][1]), ("前週", [1], weeks[1][0], weeks[1][1]),
+             ("直前4週の週平均", [1, 2, 3, 4], weeks[4][0], weeks[1][1]))
+    lines += ["| 経路の群 | %s |" % " | ".join("%s（%s〜%s）" % (s[0], s[2], s[3]) for s in spans),
+              "|---|---|---|---|"]
+    for name, _channels in ARTICLE_LANDING_GROUPS:
+        lines.append("| %s | %s |" % (name, " | ".join(
+            cell(s[1], lambda r, n=name: r[0][n]) for s in spans)))
+    lines.append("| 記事着地の合計 | %s |" % " | ".join(cell(s[1], lambda r: r[1]) for s in spans))
+    lines.append("| （参考）全着地の合計 | %s |" % " | ".join(cell(s[1], lambda r: r[2]) for s in spans))
+    lines.append("")
+    lines.append("- 記事着地＝ランディングページが /posts/<slug> のセッション。群は検索＝*/organic・"
+                 "SNS＝Pinterest・Threads・X・その他＝直接とそれ以外の参照元")
+    lines += notes
+    return lines
 
 
 def _build_ga4_source_landing_summary(since_date, until_date):
@@ -1455,6 +1527,8 @@ def _build_ga4_source_landing_summary(since_date, until_date):
         _fmt_int(sum(r.get("activeUsers") or 0 for r in series)),
         _fmt_int(sum(r.get("screenPageViews") or 0 for r in series)),
         "（--limit に達しており下限値）" if totals.get("is_lower_bound") else ""))
+    # 記事着地の週計は表の前に置く（4,000字の行単位の切り詰めで消えないように）
+    lines += [""] + _build_article_landing_section(since_date, until_date, payload)
     lines += ["", "| 参照元 / メディア | ランディングページ | sessions | users | PV |", "|---|---|---|---|---|"]
     for rec in series[:SOURCE_LANDING_TOP_N]:
         lines.append("| %s | %s | %s | %s | %s |" % (

@@ -16,6 +16,7 @@ r"""W43監査の採用指示で足した公開前チェックの再発防止テ�
   H check-fact-source.py のカテゴリE「初の」が「最初の」「当初の」に当たらない（L090）／
     check-anchor-consistency.py --fix の早見表アンカー自動付与（L049）
   I check-product-links.py の確認対象（OK以外かつ直近7日PV20以上・D-0331）
+  J check-product-links.py の identify_item（itemCode推測の400で止まらない・呼び出し回数の上限・L128）
 
 本物の記事・ピン・台帳には触れない。A・C は一時ディレクトリにダミーを作り、B は判定関数へ
 ダミーの台帳と日付を渡す。一時ディレクトリは終了時に必ず消す。
@@ -931,6 +932,73 @@ def case_i(results, root):
     results.append(("確認対象: OK以外が0件でも「確認対象 0件」", n == 0 and text.startswith("確認対象 0件"), text))
 
 
+def case_j(results):
+    """L128: check-product-links.py の identify_item（--item と週次の全件の共通の特定）。
+    楽天APIは呼ばず、偽のクライアントで段の順序・400の扱い・呼び出し回数の上限だけを確かめる。"""
+    cpl = _load("check-product-links.py")
+
+    class Fake:
+        def __init__(self, items_by_code=None, search_hits=None, page_count=99, bad_code=True):
+            self.items_by_code = items_by_code or {}
+            self.search_hits = search_hits or {}  # (kind, keyword or page) -> [item]
+            self.page_count = page_count
+            self.bad_code = bad_code
+            self.calls = []
+            self.last_page_count = 0
+
+        def search(self, kind, **params):
+            self.calls.append((kind, params))
+            if kind == "itemCode":
+                if self.bad_code and params["itemCode"] not in self.items_by_code:
+                    raise cpl.ApiError('HTTP 400 {"error":"wrong_parameter"}')
+                return self.items_by_code.get(params["itemCode"], [])
+            self.last_page_count = self.page_count
+            key = params.get("page") if kind == "店舗内検索" else params.get("keyword")
+            return self.search_hits.get((kind, key), [])
+
+    def item(shop, path, code):
+        return {"itemCode": code, "itemUrl": "https://item.rakuten.co.jp/%s/%s/?rafcid=x" % (shop, path)}
+
+    url = "https://item.rakuten.co.jp/natural-riddim/herbtea-00r3000/"
+    target = item("natural-riddim", "herbtea-00r3000", "natural-riddim:10000060")
+    other = item("natural-riddim", "herbtea-014", "natural-riddim:10000219")
+
+    f = Fake(search_hits={("id検索", "00r3000"): [target]})
+    got, method, errors = cpl.identify_item(f, url, "natural-riddim", "herbtea-00r3000")
+    results.append(("特定: itemCode の推測が400でも止まらず、IDから選んだ1語の検索で見つける（エラーに数えない）",
+                    got is target and method == "id検索" and errors == [] and f.calls[0][0] == "itemCode"
+                    and [c[1].get("keyword") for c in f.calls[1:]] == ["herbtea-00r3000", "00r3000"], f.calls))
+
+    f = Fake(search_hits={("店舗内検索", 2): [other, target]})
+    got, method, errors = cpl.identify_item(f, url, "natural-riddim", "herbtea-00r3000")
+    results.append(("特定: 店舗の商品一覧（店舗内検索）の2ページ目で見つける", got is target and method == "店舗内検索", f.calls))
+
+    f = Fake(items_by_code={"flower-may:10000544": [item("flower-may", "10000544", "flower-may:10000544")]})
+    got, method, _ = cpl.identify_item(f, "https://item.rakuten.co.jp/flower-may/10000544/", "flower-may", "10000544")
+    results.append(("特定: 「店舗ID:URL末尾のID」の itemCode の推測が当たれば1回で終わる（code推測）",
+                    got is not None and method == "code推測" and len(f.calls) == 1, f.calls))
+
+    f = Fake(page_count=500)
+    got, method, errors = cpl.identify_item(f, url, "natural-riddim", "herbtea-00r3000",
+                                            name_keywords=["a1", "b2", "c3", "d4", "e5"])
+    shop_calls = [c for c in f.calls if c[0] == "店舗内検索"]
+    name_calls = [c for c in f.calls if c[0] == "名前検索"]
+    results.append(("特定: 見つからないとき、店舗の商品数（500ページ）が多くても呼び出しは固定の上限内（未特定・エラーなし）",
+                    got is None and errors == [] and len(shop_calls) == cpl.MAX_SHOP_PAGES
+                    and len(name_calls) == cpl.MAX_NAME_SEARCHES and len(f.calls) <= 2 + 2 + cpl.MAX_NAME_SEARCHES + cpl.MAX_SHOP_PAGES,
+                    f.calls))
+
+    f = Fake(page_count=1)
+    cpl.identify_item(f, url, "natural-riddim", "herbtea-00r3000")
+    results.append(("特定: 店舗の総ページ数が1なら店舗内検索は1回で止まる",
+                    len([c for c in f.calls if c[0] == "店舗内検索"]) == 1, f.calls))
+
+    token = cpl.id_token_keyword
+    results.append(("特定: 検索語の選び方（数字を含む語→長い語→後ろの語。IDと同じなら無し）",
+                    token("herbtea-00r3000") == "00r3000" and token("10000544") is None and token("ab-cd") is None
+                    and token("10000008-ddd") == "10000008", [token(x) for x in ("herbtea-00r3000", "10000544", "ab-cd", "10000008-ddd")]))
+
+
 def main():
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
@@ -947,6 +1015,7 @@ def main():
         case_g(results, root)
         case_h(results, root)
         case_i(results, root)
+        case_j(results)
     finally:
         shutil.rmtree(root, ignore_errors=True)
     failed = 0

@@ -13,8 +13,11 @@
 
 照会の手順:
   台帳に内部の商品コード（itemCode）が保存されている商品は itemCode で照会する。
-  保存されていない商品は shopCode＋URL末尾のID → shopCode＋商品名 の順で検索し、
-  返ってきた itemUrl が元の商品URLと一致したものだけを採って itemCode を保存する。
+  保存されていない商品は identify_item()（--item と共通・L128）で特定する。順は
+  「店舗ID:URL末尾のID」の itemCode の推測 → 店舗＋URL末尾のIDの検索 → 店舗＋IDから選んだ1語の検索
+  → 店舗＋商品名の検索 → 店舗の商品一覧（キーワードなし）の先頭 MAX_SHOP_PAGES ページ。
+  各段は前の段が0件・HTTP 400でも止まらない。返ってきた itemUrl が元の商品URLと一致したものだけを採って
+  itemCode を保存する。呼び出し回数の上限は固定で、店舗の商品数では増えない。
   商品名は記事のリンク文言（出現順にすべて）から取り、その後に data/link-health.md の商品名を試す
   （名前検索は1商品あたり最大 MAX_NAME_SEARCHES 回）。
 
@@ -41,8 +44,9 @@
   （PreToolUse フック block-rakuten-item-webfetch.py が取得を止める）。代わりにこのモードで楽天APIに照会し、
   itemName・availability・評価・件数・商品URL・itemCaption（商品説明文の全文）を UTF-8 で出す。
   引数は itemCode（例: nenrin:10000862）か商品URL（item.rakuten.co.jp・hb.afl.rakuten.co.jp・af.moshimo.com）。
-  URLのときは、台帳に保存した itemCode → 「店舗ID:URL末尾のID」の itemCode → 店舗ID＋URL末尾のIDの検索の順に試し、
-  返った itemUrl が元のURLと一致したものだけを採る。
+  URLのときは identify_item()（引数なしの全件と共通）で、台帳に保存した itemCode → 「店舗ID:URL末尾のID」の
+  itemCode → 店舗ID＋URL末尾のIDの検索 → IDから選んだ1語の検索 → 店舗の商品一覧の先頭 MAX_SHOP_PAGES ページの順に試し、
+  返った itemUrl が元のURLと一致したものだけを採る。itemCode の推測が HTTP 400 や0件でも止まらない（L128）。
   照会に成功したら、素の商品URLを data/webfetch-log.md に識別子 rakuten-api で記録する
   （record-webfetch.py の record_url を共用。記事の出典として check-source-fetched.py の照合を通すため）。
   0件・エラーのときは記録しない（終了コード1）。data/product-link-status.tsv は書かない。
@@ -84,6 +88,7 @@ _spec.loader.exec_module(frp)
 CALL_INTERVAL_SECONDS = 1.1
 SEARCH_HITS = 30
 MAX_NAME_SEARCHES = 3  # 1商品あたりの名前検索の上限（未特定の商品で呼び出しが膨らまないように）
+MAX_SHOP_PAGES = 3  # 1商品あたりの店舗内検索（キーワードなし・店舗の商品一覧）のページ数の上限。店舗の商品数では増えない（L128）
 
 HEADER = ["商品URL", "店舗ID", "URL末尾のID", "内部の商品コード", "状態", "availability",
           "評価", "件数", "使用記事", "最終照会日", "特定方法"]
@@ -278,11 +283,13 @@ class Client:
         if not self.app_id or not self.access_key:
             raise RuntimeError("data/.rakuten-credentials または環境変数に RAKUTEN_APP_ID / RAKUTEN_ACCESS_KEY が見つからない")
         self.last_call = 0.0
-        self.calls = {"itemCode": 0, "id検索": 0, "名前検索": 0}
+        self.last_page_count = 0  # 直近の search() が返した総ページ数（店舗内検索の打ち切り判定に使う）
+        self.calls = {"itemCode": 0, "id検索": 0, "名前検索": 0, "店舗内検索": 0}
 
     def search(self, kind, **params):
         """IchibaItem/Search を呼んで Items（Itemの中身のリスト）を返す。0件の 404 も空リストとして返す。"""
         self.calls[kind] += 1
+        self.last_page_count = 0
         query = {
             "applicationId": self.app_id,
             "accessKey": self.access_key,
@@ -321,6 +328,7 @@ class Client:
             if body.get("error") == "not_found":
                 return []
             raise ApiError("APIエラー %s %s" % (body.get("error"), body.get("error_description", "")))
+        self.last_page_count = int(body.get("pageCount") or 0)
         return [it.get("Item", it) for it in body.get("Items", [])]
 
 
@@ -339,6 +347,81 @@ def name_keyword(name):
             break
         kept.append(w)
     return " ".join(kept)
+
+
+def id_token_keyword(item_id):
+    """URL末尾のIDから、検索に使う1語を選ぶ（楽天のキーワード検索はハイフンを含むIDそのままでは当たらない）。
+
+    例: herbtea-00r3000 → 00r3000（実測: 全体では0件・00r3000で1件・natural-riddim）。
+    3文字以上の語のうち、数字を含むもの→長いもの→後ろのものの順で1語だけ選ぶ。IDそのものと同じなら None。
+    """
+    tokens = [t for t in re.split(r"[^0-9A-Za-z]+", item_id) if len(t) >= 3 and t != item_id]
+    if not tokens:
+        return None
+    best = max(enumerate(tokens), key=lambda p: (bool(re.search(r"\d", p[1])), len(p[1]), p[0]))
+    return best[1]
+
+
+def identify_item(client, url, shop, item_id, saved_code="", name_keywords=()):
+    """商品URLから1商品を特定し、(Itemの中身, 特定方法, エラーのリスト) を返す。見つからなければ (None, "", エラー)。
+
+    返った itemUrl が元の商品URLと一致したものだけを採る。--item と引数なし（週次の全件）の両方がこの関数を使う（L128）。
+    各段は前の段が0件でもHTTP 400でも止まらず、次の段へ進む。1商品あたりのAPI呼び出しの上限は固定
+    （itemCode 最大2・id検索 2・名前検索 MAX_NAME_SEARCHES・店舗内検索 MAX_SHOP_PAGES）で、店舗の商品数では増えない。
+      1. 台帳に保存した itemCode（あれば）  2. 「店舗ID:URL末尾のID」の itemCode の推測（URL末尾のIDと itemCode が
+      一致しない店舗では HTTP 400 や0件になるが、エラーにしない）  3. 店舗ID＋URL末尾のIDの検索
+      4. 店舗ID＋URL末尾のIDから選んだ1語の検索  5. 店舗ID＋商品名の検索
+      6. キーワードなしの店舗の商品一覧を先頭から MAX_SHOP_PAGES ページまで
+    """
+
+    def matches(item):
+        return normalize_item_url(frp.plain_item_url(item)) == url
+
+    errors = []
+    codes = []  # (itemCode, 特定方法)
+    if saved_code:
+        codes.append((saved_code, "code"))
+    guess = "%s:%s" % (shop, item_id)
+    if guess != saved_code:
+        codes.append((guess, "code推測"))
+    for code, method in codes:
+        try:
+            items = client.search("itemCode", itemCode=code)
+        except ApiError as e:
+            if method != "code推測" or "HTTP 400" not in str(e):  # 推測の400は「その形のitemCodeが無い」だけ
+                errors.append("itemCode %s: %s" % (code, e))
+            continue
+        for item in items:
+            if matches(item):
+                return item, method, errors
+
+    searches = [("id検索", dict(keyword=item_id))]
+    token = id_token_keyword(item_id)
+    if token:
+        searches.append(("id検索", dict(keyword=token)))
+    searches += [("名前検索", dict(keyword=kw)) for kw in list(name_keywords)[:MAX_NAME_SEARCHES]]
+    for kind, extra in searches:
+        try:
+            items = client.search(kind, shopCode=shop, hits=SEARCH_HITS, **extra)
+        except ApiError as e:
+            errors.append("%s: %s" % (kind, e))
+            continue
+        for item in items:
+            if matches(item):
+                return item, kind, errors
+
+    for page in range(1, MAX_SHOP_PAGES + 1):
+        try:
+            items = client.search("店舗内検索", shopCode=shop, hits=SEARCH_HITS, page=page)
+        except ApiError as e:
+            errors.append("店舗内検索: %s" % e)
+            break
+        for item in items:
+            if matches(item):
+                return item, "店舗内検索", errors
+        if page >= client.last_page_count:
+            break
+    return None, "", errors
 
 
 def check_product(client, url, product, saved, lh_lines):
@@ -381,19 +464,11 @@ def check_product(client, url, product, saved, lh_lines):
         keyword = name_keyword(name) if name else ""
         if keyword and keyword not in keywords:
             keywords.append(keyword)
-    attempts = [("id検索", product["item"])] + [("名前検索", kw) for kw in keywords[:MAX_NAME_SEARCHES]]
-    errors = []
-    for kind, kw in attempts:
-        try:
-            items = client.search(kind, shopCode=product["shop"], keyword=kw, hits=SEARCH_HITS)
-        except ApiError as e:
-            errors.append("%s: %s" % (kind, e))
-            continue
-        for item in items:
-            if normalize_item_url(item.get("itemUrl", "")) == url:
-                fill(item)
-                row["特定方法"] = kind
-                return row, ""
+    item, method, errors = identify_item(client, url, product["shop"], product["item"], name_keywords=keywords)
+    if item is not None:
+        fill(item)
+        row["特定方法"] = method
+        return row, ""
     row["状態"] = "照会失敗" if errors else "未特定"
     note = " / ".join(errors) if errors else ("商品名なし" if not keywords else "")
     return row, note
@@ -422,20 +497,14 @@ def lookup_item(client, arg):
     if not parts:
         return None, "楽天の商品URL（item.rakuten.co.jp/<店舗>/<ID>/ またはそのアフィリエイトリンク）として読めない: %s" % arg
     url, shop, item_id = parts
-    codes = []
     saved_code = (load_status().get(url) or {}).get("内部の商品コード", "")
-    if saved_code:
-        codes.append(saved_code)
-    if "%s:%s" % (shop, item_id) not in codes:
-        codes.append("%s:%s" % (shop, item_id))
-    for code in codes:
-        for item in client.search("itemCode", itemCode=code):
-            if normalize_item_url(frp.plain_item_url(item)) == url:
-                return item, url
-    for item in client.search("id検索", shopCode=shop, keyword=item_id, hits=SEARCH_HITS):
-        if normalize_item_url(frp.plain_item_url(item)) == url:
-            return item, url
-    return None, "%s は楽天APIで見つからない（itemCode %s・店舗ID＋IDの検索で一致なし）" % (url, " / ".join(codes))
+    item, method, errors = identify_item(client, url, shop, item_id, saved_code=saved_code)
+    if item is not None:
+        return item, url
+    if errors:
+        raise ApiError("; ".join(errors))
+    return None, ("%s は楽天APIで見つからない（itemCode の推測・店舗ID＋URL末尾のIDの検索・店舗の商品一覧の先頭%dページで一致なし）"
+                  % (url, MAX_SHOP_PAGES))
 
 
 def run_item_mode(arg):
@@ -541,8 +610,9 @@ def main():
     else:
         print("--limit 指定のため台帳は更新していない")
 
-    print("所要 %d分%02d秒 / API呼び出し itemCode照会 %d回・id検索 %d回・名前検索 %d回" % (
-        elapsed // 60, elapsed % 60, client.calls["itemCode"], client.calls["id検索"], client.calls["名前検索"]))
+    print("所要 %d分%02d秒 / API呼び出し itemCode照会 %d回・id検索 %d回・名前検索 %d回・店舗内検索 %d回" % (
+        elapsed // 60, elapsed % 60, client.calls["itemCode"], client.calls["id検索"], client.calls["名前検索"],
+        client.calls["店舗内検索"]))
     methods = {}
     for row in rows:
         methods[row["特定方法"]] = methods.get(row["特定方法"], 0) + 1
