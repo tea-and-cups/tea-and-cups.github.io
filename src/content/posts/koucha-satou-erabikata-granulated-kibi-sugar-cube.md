@@ -2,7 +2,7 @@
 title: 紅茶に合う砂糖の選び方：グラニュー糖・きび砂糖・角砂糖を味わいと使い方で比べる
 slug: koucha-satou-erabikata-granulated-kibi-sugar-cube
 date: 2026-11-21
-updated: 2026-11-21
+updated: 2026-11-22
 description: 紅茶に入れる砂糖を、グラニュー糖・きび砂糖・角砂糖の3タイプで整理。味わい・溶けやすさ・使う場面の違いと、楽天で買える3点（グラニュー糖2種・きび砂糖スティック）を比べます。
 tags: [砂糖, グラニュー糖, きび砂糖, 角砂糖, 紅茶の入れ方, ティータイム]
 hero: /images/koucha-satou-erabikata-granulated-kibi-sugar-cube/hero.webp
@@ -14,7 +14,7 @@ category: how-to
 
 紅茶に砂糖を入れるとき、いつも何となく家にある砂糖を使っていませんか。砂糖の種類によって、紅茶の見た目や後味の印象は変わるといわれます。この記事では、紅茶で使いやすい**グラニュー糖・きび砂糖・角砂糖**の3タイプを、味わい・溶けやすさ・使う場面で整理します。そのうえで、楽天で買える3点を比べます。
 
-なお、商品の情報は楽天市場の各商品ページ（2026年11月時点）で確認した内容です。ページの表示が文字化けして読み取れなかった項目は、読み取れなかったと明記しています。
+なお、商品の情報は楽天市場の各商品ページ（2026年11月時点）の記載で確認した内容です。
 
 ## 3タイプの砂糖の違い
 
@@ -58,7 +58,7 @@ category: how-to
 
 ★4.72（109件） [製菓用グラニュー糖 1kgはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824dfae.7bb8596b.5824dfaf.0ee5f130/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fprofoods%2F10000697%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-商品名に、容量1kgと、お菓子作りやコーヒー・紅茶向けの記載があります。3点のうち評価の件数がもっとも多く、評価と件数のバランスが取れています。ページの本文は文字化けしており、原材料や産地、保存方法、メーカー名は読み取れませんでした。購入前に商品ページで確認してください。毎日の紅茶にも、クッキーなどの焼き菓子にも同じ砂糖を使いたい方に向きます。
+商品名に、容量1kgと、お菓子作りやコーヒー・紅茶向けの記載があります。3点のうち評価の件数がもっとも多く、評価と件数のバランスが取れています。商品説明には、一般のグラニュー糖より粒子が細かい製菓用で、名称はグラニュー糖、原材料は原料糖、内容量は1000gと記載があります。保存方法は、直射日光と高温多湿を避けて常温で、とされています。砂糖は長期保存が可能なため賞味期限は記載していない旨も書かれています。毎日の紅茶にも、クッキーなどの焼き菓子にも同じ砂糖を使いたい方に向きます。
 
 ### 2. きび砂糖 カップシュガー 5g×20本 — 個包装で配りやすい
 
@@ -66,7 +66,7 @@ category: how-to
 
 ★4.63（24件） [きび砂糖 カップシュガー 5g×20本はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/59c727d6.e27f12bb.59c727d8.4aa97a94/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fasuraito%2Fasuraito0189%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-商品名に、きび砂糖、5g×20本のスティックタイプ、1〜3袋から選べる旨の記載があります。1本ずつの個包装なので、来客時にカップの横へ添えたり、持ち歩いたりしやすい形です。ページの本文は文字化けしており、原材料の詳細や賞味期限は読み取れませんでした。評価の件数は3点のうち少なめなので、購入前に商品ページで確認してください。
+商品名に、きび砂糖、5g×20本のスティックタイプ、1〜3袋から選べる旨の記載があります。1本ずつの個包装なので、来客時にカップの横へ添えたり、持ち歩いたりしやすい形です。商品説明には、きび砂糖を顆粒状にしたスティックタイプで、顆粒状で溶けやすいとあり、原材料は砂糖、保存方法は高温・多湿を避けて、と記載があります。賞味期限の記載は見当たりませんでした。評価の件数は3点のうち少なめなので、購入前に商品ページで確認してください。
 
 ### 3. スプーン印 グラニュー糖 1kg — ブランドで選ぶグラニュー糖
 
@@ -74,7 +74,7 @@ category: how-to
 
 ★4.45（49件） [スプーン印 グラニュー糖 1kgはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824dfae.7bb8596b.5824dfaf.0ee5f130/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fprofoods%2F10000696%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-商品名に、ブランドの「スプーン印」と容量1kg、お菓子作りやコーヒー・紅茶向けの記載があります。上の製菓用グラニュー糖と同じ販売店の商品で、ブランドの違いで選ぶ位置づけです。両者の味や溶け方の違いは、商品ページから読み取れた情報がなく、この記事では比較していません。ページの本文は文字化けしており、仕様の詳細は読み取れませんでした。購入前に商品ページで確認してください。
+商品名に、ブランドの「スプーン印」と容量1kg、お菓子作りやコーヒー・紅茶向けの記載があります。上の製菓用グラニュー糖と同じ販売店の商品で、ブランドの違いで選ぶ位置づけです。商品説明には、結晶が上白糖よりやや大きくサラサラしていて、クセがない風味で溶けやすいと記載があります。原材料は原料糖（オーストラリア製造または国内製造）、製造者はDM三井製糖株式会社、内容量は1kgです。保存方法には、虫の侵入やにおい移りを防ぐため密閉できる容器に入れるよう書かれています。両者の味や溶け方の違いはこの記事では比較していません。購入前に商品ページで確認してください。
 
 出典：各商品の楽天市場の商品ページ（2026年11月時点）。
 
@@ -99,4 +99,4 @@ category: how-to
 
 ## まとめ：味わいと使う場面で砂糖を選ぶ
 
-紅茶の砂糖は、**味わい・内容量・使う場面**の3点から選ぶと迷いにくくなります。読み取れなかった項目は、購入前に商品ページで確認してください。
+紅茶の砂糖は、**味わい・内容量・使う場面**の3点から選ぶと迷いにくくなります。商品ページに記載が見当たらなかった項目は、購入前にあらためて確認してください。
