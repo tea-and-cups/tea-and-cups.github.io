@@ -2,7 +2,7 @@
 title: 冬至のゆず紅茶｜ゆず湯の風習と、ゆずで楽しむ3つの紅茶の飲み方
 slug: toji-yuzu-koucha-oyatsu
 date: 2026-10-25
-updated: 2026-11-01
+updated: 2026-11-22
 description: 冬至にゆず湯へ入る風習を農林水産省の資料で確認し、ゆずの香りを紅茶で楽しむ3つの方法（ゆず入りティーバッグ・ゆず茶を加える・飲み比べセット）を整理しました。楽天で買える3商品も紹介します。
 tags: [冬至, ゆず, ゆず紅茶, 柚子, 和紅茶, 冬, 12月]
 hero: /images/toji-yuzu-koucha-oyatsu/hero.webp
@@ -40,11 +40,11 @@ category: seasons
 
 ### 2. ゆず茶を熱い紅茶に加える — 甘みのあるゆずを足したい方へ
 
-ゆず茶は、ゆずの皮や果肉を砂糖やはちみつで漬けた、ペーストやジャム状の飲み物のもとです。お湯に溶いて飲むものですが、熱い紅茶に加えるアレンジもあります。
+ゆず茶は、ゆずの皮や果肉を砂糖やはちみつで漬けた、ペーストやジャム状の飲み物のもとです。お湯に溶いて飲むものです。この記事では、熱い紅茶に加える飲み方を当サイトからの提案として紹介します。
 
 [![馬路村 ゆず茶 400g](/images/toji-yuzu-koucha-oyatsu/products/1.webp)](https://hb.afl.rakuten.co.jp/ichiba/58c90fc3.b8a486f9.58c90fc4.225aefc3/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fumajimura%2F10000015%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.82（134件） [馬路村 ゆず茶 400gはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/58c90fc3.b8a486f9.58c90fc4.225aefc3/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fumajimura%2F10000015%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
+★4.82（135件） [馬路村 ゆず茶 400gはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/58c90fc3.b8a486f9.58c90fc4.225aefc3/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fumajimura%2F10000015%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 馬路村農業協同組合のゆず茶で、内容量は400g、原材料はゆず（高知県産）、グラニュー糖、はちみつ、オリゴ糖、増粘剤（ペクチン）と記載されています。賞味期限は製造日から6か月です。商品ページには、お湯を注ぐだけで本格的なゆず茶が楽しめるとの案内があります。
 
@@ -54,11 +54,11 @@ category: seasons
 
 ゆずが好みに合うか分からないときは、ゆず以外のフレーバーも入った飲み比べセットで1包だけ試す方法があります。
 
-★4.57（21件） [ボタニカル和紅茶 ティーバッグ 4種 飲み比べ 8包はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/585c5b74.96876a27.585c5b75.ce947010/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fhita-ten%2Ftea-bag1000-d%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
+★4.59（22件） [ボタニカル和紅茶 ティーバッグ 4種 飲み比べ 8包はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/585c5b74.96876a27.585c5b75.ce947010/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fhita-ten%2Ftea-bag1000-d%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
 2g入りのティーバッグが計8包で、内訳は九州ブレンドが4包、レモングラス和紅茶が2包、ゆず和紅茶が1包、生姜和紅茶が1包と記載されています。ゆず和紅茶の原材料は紅茶（福岡県産）とゆず（国産）で、商品名には香料不使用とあります。ゆずの袋は1包のみなので、ゆず紅茶を何杯も飲みたい方には、方法1のように袋数の多い商品のほうが合います。生姜入りの紅茶に興味がある方は[しょうが紅茶の作り方](/posts/shoga-koucha-tsukurikata/)も参考にしてください。
 
-出典：各商品の楽天市場の商品ページ（2026年10月時点）。レビューの評価と件数も同じページの表示です。
+出典：各商品の楽天市場の商品ページ（2026年11月22日時点）。レビューの評価と件数も同じページの表示です。
 
 ## 冬至の日の過ごし方に合わせて
 
@@ -67,18 +67,16 @@ category: seasons
 ## 飲むときの注意
 
 - **はちみつを含む商品**：ゆず茶など、はちみつ入りのものは1歳未満の乳児には与えないでください（出典: [消費者庁「ハチミツによる乳児のボツリヌス症」](https://www.caa.go.jp/policies/policy/consumer_safety/food_safety/food_safety_portal/microorganism_virus/contents_001)）
-- **カフェイン**：紅茶にはカフェインが含まれます。夜に飲む方や、子ども、カフェインを控えたい方は[紅茶のカフェイン量Q&A](/posts/koucha-caffeine-ryou-qa/)も確認してください
-- **アレルギー・持病・服薬**：柑橘類にアレルギーのある方は、原材料表示を確認してください。持病のある方、妊娠中や授乳中の方、薬を服用中の方は、気になる場合は医師や薬剤師に相談すると安心です
-- **熱さ**：熱い紅茶にゆず茶を加えるときは、やけどに注意してください
+- **カフェイン**：紅茶にはカフェインが含まれます。量については[紅茶のカフェイン量Q&A](/posts/koucha-caffeine-ryou-qa/)にまとめています
 
 ## よくある質問
 
 **Q. ゆず湯に使ったゆずを紅茶に入れてもよいですか？**
-湯船に入れたゆずを飲食に使ってよいかは、確認できた資料がありません。紅茶には、食品として販売されているゆず入りの商品を使うほうが安心です。
+湯船に入れたゆずを飲食に使うことについては、確認できた資料がないため、この記事では扱っていません。
 
 **Q. ゆずを紅茶に入れると、かぜをひきにくくなりますか？**
 農林水産省の資料に書かれているのは、冬至にゆず湯へ入る風習と、かぜをひかないという言い伝えです。ゆず入りの紅茶に同じ働きがあるという根拠は、確認できませんでした。
 
 ## まとめ：冬至はカップの中でもゆずを
 
-冬至は12月22日ごろで、ゆず湯に入る風習は農林水産省の資料でも紹介されています。ゆずの香りを紅茶で楽しむなら、手軽なゆず入りティーバッグ、甘みのあるゆず茶を熱い紅茶に溶かす方法、飲み比べセットの3つが選択肢です。12月22日ごろまでにはまだ時間があるので、早めに好みの方法を選んでおくと、当日に慌てずに済みます。
+冬至は12月22日ごろで、ゆず湯に入る風習は農林水産省の資料でも紹介されています。ゆずの香りを紅茶で楽しむなら、手軽なゆず入りティーバッグ、甘みのあるゆず茶を熱い紅茶に溶かす方法、飲み比べセットの3つが選択肢です。当日に慌てないよう、あらかじめ好みの方法を選んでおくのも一案です。
