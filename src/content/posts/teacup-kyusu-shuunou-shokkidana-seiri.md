@@ -2,71 +2,60 @@
 title: ティーカップ・急須の収納と食器棚整理術：来客シーズン前に整える
 slug: teacup-kyusu-shuunou-shokkidana-seiri
 date: 2026-08-25
-updated: 2026-08-25
-description: ティーカップや急須は形や重さがバラバラで、食器棚の中でぶつけて欠けてしまいがちです。収納の基本ルールと、整理に役立つ便利グッズをご紹介します。
+updated: 2026-11-22
+description: ティーカップや急須は形や重さがバラバラで、食器棚の中で出し入れしにくくなりがちです。収納の考え方と、整理に役立つ便利グッズをご紹介します。
 tags: [紅茶, ティーカップ, 急須, 収納]
 hero: /images/teacup-kyusu-shuunou-shokkidana-seiri/hero.webp
 status: published
 category: care
 ---
 
-※当サイトはアフィリエイト広告（楽天アフィリエイト・もしもアフィリエイト）を利用しています。
+※当サイトはアフィリエイト広告（楽天アフィリエイト）を利用しています。
 
-ティーカップや急須は、お皿と違って重ねにくい形をしているものがほとんどです。取っ手が引っかかったり、注ぎ口が隣の食器に当たったりして、気づけば食器棚の中がぎゅうぎゅう詰めになっている、という方も多いのではないでしょうか。特に秋は来客が増える季節でもあり、急に人数分のカップをそろえて出そうとしたら奥のカップにヒビが入っていた、という経験談も耳にします。この記事では、ティーカップ・急須を長持ちさせる収納の基本と、整理に役立つ便利グッズをご紹介します。お手入れそのものについて詳しく知りたい方は、[ティーカップの食洗機・電子レンジ対応Q&A記事](/posts/teacup-shokusenki-denshirenji-otenire-qa/)もあわせてご覧ください。
+ティーカップや急須は、お皿と違って重ねにくい形をしているものがほとんどです。取っ手が引っかかったり、注ぎ口が隣の食器に当たったりして、気づけば食器棚の中がぎゅうぎゅう詰めになっている、という方も多いのではないでしょうか。この記事では、ティーカップ・急須の収納の考え方と、整理に役立つ便利グッズ（滑り止めシート・仕切りトレー）をご紹介します。来客が増える時期の前に食器棚を見直したいときの参考にもなります。お手入れそのものは、[ティーカップの食洗機・電子レンジ対応Q&A記事](/posts/teacup-shokusenki-denshirenji-otenire-qa/)で扱っています。
 
-## ティーカップ・急須が欠けやすい3つの原因
+## 食器棚で出し入れしにくくなる2つの原因
 
-1. **重ねて収納している** — カップ同士を直接重ねると、縁同士が擦れて小さな傷や欠けの原因になります。特に金彩・銀彩が施されたカップは装飾が薄く剥がれやすいため注意が必要です。
-2. **取っ手や注ぎ口の向きがそろっていない** — 急須の注ぎ口やカップの取っ手が隣の食器に向いていると、出し入れのたびにぶつかりやすくなります。
-3. **奥にしまい込んで出番が減っている** — 手前の食器を取るために奥のカップを動かす機会が増えるほど、ぶつける確率も上がります。よく使うものほど手前に置くのが鉄則です。
+1. **取っ手や注ぎ口の向きがそろっていない** — 急須の注ぎ口やカップの取っ手が隣の食器に向いていると、出し入れのたびに当たりやすくなります。
+2. **奥にしまい込んで出番が減っている** — 手前の食器を取るために奥のカップを動かす機会が増えます。よく使うものほど手前に置くと、動かす回数を減らせます。
 
 ## 収納の基本ルール
 
-- **カップ同士は直接重ねず、間に緩衝材を挟む** — 布や専用シートを一枚挟むだけで、擦れによる傷を大きく減らせます。
-- **急須は注ぎ口を奥や棚の隙間側に向ける** — 出し入れの動線上に注ぎ口が来ないようにするだけで、うっかりぶつける回数が減ります。
-- **滑り止めシートを棚板に敷く** — 食器棚の開け閉めの振動でカップが少しずつ動いてしまうことがあります。滑り止めシートを敷いておくと、位置がずれにくくなります。
+- **カップ同士は直接重ねず、間に緩衝材を挟む** — 縁同士が直接触れにくくなります。布や専用シートを一枚挟む方法があります。
+- **急須は注ぎ口を奥や棚の隙間側に向ける** — 出し入れの動線上に注ぎ口が来ないようにすると、当たりにくくなります。
+- **滑り止めシートを棚板に敷く** — 棚板に滑り止めシートを敷いておくと、食器の位置がずれにくくなります。
 
 ## おすすめの一品：食器棚の滑り止めシート
 
-[![食器棚 シート滑り止めシート 60×150cm 透明EVA製](/images/teacup-kyusu-shuunou-shokkidana-seiri/products/2.webp)](https://hb.afl.rakuten.co.jp/ichiba/5824ed9d.745d3e95.5824ed9e.1972103a/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fforinessshop%2F2203081603%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
+[![食器棚シート ノンスリップ棚シート 30×120cm 日本製](/images/teacup-kyusu-shuunou-shokkidana-seiri/products/1.webp)](https://hb.afl.rakuten.co.jp/ichiba/58247f8e.e350b5bf.58247f8f.741d9ada/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Flivingut%2F264462%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-★4.57（167件） [食器棚シート滑り止めシートはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824ed9d.745d3e95.5824ed9e.1972103a/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fforinessshop%2F2203081603%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
+★4.73（33件） [食器棚シート ノンスリップ棚シートはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/58247f8e.e350b5bf.58247f8f.741d9ada/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Flivingut%2F264462%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-透明なEVA製で、棚板の色や柄を邪魔せずに敷けるシートです。ハサミで自由にカットできるため、食器棚の棚板サイズに合わせて調整しやすいのも扱いやすいポイントです。防湿・防カビ効果もあるとされ、湿気がこもりやすい食器棚のケア用品としても選びやすい商品といえるでしょう。イチ押しできる高評価の一品です。
+サイズは約30×120cm、材質はEVA樹脂で、日本製と表示されているシートです。透明なメッシュ状で、棚板の雰囲気を活かして敷けるとされています。ハサミで好きなサイズにカットできるため、棚板に合わせて調整できます。食器を置くときの音をやわらげ、棚板の保護にもなると説明されています。なお、商品ページには「横揺れによる食器のすべり落ち防止効果はあるが、縦揺れによるすべり落ちや食器棚自体の転倒を防ぐ効果はない」と注記されています。
 
 ## 引き出し・小物の整理には仕切りトレーが便利
 
 ティーポットに添えるティースプーンや茶こしなど、細々とした小物は引き出しの中でバラバラになりがちです。伸縮式の仕切りトレーを使えば、引き出しのサイズに合わせて調整しながら小物を分類できます。
 
-★4.66（116件） [山崎実業 tower 伸縮＆スライドカトラリートレーはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824e8e5.b528fa33.5824e8e6.472f80ac/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fimportshopaqua%2Faq000456%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
+★4.66（117件） [山崎実業 tower 伸縮＆スライドカトラリートレーはこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/5824e8e5.b528fa33.5824e8e6.472f80ac/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fimportshopaqua%2Faq000456%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-奥行きが伸縮するため、引き出しのサイズに合わせてぴったりと収まります。上段にはティースプーンのような小さな道具を、下段には茶こしや計量スプーンなど少し大きめの道具を分けて置けるのが便利な点です。上段トレーが半透明になっており、下段に置いた道具も透けて見えるため、必要な道具をさっと取り出せます。インテリア雑貨として実績のあるブランドの商品で、高評価の一品として検討しやすいでしょう。
+奥行きが伸縮するため、引き出しのサイズに合わせてぴったりと収まります。上段にはティースプーンのような小さな道具を、下段には茶こしや計量スプーンなど少し大きめの道具を分けて置けるのが便利な点です。上段トレーが半透明になっており、下段に置いた道具も透けて見えるため、必要な道具をさっと取り出せます。引き出しのサイズに合わせて選びやすいトレーです。
 
-## 食器棚全体を保護したいなら、汎用タイプの滑り止めシートも
+## 棚が多いなら、ロールタイプの滑り止めシートも
 
-すでに専用シートを使っている棚以外にも、本棚やキャビネットなど家じゅうの滑り対策をまとめて済ませたい場合は、汎用タイプのシートを検討する方法もあります。
+食器棚の段数が多い場合は、必要な長さだけ切って使えるロールタイプを選ぶ方法もあります。
 
-★4.19（1,053件） [HINODEノンスリップシートはこちら（楽天市場）](https://af.moshimo.com/af/c/click?a_id=5712884&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fitem.rakuten.co.jp%2Fotome%2Fhdnzot0010%2F)
+[![食器棚 滑り止めシート ダイヤ柄 EVA製 ロールタイプ](/images/teacup-kyusu-shuunou-shokkidana-seiri/products/2.webp)](https://hb.afl.rakuten.co.jp/ichiba/59d28688.4db8003e.59d28689.c212c7e5/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fbelltree%2Fr1-sheet02%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
 
-フリーカットできる薄手のシートで、食器棚だけでなく本棚や家具の下敷きとしても使い回せます。レビュー件数が非常に多く、幅広い用途で長く支持されてきた商品です。バランスの取れた選択肢として、まず1枚試してみたい方に向いています。
+★4.58（65件） [食器棚 滑り止めシート ダイヤ柄（ロールタイプ）はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/ichiba/59d28688.4db8003e.59d28689.c212c7e5/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fbelltree%2Fr1-sheet02%2F&link_type=picttext&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJwaWN0dGV4dCIsInNpemUiOiI0MDB4NDAwIiwibmFtIjoxLCJuYW1wIjoicmlnaHQiLCJjb20iOjEsImNvbXAiOiJkb3duIiwicHJpY2UiOjEsImJvciI6MSwiY29sIjoxLCJiYnRuIjoxLCJwcm9kIjowLCJhbXAiOmZhbHNlfQ%3D%3D)
+
+EVA素材のロール状で、幅は30cm・45cm・60cm、長さは3mまたは5mから選べると記載されています。ノンスリップ加工とフリーカットに対応し、防水設計とされています。数段分の棚板をまとめて整えたい方に向いています。なお、商品ページでは製造国は中国と記載されています。
 
 ## 来客シーズン前のチェックリスト
 
-- **カップの縁を1つずつ指でなぞって、欠けやヒビがないか確認する** — 小さなヒビは見た目では気づきにくいことがあります。
 - **セットで使うカップ&ソーサーは近くにまとめて置く** — 来客時にあわてて探さずに済みます。
 - **使用頻度の低い来客用食器は、普段使いのものと分けて保管する** — 普段の出し入れで傷つくリスクを減らせます。
 
-## よくある質問
-
-**Q. カップ同士の緩衝材には何を使えばよいですか？**
-専用の食器保護シートのほか、使わなくなった布巾やフェルト生地でも代用できます。厚みがありすぎると棚のスペースを圧迫してしまうため、薄手のものを選ぶとよいでしょう。
-
-**Q. 急須の茶こし部分はどう収納すればよいですか？**
-細かい網目部分は他の食器とぶつかると変形しやすいため、急須本体とは別に、仕切りトレーなど専用のスペースを設けて保管するのがおすすめです。
-
-**Q. 食器棚に湿気がこもるのが気になります。対策はありますか？**
-滑り止めシートの中には防湿・防カビをうたった商品もあります。あわせて、晴れた日に食器棚の扉を開けて換気する習慣をつけると、湿気がこもりにくくなります。
-
 ## まとめ
 
-ティーカップや急須は形が不揃いなぶん、ちょっとした収納の工夫で欠けや傷のリスクを大きく減らせます。滑り止めシートで棚板を保護し、仕切りトレーで小物を整理しておけば、来客時にもあわてず気に入りの一客をすぐに取り出せます。今回ご紹介したアイテムを参考に、来客シーズン前に食器棚を見直してみてはいかがでしょうか。
+ティーカップや急須は形が不揃いなぶん、出し入れしやすい収納に整えておくと使いやすくなります。滑り止めシートで棚板を整え、仕切りトレーで小物を整理しておけば、来客時にもあわてず気に入りの一客をすぐに取り出せます。今回ご紹介したアイテムを参考に、来客シーズン前に食器棚を見直してみてはいかがでしょうか。
