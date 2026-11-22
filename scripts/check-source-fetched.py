@@ -3,7 +3,8 @@
 
 出典の妥当性をAIの自己申告に委ねる限り、実際に見ていないURLを出典として
 書くことを防げない。data/webfetch-log.md（record-webfetch.py が
-PostToolUse フックで自動記録）と突き合わせ、台帳に無いURLがあれば公開を止める。
+PostToolUse フックで自動記録。楽天の商品URLは check-product-links.py --item の
+照会成功時に識別子 rakuten-api で記録・D-0334）と突き合わせ、台帳に無いURLがあれば公開を止める。
 
 【照合の対象外】
   ・af.moshimo.com・hb.afl.rakuten.co.jp のURL（アフィリエイトリンクであり出典ではない・D-0260）
@@ -174,6 +175,8 @@ def main():
     print("対処: 出典として使うURLは実際にWebFetchしてから記事に書く。")
     print("      台帳（data/webfetch-log.md）は直近14日分のみ保持するため、")
     print("      それ以前に取得したURLは取り直すと解消する。")
+    print("      楽天の商品ページ（item.rakuten.co.jp）は WebFetch できない（L102）。")
+    print("      python site/scripts/check-product-links.py --item <商品URL> で照会すると記録される（D-0334）。")
     return 1
 
 

@@ -34,6 +34,18 @@
   python site/scripts/check-product-links.py            # 全件照会して台帳を更新（約5〜8分）
   python site/scripts/check-product-links.py --limit 5  # 先頭5件だけ照会して表示（台帳は書かない）
   python site/scripts/check-product-links.py --targets-only  # 照会せず、既存台帳から「確認対象」だけを表示（書き込みなし）
+  python site/scripts/check-product-links.py --item <itemCode または商品URL>  # 1商品の仕様・在庫・内訳を確かめる（下記）
+
+1商品の照会（--item・D-0334・L102）:
+  楽天の商品ページ（item.rakuten.co.jp）は EUC-JP で返るため、WebFetch では日本語を判読できない
+  （PreToolUse フック block-rakuten-item-webfetch.py が取得を止める）。代わりにこのモードで楽天APIに照会し、
+  itemName・availability・評価・件数・商品URL・itemCaption（商品説明文の全文）を UTF-8 で出す。
+  引数は itemCode（例: nenrin:10000862）か商品URL（item.rakuten.co.jp・hb.afl.rakuten.co.jp・af.moshimo.com）。
+  URLのときは、台帳に保存した itemCode → 「店舗ID:URL末尾のID」の itemCode → 店舗ID＋URL末尾のIDの検索の順に試し、
+  返った itemUrl が元のURLと一致したものだけを採る。
+  照会に成功したら、素の商品URLを data/webfetch-log.md に識別子 rakuten-api で記録する
+  （record-webfetch.py の record_url を共用。記事の出典として check-source-fetched.py の照合を通すため）。
+  0件・エラーのときは記録しない（終了コード1）。data/product-link-status.tsv は書かない。
 
 確認対象（D-0331）:
   OK以外の行のうち、使用記事の直近7日のPVが REVIEW_MIN_PV（20）以上のものだけを「確認対象」として出す
@@ -387,6 +399,78 @@ def check_product(client, url, product, saved, lh_lines):
     return row, note
 
 
+def load_record_webfetch():
+    """record-webfetch.py（台帳 data/webfetch-log.md の書き込みの正本）を読み込む。"""
+    spec = importlib.util.spec_from_file_location(
+        "record_webfetch", os.path.join(os.path.dirname(os.path.abspath(__file__)), "record-webfetch.py")
+    )
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def lookup_item(client, arg):
+    """itemCode か商品URLから1商品を照会し、(Itemの中身, 素の商品URL) を返す。見つからなければ (None, 理由)。"""
+    if "://" not in arg:
+        items = client.search("itemCode", itemCode=arg)
+        if not items:
+            return None, "itemCode %s は楽天APIで0件" % arg
+        item = items[0]
+        return item, normalize_item_url(frp.plain_item_url(item))
+
+    parts = item_url_parts(arg)
+    if not parts:
+        return None, "楽天の商品URL（item.rakuten.co.jp/<店舗>/<ID>/ またはそのアフィリエイトリンク）として読めない: %s" % arg
+    url, shop, item_id = parts
+    codes = []
+    saved_code = (load_status().get(url) or {}).get("内部の商品コード", "")
+    if saved_code:
+        codes.append(saved_code)
+    if "%s:%s" % (shop, item_id) not in codes:
+        codes.append("%s:%s" % (shop, item_id))
+    for code in codes:
+        for item in client.search("itemCode", itemCode=code):
+            if normalize_item_url(frp.plain_item_url(item)) == url:
+                return item, url
+    for item in client.search("id検索", shopCode=shop, keyword=item_id, hits=SEARCH_HITS):
+        if normalize_item_url(frp.plain_item_url(item)) == url:
+            return item, url
+    return None, "%s は楽天APIで見つからない（itemCode %s・店舗ID＋IDの検索で一致なし）" % (url, " / ".join(codes))
+
+
+def run_item_mode(arg):
+    """--item: 1商品の仕様・在庫・内訳を UTF-8 で出し、成功したら素の商品URLを data/webfetch-log.md に記録する。"""
+    try:
+        client = Client()
+        item, info = lookup_item(client, arg)
+    except (RuntimeError, ApiError) as e:
+        print("【エラー】照会に失敗: %s（台帳には記録していない）" % e)
+        return 1
+    if item is None:
+        print("見つからない: %s（台帳には記録していない）" % info)
+        return 1
+    avail = item.get("availability")
+    print("itemName: %s" % item.get("itemName", ""))
+    print("itemCode: %s" % item.get("itemCode", ""))
+    print("availability: %s（%s）" % (avail, "在庫あり" if str(avail) == "1" else "在庫なし"))
+    print("評価: %s／件数: %s" % (item.get("reviewAverage", ""), item.get("reviewCount", "")))
+    print("店舗: %s" % item.get("shopName", ""))
+    print("商品URL: %s" % info)
+    print("--- itemCaption ---")
+    print(item.get("itemCaption", "") or "（itemCaption なし）")
+    print("--- ここまで ---")
+    if not info:
+        print("商品URLを特定できないため台帳には記録していない")
+        return 0
+    try:
+        recorded = load_record_webfetch().record_url(info, "rakuten-api")
+    except Exception as e:  # 記録の失敗は照会結果の表示を妨げない
+        print("【警告】data/webfetch-log.md への記録に失敗: %s" % e)
+        return 0
+    print("data/webfetch-log.md: %s" % ("記録した（rakuten-api）" if recorded else "今日の記録が既にある"))
+    return 0
+
+
 def write_status(rows):
     tmp = STATUS_PATH + ".tmp"
     with open(tmp, "w", encoding="utf-8", newline="\n") as f:
@@ -402,6 +486,8 @@ def main():
 
     limit = None
     args = sys.argv[1:]
+    if len(args) == 2 and args[0] == "--item":
+        sys.exit(run_item_mode(args[1].strip()))
     if args == ["--targets-only"]:
         # 照会も台帳の書き込みもせず、既存台帳から確認対象だけを表示する（D-0331）
         saved = load_status()
@@ -417,7 +503,7 @@ def main():
         if len(args) == 2 and args[0] == "--limit" and args[1].isdigit():
             limit = int(args[1])
         else:
-            print("使い方: python site/scripts/check-product-links.py [--limit N | --targets-only]")
+            print("使い方: python site/scripts/check-product-links.py [--limit N | --targets-only | --item <itemCode または商品URL>]")
             sys.exit(1)
 
     try:
