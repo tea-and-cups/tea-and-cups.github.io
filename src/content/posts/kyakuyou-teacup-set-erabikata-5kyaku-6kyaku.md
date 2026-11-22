@@ -2,7 +2,7 @@
 title: 来客用ティーカップセットの選び方｜5客・6客の目安と年末年始に慌てない見方
 slug: kyakuyou-teacup-set-erabikata-5kyaku-6kyaku
 date: 2026-11-15
-updated: 2026-11-15
+updated: 2026-11-22
 description: 来客用のティーカップセットは、客数・容量・お手入れ・収納の4点で選ぶと迷いにくくなります。5客と6客の考え方と、楽天で買える5客セット3商品を紹介します。
 tags: [ティーカップ, 来客用, カップ&ソーサー, 5客セット, 年末年始, おもてなし]
 hero: /images/kyakuyou-teacup-set-erabikata-5kyaku-6kyaku/hero.webp
@@ -63,7 +63,7 @@ category: teaware
 
 ★4.64（22件） [八角ツイストカップ＆ソーサー 5客セット（Flower&May）はこちら（楽天市場）](https://hb.afl.rakuten.co.jp/hgc/g00qyhjn.w65qke6e.g00qyhjn.w65ql4be/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fflower-may%2F10000544%2F&m=http%3A%2F%2Fm.rakuten.co.jp%2Fflower-may%2Fi%2F10000544%2F&rafcid=wsc_i_is_7a29f0ad-eb8b-4086-a7e9-2c938be76392)
 
-商品名に多治見美濃焼・日本製とあるセットです。ページには、カップの容量が約175ml、高さ約9.3cm、ソーサーが約14.5cm×15.4cmと記載があり、電子レンジと食洗機は「OK」とされていました。材質の欄には記載が見つかりませんでした。レビュー件数は22件で、この記事の3商品の中では最も多くなっています。ページの文字化けで読み取りが不確かな箇所もあるため、詳細は商品ページ https://item.rakuten.co.jp/flower-may/10000544/ の記載をご確認ください。
+商品名に多治見美濃焼・日本製とあるセットです。商品説明には、材質は磁器、カップの容量は満水175cc、カップの幅は9.3cm・高さは7.5cm、ソーサーは14.5cm×15.4cmと記載があり、電子レンジと食洗機は「OK」とされています。アウトレット品を含む商品であることと、スプーンは別売りであることも書かれています。レビュー件数は22件で、この記事の3商品の中では最も多くなっています。詳細は商品ページ https://item.rakuten.co.jp/flower-may/10000544/ の記載をご確認ください。
 
 ### 3. 美濃焼 フローレンス — 日本製の5客セット
 
